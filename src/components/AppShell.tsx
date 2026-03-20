@@ -12,6 +12,7 @@ import {
   QueueListIcon,
   PlusCircleIcon,
 } from "@heroicons/react/24/outline";
+import { GlobalPlayer } from "./GlobalPlayer";
 
 const navItems = [
   { label: "Home", href: "/", icon: HomeIcon },
@@ -55,6 +56,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1 overflow-y-auto pb-20">
         {children}
       </main>
+
+      {/* Global audio player */}
+      <GlobalPlayer />
 
       {/* Bottom nav (mobile) */}
       <nav className="fixed bottom-0 left-0 right-0 z-10 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 max-w-md mx-auto">

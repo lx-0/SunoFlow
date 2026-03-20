@@ -21,11 +21,13 @@ import {
   HeartIcon as HeartOutlineIcon,
   QueueListIcon,
 } from "@heroicons/react/24/outline";
+import { PlayIcon as PlayOutlineIcon } from "@heroicons/react/24/outline";
 import type { Song } from "@prisma/client";
 import { getRatings, type SongRating } from "@/lib/ratings";
 import { downloadSongFile } from "@/lib/download";
 import { exportAsZip, exportAsM3U, type ExportableSong } from "@/lib/export";
 import { useToast } from "./Toast";
+import { useQueue, type QueueSong } from "./QueueContext";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -253,6 +255,19 @@ function AddToPlaylistButton({ songId }: { songId: string }) {
       )}
     </div>
   );
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function songToQueueSong(song: Song): QueueSong | null {
+  if (!song.audioUrl) return null;
+  return {
+    id: song.id,
+    title: song.title,
+    audioUrl: song.audioUrl,
+    imageUrl: song.imageUrl,
+    duration: song.duration,
+  };
 }
 
 // ─── Song row (handles its own polling) ───────────────────────────────────────
@@ -568,7 +583,18 @@ export function LibraryView({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const {
+    queue,
+    currentIndex,
+    isPlaying,
+    currentTime,
+    duration: audioDuration,
+    togglePlay,
+    playQueue,
+    seek,
+  } = useQueue();
+
+  const currentSongId = currentIndex >= 0 ? queue[currentIndex]?.id ?? null : null;
 
   // ─── Filter state (initialized from URL params) ───────────────────────────
   const [searchText, setSearchText] = useState(searchParams.get("q") ?? "");
@@ -584,10 +610,6 @@ export function LibraryView({
   // ─── Song + playback state ────────────────────────────────────────────────
   const [songs, setSongs] = useState<Song[]>(initialSongs);
   const [loading, setLoading] = useState(false);
-  const [currentSongId, setCurrentSongId] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [audioDuration, setAudioDuration] = useState(0);
   const [ratings, setRatings] = useState<Record<string, SongRating>>({});
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
   const [downloadErrors, setDownloadErrors] = useState<Record<string, string>>({});
@@ -619,36 +641,9 @@ export function LibraryView({
     }
   }, [exportMenuOpen]);
 
-  // ─── Init audio element ───────────────────────────────────────────────────
+  // ─── Init ratings ──────────────────────────────────────────────────────────
   useEffect(() => {
     setRatings(getRatings());
-    audioRef.current = new Audio();
-    const audio = audioRef.current;
-
-    const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
-    const onEnded = () => {
-      setIsPlaying(false);
-      setCurrentSongId(null);
-      setCurrentTime(0);
-    };
-    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
-    const onDurationChange = () => setAudioDuration(audio.duration);
-
-    audio.addEventListener("play", onPlay);
-    audio.addEventListener("pause", onPause);
-    audio.addEventListener("ended", onEnded);
-    audio.addEventListener("timeupdate", onTimeUpdate);
-    audio.addEventListener("durationchange", onDurationChange);
-
-    return () => {
-      audio.removeEventListener("play", onPlay);
-      audio.removeEventListener("pause", onPause);
-      audio.removeEventListener("ended", onEnded);
-      audio.removeEventListener("timeupdate", onTimeUpdate);
-      audio.removeEventListener("durationchange", onDurationChange);
-      audio.pause();
-    };
   }, []);
 
   // Reload ratings when returning to the page
@@ -724,23 +719,21 @@ export function LibraryView({
   }, []);
 
   function handleTogglePlay(song: Song) {
-    const audio = audioRef.current;
-    if (!audio || !song.audioUrl) return;
+    const qs = songToQueueSong(song);
+    if (!qs) return;
 
+    // If the song is already in the active queue, toggle it
     if (currentSongId === song.id) {
-      if (isPlaying) {
-        audio.pause();
-      } else {
-        audio.play().catch(console.error);
-      }
-    } else {
-      audio.pause();
-      audio.src = song.audioUrl;
-      setCurrentSongId(song.id);
-      setCurrentTime(0);
-      setAudioDuration(song.duration ?? 0);
-      audio.play().catch(console.error);
+      togglePlay(qs);
+      return;
     }
+
+    // Otherwise, build a queue from all playable songs and start at this one
+    const allQueueSongs = songs
+      .map(songToQueueSong)
+      .filter((s): s is QueueSong => s !== null);
+    const idx = allQueueSongs.findIndex((s) => s.id === song.id);
+    playQueue(allQueueSongs, idx >= 0 ? idx : 0);
   }
 
   async function handleDownload(song: Song) {
@@ -764,9 +757,7 @@ export function LibraryView({
   }
 
   function handleSeek(pct: number) {
-    const audio = audioRef.current;
-    if (!audio || audioDuration <= 0) return;
-    audio.currentTime = pct * audioDuration;
+    seek(pct);
   }
 
   async function handleToggleFavorite(song: Song) {
@@ -934,6 +925,17 @@ export function LibraryView({
     }
   }
 
+  // ─── Play All ──────────────────────────────────────────────────────────────
+  function handlePlayAll() {
+    const allQueueSongs = songs
+      .map(songToQueueSong)
+      .filter((s): s is QueueSong => s !== null);
+    if (allQueueSongs.length > 0) {
+      playQueue(allQueueSongs, 0);
+    }
+  }
+
+  const hasPlayableSongs = songs.some((s) => s.audioUrl && s.generationStatus === "ready");
   const hasActiveFilters = !!(statusFilter || ratingFilter || dateFrom || dateTo);
 
   return (
@@ -1005,6 +1007,17 @@ export function LibraryView({
             Downloading {exportProgress.completed} of {exportProgress.total} songs\u2026
           </p>
         </div>
+      )}
+
+      {/* Play All button */}
+      {hasPlayableSongs && !selectionMode && (
+        <button
+          onClick={handlePlayAll}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors min-h-[44px]"
+        >
+          <PlayOutlineIcon className="w-4 h-4" />
+          Play All
+        </button>
       )}
 
       {/* Search bar + filters */}

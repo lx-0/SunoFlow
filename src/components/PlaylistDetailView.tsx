@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -15,12 +15,24 @@ import {
 import { PlayIcon as PlaySolidIcon } from "@heroicons/react/24/solid";
 import type { Song } from "@prisma/client";
 import { useToast } from "./Toast";
+import { useQueue, type QueueSong } from "./QueueContext";
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function songToQueueSong(song: Song): QueueSong | null {
+  if (!song.audioUrl) return null;
+  return {
+    id: song.id,
+    title: song.title,
+    audioUrl: song.audioUrl,
+    imageUrl: song.imageUrl,
+    duration: song.duration,
+  };
 }
 
 interface PlaylistSongItem {
@@ -45,14 +57,18 @@ export function PlaylistDetailView({
 }) {
   const { toast } = useToast();
   const router = useRouter();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const {
+    queue,
+    currentIndex,
+    isPlaying,
+    togglePlay,
+    playQueue,
+  } = useQueue();
+
+  const currentSongId = currentIndex >= 0 ? queue[currentIndex]?.id ?? null : null;
 
   const [playlist, setPlaylist] = useState(initialPlaylist);
   const [songs, setSongs] = useState(initialPlaylist.songs);
-  const [currentSongId, setCurrentSongId] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [audioDuration, setAudioDuration] = useState(0);
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(initialPlaylist.name);
   const [editDesc, setEditDesc] = useState(initialPlaylist.description || "");
@@ -62,116 +78,32 @@ export function PlaylistDetailView({
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
-  // Create audio element once
-  useEffect(() => {
-    audioRef.current = new Audio();
-    const audio = audioRef.current;
-
-    const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
-    const onEnded = () => {
-      // Play next song
-      const currentIdx = songs.findIndex(
-        (ps) => ps.songId === currentSongId
-      );
-      if (currentIdx >= 0 && currentIdx < songs.length - 1) {
-        const next = songs[currentIdx + 1];
-        if (next.song.audioUrl) {
-          audio.src = next.song.audioUrl;
-          setCurrentSongId(next.songId);
-          setCurrentTime(0);
-          setAudioDuration(next.song.duration ?? 0);
-          audio.play().catch(console.error);
-          return;
-        }
-      }
-      setIsPlaying(false);
-      setCurrentSongId(null);
-      setCurrentTime(0);
-    };
-    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
-    const onDurationChange = () => setAudioDuration(audio.duration);
-
-    audio.addEventListener("play", onPlay);
-    audio.addEventListener("pause", onPause);
-    audio.addEventListener("ended", onEnded);
-    audio.addEventListener("timeupdate", onTimeUpdate);
-    audio.addEventListener("durationchange", onDurationChange);
-
-    return () => {
-      audio.removeEventListener("play", onPlay);
-      audio.removeEventListener("pause", onPause);
-      audio.removeEventListener("ended", onEnded);
-      audio.removeEventListener("timeupdate", onTimeUpdate);
-      audio.removeEventListener("durationchange", onDurationChange);
-      audio.pause();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Update ended handler when songs/currentSongId changes
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const onEnded = () => {
-      const currentIdx = songs.findIndex(
-        (ps) => ps.songId === currentSongId
-      );
-      if (currentIdx >= 0 && currentIdx < songs.length - 1) {
-        const next = songs[currentIdx + 1];
-        if (next.song.audioUrl) {
-          audio.src = next.song.audioUrl;
-          setCurrentSongId(next.songId);
-          setCurrentTime(0);
-          setAudioDuration(next.song.duration ?? 0);
-          audio.play().catch(console.error);
-          return;
-        }
-      }
-      setIsPlaying(false);
-      setCurrentSongId(null);
-      setCurrentTime(0);
-    };
-
-    audio.addEventListener("ended", onEnded);
-    return () => audio.removeEventListener("ended", onEnded);
-  }, [songs, currentSongId]);
+  function buildPlaylistQueue(): QueueSong[] {
+    return songs
+      .map((ps) => songToQueueSong(ps.song))
+      .filter((s): s is QueueSong => s !== null);
+  }
 
   function handleTogglePlay(song: Song) {
-    const audio = audioRef.current;
-    if (!audio || !song.audioUrl) return;
+    const qs = songToQueueSong(song);
+    if (!qs) return;
 
     if (currentSongId === song.id) {
-      if (isPlaying) {
-        audio.pause();
-      } else {
-        audio.play().catch(console.error);
-      }
-    } else {
-      audio.pause();
-      audio.src = song.audioUrl;
-      setCurrentSongId(song.id);
-      setCurrentTime(0);
-      setAudioDuration(song.duration ?? 0);
-      audio.play().catch(console.error);
+      togglePlay(qs);
+      return;
     }
+
+    // Build queue from playlist songs and start at clicked song
+    const queueSongs = buildPlaylistQueue();
+    const idx = queueSongs.findIndex((s) => s.id === song.id);
+    playQueue(queueSongs, idx >= 0 ? idx : 0);
   }
 
   function handlePlayAll() {
-    if (songs.length === 0) return;
-    const first = songs[0];
-    if (!first.song.audioUrl) return;
-
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    audio.pause();
-    audio.src = first.song.audioUrl;
-    setCurrentSongId(first.songId);
-    setCurrentTime(0);
-    setAudioDuration(first.song.duration ?? 0);
-    audio.play().catch(console.error);
+    const queueSongs = buildPlaylistQueue();
+    if (queueSongs.length > 0) {
+      playQueue(queueSongs, 0);
+    }
   }
 
   const handleRemoveSong = useCallback(
@@ -388,44 +320,7 @@ export function PlaylistDetailView({
         </button>
       )}
 
-      {/* Player bar */}
-      {currentSongId && (
-        <div className="bg-white dark:bg-gray-900 border border-violet-600 rounded-xl p-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                const ps = songs.find((s) => s.songId === currentSongId);
-                if (ps) handleTogglePlay(ps.song);
-              }}
-              className="w-10 h-10 rounded-full bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center flex-shrink-0"
-            >
-              {isPlaying ? (
-                <PauseIcon className="w-5 h-5" />
-              ) : (
-                <PlayIcon className="w-5 h-5 ml-0.5" />
-              )}
-            </button>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                {songs.find((s) => s.songId === currentSongId)?.song.title ??
-                  "Untitled"}
-              </p>
-              <div className="flex items-center gap-2 text-xs text-gray-400">
-                <span>{formatTime(currentTime)}</span>
-                <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full">
-                  <div
-                    className="h-full bg-violet-500 rounded-full transition-all"
-                    style={{
-                      width: `${audioDuration > 0 ? (currentTime / audioDuration) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-                <span>{formatTime(audioDuration)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Now playing indicator (global player handles controls) */}
 
       {/* Song list */}
       {songs.length === 0 ? (
