@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   PlayIcon,
@@ -8,7 +8,7 @@ import {
   MusicalNoteIcon,
   ArrowDownTrayIcon,
 } from "@heroicons/react/24/solid";
-import type { SunoSong } from "@/lib/sunoapi";
+import type { Song } from "@prisma/client";
 import { getRatings, type SongRating } from "@/lib/ratings";
 import { downloadSongFile } from "@/lib/download";
 
@@ -79,11 +79,258 @@ const FILTER_OPTIONS: { label: string; value: number }[] = [
   { label: "5★", value: 5 },
 ];
 
+// ─── Status badges ────────────────────────────────────────────────────────────
+
+function GeneratingBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-900/50 border border-violet-700 text-violet-300 text-xs font-medium">
+      <svg
+        className="animate-spin h-3 w-3"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+      </svg>
+      Generating…
+    </span>
+  );
+}
+
+function FailedBadge({ message }: { message?: string | null }) {
+  return (
+    <span
+      className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-900/50 border border-red-700 text-red-300 text-xs font-medium"
+      title={message ?? "Generation failed"}
+    >
+      Failed
+    </span>
+  );
+}
+
+// ─── Polling hook ─────────────────────────────────────────────────────────────
+
+const POLL_INTERVAL_MS = 4000;
+const MAX_POLL_ATTEMPTS = 20;
+
+function usePollSong(song: Song, onUpdate: (updated: Song) => void) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeRef = useRef(true);
+  const attemptsRef = useRef(song.pollCount);
+
+  useEffect(() => {
+    activeRef.current = true;
+    attemptsRef.current = song.pollCount;
+
+    if (song.generationStatus !== "pending") return;
+
+    async function poll() {
+      if (!activeRef.current) return;
+      try {
+        const res = await fetch(`/api/songs/${song.id}/status`);
+        if (!res.ok) return;
+        const data = (await res.json()) as { song: Song };
+        if (!activeRef.current) return;
+        onUpdate(data.song);
+        if (data.song.generationStatus === "pending" && attemptsRef.current < MAX_POLL_ATTEMPTS) {
+          attemptsRef.current++;
+          timerRef.current = setTimeout(poll, POLL_INTERVAL_MS);
+        }
+      } catch {
+        if (activeRef.current) {
+          timerRef.current = setTimeout(poll, POLL_INTERVAL_MS);
+        }
+      }
+    }
+
+    timerRef.current = setTimeout(poll, POLL_INTERVAL_MS);
+
+    return () => {
+      activeRef.current = false;
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [song.id]);
+}
+
+// ─── Song row (handles its own polling) ───────────────────────────────────────
+
+interface SongRowProps {
+  initialSong: Song;
+  isActive: boolean;
+  isPlaying: boolean;
+  currentTime: number;
+  audioDuration: number;
+  rating: SongRating | undefined;
+  downloadProgress: number | null;
+  downloadError: string | null;
+  onTogglePlay: (song: Song) => void;
+  onDownload: (song: Song) => void;
+  onSeek: (pct: number) => void;
+  onUpdate: (updated: Song) => void;
+}
+
+function SongRow({
+  initialSong,
+  isActive,
+  isPlaying,
+  currentTime,
+  audioDuration,
+  rating,
+  downloadProgress,
+  downloadError,
+  onTogglePlay,
+  onDownload,
+  onSeek,
+  onUpdate,
+}: SongRowProps) {
+  const [song, setSong] = useState(initialSong);
+
+  useEffect(() => { setSong(initialSong); }, [initialSong]);
+
+  const handleUpdate = useCallback((updated: Song) => {
+    setSong(updated);
+    onUpdate(updated);
+  }, [onUpdate]);
+
+  usePollSong(song, handleUpdate);
+
+  const isPending = song.generationStatus === "pending";
+  const isFailed = song.generationStatus === "failed";
+  const hasAudio = Boolean(song.audioUrl) && !isPending;
+  const isDownloading = downloadProgress !== null;
+
+  return (
+    <li
+      className={`bg-gray-900 border rounded-xl overflow-hidden transition-colors ${
+        isActive ? "border-violet-600" : "border-gray-800"
+      } ${isPending ? "opacity-75" : ""}`}
+    >
+      <div className="flex items-center gap-3 px-3 pt-3 pb-2">
+        {/* Cover art / placeholder */}
+        <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gray-800 overflow-hidden flex items-center justify-center">
+          {song.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={song.imageUrl} alt={song.title ?? "Song"} className="w-full h-full object-cover" />
+          ) : (
+            <MusicalNoteIcon className="w-6 h-6 text-gray-600" />
+          )}
+        </div>
+
+        {/* Title + meta */}
+        <div className="flex-1 min-w-0">
+          <Link
+            href={`/library/${song.id}`}
+            className="block text-sm font-medium text-white truncate hover:text-violet-400 transition-colors"
+          >
+            {song.title ?? "Untitled"}
+          </Link>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            {isPending && <GeneratingBadge />}
+            {isFailed && <FailedBadge message={song.errorMessage} />}
+            {!isPending && !isFailed && song.tags && (
+              <span className="text-xs text-gray-500 truncate">
+                {song.tags.split(",")[0].trim()}
+              </span>
+            )}
+            {!isPending && song.duration && (
+              <span className="text-xs text-gray-600 flex-shrink-0">
+                {formatTime(song.duration)}
+              </span>
+            )}
+          </div>
+          {rating && (
+            <div className="mt-0.5">
+              <StarDisplay stars={rating.stars} />
+            </div>
+          )}
+        </div>
+
+        {/* Download button */}
+        <button
+          onClick={() => onDownload(song)}
+          disabled={!hasAudio || isDownloading}
+          aria-label={isDownloading ? `Downloading ${downloadProgress}%` : "Download song"}
+          className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+            hasAudio && !isDownloading
+              ? "bg-gray-800 hover:bg-gray-700 text-white"
+              : "bg-gray-800 text-gray-600 cursor-not-allowed"
+          }`}
+        >
+          <ArrowDownTrayIcon className="w-5 h-5" />
+        </button>
+
+        {/* Play/Pause button */}
+        <button
+          onClick={() => onTogglePlay(song)}
+          disabled={!hasAudio}
+          aria-label={isActive && isPlaying ? "Pause" : "Play"}
+          className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+            hasAudio
+              ? "bg-violet-600 hover:bg-violet-500 text-white"
+              : "bg-gray-800 text-gray-600 cursor-not-allowed"
+          }`}
+        >
+          {isActive && isPlaying ? (
+            <PauseIcon className="w-5 h-5" />
+          ) : (
+            <PlayIcon className="w-5 h-5 ml-0.5" />
+          )}
+        </button>
+      </div>
+
+      {/* Inline player bar — visible only for active song */}
+      {isActive && (
+        <div className="px-3 pb-3">
+          <PlayerBar
+            currentTime={currentTime}
+            duration={audioDuration}
+            hasAudio={hasAudio}
+            onSeek={onSeek}
+          />
+        </div>
+      )}
+
+      {/* Download progress bar */}
+      {isDownloading && downloadProgress !== null && downloadProgress < 100 && (
+        <div className="px-3 pb-2">
+          <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-violet-500 rounded-full transition-all duration-300"
+              style={{ width: `${downloadProgress}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Download error */}
+      {downloadError && (
+        <div className="px-3 pb-2">
+          <p className="text-xs text-red-400">{downloadError}</p>
+        </div>
+      )}
+    </li>
+  );
+}
+
 // ─── Main LibraryView ─────────────────────────────────────────────────────────
 
-export function LibraryView({ songs }: { songs: SunoSong[] }) {
+// Adapt Song (Prisma) to the minimal shape downloadSongFile expects
+function toDownloadable(song: Song) {
+  return {
+    id: song.id,
+    title: song.title ?? "Untitled",
+    audioUrl: song.audioUrl ?? "",
+    tags: song.tags ?? undefined,
+  };
+}
+
+export function LibraryView({ songs: initialSongs }: { songs: Song[] }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const [songs, setSongs] = useState<Song[]>(initialSongs);
   const [currentSongId, setCurrentSongId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -135,11 +382,13 @@ export function LibraryView({ songs }: { songs: SunoSong[] }) {
     return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
-  function handleTogglePlay(song: SunoSong) {
-    const audio = audioRef.current;
-    if (!audio) return;
+  const handleSongUpdate = useCallback((updated: Song) => {
+    setSongs((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+  }, []);
 
-    if (!song.audioUrl) return; // no audio available — button is visual-only
+  function handleTogglePlay(song: Song) {
+    const audio = audioRef.current;
+    if (!audio || !song.audioUrl) return;
 
     if (currentSongId === song.id) {
       if (isPlaying) {
@@ -157,12 +406,12 @@ export function LibraryView({ songs }: { songs: SunoSong[] }) {
     }
   }
 
-  async function handleDownload(song: SunoSong) {
+  async function handleDownload(song: Song) {
     if (!song.audioUrl || song.id in downloadProgress) return;
     setDownloadErrors((e) => { const n = { ...e }; delete n[song.id]; return n; });
     setDownloadProgress((p) => ({ ...p, [song.id]: 0 }));
     try {
-      await downloadSongFile(song, (pct) =>
+      await downloadSongFile(toDownloadable(song), (pct) =>
         setDownloadProgress((p) => ({ ...p, [song.id]: pct }))
       );
     } catch (err) {
@@ -229,133 +478,23 @@ export function LibraryView({ songs }: { songs: SunoSong[] }) {
         </div>
       ) : (
         <ul className="space-y-2">
-          {filteredSongs.map((song) => {
-            const isActive = currentSongId === song.id;
-            const rating = ratings[song.id];
-            const hasAudio = Boolean(song.audioUrl);
-            const dlProgress = downloadProgress[song.id] ?? null;
-            const dlError = downloadErrors[song.id] ?? null;
-            const isDownloading = dlProgress !== null;
-
-            return (
-              <li
-                key={song.id}
-                className={`bg-gray-900 border rounded-xl overflow-hidden transition-colors ${
-                  isActive ? "border-violet-600" : "border-gray-800"
-                }`}
-              >
-                <div className="flex items-center gap-3 px-3 pt-3 pb-2">
-                  {/* Cover art / placeholder */}
-                  <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gray-800 overflow-hidden flex items-center justify-center">
-                    {song.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={song.imageUrl}
-                        alt={song.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <MusicalNoteIcon className="w-6 h-6 text-gray-600" />
-                    )}
-                  </div>
-
-                  {/* Title + meta */}
-                  <div className="flex-1 min-w-0">
-                    <Link
-                      href={`/library/${song.id}`}
-                      className="block text-sm font-medium text-white truncate hover:text-violet-400 transition-colors"
-                    >
-                      {song.title}
-                    </Link>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {song.tags && (
-                        <span className="text-xs text-gray-500 truncate">
-                          {song.tags.split(",")[0].trim()}
-                        </span>
-                      )}
-                      {song.duration && (
-                        <span className="text-xs text-gray-600 flex-shrink-0">
-                          {formatTime(song.duration)}
-                        </span>
-                      )}
-                    </div>
-                    {rating && (
-                      <div className="mt-0.5">
-                        <StarDisplay stars={rating.stars} />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Download button */}
-                  <button
-                    onClick={() => handleDownload(song)}
-                    disabled={!hasAudio || isDownloading}
-                    aria-label={
-                      isDownloading
-                        ? `Downloading ${dlProgress}%`
-                        : "Download song"
-                    }
-                    className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
-                      hasAudio && !isDownloading
-                        ? "bg-gray-800 hover:bg-gray-700 text-white"
-                        : "bg-gray-800 text-gray-600 cursor-not-allowed"
-                    }`}
-                  >
-                    <ArrowDownTrayIcon className="w-5 h-5" />
-                  </button>
-
-                  {/* Play/Pause button */}
-                  <button
-                    onClick={() => handleTogglePlay(song)}
-                    disabled={!hasAudio}
-                    aria-label={isActive && isPlaying ? "Pause" : "Play"}
-                    className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
-                      hasAudio
-                        ? "bg-violet-600 hover:bg-violet-500 text-white"
-                        : "bg-gray-800 text-gray-600 cursor-not-allowed"
-                    }`}
-                  >
-                    {isActive && isPlaying ? (
-                      <PauseIcon className="w-5 h-5" />
-                    ) : (
-                      <PlayIcon className="w-5 h-5 ml-0.5" />
-                    )}
-                  </button>
-                </div>
-
-                {/* Inline player bar — visible only for active song */}
-                {isActive && (
-                  <div className="px-3 pb-3">
-                    <PlayerBar
-                      currentTime={currentTime}
-                      duration={audioDuration}
-                      hasAudio={hasAudio}
-                      onSeek={handleSeek}
-                    />
-                  </div>
-                )}
-
-                {/* Download progress bar */}
-                {isDownloading && dlProgress !== null && dlProgress < 100 && (
-                  <div className="px-3 pb-2">
-                    <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-violet-500 rounded-full transition-all duration-300"
-                        style={{ width: `${dlProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Download error */}
-                {dlError && (
-                  <div className="px-3 pb-2">
-                    <p className="text-xs text-red-400">{dlError}</p>
-                  </div>
-                )}
-              </li>
-            );
-          })}
+          {filteredSongs.map((song) => (
+            <SongRow
+              key={song.id}
+              initialSong={song}
+              isActive={currentSongId === song.id}
+              isPlaying={isPlaying}
+              currentTime={currentTime}
+              audioDuration={audioDuration}
+              rating={ratings[song.id]}
+              downloadProgress={downloadProgress[song.id] ?? null}
+              downloadError={downloadErrors[song.id] ?? null}
+              onTogglePlay={handleTogglePlay}
+              onDownload={handleDownload}
+              onSeek={handleSeek}
+              onUpdate={handleSongUpdate}
+            />
+          ))}
         </ul>
       )}
     </div>

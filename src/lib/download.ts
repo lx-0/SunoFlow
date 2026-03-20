@@ -2,17 +2,24 @@
  * Client-side song download utility with progress tracking.
  */
 
-import type { SunoSong } from "@/lib/sunoapi";
+export interface DownloadableSong {
+  id: string;
+  title: string | null | undefined;
+  audioUrl: string;
+  createdAt?: Date | string;
+}
 
 /** Build a safe filename: `{song-title}-{YYYY-MM-DD}.mp3` (or .wav) */
-function buildFilename(song: SunoSong): string {
-  const title = song.title
+function buildFilename(song: DownloadableSong): string {
+  const title = (song.title ?? "song")
     .replace(/[^a-zA-Z0-9\s-]/g, "")
     .trim()
     .replace(/\s+/g, "-")
     .toLowerCase() || "song";
 
-  const date = new Date(song.createdAt).toISOString().slice(0, 10);
+  const date = song.createdAt
+    ? new Date(song.createdAt).toISOString().slice(0, 10)
+    : new Date().toISOString().slice(0, 10);
   const ext = song.audioUrl.toLowerCase().includes(".wav") ? "wav" : "mp3";
   return `${title}-${date}.${ext}`;
 }
@@ -23,7 +30,7 @@ function buildFilename(song: SunoSong): string {
  * it is called once with 50 while fetching and 100 when done.
  */
 export async function downloadSongFile(
-  song: SunoSong,
+  song: DownloadableSong,
   onProgress: (pct: number) => void
 ): Promise<void> {
   if (!song.audioUrl) throw new Error("No audio URL available");

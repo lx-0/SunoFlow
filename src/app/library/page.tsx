@@ -1,16 +1,20 @@
 import { SessionProvider } from "@/components/SessionProvider";
 import { AppShell } from "@/components/AppShell";
 import { LibraryView } from "@/components/LibraryView";
-import { sunoApi } from "@/lib/sunoapi";
-import { mockSongs } from "@/lib/sunoapi/mock";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import type { Song } from "@prisma/client";
 
-async function fetchSongs() {
+async function fetchSongs(): Promise<Song[]> {
   try {
-    const songs = await sunoApi.listSongs();
-    return songs;
+    const session = await auth();
+    if (!session?.user?.id) return [];
+    return await prisma.song.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+    });
   } catch {
-    // Fall back to mock data when SUNOAPI_KEY is not configured
-    return mockSongs;
+    return [];
   }
 }
 
