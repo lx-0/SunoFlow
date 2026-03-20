@@ -11,7 +11,10 @@ import {
   HeartIcon,
   ArrowUpOnSquareStackIcon,
 } from "@heroicons/react/24/solid";
-import { HeartIcon as HeartOutlineIcon } from "@heroicons/react/24/outline";
+import {
+  HeartIcon as HeartOutlineIcon,
+  QueueListIcon,
+} from "@heroicons/react/24/outline";
 import type { Song } from "@prisma/client";
 import { getRatings, type SongRating } from "@/lib/ratings";
 import { downloadSongFile } from "@/lib/download";
@@ -160,6 +163,102 @@ function usePollSong(song: Song, onUpdate: (updated: Song) => void) {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [song.id]);
+}
+
+// ─── Add to playlist picker ───────────────────────────────────────────────────
+
+interface PlaylistOption {
+  id: string;
+  name: string;
+  _count: { songs: number };
+}
+
+function AddToPlaylistButton({ songId }: { songId: string }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [playlists, setPlaylists] = useState<PlaylistOption[]>([]);
+  const [loading, setLoading] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) {
+      document.addEventListener("mousedown", handleClick);
+      return () => document.removeEventListener("mousedown", handleClick);
+    }
+  }, [open]);
+
+  async function handleOpen() {
+    setOpen(true);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/playlists");
+      if (res.ok) {
+        const data = await res.json();
+        setPlaylists(data.playlists);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleAdd(playlistId: string) {
+    setOpen(false);
+    try {
+      const res = await fetch(`/api/playlists/${playlistId}/songs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ songId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast(data.error || "Failed to add to playlist", "error");
+        return;
+      }
+      toast("Added to playlist", "success");
+    } catch {
+      toast("Failed to add to playlist", "error");
+    }
+  }
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        onClick={handleOpen}
+        aria-label="Add to playlist"
+        className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-violet-400 transition-colors"
+      >
+        <QueueListIcon className="w-5 h-5" />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 bottom-full mb-1 w-48 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-20 overflow-hidden">
+          {loading ? (
+            <p className="px-4 py-3 text-sm text-gray-500">Loading…</p>
+          ) : playlists.length === 0 ? (
+            <p className="px-4 py-3 text-sm text-gray-500">No playlists yet</p>
+          ) : (
+            playlists.map((pl) => (
+              <button
+                key={pl.id}
+                onClick={() => handleAdd(pl.id)}
+                className="w-full text-left px-4 py-3 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-b last:border-b-0 border-gray-200 dark:border-gray-800"
+              >
+                {pl.name}
+                <span className="text-xs text-gray-400 ml-1">
+                  ({pl._count.songs})
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── Song row (handles its own polling) ───────────────────────────────────────
@@ -363,6 +462,9 @@ function SongRow({
         >
           <ArrowDownTrayIcon className="w-5 h-5" />
         </button>
+
+        {/* Add to playlist */}
+        <AddToPlaylistButton songId={song.id} />
       </div>
 
       {/* Inline player bar — visible only for active song */}
