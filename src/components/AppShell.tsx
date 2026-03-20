@@ -5,14 +5,14 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import {
   HomeIcon,
-  MusicalNoteIcon,
   HeartIcon,
   Cog6ToothIcon,
+  BookOpenIcon,
 } from "@heroicons/react/24/outline";
 
 const navItems = [
   { label: "Home", href: "/", icon: HomeIcon },
-  { label: "Songs", href: "/songs", icon: MusicalNoteIcon },
+  { label: "Library", href: "/library", icon: BookOpenIcon },
   { label: "Favorites", href: "/favorites", icon: HeartIcon },
   { label: "Settings", href: "/settings", icon: Cog6ToothIcon },
 ];

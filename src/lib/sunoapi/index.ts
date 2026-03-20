@@ -19,6 +19,7 @@ export interface SunoSong {
   duration?: number;
   status: SongStatus;
   model?: string;
+  lyrics?: string;
   createdAt: string;
 }
 

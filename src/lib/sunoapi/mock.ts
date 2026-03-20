@@ -1,0 +1,88 @@
+/**
+ * Mock song fixture for development/demo when SUNOAPI_KEY is not set.
+ * Switch to sunoApi.listSongs() once the API key is configured.
+ */
+import type { SunoSong } from "./index";
+
+export const mockSongs: SunoSong[] = [
+  {
+    id: "mock-1",
+    title: "Neon Drift",
+    prompt: "A synthwave journey through neon-lit city streets at midnight",
+    tags: "synthwave, electronic, instrumental",
+    audioUrl: "",
+    imageUrl: "",
+    duration: 187,
+    status: "complete",
+    model: "chirp-v3",
+    lyrics: "",
+    createdAt: "2026-03-15T10:00:00Z",
+  },
+  {
+    id: "mock-2",
+    title: "Summer Rain",
+    prompt: "Soft acoustic indie-folk about missing someone on a rainy afternoon",
+    tags: "indie, folk, acoustic, melancholy",
+    audioUrl: "",
+    imageUrl: "",
+    duration: 214,
+    status: "complete",
+    model: "chirp-v3",
+    lyrics:
+      "Raindrops on the windowpane\nReminding me of you again\nSummer fades but memories stay\nWatching clouds drift away",
+    createdAt: "2026-03-14T14:30:00Z",
+  },
+  {
+    id: "mock-3",
+    title: "Hyperspeed",
+    prompt: "High-energy drum and bass track for a cyberpunk chase scene",
+    tags: "drum and bass, cyberpunk, fast, electronic",
+    audioUrl: "",
+    imageUrl: "",
+    duration: 165,
+    status: "complete",
+    model: "chirp-v3",
+    lyrics: "",
+    createdAt: "2026-03-13T09:15:00Z",
+  },
+  {
+    id: "mock-4",
+    title: "Mountain Echo",
+    prompt: "Epic orchestral adventure theme with sweeping strings and brass",
+    tags: "orchestral, epic, adventure, cinematic",
+    audioUrl: "",
+    imageUrl: "",
+    duration: 253,
+    status: "complete",
+    model: "chirp-v3",
+    lyrics: "",
+    createdAt: "2026-03-12T16:45:00Z",
+  },
+  {
+    id: "mock-5",
+    title: "Late Night Jazz",
+    prompt: "Smooth jazz lounge vibes with piano and muted trumpet",
+    tags: "jazz, lounge, smooth, piano",
+    audioUrl: "",
+    imageUrl: "",
+    duration: 198,
+    status: "complete",
+    model: "chirp-v3",
+    lyrics: "",
+    createdAt: "2026-03-11T22:00:00Z",
+  },
+  {
+    id: "mock-6",
+    title: "Digital Heart",
+    prompt: "Emotional synth-pop ballad about falling in love in a digital world",
+    tags: "synth-pop, ballad, emotional, love",
+    audioUrl: "",
+    imageUrl: "",
+    duration: 228,
+    status: "complete",
+    model: "chirp-v3",
+    lyrics:
+      "Pixels of your smile light my screen\nIn this digital world between\nEvery byte a heartbeat true\nAll my code compiled for you",
+    createdAt: "2026-03-10T18:30:00Z",
+  },
+];
