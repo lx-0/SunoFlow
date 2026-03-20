@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SparklesIcon, BookmarkIcon, TrashIcon } from "@heroicons/react/24/solid";
-import { BookmarkIcon as BookmarkOutline } from "@heroicons/react/24/outline";
+import { BookmarkIcon as BookmarkOutline, ClockIcon } from "@heroicons/react/24/outline";
 import { useToast } from "./Toast";
 
 interface RateLimitStatus {
@@ -41,13 +41,19 @@ export function GenerateForm() {
   const [templateName, setTemplateName] = useState("");
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
 
+  // Track whether we've already shown the 80% toast this session
+  const shownLimitToast = useRef(false);
+
   const fetchRateLimit = useCallback(async () => {
     try {
       const res = await fetch("/api/rate-limit");
       if (res.ok) {
         const data: RateLimitStatus = await res.json();
         setRateLimit(data);
-        if (data.remaining <= 2 && data.remaining > 0) {
+        const used = data.limit - data.remaining;
+        const pct = data.limit > 0 ? used / data.limit : 0;
+        if (pct >= 0.8 && data.remaining > 0 && !shownLimitToast.current) {
+          shownLimitToast.current = true;
           toast(`${data.remaining} generation${data.remaining === 1 ? "" : "s"} remaining this hour`, "info");
         }
       }
@@ -406,58 +412,109 @@ export function GenerateForm() {
           </button>
         </div>
 
-        {/* Generation quota */}
-        {rateLimit && (
-          <div className={`flex items-center justify-between rounded-xl px-4 py-2.5 text-sm ${
-            rateLimit.remaining === 0
-              ? "bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300"
-              : rateLimit.remaining <= 2
-                ? "bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300"
-                : "bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400"
-          }`}>
-            <span>Generations remaining</span>
-            <span className="font-semibold">{rateLimit.remaining} / {rateLimit.limit}</span>
-          </div>
-        )}
+        {/* Rate limit info panel */}
+        {rateLimit && (() => {
+          const used = rateLimit.limit - rateLimit.remaining;
+          const pct = rateLimit.limit > 0 ? Math.round((used / rateLimit.limit) * 100) : 0;
+          const barColor =
+            pct >= 100
+              ? "bg-red-500"
+              : pct >= 80
+                ? "bg-yellow-500"
+                : "bg-green-500";
+          const resetDate = new Date(rateLimit.resetAt);
+          const minsLeft = Math.max(0, Math.ceil((resetDate.getTime() - Date.now()) / 60000));
+          const isAtLimit = rateLimit.remaining === 0;
+          const isNearLimit = pct >= 80 && !isAtLimit;
+
+          return (
+            <div className="space-y-2">
+              {/* Warning banner at 80% */}
+              {isNearLimit && (
+                <div className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300">
+                  <span className="font-medium">{rateLimit.remaining} generation{rateLimit.remaining === 1 ? "" : "s"} remaining</span>
+                </div>
+              )}
+
+              {/* Quota panel with progress bar */}
+              <div className={`rounded-xl px-4 py-3 text-sm border ${
+                isAtLimit
+                  ? "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-800"
+                  : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={isAtLimit ? "text-red-700 dark:text-red-300 font-medium" : "text-gray-600 dark:text-gray-400"}>
+                    {isAtLimit ? "Rate limit reached" : "Generation quota"}
+                  </span>
+                  <span className={`font-semibold ${isAtLimit ? "text-red-700 dark:text-red-300" : "text-gray-900 dark:text-white"}`}>
+                    {used} / {rateLimit.limit} used
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+                    style={{ width: `${Math.min(pct, 100)}%` }}
+                  />
+                </div>
+
+                {/* Reset time */}
+                <div className="flex items-center gap-1 mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  <ClockIcon className="h-3.5 w-3.5" />
+                  <span>Resets in {minsLeft} minute{minsLeft === 1 ? "" : "s"}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Submit */}
-        <button
-          type="submit"
-          disabled={isSubmitting || rateLimit?.remaining === 0}
-          className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl px-4 py-3 transition-colors min-h-[52px]"
-        >
-          {isSubmitting ? (
-            <>
-              <svg
-                className="animate-spin h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
-              </svg>
-              Generating…
-            </>
-          ) : (
-            <>
-              <SparklesIcon className="h-5 w-5" />
-              Generate
-            </>
+        <div className="relative group">
+          <button
+            type="submit"
+            disabled={isSubmitting || rateLimit?.remaining === 0}
+            className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl px-4 py-3 transition-colors min-h-[52px]"
+          >
+            {isSubmitting ? (
+              <>
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
+                </svg>
+                Generating…
+              </>
+            ) : (
+              <>
+                <SparklesIcon className="h-5 w-5" />
+                Generate
+              </>
+            )}
+          </button>
+          {/* Tooltip when limit reached */}
+          {rateLimit?.remaining === 0 && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+              Rate limit reached — resets in {Math.max(0, Math.ceil((new Date(rateLimit.resetAt).getTime() - Date.now()) / 60000))} min
+            </div>
           )}
-        </button>
+        </div>
       </form>
     </div>
   );

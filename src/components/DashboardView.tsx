@@ -25,6 +25,15 @@ interface DashboardStats {
   }[];
 }
 
+interface RateLimitStatusFull {
+  remaining: number;
+  limit: number;
+  used: number;
+  percentUsed: number;
+  resetAt: string;
+  dailyCounts: { date: string; count: number }[];
+}
+
 // ─── Skeleton components ─────────────────────────────────────────────────────
 
 function StatCardSkeleton() {
@@ -93,21 +102,86 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString();
 }
 
+// ─── Usage history chart ─────────────────────────────────────────────────────
+
+function UsageChart({ dailyCounts, limit }: { dailyCounts: { date: string; count: number }[]; limit: number }) {
+  const maxCount = Math.max(...dailyCounts.map((d) => d.count), 1);
+  const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  return (
+    <div>
+      <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-3">Generation history (7 days)</h3>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+        <div className="flex items-end gap-1.5 h-32">
+          {dailyCounts.map((d) => {
+            const heightPct = maxCount > 0 ? (d.count / maxCount) * 100 : 0;
+            const dateObj = new Date(d.date + "T12:00:00");
+            const dayName = dayLabels[dateObj.getDay()];
+            const isToday = d.date === new Date().toISOString().slice(0, 10);
+            return (
+              <div key={d.date} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{d.count}</span>
+                <div
+                  className={`w-full rounded-t-md transition-all ${
+                    isToday ? "bg-violet-500" : "bg-violet-300 dark:bg-violet-700"
+                  }`}
+                  style={{ height: `${Math.max(heightPct, 4)}%` }}
+                />
+                <span className={`text-xs ${isToday ? "text-violet-600 dark:text-violet-400 font-semibold" : "text-gray-400 dark:text-gray-500"}`}>
+                  {dayName}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
+          <span>Hourly limit: {limit}/hr</span>
+          <span>Total: {dailyCounts.reduce((s, d) => s + d.count, 0)} generations</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UsageChartSkeleton() {
+  return (
+    <div>
+      <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-3">Generation history (7 days)</h3>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 animate-pulse">
+        <div className="flex items-end gap-1.5 h-32">
+          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-t-md" style={{ height: `${20 + i * 8}%` }} />
+              <div className="h-3 w-6 bg-gray-200 dark:bg-gray-700 rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── DashboardView ───────────────────────────────────────────────────────────
 
 export function DashboardView({ userName }: { userName?: string | null }) {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [rateLimitStatus, setRateLimitStatus] = useState<RateLimitStatusFull | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch("/api/dashboard/stats");
-      if (res.ok) {
-        const data = await res.json();
-        setStats(data);
+      const [statsRes, rlRes] = await Promise.all([
+        fetch("/api/dashboard/stats"),
+        fetch("/api/rate-limit/status"),
+      ]);
+      if (statsRes.ok) {
+        setStats(await statsRes.json());
+      }
+      if (rlRes.ok) {
+        setRateLimitStatus(await rlRes.json());
       }
     } catch {
-      // Keep existing stats on error
+      // Keep existing data on error
     } finally {
       setLoading(false);
     }
@@ -188,6 +262,13 @@ export function DashboardView({ userName }: { userName?: string | null }) {
             ))}
           </div>
         </div>
+      ) : null}
+
+      {/* Usage history chart */}
+      {loading && !rateLimitStatus ? (
+        <UsageChartSkeleton />
+      ) : rateLimitStatus ? (
+        <UsageChart dailyCounts={rateLimitStatus.dailyCounts} limit={rateLimitStatus.limit} />
       ) : null}
 
       {/* Recent songs */}
