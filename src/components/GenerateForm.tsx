@@ -2,13 +2,23 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { SparklesIcon } from "@heroicons/react/24/solid";
+import { SparklesIcon, BookmarkIcon, TrashIcon } from "@heroicons/react/24/solid";
+import { BookmarkIcon as BookmarkOutline } from "@heroicons/react/24/outline";
 import { useToast } from "./Toast";
 
 interface RateLimitStatus {
   remaining: number;
   limit: number;
   resetAt: string;
+}
+
+interface PromptTemplate {
+  id: string;
+  name: string;
+  prompt: string;
+  style: string | null;
+  isInstrumental: boolean;
+  isBuiltIn: boolean;
 }
 
 export function GenerateForm() {
@@ -23,6 +33,13 @@ export function GenerateForm() {
   const [instrumental, setInstrumental] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rateLimit, setRateLimit] = useState<RateLimitStatus | null>(null);
+
+  // Template state
+  const [templates, setTemplates] = useState<PromptTemplate[]>([]);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
 
   const fetchRateLimit = useCallback(async () => {
     try {
@@ -39,9 +56,89 @@ export function GenerateForm() {
     }
   }, [toast]);
 
+  const fetchTemplates = useCallback(async () => {
+    try {
+      const res = await fetch("/api/prompt-templates");
+      if (res.ok) {
+        const data = await res.json();
+        setTemplates(data.templates);
+      }
+    } catch {
+      // Non-critical
+    }
+  }, []);
+
   useEffect(() => {
     fetchRateLimit();
-  }, [fetchRateLimit]);
+    fetchTemplates();
+  }, [fetchRateLimit, fetchTemplates]);
+
+  function applyTemplate(template: PromptTemplate) {
+    setStylePrompt(template.style ?? "");
+    setLyrics(template.prompt);
+    setInstrumental(template.isInstrumental);
+    if (template.style) {
+      setCustomMode(false);
+    } else {
+      setCustomMode(true);
+    }
+    setShowTemplatePicker(false);
+    toast(`Loaded "${template.name}" template`, "success");
+  }
+
+  async function deleteTemplate(templateId: string) {
+    try {
+      const res = await fetch(`/api/prompt-templates/${templateId}`, { method: "DELETE" });
+      if (res.ok) {
+        setTemplates((prev) => prev.filter((t) => t.id !== templateId));
+        toast("Template deleted", "success");
+      } else {
+        const data = await res.json();
+        toast(data.error ?? "Failed to delete template", "error");
+      }
+    } catch {
+      toast("Failed to delete template", "error");
+    }
+  }
+
+  async function saveAsTemplate() {
+    if (!templateName.trim()) {
+      toast("Please enter a template name", "error");
+      return;
+    }
+    const prompt = customMode ? lyrics : stylePrompt;
+    if (!prompt.trim()) {
+      toast("Fill in the prompt fields before saving", "error");
+      return;
+    }
+
+    setIsSavingTemplate(true);
+    try {
+      const res = await fetch("/api/prompt-templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: templateName.trim(),
+          prompt: prompt.trim(),
+          style: stylePrompt.trim() || null,
+          isInstrumental: instrumental,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTemplates((prev) => [...prev, data.template]);
+        setShowSaveDialog(false);
+        setTemplateName("");
+        toast(`Template "${data.template.name}" saved!`, "success");
+      } else {
+        toast(data.error ?? "Failed to save template", "error");
+      }
+    } catch {
+      toast("Failed to save template", "error");
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -94,6 +191,9 @@ export function GenerateForm() {
     }
   }
 
+  const builtInTemplates = templates.filter((t) => t.isBuiltIn);
+  const userTemplates = templates.filter((t) => !t.isBuiltIn);
+
   return (
     <div className="px-4 py-4 space-y-6">
       {/* Header */}
@@ -101,6 +201,115 @@ export function GenerateForm() {
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">Generate</h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Create a new song with AI</p>
       </div>
+
+      {/* Template Picker Button */}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setShowTemplatePicker(!showTemplatePicker)}
+          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
+        >
+          <BookmarkOutline className="h-4 w-4" />
+          Templates
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowSaveDialog(!showSaveDialog)}
+          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+        >
+          <BookmarkIcon className="h-4 w-4" />
+          Save as template
+        </button>
+      </div>
+
+      {/* Template Picker Panel */}
+      {showTemplatePicker && (
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
+          {builtInTemplates.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Starter Templates</p>
+              <div className="space-y-1">
+                {builtInTemplates.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => applyTemplate(t)}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{t.name}</span>
+                    <span className="block text-xs text-gray-500 dark:text-gray-400 truncate">{t.style ?? t.prompt}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {userTemplates.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">My Templates</p>
+              <div className="space-y-1">
+                {userTemplates.map((t) => (
+                  <div key={t.id} className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => applyTemplate(t)}
+                      className="flex-1 text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{t.name}</span>
+                      <span className="block text-xs text-gray-500 dark:text-gray-400 truncate">{t.style ?? t.prompt}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteTemplate(t.id)}
+                      className="p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                      title="Delete template"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {templates.length === 0 && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">No templates yet</p>
+          )}
+        </div>
+      )}
+
+      {/* Save Template Dialog */}
+      {showSaveDialog && (
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
+          <p className="text-sm font-medium text-gray-900 dark:text-white">Save current settings as template</p>
+          <input
+            type="text"
+            value={templateName}
+            onChange={(e) => setTemplateName(e.target.value)}
+            placeholder="Template name"
+            maxLength={50}
+            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={saveAsTemplate}
+              disabled={isSavingTemplate}
+              className="flex-1 px-3 py-2 text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-xl transition-colors"
+            >
+              {isSavingTemplate ? "Saving…" : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowSaveDialog(false); setTemplateName(""); }}
+              className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 dark:text-gray-500">
+            {userTemplates.length} / 20 templates used
+          </p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Title */}
