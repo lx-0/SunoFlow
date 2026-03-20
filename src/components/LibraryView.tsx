@@ -14,6 +14,8 @@ import {
   MagnifyingGlassIcon,
   XMarkIcon,
   FunnelIcon,
+  TrashIcon,
+  CheckIcon,
 } from "@heroicons/react/24/solid";
 import {
   HeartIcon as HeartOutlineIcon,
@@ -264,11 +266,14 @@ interface SongRowProps {
   rating: SongRating | undefined;
   downloadProgress: number | null;
   downloadError: string | null;
+  isSelected: boolean;
+  selectionMode: boolean;
   onTogglePlay: (song: Song) => void;
   onDownload: (song: Song) => void;
   onSeek: (pct: number) => void;
   onUpdate: (updated: Song) => void;
   onToggleFavorite: (song: Song) => void;
+  onToggleSelect: (songId: string, shiftKey: boolean) => void;
 }
 
 function SongRow({
@@ -280,11 +285,14 @@ function SongRow({
   rating,
   downloadProgress,
   downloadError,
+  isSelected,
+  selectionMode,
   onTogglePlay,
   onDownload,
   onSeek,
   onUpdate,
   onToggleFavorite,
+  onToggleSelect,
 }: SongRowProps) {
   const { toast } = useToast();
   const [song, setSong] = useState(initialSong);
@@ -338,10 +346,29 @@ function SongRow({
   return (
     <li
       className={`bg-white dark:bg-gray-900 border rounded-xl overflow-hidden transition-colors ${
-        isActive ? "border-violet-600" : "border-gray-200 dark:border-gray-800"
+        isSelected
+          ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30"
+          : isActive
+            ? "border-violet-600"
+            : "border-gray-200 dark:border-gray-800"
       } ${isPending ? "opacity-75" : ""}`}
     >
       <div className="flex items-center gap-3 px-3 pt-3 pb-1">
+        {/* Selection checkbox */}
+        <button
+          onClick={(e) => onToggleSelect(song.id, e.shiftKey)}
+          aria-label={isSelected ? "Deselect song" : "Select song"}
+          className={`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
+            selectionMode ? "opacity-100" : "opacity-0 group-hover:opacity-100 sm:opacity-0 sm:hover:opacity-100"
+          } ${
+            isSelected
+              ? "bg-violet-600 border-violet-600 text-white"
+              : "border-gray-300 dark:border-gray-600 hover:border-violet-400"
+          }`}
+        >
+          {isSelected && <CheckIcon className="w-4 h-4" />}
+        </button>
+
         <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center">
           {song.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -565,6 +592,14 @@ export function LibraryView({
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
   const [downloadErrors, setDownloadErrors] = useState<Record<string, string>>({});
 
+  // Selection state
+  const [selectedSongIds, setSelectedSongIds] = useState<Set<string>>(new Set());
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [batchLoading, setBatchLoading] = useState(false);
+
+  const selectionMode = selectedSongIds.size > 0;
+
   // Export state
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -753,6 +788,100 @@ export function LibraryView({
     }
   }
 
+  // ─── Selection handlers ──────────────────────────────────────────────────
+
+  function handleToggleSelect(songId: string, shiftKey: boolean) {
+    setSelectedSongIds((prev) => {
+      const next = new Set(prev);
+      const songIndex = songs.findIndex((s) => s.id === songId);
+
+      if (shiftKey && lastSelectedIndex !== null && songIndex !== -1) {
+        const start = Math.min(lastSelectedIndex, songIndex);
+        const end = Math.max(lastSelectedIndex, songIndex);
+        for (let i = start; i <= end; i++) {
+          next.add(songs[i].id);
+        }
+      } else if (next.has(songId)) {
+        next.delete(songId);
+      } else {
+        next.add(songId);
+      }
+
+      return next;
+    });
+    const songIndex = songs.findIndex((s) => s.id === songId);
+    if (songIndex !== -1) setLastSelectedIndex(songIndex);
+  }
+
+  function handleSelectAll() {
+    if (selectedSongIds.size === songs.length) {
+      setSelectedSongIds(new Set());
+      setLastSelectedIndex(null);
+    } else {
+      setSelectedSongIds(new Set(songs.map((s) => s.id)));
+    }
+  }
+
+  function clearSelection() {
+    setSelectedSongIds(new Set());
+    setLastSelectedIndex(null);
+  }
+
+  async function handleBatchAction(action: "favorite" | "unfavorite" | "delete") {
+    if (selectedSongIds.size === 0) return;
+
+    if (action === "delete") {
+      setShowDeleteConfirm(true);
+      return;
+    }
+
+    await executeBatchAction(action);
+  }
+
+  async function executeBatchAction(action: "favorite" | "unfavorite" | "delete") {
+    const songIds = Array.from(selectedSongIds);
+    setBatchLoading(true);
+
+    try {
+      const res = await fetch("/api/songs/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, songIds }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        toast(data.error || "Batch operation failed", "error");
+        return;
+      }
+
+      const data = await res.json();
+      const count = data.affected;
+
+      if (action === "favorite") {
+        setSongs((prev) =>
+          prev.map((s) => (selectedSongIds.has(s.id) ? { ...s, isFavorite: true } : s))
+        );
+        toast(`${count} song${count !== 1 ? "s" : ""} added to favorites`, "success");
+      } else if (action === "unfavorite") {
+        setSongs((prev) =>
+          prev.map((s) => (selectedSongIds.has(s.id) ? { ...s, isFavorite: false } : s))
+        );
+        toast(`${count} song${count !== 1 ? "s" : ""} removed from favorites`, "success");
+      } else if (action === "delete") {
+        setSongs((prev) => prev.filter((s) => !selectedSongIds.has(s.id)));
+        toast(`${count} song${count !== 1 ? "s" : ""} deleted`, "success");
+      }
+
+      clearSelection();
+    } catch {
+      toast("Batch operation failed", "error");
+    } finally {
+      setBatchLoading(false);
+      setShowDeleteConfirm(false);
+    }
+  }
+
   // ─── Export helpers ───────────────────────────────────────────────────────
   const exportableSongs = useMemo<ExportableSong[]>(() => {
     return songs
@@ -816,6 +945,14 @@ export function LibraryView({
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">
             {loading ? "Searching\u2026" : `${songs.length} song${songs.length !== 1 ? "s" : ""}`}
           </p>
+          {songs.length > 0 && (
+            <button
+              onClick={handleSelectAll}
+              className="mt-1 text-xs font-medium text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
+            >
+              {selectedSongIds.size === songs.length ? "Deselect all" : "Select all"}
+            </button>
+          )}
         </div>
 
         {/* Export button */}
@@ -1000,7 +1137,7 @@ export function LibraryView({
           )}
         </div>
       ) : (
-        <ul className="space-y-2">
+        <ul className={`space-y-2 ${selectionMode ? "pb-20" : ""}`}>
           {songs.map((song) => (
             <SongRow
               key={song.id}
@@ -1012,14 +1149,94 @@ export function LibraryView({
               rating={ratings[song.id]}
               downloadProgress={downloadProgress[song.id] ?? null}
               downloadError={downloadErrors[song.id] ?? null}
+              isSelected={selectedSongIds.has(song.id)}
+              selectionMode={selectionMode}
               onTogglePlay={handleTogglePlay}
               onDownload={handleDownload}
               onSeek={handleSeek}
               onUpdate={handleSongUpdate}
               onToggleFavorite={handleToggleFavorite}
+              onToggleSelect={handleToggleSelect}
             />
           ))}
         </ul>
+      )}
+
+      {/* Floating action bar */}
+      {selectionMode && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white rounded-2xl shadow-2xl border border-gray-700 animate-slide-in">
+          <span className="text-sm font-medium mr-1">
+            {selectedSongIds.size} selected
+          </span>
+
+          <button
+            onClick={() => handleBatchAction("favorite")}
+            disabled={batchLoading}
+            aria-label="Add selected to favorites"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-pink-600 hover:bg-pink-500 disabled:opacity-50 transition-colors min-h-[44px]"
+          >
+            <HeartIcon className="w-4 h-4" />
+            Favorite
+          </button>
+
+          <button
+            onClick={() => handleBatchAction("unfavorite")}
+            disabled={batchLoading}
+            aria-label="Remove selected from favorites"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gray-700 hover:bg-gray-600 disabled:opacity-50 transition-colors min-h-[44px]"
+          >
+            <HeartOutlineIcon className="w-4 h-4" />
+            Unfavorite
+          </button>
+
+          <button
+            onClick={() => handleBatchAction("delete")}
+            disabled={batchLoading}
+            aria-label="Delete selected songs"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-500 disabled:opacity-50 transition-colors min-h-[44px]"
+          >
+            <TrashIcon className="w-4 h-4" />
+            Delete
+          </button>
+
+          <button
+            onClick={clearSelection}
+            aria-label="Clear selection"
+            className="ml-1 p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors min-h-[44px]"
+          >
+            <XMarkIcon className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
+      {/* Delete confirmation dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 mx-4 max-w-sm w-full">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Delete {selectedSongIds.size} song{selectedSongIds.size !== 1 ? "s" : ""}?
+            </h3>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              This action cannot be undone. The selected songs will be permanently removed from your library.
+            </p>
+            <div className="mt-4 flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={batchLoading}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors min-h-[44px]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => executeBatchAction("delete")}
+                disabled={batchLoading}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-500 disabled:opacity-50 transition-colors min-h-[44px]"
+              >
+                {batchLoading ? "Deleting\u2026" : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
