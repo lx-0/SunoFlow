@@ -14,6 +14,7 @@ import { HeartIcon as HeartOutlineIcon } from "@heroicons/react/24/outline";
 import type { Song } from "@prisma/client";
 import { getRatings, type SongRating } from "@/lib/ratings";
 import { downloadSongFile } from "@/lib/download";
+import { useToast } from "./Toast";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -192,6 +193,7 @@ function SongRow({
   onUpdate,
   onToggleFavorite,
 }: SongRowProps) {
+  const { toast } = useToast();
   const [song, setSong] = useState(initialSong);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
@@ -199,9 +201,16 @@ function SongRow({
   useEffect(() => { setSong(initialSong); }, [initialSong]);
 
   const handleUpdate = useCallback((updated: Song) => {
+    if (song.generationStatus === "pending" && updated.generationStatus !== "pending") {
+      if (updated.generationStatus === "ready") {
+        toast(`"${updated.title ?? "Song"}" is ready!`, "success");
+      } else if (updated.generationStatus === "failed") {
+        toast(`"${updated.title ?? "Song"}" generation failed`, "error");
+      }
+    }
     setSong(updated);
     onUpdate(updated);
-  }, [onUpdate]);
+  }, [onUpdate, song.generationStatus, toast]);
 
   usePollSong(song, handleUpdate);
 
@@ -226,6 +235,9 @@ function SongRow({
         await navigator.clipboard.writeText(url);
         setShareCopied(true);
         setTimeout(() => setShareCopied(false), 2000);
+        toast("Share link copied to clipboard!", "success");
+      } else if (!data.isPublic) {
+        toast("Song is now private", "info");
       }
     } finally {
       setShareLoading(false);
@@ -394,6 +406,7 @@ function toDownloadable(song: Song) {
 }
 
 export function LibraryView({ songs: initialSongs, title = "Library" }: { songs: Song[]; title?: string }) {
+  const { toast } = useToast();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const [songs, setSongs] = useState<Song[]>(initialSongs);
@@ -481,10 +494,9 @@ export function LibraryView({ songs: initialSongs, title = "Library" }: { songs:
         setDownloadProgress((p) => ({ ...p, [song.id]: pct }))
       );
     } catch (err) {
-      setDownloadErrors((e) => ({
-        ...e,
-        [song.id]: err instanceof Error ? err.message : "Download failed",
-      }));
+      const msg = err instanceof Error ? err.message : "Download failed";
+      setDownloadErrors((e) => ({ ...e, [song.id]: msg }));
+      toast(msg, "error");
     } finally {
       setTimeout(
         () => setDownloadProgress((p) => { const n = { ...p }; delete n[song.id]; return n; }),
@@ -508,11 +520,14 @@ export function LibraryView({ songs: initialSongs, title = "Library" }: { songs:
     try {
       const res = await fetch(`/api/songs/${song.id}/favorite`, { method: "PATCH" });
       if (!res.ok) {
-        // Revert on failure
         handleSongUpdate(song);
+        toast("Failed to update favorite", "error");
+      } else {
+        toast(newFav ? "Added to favorites" : "Removed from favorites", "success");
       }
     } catch {
       handleSongUpdate(song);
+      toast("Failed to update favorite", "error");
     }
   }
 

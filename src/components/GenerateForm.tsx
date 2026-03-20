@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SparklesIcon } from "@heroicons/react/24/solid";
+import { useToast } from "./Toast";
 
 export function GenerateForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
 
   const [title, setTitle] = useState(searchParams.get("title") ?? "");
   const [stylePrompt, setStylePrompt] = useState(searchParams.get("tags") ?? "");
@@ -14,15 +16,11 @@ export function GenerateForm() {
   const [lyrics, setLyrics] = useState(searchParams.get("prompt") ?? "");
   const [instrumental, setInstrumental] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (isSubmitting) return;
 
-    setError(null);
-    setSuccessMsg(null);
     setIsSubmitting(true);
 
     try {
@@ -42,14 +40,14 @@ export function GenerateForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? "Generation failed. Please try again.");
+        toast(data.error ?? "Generation failed. Please try again.", "error");
         return;
       }
 
-      setSuccessMsg("Song queued! Redirecting to your library…");
+      toast("Song generation started! Redirecting to your library…", "success");
       setTimeout(() => router.push("/library"), 1500);
     } catch {
-      setError("Network error. Please check your connection and try again.");
+      toast("Network error. Please check your connection and try again.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -157,20 +155,6 @@ export function GenerateForm() {
             />
           </button>
         </div>
-
-        {/* Error message */}
-        {error && (
-          <div className="bg-red-900/30 border border-red-700 rounded-xl px-4 py-3">
-            <p className="text-sm text-red-400">{error}</p>
-          </div>
-        )}
-
-        {/* Success message */}
-        {successMsg && (
-          <div className="bg-green-900/30 border border-green-700 rounded-xl px-4 py-3">
-            <p className="text-sm text-green-400">{successMsg}</p>
-          </div>
-        )}
 
         {/* Submit */}
         <button

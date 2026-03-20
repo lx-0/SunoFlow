@@ -16,6 +16,7 @@ import { HeartIcon as HeartOutlineIcon } from "@heroicons/react/24/outline";
 import type { SunoSong } from "@/lib/sunoapi";
 import { getRating, setRating, type SongRating } from "@/lib/ratings";
 import { downloadSongFile } from "@/lib/download";
+import { useToast } from "./Toast";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -72,6 +73,7 @@ function StarPicker({ value, onChange }: StarPickerProps) {
 
 export function SongDetailView({ song, isFavorite: initialFavorite = false, sunoJobId }: { song: SunoSong; isFavorite?: boolean; sunoJobId?: string | null }) {
   const router = useRouter();
+  const { toast } = useToast();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
@@ -153,7 +155,9 @@ export function SongDetailView({ song, isFavorite: initialFavorite = false, suno
     try {
       await downloadSongFile(song, setDownloadProgress);
     } catch (err) {
-      setDownloadError(err instanceof Error ? err.message : "Download failed");
+      const msg = err instanceof Error ? err.message : "Download failed";
+      setDownloadError(msg);
+      toast(msg, "error");
     } finally {
       // Keep progress at 100 briefly so user sees completion, then reset
       setTimeout(() => setDownloadProgress(null), 1500);
@@ -170,12 +174,19 @@ export function SongDetailView({ song, isFavorite: initialFavorite = false, suno
 
   async function handleToggleFavorite() {
     const prev = isFavorite;
-    setIsFavorite(!prev);
+    const newFav = !prev;
+    setIsFavorite(newFav);
     try {
       const res = await fetch(`/api/songs/${song.id}/favorite`, { method: "PATCH" });
-      if (!res.ok) setIsFavorite(prev);
+      if (!res.ok) {
+        setIsFavorite(prev);
+        toast("Failed to update favorite", "error");
+      } else {
+        toast(newFav ? "Added to favorites" : "Removed from favorites", "success");
+      }
     } catch {
       setIsFavorite(prev);
+      toast("Failed to update favorite", "error");
     }
   }
 
