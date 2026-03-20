@@ -9,11 +9,13 @@ import {
   ArrowDownTrayIcon,
   ShareIcon,
   HeartIcon,
+  ArrowUpOnSquareStackIcon,
 } from "@heroicons/react/24/solid";
 import { HeartIcon as HeartOutlineIcon } from "@heroicons/react/24/outline";
 import type { Song } from "@prisma/client";
 import { getRatings, type SongRating } from "@/lib/ratings";
 import { downloadSongFile } from "@/lib/download";
+import { exportAsZip, exportAsM3U, type ExportableSong } from "@/lib/export";
 import { useToast } from "./Toast";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -425,6 +427,25 @@ export function LibraryView({ songs: initialSongs, title = "Library" }: { songs:
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
   const [downloadErrors, setDownloadErrors] = useState<Record<string, string>>({});
 
+  // Export state
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState<{ completed: number; total: number } | null>(null);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close export menu on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setExportMenuOpen(false);
+      }
+    }
+    if (exportMenuOpen) {
+      document.addEventListener("mousedown", handleClick);
+      return () => document.removeEventListener("mousedown", handleClick);
+    }
+  }, [exportMenuOpen]);
+
   // Load ratings from localStorage on mount
   useEffect(() => {
     setRatings(getRatings());
@@ -549,13 +570,119 @@ export function LibraryView({ songs: initialSongs, title = "Library" }: { songs:
     });
   })();
 
+  function songsForExport(): ExportableSong[] {
+    return filteredSongs
+      .filter((s) => s.audioUrl && s.generationStatus === "ready")
+      .map((s) => ({
+        id: s.id,
+        title: s.title,
+        audioUrl: s.audioUrl!,
+        tags: s.tags,
+        duration: s.duration,
+        createdAt: s.createdAt,
+      }));
+  }
+
+  async function handleExportZip() {
+    setExportMenuOpen(false);
+    const toExport = songsForExport();
+    if (toExport.length === 0) {
+      toast("No songs available to export", "info");
+      return;
+    }
+    if (toExport.length > 50) {
+      toast(`Exporting ${toExport.length} songs — this may take a while`, "info");
+    }
+    setExporting(true);
+    setExportProgress({ completed: 0, total: toExport.length });
+    try {
+      await exportAsZip(toExport, (completed, total) => {
+        setExportProgress({ completed, total });
+      });
+      toast("ZIP export complete!", "success");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Export failed", "error");
+    } finally {
+      setExporting(false);
+      setExportProgress(null);
+    }
+  }
+
+  function handleExportM3U() {
+    setExportMenuOpen(false);
+    const toExport = songsForExport();
+    if (toExport.length === 0) {
+      toast("No songs available to export", "info");
+      return;
+    }
+    try {
+      exportAsM3U(toExport);
+      toast("M3U playlist exported!", "success");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Export failed", "error");
+    }
+  }
+
   return (
     <div className="px-4 py-4 space-y-4">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold text-white">{title}</h1>
-        <p className="text-gray-400 text-sm mt-0.5">{songs.length} songs</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-white">{title}</h1>
+          <p className="text-gray-400 text-sm mt-0.5">{songs.length} songs</p>
+        </div>
+
+        {/* Export button */}
+        <div className="relative" ref={exportMenuRef}>
+          <button
+            onClick={() => setExportMenuOpen((o) => !o)}
+            disabled={exporting}
+            aria-label="Export library"
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
+              exporting
+                ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                : "bg-gray-800 hover:bg-gray-700 text-white"
+            }`}
+          >
+            <ArrowUpOnSquareStackIcon className="w-4 h-4" />
+            {exporting && exportProgress
+              ? `${exportProgress.completed}/${exportProgress.total}`
+              : "Export"}
+          </button>
+
+          {exportMenuOpen && (
+            <div className="absolute right-0 mt-1 w-48 bg-gray-900 border border-gray-700 rounded-xl shadow-lg z-20 overflow-hidden">
+              <button
+                onClick={handleExportZip}
+                className="w-full text-left px-4 py-3 text-sm text-white hover:bg-gray-800 transition-colors"
+              >
+                Download as ZIP
+              </button>
+              <button
+                onClick={handleExportM3U}
+                className="w-full text-left px-4 py-3 text-sm text-white hover:bg-gray-800 transition-colors border-t border-gray-800"
+              >
+                Export M3U playlist
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Export progress bar */}
+      {exporting && exportProgress && (
+        <div className="space-y-1">
+          <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-violet-500 rounded-full transition-all duration-300"
+              style={{ width: `${Math.round((exportProgress.completed / exportProgress.total) * 100)}%` }}
+            />
+          </div>
+          <p className="text-xs text-gray-500">
+            Downloading {exportProgress.completed} of {exportProgress.total} songs…
+          </p>
+        </div>
+      )}
 
       {/* Filter chips */}
       <div className="flex gap-2 overflow-x-auto pb-1">
