@@ -6,7 +6,7 @@ export async function middleware(request: NextRequest) {
   const session = await auth();
   const { pathname } = request.nextUrl;
 
-  const publicPaths = ["/login", "/register", "/api/auth", "/api/register"];
+  const publicPaths = ["/login", "/register", "/api/auth", "/api/register", "/s/"];
   const isPublic = publicPaths.some((p) => pathname.startsWith(p));
 
   if (!session && !isPublic) {

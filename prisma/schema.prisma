@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "darwin-arm64"]
 }
 
 datasource db {
@@ -65,6 +66,8 @@ model Song {
   generationStatus String   @default("pending")
   errorMessage     String?
   pollCount        Int      @default(0)
+  isPublic         Boolean  @default(false)
+  publicSlug       String?  @unique
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

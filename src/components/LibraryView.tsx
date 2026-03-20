@@ -7,6 +7,7 @@ import {
   PauseIcon,
   MusicalNoteIcon,
   ArrowDownTrayIcon,
+  ShareIcon,
 } from "@heroicons/react/24/solid";
 import type { Song } from "@prisma/client";
 import { getRatings, type SongRating } from "@/lib/ratings";
@@ -187,6 +188,8 @@ function SongRow({
   onUpdate,
 }: SongRowProps) {
   const [song, setSong] = useState(initialSong);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   useEffect(() => { setSong(initialSong); }, [initialSong]);
 
@@ -201,6 +204,28 @@ function SongRow({
   const isFailed = song.generationStatus === "failed";
   const hasAudio = Boolean(song.audioUrl) && !isPending;
   const isDownloading = downloadProgress !== null;
+
+  async function handleShare() {
+    setShareLoading(true);
+    try {
+      const res = await fetch(`/api/songs/${song.id}/share`, { method: "PATCH" });
+      if (!res.ok) return;
+      const data = await res.json();
+      // Update local song state with share fields
+      const updated = { ...song, isPublic: data.isPublic, publicSlug: data.publicSlug };
+      setSong(updated);
+      onUpdate(updated);
+      // Copy URL to clipboard if now public
+      if (data.isPublic && data.publicSlug) {
+        const url = `${window.location.origin}/s/${data.publicSlug}`;
+        await navigator.clipboard.writeText(url);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2000);
+      }
+    } finally {
+      setShareLoading(false);
+    }
+  }
 
   return (
     <li
@@ -247,6 +272,25 @@ function SongRow({
             </div>
           )}
         </div>
+
+        {/* Share button */}
+        <button
+          onClick={handleShare}
+          disabled={!hasAudio || shareLoading}
+          aria-label={shareCopied ? "Link copied!" : song.isPublic ? "Make private" : "Share"}
+          title={shareCopied ? "Link copied!" : song.isPublic ? "Make private" : "Share song"}
+          className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+            shareCopied
+              ? "bg-green-700 text-white"
+              : song.isPublic
+                ? "bg-violet-800 hover:bg-violet-700 text-violet-300"
+                : hasAudio
+                  ? "bg-gray-800 hover:bg-gray-700 text-white"
+                  : "bg-gray-800 text-gray-600 cursor-not-allowed"
+          }`}
+        >
+          <ShareIcon className="w-5 h-5" />
+        </button>
 
         {/* Download button */}
         <button
