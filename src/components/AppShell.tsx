@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+
 import {
   HomeIcon,
   HeartIcon,
@@ -30,12 +31,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-10 bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center justify-between">
         <span className="text-violet-400 font-bold text-lg tracking-tight">SunoFlow</span>
         {session?.user && (
-          <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            Sign out
-          </button>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/settings"
+              aria-label="Settings"
+              className={`transition-colors ${
+                pathname === "/settings" ? "text-violet-400" : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <Cog6ToothIcon className="w-5 h-5" />
+            </Link>
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
         )}
       </header>
 
