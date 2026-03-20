@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { SessionProvider } from "@/components/SessionProvider";
 import { AppShell } from "@/components/AppShell";
 import { LibraryView } from "@/components/LibraryView";
@@ -24,7 +25,9 @@ export default async function LibraryPage() {
   return (
     <SessionProvider>
       <AppShell>
-        <LibraryView songs={songs} />
+        <Suspense>
+          <LibraryView initialSongs={songs} />
+        </Suspense>
       </AppShell>
     </SessionProvider>
   );

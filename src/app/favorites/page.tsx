@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { SessionProvider } from "@/components/SessionProvider";
 import { AppShell } from "@/components/AppShell";
 import { LibraryView } from "@/components/LibraryView";
@@ -24,7 +25,9 @@ export default async function FavoritesPage() {
   return (
     <SessionProvider>
       <AppShell>
-        <LibraryView songs={songs} title="Favorites" />
+        <Suspense>
+          <LibraryView initialSongs={songs} title="Favorites" enableServerSearch={false} />
+        </Suspense>
       </AppShell>
     </SessionProvider>
   );

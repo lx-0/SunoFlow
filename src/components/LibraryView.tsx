@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   PlayIcon,
@@ -10,6 +11,9 @@ import {
   ShareIcon,
   HeartIcon,
   ArrowUpOnSquareStackIcon,
+  MagnifyingGlassIcon,
+  XMarkIcon,
+  FunnelIcon,
 } from "@heroicons/react/24/solid";
 import {
   HeartIcon as HeartOutlineIcon,
@@ -53,7 +57,6 @@ function PlayerBar({ currentTime, duration, hasAudio, onSeek }: PlayerBarProps) 
 
   return (
     <div className="mt-2 space-y-1">
-      {/* Seek bar */}
       <div className="relative h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full">
         <div
           className="absolute inset-y-0 left-0 bg-violet-500 rounded-full transition-all"
@@ -70,7 +73,6 @@ function PlayerBar({ currentTime, duration, hasAudio, onSeek }: PlayerBarProps) 
           aria-label="Seek"
         />
       </div>
-      {/* Time display */}
       <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500">
         <span>{formatTime(currentTime)}</span>
         <span>{formatTime(duration)}</span>
@@ -78,16 +80,6 @@ function PlayerBar({ currentTime, duration, hasAudio, onSeek }: PlayerBarProps) 
     </div>
   );
 }
-
-// ─── Filter chips ─────────────────────────────────────────────────────────────
-
-const FILTER_OPTIONS: { label: string; value: string }[] = [
-  { label: "All", value: "all" },
-  { label: "Favorites", value: "favorites" },
-  { label: "3★+", value: "3" },
-  { label: "4★+", value: "4" },
-  { label: "5★", value: "5" },
-];
 
 // ─── Status badges ────────────────────────────────────────────────────────────
 
@@ -326,11 +318,9 @@ function SongRow({
       const res = await fetch(`/api/songs/${song.id}/share`, { method: "PATCH" });
       if (!res.ok) return;
       const data = await res.json();
-      // Update local song state with share fields
       const updated = { ...song, isPublic: data.isPublic, publicSlug: data.publicSlug };
       setSong(updated);
       onUpdate(updated);
-      // Copy URL to clipboard if now public
       if (data.isPublic && data.publicSlug) {
         const url = `${window.location.origin}/s/${data.publicSlug}`;
         await navigator.clipboard.writeText(url);
@@ -351,9 +341,7 @@ function SongRow({
         isActive ? "border-violet-600" : "border-gray-200 dark:border-gray-800"
       } ${isPending ? "opacity-75" : ""}`}
     >
-      {/* Top row: cover + title + play */}
       <div className="flex items-center gap-3 px-3 pt-3 pb-1">
-        {/* Cover art / placeholder */}
         <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center">
           {song.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -363,7 +351,6 @@ function SongRow({
           )}
         </div>
 
-        {/* Title + meta */}
         <div className="flex-1 min-w-0">
           <Link
             href={`/library/${song.id}`}
@@ -392,7 +379,6 @@ function SongRow({
           )}
         </div>
 
-        {/* Play/Pause button */}
         <button
           onClick={() => onTogglePlay(song)}
           disabled={!hasAudio}
@@ -411,9 +397,7 @@ function SongRow({
         </button>
       </div>
 
-      {/* Action buttons row */}
       <div className="flex items-center gap-2 px-3 pb-2">
-        {/* Favorite button */}
         <button
           onClick={() => onToggleFavorite(song)}
           aria-label={song.isFavorite ? "Remove from favorites" : "Add to favorites"}
@@ -430,7 +414,6 @@ function SongRow({
           )}
         </button>
 
-        {/* Share button */}
         <button
           onClick={handleShare}
           disabled={!hasAudio || shareLoading}
@@ -449,7 +432,6 @@ function SongRow({
           <ShareIcon className="w-5 h-5" />
         </button>
 
-        {/* Download button */}
         <button
           onClick={() => onDownload(song)}
           disabled={!hasAudio || isDownloading}
@@ -463,11 +445,9 @@ function SongRow({
           <ArrowDownTrayIcon className="w-5 h-5" />
         </button>
 
-        {/* Add to playlist */}
         <AddToPlaylistButton songId={song.id} />
       </div>
 
-      {/* Inline player bar — visible only for active song */}
       {isActive && (
         <div className="px-3 pb-3">
           <PlayerBar
@@ -479,7 +459,6 @@ function SongRow({
         </div>
       )}
 
-      {/* Download progress bar */}
       {isDownloading && downloadProgress !== null && downloadProgress < 100 && (
         <div className="px-3 pb-2">
           <div className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -491,7 +470,6 @@ function SongRow({
         </div>
       )}
 
-      {/* Download error */}
       {downloadError && (
         <div className="px-3 pb-2">
           <p className="text-xs text-red-400">{downloadError}</p>
@@ -501,9 +479,44 @@ function SongRow({
   );
 }
 
+// ─── Sort / filter constants ─────────────────────────────────────────────────
+
+const SORT_OPTIONS = [
+  { label: "Newest", value: "newest" },
+  { label: "Oldest", value: "oldest" },
+  { label: "Highest rated", value: "highest_rated" },
+  { label: "Title A\u2013Z", value: "title_az" },
+] as const;
+
+const STATUS_OPTIONS = [
+  { label: "All statuses", value: "" },
+  { label: "Ready", value: "ready" },
+  { label: "Pending", value: "pending" },
+  { label: "Failed", value: "failed" },
+] as const;
+
+const RATING_OPTIONS = [
+  { label: "Any rating", value: "" },
+  { label: "1\u2605+", value: "1" },
+  { label: "2\u2605+", value: "2" },
+  { label: "3\u2605+", value: "3" },
+  { label: "4\u2605+", value: "4" },
+  { label: "5\u2605", value: "5" },
+] as const;
+
+// ─── useDebounce ─────────────────────────────────────────────────────────────
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
+
 // ─── Main LibraryView ─────────────────────────────────────────────────────────
 
-// Adapt Song (Prisma) to the minimal shape downloadSongFile expects
 function toDownloadable(song: Song) {
   return {
     id: song.id,
@@ -513,19 +526,42 @@ function toDownloadable(song: Song) {
   };
 }
 
-export function LibraryView({ songs: initialSongs, title = "Library" }: { songs: Song[]; title?: string }) {
+interface LibraryViewProps {
+  initialSongs: Song[];
+  title?: string;
+  enableServerSearch?: boolean;
+}
+
+export function LibraryView({
+  initialSongs,
+  title = "Library",
+  enableServerSearch = true,
+}: LibraryViewProps) {
   const { toast } = useToast();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // ─── Filter state (initialized from URL params) ───────────────────────────
+  const [searchText, setSearchText] = useState(searchParams.get("q") ?? "");
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") ?? "");
+  const [ratingFilter, setRatingFilter] = useState(searchParams.get("minRating") ?? "");
+  const [dateFrom, setDateFrom] = useState(searchParams.get("dateFrom") ?? "");
+  const [dateTo, setDateTo] = useState(searchParams.get("dateTo") ?? "");
+  const [sortBy, setSortBy] = useState(searchParams.get("sortBy") ?? "newest");
+  const [showFilters, setShowFilters] = useState(false);
+
+  const debouncedSearch = useDebounce(searchText, 300);
+
+  // ─── Song + playback state ────────────────────────────────────────────────
   const [songs, setSongs] = useState<Song[]>(initialSongs);
+  const [loading, setLoading] = useState(false);
   const [currentSongId, setCurrentSongId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
-  const [activeFilter, setActiveFilter] = useState("all");
   const [ratings, setRatings] = useState<Record<string, SongRating>>({});
-
-  // per-song download state: progress 0–100, or null when idle
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
   const [downloadErrors, setDownloadErrors] = useState<Record<string, string>>({});
 
@@ -548,10 +584,9 @@ export function LibraryView({ songs: initialSongs, title = "Library" }: { songs:
     }
   }, [exportMenuOpen]);
 
-  // Load ratings from localStorage on mount
+  // ─── Init audio element ───────────────────────────────────────────────────
   useEffect(() => {
     setRatings(getRatings());
-    // Create audio element once
     audioRef.current = new Audio();
     const audio = audioRef.current;
 
@@ -581,13 +616,74 @@ export function LibraryView({ songs: initialSongs, title = "Library" }: { songs:
     };
   }, []);
 
-  // Reload ratings when returning to the page (e.g. after rating on detail page)
+  // Reload ratings when returning to the page
   useEffect(() => {
     const handleFocus = () => setRatings(getRatings());
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
+  // ─── Sync filters → URL params ───────────────────────────────────────────
+  const hasAnyFilter = !!(debouncedSearch || statusFilter || ratingFilter || dateFrom || dateTo || sortBy !== "newest");
+
+  useEffect(() => {
+    if (!enableServerSearch) return;
+
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set("q", debouncedSearch);
+    if (statusFilter) params.set("status", statusFilter);
+    if (ratingFilter) params.set("minRating", ratingFilter);
+    if (dateFrom) params.set("dateFrom", dateFrom);
+    if (dateTo) params.set("dateTo", dateTo);
+    if (sortBy && sortBy !== "newest") params.set("sortBy", sortBy);
+
+    const qs = params.toString();
+    const newUrl = qs ? `${pathname}?${qs}` : pathname;
+    router.replace(newUrl, { scroll: false });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, enableServerSearch]);
+
+  // ─── Fetch songs from API when filters change ────────────────────────────
+  useEffect(() => {
+    if (!enableServerSearch) return;
+
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set("q", debouncedSearch);
+    if (statusFilter) params.set("status", statusFilter);
+    if (ratingFilter) params.set("minRating", ratingFilter);
+    if (dateFrom) params.set("dateFrom", dateFrom);
+    if (dateTo) params.set("dateTo", dateTo);
+    if (sortBy) params.set("sortBy", sortBy);
+
+    let cancelled = false;
+    setLoading(true);
+
+    fetch(`/api/songs?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && data.songs) {
+          setSongs(data.songs);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, enableServerSearch]);
+
+  // ─── Clear all filters ────────────────────────────────────────────────────
+  function clearAllFilters() {
+    setSearchText("");
+    setStatusFilter("");
+    setRatingFilter("");
+    setDateFrom("");
+    setDateTo("");
+    setSortBy("newest");
+  }
+
+  // ─── Song callbacks ───────────────────────────────────────────────────────
   const handleSongUpdate = useCallback((updated: Song) => {
     setSongs((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
   }, []);
@@ -639,7 +735,6 @@ export function LibraryView({ songs: initialSongs, title = "Library" }: { songs:
   }
 
   async function handleToggleFavorite(song: Song) {
-    // Optimistic update
     const newFav = !song.isFavorite;
     const optimistic = { ...song, isFavorite: newFav };
     handleSongUpdate(optimistic);
@@ -658,22 +753,9 @@ export function LibraryView({ songs: initialSongs, title = "Library" }: { songs:
     }
   }
 
-  const favoriteCount = songs.filter((s) => s.isFavorite).length;
-
-  // Filter songs
-  const filteredSongs = (() => {
-    if (activeFilter === "all") return songs;
-    if (activeFilter === "favorites") return songs.filter((s) => s.isFavorite);
-    const minStars = Number(activeFilter);
-    return songs.filter((s) => {
-      const r = ratings[s.id];
-      if (minStars === 5) return r?.stars === 5;
-      return r && r.stars >= minStars;
-    });
-  })();
-
-  function songsForExport(): ExportableSong[] {
-    return filteredSongs
+  // ─── Export helpers ───────────────────────────────────────────────────────
+  const exportableSongs = useMemo<ExportableSong[]>(() => {
+    return songs
       .filter((s) => s.audioUrl && s.generationStatus === "ready")
       .map((s) => ({
         id: s.id,
@@ -683,22 +765,21 @@ export function LibraryView({ songs: initialSongs, title = "Library" }: { songs:
         duration: s.duration,
         createdAt: s.createdAt,
       }));
-  }
+  }, [songs]);
 
   async function handleExportZip() {
     setExportMenuOpen(false);
-    const toExport = songsForExport();
-    if (toExport.length === 0) {
+    if (exportableSongs.length === 0) {
       toast("No songs available to export", "info");
       return;
     }
-    if (toExport.length > 50) {
-      toast(`Exporting ${toExport.length} songs — this may take a while`, "info");
+    if (exportableSongs.length > 50) {
+      toast(`Exporting ${exportableSongs.length} songs \u2014 this may take a while`, "info");
     }
     setExporting(true);
-    setExportProgress({ completed: 0, total: toExport.length });
+    setExportProgress({ completed: 0, total: exportableSongs.length });
     try {
-      await exportAsZip(toExport, (completed, total) => {
+      await exportAsZip(exportableSongs, (completed, total) => {
         setExportProgress({ completed, total });
       });
       toast("ZIP export complete!", "success");
@@ -712,18 +793,19 @@ export function LibraryView({ songs: initialSongs, title = "Library" }: { songs:
 
   function handleExportM3U() {
     setExportMenuOpen(false);
-    const toExport = songsForExport();
-    if (toExport.length === 0) {
+    if (exportableSongs.length === 0) {
       toast("No songs available to export", "info");
       return;
     }
     try {
-      exportAsM3U(toExport);
+      exportAsM3U(exportableSongs);
       toast("M3U playlist exported!", "success");
     } catch (err) {
       toast(err instanceof Error ? err.message : "Export failed", "error");
     }
   }
+
+  const hasActiveFilters = !!(statusFilter || ratingFilter || dateFrom || dateTo);
 
   return (
     <div className="px-4 py-4 space-y-4">
@@ -731,7 +813,9 @@ export function LibraryView({ songs: initialSongs, title = "Library" }: { songs:
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">{songs.length} songs</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">
+            {loading ? "Searching\u2026" : `${songs.length} song${songs.length !== 1 ? "s" : ""}`}
+          </p>
         </div>
 
         {/* Export button */}
@@ -781,42 +865,143 @@ export function LibraryView({ songs: initialSongs, title = "Library" }: { songs:
             />
           </div>
           <p className="text-xs text-gray-500">
-            Downloading {exportProgress.completed} of {exportProgress.total} songs…
+            Downloading {exportProgress.completed} of {exportProgress.total} songs\u2026
           </p>
         </div>
       )}
 
-      {/* Filter chips */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {FILTER_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            onClick={() => setActiveFilter(opt.value)}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
-              activeFilter === opt.value
-                ? "bg-violet-600 text-white"
-                : "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-            }`}
-          >
-            {opt.label === "Favorites" && favoriteCount > 0
-              ? `Favorites (${favoriteCount})`
-              : opt.label}
-          </button>
-        ))}
-      </div>
+      {/* Search bar + filters */}
+      {enableServerSearch && (
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="Search by title or prompt\u2026"
+                className="w-full pl-9 pr-9 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent min-h-[44px]"
+              />
+              {searchText && (
+                <button
+                  onClick={() => setSearchText("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label="Clear search"
+                >
+                  <XMarkIcon className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowFilters((f) => !f)}
+              aria-label={showFilters ? "Hide filters" : "Show filters"}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
+                showFilters || hasActiveFilters
+                  ? "bg-violet-600 text-white"
+                  : "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+              }`}
+            >
+              <FunnelIcon className="w-4 h-4" />
+              Filters
+              {hasActiveFilters && !showFilters && (
+                <span className="w-2 h-2 rounded-full bg-white" />
+              )}
+            </button>
+          </div>
+
+          {showFilters && (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white min-h-[44px]"
+              >
+                {STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+
+              <select
+                value={ratingFilter}
+                onChange={(e) => setRatingFilter(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white min-h-[44px]"
+              >
+                {RATING_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                placeholder="From"
+                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white min-h-[44px]"
+              />
+
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                placeholder="To"
+                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white min-h-[44px]"
+              />
+            </div>
+          )}
+
+          {/* Sort + Clear row */}
+          <div className="flex items-center justify-between">
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {SORT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setSortBy(opt.value)}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
+                    sortBy === opt.value
+                      ? "bg-violet-600 text-white"
+                      : "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {hasAnyFilter && (
+              <button
+                onClick={clearAllFilters}
+                className="flex-shrink-0 ml-2 px-3 py-1.5 rounded-full text-sm font-medium text-red-500 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors min-h-[44px]"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Song list */}
-      {filteredSongs.length === 0 ? (
+      {songs.length === 0 ? (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 text-center">
+          <MusicalNoteIcon className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-700 mb-3" />
           <p className="text-gray-500 text-sm">
-            {songs.length === 0
-              ? "No songs in your library yet."
-              : "No songs match this filter."}
+            {hasAnyFilter
+              ? "No songs match your filters."
+              : "No songs in your library yet."}
           </p>
+          {hasAnyFilter && (
+            <button
+              onClick={clearAllFilters}
+              className="mt-3 px-4 py-2 rounded-lg text-sm font-medium text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors"
+            >
+              Clear all filters
+            </button>
+          )}
         </div>
       ) : (
         <ul className="space-y-2">
-          {filteredSongs.map((song) => (
+          {songs.map((song) => (
             <SongRow
               key={song.id}
               initialSong={song}
