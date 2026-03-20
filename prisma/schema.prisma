@@ -66,6 +66,7 @@ model Song {
   duration         Float?
   lyrics           String?
   sunoModel        String?
+  isInstrumental   Boolean  @default(false)
   generationStatus String   @default("pending")
   errorMessage     String?
   pollCount        Int      @default(0)

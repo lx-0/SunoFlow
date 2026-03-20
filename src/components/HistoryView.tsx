@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   MusicalNoteIcon,
   ArrowPathIcon,
   ClockIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/solid";
+import { useToast } from "./Toast";
 import type { Song } from "@prisma/client";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -81,9 +84,9 @@ function StatusBadge({ status, error }: { status: string; error?: string | null 
   );
 }
 
-// ─── Regenerate URL builder ───────────────────────────────────────────────────
+// ─── Variation URL builder ──────────────────────────────────────────────────
 
-function buildRegenerateUrl(song: Song): string {
+function buildVariationUrl(song: Song): string {
   const params = new URLSearchParams();
   if (song.title) params.set("title", song.title);
   if (song.tags) params.set("tags", song.tags);
@@ -97,8 +100,10 @@ const PAGE_SIZE = 20;
 
 // ─── History entry row ────────────────────────────────────────────────────────
 
-function HistoryRow({ song }: { song: Song }) {
+function HistoryRow({ song, onRetry, retryingId }: { song: Song; onRetry: (song: Song) => void; retryingId: string | null }) {
   const isReady = song.generationStatus === "ready";
+  const isFailed = song.generationStatus === "failed";
+  const isRetrying = retryingId === song.id;
 
   return (
     <li className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
@@ -130,6 +135,11 @@ function HistoryRow({ song }: { song: Song }) {
               </span>
             )}
             <StatusBadge status={song.generationStatus} error={song.errorMessage} />
+            {song.isInstrumental && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 text-xs font-medium">
+                Instrumental
+              </span>
+            )}
           </div>
 
           {/* Prompt */}
@@ -152,20 +162,49 @@ function HistoryRow({ song }: { song: Song }) {
           </div>
 
           {/* Error detail */}
-          {song.generationStatus === "failed" && song.errorMessage && (
+          {isFailed && song.errorMessage && (
             <p className="text-xs text-red-400 mt-1">{song.errorMessage}</p>
           )}
         </div>
 
-        {/* Regenerate button */}
-        <Link
-          href={buildRegenerateUrl(song)}
-          className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
-          title="Regenerate with same parameters"
-          aria-label="Regenerate"
-        >
-          <ArrowPathIcon className="w-5 h-5" />
-        </Link>
+        {/* Action buttons */}
+        <div className="flex-shrink-0 flex items-center gap-1.5">
+          {/* Retry button — only for failed generations */}
+          {isFailed && (
+            <button
+              onClick={() => onRetry(song)}
+              disabled={isRetrying}
+              className="w-11 h-11 rounded-full flex items-center justify-center bg-red-100 dark:bg-red-900/40 hover:bg-red-200 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 transition-colors disabled:opacity-50"
+              title="Retry with same parameters"
+              aria-label="Retry"
+            >
+              {isRetrying ? (
+                <svg
+                  className="animate-spin h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <ArrowPathIcon className="w-5 h-5" />
+              )}
+            </button>
+          )}
+
+          {/* Create variation button — for all songs */}
+          <Link
+            href={buildVariationUrl(song)}
+            className="w-11 h-11 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+            title="Create variation"
+            aria-label="Create variation"
+          >
+            <SparklesIcon className="w-5 h-5" />
+          </Link>
+        </div>
       </div>
     </li>
   );
@@ -176,6 +215,49 @@ function HistoryRow({ song }: { song: Song }) {
 export function HistoryView({ songs: initialSongs }: { songs: Song[] }) {
   const [activeFilter, setActiveFilter] = useState("all");
   const [page, setPage] = useState(1);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
+  const router = useRouter();
+  const { toast } = useToast();
+
+  async function handleRetry(song: Song) {
+    if (retryingId) return;
+    setRetryingId(song.id);
+
+    try {
+      const body = {
+        prompt: song.prompt,
+        title: song.title || undefined,
+        tags: song.tags || undefined,
+        makeInstrumental: song.isInstrumental,
+      };
+
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 429 && data.resetAt) {
+          const resetTime = new Date(data.resetAt);
+          const minutesLeft = Math.ceil((resetTime.getTime() - Date.now()) / 60000);
+          toast(`Rate limit reached. Try again in ${minutesLeft} minute${minutesLeft === 1 ? "" : "s"}.`, "error");
+        } else {
+          toast(data.error ?? "Retry failed. Please try again.", "error");
+        }
+        return;
+      }
+
+      toast("Retry started! Redirecting to library…", "success");
+      setTimeout(() => router.push("/library"), 1500);
+    } catch {
+      toast("Network error. Please check your connection.", "error");
+    } finally {
+      setRetryingId(null);
+    }
+  }
 
   // Filter
   const filteredSongs = (() => {
@@ -249,7 +331,7 @@ export function HistoryView({ songs: initialSongs }: { songs: Song[] }) {
         <>
           <ul className="space-y-2">
             {paginatedSongs.map((song) => (
-              <HistoryRow key={song.id} song={song} />
+              <HistoryRow key={song.id} song={song} onRetry={handleRetry} retryingId={retryingId} />
             ))}
           </ul>
 

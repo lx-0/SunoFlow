@@ -64,6 +64,7 @@ export async function POST(request: Request) {
             duration: s.duration ?? null,
             lyrics: s.lyrics || null,
             sunoModel: s.model || null,
+            isInstrumental: Boolean(makeInstrumental),
             generationStatus:
               usedMock || s.status === "complete"
                 ? "ready"
