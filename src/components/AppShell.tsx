@@ -11,6 +11,7 @@ import {
   BookOpenIcon,
   QueueListIcon,
   PlusCircleIcon,
+  UserCircleIcon,
 } from "@heroicons/react/24/outline";
 import { GlobalPlayer } from "./GlobalPlayer";
 
@@ -33,6 +34,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <span className="text-violet-400 font-bold text-lg tracking-tight">SunoFlow</span>
         {session?.user && (
           <div className="flex items-center gap-3">
+            <Link
+              href="/profile"
+              aria-label="Profile"
+              className={`min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors ${
+                pathname === "/profile" ? "text-violet-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+              }`}
+            >
+              <UserCircleIcon className="w-5 h-5" />
+            </Link>
             <Link
               href="/settings"
               aria-label="Settings"
