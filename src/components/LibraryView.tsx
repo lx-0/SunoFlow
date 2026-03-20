@@ -8,7 +8,9 @@ import {
   MusicalNoteIcon,
   ArrowDownTrayIcon,
   ShareIcon,
+  HeartIcon,
 } from "@heroicons/react/24/solid";
+import { HeartIcon as HeartOutlineIcon } from "@heroicons/react/24/outline";
 import type { Song } from "@prisma/client";
 import { getRatings, type SongRating } from "@/lib/ratings";
 import { downloadSongFile } from "@/lib/download";
@@ -73,11 +75,12 @@ function PlayerBar({ currentTime, duration, hasAudio, onSeek }: PlayerBarProps) 
 
 // ─── Filter chips ─────────────────────────────────────────────────────────────
 
-const FILTER_OPTIONS: { label: string; value: number }[] = [
-  { label: "All", value: 0 },
-  { label: "3★+", value: 3 },
-  { label: "4★+", value: 4 },
-  { label: "5★", value: 5 },
+const FILTER_OPTIONS: { label: string; value: string }[] = [
+  { label: "All", value: "all" },
+  { label: "Favorites", value: "favorites" },
+  { label: "3★+", value: "3" },
+  { label: "4★+", value: "4" },
+  { label: "5★", value: "5" },
 ];
 
 // ─── Status badges ────────────────────────────────────────────────────────────
@@ -171,6 +174,7 @@ interface SongRowProps {
   onDownload: (song: Song) => void;
   onSeek: (pct: number) => void;
   onUpdate: (updated: Song) => void;
+  onToggleFavorite: (song: Song) => void;
 }
 
 function SongRow({
@@ -186,6 +190,7 @@ function SongRow({
   onDownload,
   onSeek,
   onUpdate,
+  onToggleFavorite,
 }: SongRowProps) {
   const [song, setSong] = useState(initialSong);
   const [shareLoading, setShareLoading] = useState(false);
@@ -272,6 +277,23 @@ function SongRow({
             </div>
           )}
         </div>
+
+        {/* Favorite button */}
+        <button
+          onClick={() => onToggleFavorite(song)}
+          aria-label={song.isFavorite ? "Remove from favorites" : "Add to favorites"}
+          className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+            song.isFavorite
+              ? "text-pink-500 hover:text-pink-400"
+              : "text-gray-500 hover:text-pink-400"
+          }`}
+        >
+          {song.isFavorite ? (
+            <HeartIcon className="w-5 h-5" />
+          ) : (
+            <HeartOutlineIcon className="w-5 h-5" />
+          )}
+        </button>
 
         {/* Share button */}
         <button
@@ -371,7 +393,7 @@ function toDownloadable(song: Song) {
   };
 }
 
-export function LibraryView({ songs: initialSongs }: { songs: Song[] }) {
+export function LibraryView({ songs: initialSongs, title = "Library" }: { songs: Song[]; title?: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const [songs, setSongs] = useState<Song[]>(initialSongs);
@@ -379,7 +401,7 @@ export function LibraryView({ songs: initialSongs }: { songs: Song[] }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
-  const [minStars, setMinStars] = useState(0);
+  const [activeFilter, setActiveFilter] = useState("all");
   const [ratings, setRatings] = useState<Record<string, SongRating>>({});
 
   // per-song download state: progress 0–100, or null when idle
@@ -477,36 +499,60 @@ export function LibraryView({ songs: initialSongs }: { songs: Song[] }) {
     audio.currentTime = pct * audioDuration;
   }
 
-  // Filter songs by minimum star rating
-  const filteredSongs = minStars === 0
-    ? songs
-    : songs.filter((s) => {
-        const r = ratings[s.id];
-        if (minStars === 5) return r?.stars === 5;
-        return r && r.stars >= minStars;
-      });
+  async function handleToggleFavorite(song: Song) {
+    // Optimistic update
+    const newFav = !song.isFavorite;
+    const optimistic = { ...song, isFavorite: newFav };
+    handleSongUpdate(optimistic);
+
+    try {
+      const res = await fetch(`/api/songs/${song.id}/favorite`, { method: "PATCH" });
+      if (!res.ok) {
+        // Revert on failure
+        handleSongUpdate(song);
+      }
+    } catch {
+      handleSongUpdate(song);
+    }
+  }
+
+  const favoriteCount = songs.filter((s) => s.isFavorite).length;
+
+  // Filter songs
+  const filteredSongs = (() => {
+    if (activeFilter === "all") return songs;
+    if (activeFilter === "favorites") return songs.filter((s) => s.isFavorite);
+    const minStars = Number(activeFilter);
+    return songs.filter((s) => {
+      const r = ratings[s.id];
+      if (minStars === 5) return r?.stars === 5;
+      return r && r.stars >= minStars;
+    });
+  })();
 
   return (
     <div className="px-4 py-4 space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-white">Library</h1>
+        <h1 className="text-xl font-bold text-white">{title}</h1>
         <p className="text-gray-400 text-sm mt-0.5">{songs.length} songs</p>
       </div>
 
-      {/* Rating filter */}
+      {/* Filter chips */}
       <div className="flex gap-2 overflow-x-auto pb-1">
         {FILTER_OPTIONS.map((opt) => (
           <button
             key={opt.value}
-            onClick={() => setMinStars(opt.value)}
+            onClick={() => setActiveFilter(opt.value)}
             className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
-              minStars === opt.value
+              activeFilter === opt.value
                 ? "bg-violet-600 text-white"
                 : "bg-gray-800 text-gray-400 hover:text-white"
             }`}
           >
-            {opt.label}
+            {opt.label === "Favorites" && favoriteCount > 0
+              ? `Favorites (${favoriteCount})`
+              : opt.label}
           </button>
         ))}
       </div>
@@ -537,6 +583,7 @@ export function LibraryView({ songs: initialSongs }: { songs: Song[] }) {
               onDownload={handleDownload}
               onSeek={handleSeek}
               onUpdate={handleSongUpdate}
+              onToggleFavorite={handleToggleFavorite}
             />
           ))}
         </ul>

@@ -4,6 +4,8 @@ import { AppShell } from "@/components/AppShell";
 import { SongDetailView } from "@/components/SongDetailView";
 import { sunoApi } from "@/lib/sunoapi";
 import { mockSongs } from "@/lib/sunoapi/mock";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 async function fetchSong(id: string) {
   try {
@@ -14,12 +16,29 @@ async function fetchSong(id: string) {
   }
 }
 
+async function fetchFavoriteState(songId: string): Promise<boolean> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return false;
+    const dbSong = await prisma.song.findFirst({
+      where: { id: songId, userId: session.user.id },
+      select: { isFavorite: true },
+    });
+    return dbSong?.isFavorite ?? false;
+  } catch {
+    return false;
+  }
+}
+
 export default async function SongDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
-  const song = await fetchSong(params.id);
+  const [song, isFavorite] = await Promise.all([
+    fetchSong(params.id),
+    fetchFavoriteState(params.id),
+  ]);
 
   if (!song) {
     notFound();
@@ -28,7 +47,7 @@ export default async function SongDetailPage({
   return (
     <SessionProvider>
       <AppShell>
-        <SongDetailView song={song} />
+        <SongDetailView song={song} isFavorite={isFavorite} />
       </AppShell>
     </SessionProvider>
   );

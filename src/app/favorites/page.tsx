@@ -1,13 +1,30 @@
 import { SessionProvider } from "@/components/SessionProvider";
 import { AppShell } from "@/components/AppShell";
+import { LibraryView } from "@/components/LibraryView";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import type { Song } from "@prisma/client";
 
-export default function Page() {
+async function fetchFavorites(): Promise<Song[]> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return [];
+    return await prisma.song.findMany({
+      where: { userId: session.user.id, isFavorite: true },
+      orderBy: { createdAt: "desc" },
+    });
+  } catch {
+    return [];
+  }
+}
+
+export default async function FavoritesPage() {
+  const songs = await fetchFavorites();
+
   return (
     <SessionProvider>
       <AppShell>
-        <div className="px-4 py-6">
-          <p className="text-gray-500 text-sm">Coming soon.</p>
-        </div>
+        <LibraryView songs={songs} title="Favorites" />
       </AppShell>
     </SessionProvider>
   );

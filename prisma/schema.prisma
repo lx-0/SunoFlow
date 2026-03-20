@@ -66,6 +66,7 @@ model Song {
   generationStatus String   @default("pending")
   errorMessage     String?
   pollCount        Int      @default(0)
+  isFavorite       Boolean  @default(false)
   isPublic         Boolean  @default(false)
   publicSlug       String?  @unique
   createdAt        DateTime @default(now())

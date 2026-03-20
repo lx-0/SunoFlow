@@ -8,7 +8,9 @@ import {
   ArrowLeftIcon,
   MusicalNoteIcon,
   ArrowDownTrayIcon,
+  HeartIcon,
 } from "@heroicons/react/24/solid";
+import { HeartIcon as HeartOutlineIcon } from "@heroicons/react/24/outline";
 import type { SunoSong } from "@/lib/sunoapi";
 import { getRating, setRating, type SongRating } from "@/lib/ratings";
 import { downloadSongFile } from "@/lib/download";
@@ -66,10 +68,11 @@ function StarPicker({ value, onChange }: StarPickerProps) {
 
 // ─── Main SongDetailView ──────────────────────────────────────────────────────
 
-export function SongDetailView({ song }: { song: SunoSong }) {
+export function SongDetailView({ song, isFavorite: initialFavorite = false }: { song: SunoSong; isFavorite?: boolean }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(initialFavorite);
   const [currentTime, setCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(song.duration ?? 0);
 
@@ -162,6 +165,17 @@ export function SongDetailView({ song }: { song: SunoSong }) {
     setSaved(true);
   }
 
+  async function handleToggleFavorite() {
+    const prev = isFavorite;
+    setIsFavorite(!prev);
+    try {
+      const res = await fetch(`/api/songs/${song.id}/favorite`, { method: "PATCH" });
+      if (!res.ok) setIsFavorite(prev);
+    } catch {
+      setIsFavorite(prev);
+    }
+  }
+
   const pct = audioDuration > 0 ? (currentTime / audioDuration) * 100 : 0;
 
   return (
@@ -191,7 +205,22 @@ export function SongDetailView({ song }: { song: SunoSong }) {
 
       {/* Title + meta */}
       <div>
-        <h1 className="text-2xl font-bold text-white">{song.title}</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-white flex-1">{song.title}</h1>
+          <button
+            onClick={handleToggleFavorite}
+            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+            className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+              isFavorite ? "text-pink-500" : "text-gray-500 hover:text-pink-400"
+            }`}
+          >
+            {isFavorite ? (
+              <HeartIcon className="w-6 h-6" />
+            ) : (
+              <HeartOutlineIcon className="w-6 h-6" />
+            )}
+          </button>
+        </div>
         <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
           {song.tags && (
             <span className="text-sm text-violet-400">{song.tags}</span>
