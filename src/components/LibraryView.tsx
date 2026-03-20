@@ -51,7 +51,7 @@ function PlayerBar({ currentTime, duration, hasAudio, onSeek }: PlayerBarProps) 
   return (
     <div className="mt-2 space-y-1">
       {/* Seek bar */}
-      <div className="relative h-1.5 bg-gray-700 rounded-full">
+      <div className="relative h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full">
         <div
           className="absolute inset-y-0 left-0 bg-violet-500 rounded-full transition-all"
           style={{ width: `${pct}%` }}
@@ -68,7 +68,7 @@ function PlayerBar({ currentTime, duration, hasAudio, onSeek }: PlayerBarProps) 
         />
       </div>
       {/* Time display */}
-      <div className="flex justify-between text-xs text-gray-500">
+      <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500">
         <span>{formatTime(currentTime)}</span>
         <span>{formatTime(duration)}</span>
       </div>
@@ -90,7 +90,7 @@ const FILTER_OPTIONS: { label: string; value: string }[] = [
 
 function GeneratingBadge() {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-900/50 border border-violet-700 text-violet-300 text-xs font-medium">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/50 border border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300 text-xs font-medium">
       <svg
         className="animate-spin h-3 w-3"
         xmlns="http://www.w3.org/2000/svg"
@@ -109,7 +109,7 @@ function GeneratingBadge() {
 function FailedBadge({ message }: { message?: string | null }) {
   return (
     <span
-      className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-900/50 border border-red-700 text-red-300 text-xs font-medium"
+      className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/50 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 text-xs font-medium"
       title={message ?? "Generation failed"}
     >
       Failed
@@ -248,19 +248,19 @@ function SongRow({
 
   return (
     <li
-      className={`bg-gray-900 border rounded-xl overflow-hidden transition-colors ${
-        isActive ? "border-violet-600" : "border-gray-800"
+      className={`bg-white dark:bg-gray-900 border rounded-xl overflow-hidden transition-colors ${
+        isActive ? "border-violet-600" : "border-gray-200 dark:border-gray-800"
       } ${isPending ? "opacity-75" : ""}`}
     >
       {/* Top row: cover + title + play */}
       <div className="flex items-center gap-3 px-3 pt-3 pb-1">
         {/* Cover art / placeholder */}
-        <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gray-800 overflow-hidden flex items-center justify-center">
+        <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center">
           {song.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={song.imageUrl} alt={song.title ?? "Song"} className="w-full h-full object-cover" />
           ) : (
-            <MusicalNoteIcon className="w-6 h-6 text-gray-600" />
+            <MusicalNoteIcon className="w-6 h-6 text-gray-400 dark:text-gray-600" />
           )}
         </div>
 
@@ -268,7 +268,7 @@ function SongRow({
         <div className="flex-1 min-w-0">
           <Link
             href={`/library/${song.id}`}
-            className="block text-sm font-medium text-white truncate hover:text-violet-400 transition-colors"
+            className="block text-sm font-medium text-gray-900 dark:text-white truncate hover:text-violet-400 transition-colors"
           >
             {song.title ?? "Untitled"}
           </Link>
@@ -281,7 +281,7 @@ function SongRow({
               </span>
             )}
             {!isPending && song.duration && (
-              <span className="text-xs text-gray-600 flex-shrink-0">
+              <span className="text-xs text-gray-400 dark:text-gray-600 flex-shrink-0">
                 {formatTime(song.duration)}
               </span>
             )}
@@ -301,7 +301,7 @@ function SongRow({
           className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
             hasAudio
               ? "bg-violet-600 hover:bg-violet-500 text-white"
-              : "bg-gray-800 text-gray-600 cursor-not-allowed"
+              : "bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed"
           }`}
         >
           {isActive && isPlaying ? (
@@ -321,7 +321,7 @@ function SongRow({
           className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
             song.isFavorite
               ? "text-pink-500 hover:text-pink-400"
-              : "text-gray-500 hover:text-pink-400"
+              : "text-gray-400 dark:text-gray-500 hover:text-pink-400"
           }`}
         >
           {song.isFavorite ? (
@@ -341,10 +341,10 @@ function SongRow({
             shareCopied
               ? "bg-green-700 text-white"
               : song.isPublic
-                ? "bg-violet-800 hover:bg-violet-700 text-violet-300"
+                ? "bg-violet-100 dark:bg-violet-800 hover:bg-violet-200 dark:hover:bg-violet-700 text-violet-700 dark:text-violet-300"
                 : hasAudio
-                  ? "bg-gray-800 hover:bg-gray-700 text-white"
-                  : "bg-gray-800 text-gray-600 cursor-not-allowed"
+                  ? "bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+                  : "bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed"
           }`}
         >
           <ShareIcon className="w-5 h-5" />
@@ -357,8 +357,8 @@ function SongRow({
           aria-label={isDownloading ? `Downloading ${downloadProgress}%` : "Download song"}
           className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
             hasAudio && !isDownloading
-              ? "bg-gray-800 hover:bg-gray-700 text-white"
-              : "bg-gray-800 text-gray-600 cursor-not-allowed"
+              ? "bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+              : "bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed"
           }`}
         >
           <ArrowDownTrayIcon className="w-5 h-5" />
@@ -380,7 +380,7 @@ function SongRow({
       {/* Download progress bar */}
       {isDownloading && downloadProgress !== null && downloadProgress < 100 && (
         <div className="px-3 pb-2">
-          <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <div
               className="h-full bg-violet-500 rounded-full transition-all duration-300"
               style={{ width: `${downloadProgress}%` }}
@@ -628,8 +628,8 @@ export function LibraryView({ songs: initialSongs, title = "Library" }: { songs:
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">{title}</h1>
-          <p className="text-gray-400 text-sm mt-0.5">{songs.length} songs</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">{songs.length} songs</p>
         </div>
 
         {/* Export button */}
@@ -640,8 +640,8 @@ export function LibraryView({ songs: initialSongs, title = "Library" }: { songs:
             aria-label="Export library"
             className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
               exporting
-                ? "bg-gray-800 text-gray-500 cursor-not-allowed"
-                : "bg-gray-800 hover:bg-gray-700 text-white"
+                ? "bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                : "bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
             }`}
           >
             <ArrowUpOnSquareStackIcon className="w-4 h-4" />
@@ -651,16 +651,16 @@ export function LibraryView({ songs: initialSongs, title = "Library" }: { songs:
           </button>
 
           {exportMenuOpen && (
-            <div className="absolute right-0 mt-1 w-48 bg-gray-900 border border-gray-700 rounded-xl shadow-lg z-20 overflow-hidden">
+            <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-20 overflow-hidden">
               <button
                 onClick={handleExportZip}
-                className="w-full text-left px-4 py-3 text-sm text-white hover:bg-gray-800 transition-colors"
+                className="w-full text-left px-4 py-3 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
                 Download as ZIP
               </button>
               <button
                 onClick={handleExportM3U}
-                className="w-full text-left px-4 py-3 text-sm text-white hover:bg-gray-800 transition-colors border-t border-gray-800"
+                className="w-full text-left px-4 py-3 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-t border-gray-200 dark:border-gray-800"
               >
                 Export M3U playlist
               </button>
@@ -672,7 +672,7 @@ export function LibraryView({ songs: initialSongs, title = "Library" }: { songs:
       {/* Export progress bar */}
       {exporting && exportProgress && (
         <div className="space-y-1">
-          <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <div
               className="h-full bg-violet-500 rounded-full transition-all duration-300"
               style={{ width: `${Math.round((exportProgress.completed / exportProgress.total) * 100)}%` }}
@@ -693,7 +693,7 @@ export function LibraryView({ songs: initialSongs, title = "Library" }: { songs:
             className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
               activeFilter === opt.value
                 ? "bg-violet-600 text-white"
-                : "bg-gray-800 text-gray-400 hover:text-white"
+                : "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
             }`}
           >
             {opt.label === "Favorites" && favoriteCount > 0
@@ -705,7 +705,7 @@ export function LibraryView({ songs: initialSongs, title = "Library" }: { songs:
 
       {/* Song list */}
       {filteredSongs.length === 0 ? (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 text-center">
           <p className="text-gray-500 text-sm">
             {songs.length === 0
               ? "No songs in your library yet."

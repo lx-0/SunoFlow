@@ -10,10 +10,10 @@ export default async function HomePage() {
       <AppShell>
         <div className="px-4 py-6 space-y-6">
           <div>
-            <h2 className="text-xl font-bold text-white">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
               Welcome back{session?.user?.name ? `, ${session.user.name}` : ""}
             </h2>
-            <p className="text-gray-400 text-sm mt-1">Your Suno music hub</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Your Suno music hub</p>
           </div>
 
           {/* Quick stats */}
@@ -26,8 +26,8 @@ export default async function HomePage() {
 
           {/* Recent activity placeholder */}
           <div>
-            <h3 className="text-base font-semibold text-gray-200 mb-3">Recent songs</h3>
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 text-center">
+            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-3">Recent songs</h3>
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 text-center">
               <p className="text-gray-500 text-sm">
                 No songs yet. Connect your Suno account to get started.
               </p>
@@ -44,9 +44,9 @@ export default async function HomePage() {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-5">
-      <p className="text-gray-400 text-xs font-medium uppercase tracking-wide">{label}</p>
-      <p className="text-2xl font-bold text-white mt-1">{value}</p>
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-5">
+      <p className="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wide">{label}</p>
+      <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{value}</p>
     </div>
   );
 }

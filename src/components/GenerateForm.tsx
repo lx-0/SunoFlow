@@ -98,15 +98,15 @@ export function GenerateForm() {
     <div className="px-4 py-4 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-white">Generate</h1>
-        <p className="text-gray-400 text-sm mt-0.5">Create a new song with AI</p>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Generate</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Create a new song with AI</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Title */}
         <div className="space-y-1">
-          <label htmlFor="title" className="block text-sm font-medium text-gray-300">
-            Song title <span className="text-gray-500">(optional)</span>
+          <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Song title <span className="text-gray-400 dark:text-gray-500">(optional)</span>
           </label>
           <input
             id="title"
@@ -115,13 +115,13 @@ export function GenerateForm() {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="My awesome song"
             disabled={isSubmitting}
-            className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50"
+            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50"
           />
         </div>
 
         {/* Style / Genre prompt */}
         <div className="space-y-1">
-          <label htmlFor="stylePrompt" className="block text-sm font-medium text-gray-300">
+          <label htmlFor="stylePrompt" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Style / genre
           </label>
           <input
@@ -132,21 +132,21 @@ export function GenerateForm() {
             placeholder="e.g. upbeat lo-fi hip-hop, melancholic indie folk…"
             required={!customMode}
             disabled={isSubmitting}
-            className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50"
+            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50"
           />
         </div>
 
         {/* Custom lyrics toggle */}
-        <div className="flex items-center justify-between bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
-          <span className="text-sm font-medium text-gray-300">Custom lyrics</span>
+        <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Custom lyrics</span>
           <button
             type="button"
             role="switch"
             aria-checked={customMode}
             onClick={() => setCustomMode((v) => !v)}
             disabled={isSubmitting}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 ${
-              customMode ? "bg-violet-600" : "bg-gray-600"
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 disabled:opacity-50 ${
+              customMode ? "bg-violet-600" : "bg-gray-400 dark:bg-gray-600"
             }`}
           >
             <span
@@ -160,7 +160,7 @@ export function GenerateForm() {
         {/* Lyrics textarea — shown only in custom mode */}
         {customMode && (
           <div className="space-y-1">
-            <label htmlFor="lyrics" className="block text-sm font-medium text-gray-300">
+            <label htmlFor="lyrics" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Lyrics
             </label>
             <textarea
@@ -171,22 +171,22 @@ export function GenerateForm() {
               rows={8}
               required={customMode}
               disabled={isSubmitting}
-              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none disabled:opacity-50"
+              className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none disabled:opacity-50"
             />
           </div>
         )}
 
         {/* Instrumental toggle */}
-        <div className="flex items-center justify-between bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
-          <span className="text-sm font-medium text-gray-300">Instrumental only</span>
+        <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Instrumental only</span>
           <button
             type="button"
             role="switch"
             aria-checked={instrumental}
             onClick={() => setInstrumental((v) => !v)}
             disabled={isSubmitting}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 ${
-              instrumental ? "bg-violet-600" : "bg-gray-600"
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 disabled:opacity-50 ${
+              instrumental ? "bg-violet-600" : "bg-gray-400 dark:bg-gray-600"
             }`}
           >
             <span
@@ -201,10 +201,10 @@ export function GenerateForm() {
         {rateLimit && (
           <div className={`flex items-center justify-between rounded-xl px-4 py-2.5 text-sm ${
             rateLimit.remaining === 0
-              ? "bg-red-900/30 border border-red-800 text-red-300"
+              ? "bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300"
               : rateLimit.remaining <= 2
-                ? "bg-yellow-900/30 border border-yellow-800 text-yellow-300"
-                : "bg-gray-800 border border-gray-700 text-gray-400"
+                ? "bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300"
+                : "bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400"
           }`}>
             <span>Generations remaining</span>
             <span className="font-semibold">{rateLimit.remaining} / {rateLimit.limit}</span>

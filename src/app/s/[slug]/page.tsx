@@ -17,7 +17,7 @@ export default async function PublicSongPage({
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white flex items-center justify-center p-4">
       <PublicSongView
         title={song.title ?? "Untitled"}
         imageUrl={song.imageUrl}

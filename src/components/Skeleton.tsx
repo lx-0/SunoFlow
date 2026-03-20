@@ -1,7 +1,7 @@
 /** Reusable skeleton primitives with shimmer animation. */
 
 function shimmerClass(className?: string) {
-  return `bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 bg-[length:200%_100%] animate-shimmer rounded ${className ?? ""}`.trim();
+  return `bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 bg-[length:200%_100%] animate-shimmer rounded ${className ?? ""}`.trim();
 }
 
 export function Skeleton({ className }: { className?: string }) {
@@ -11,7 +11,7 @@ export function Skeleton({ className }: { className?: string }) {
 /** Skeleton matching a song card in the library list. */
 export function SongCardSkeleton() {
   return (
-    <li className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+    <li className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
       <div className="flex items-center gap-3 px-3 pt-3 pb-3">
         {/* Cover art placeholder */}
         <Skeleton className="flex-shrink-0 w-12 h-12 rounded-lg" />
@@ -72,7 +72,7 @@ export function SongDetailSkeleton() {
       {/* Regenerate button */}
       <Skeleton className="h-11 w-full rounded-xl" />
       {/* Audio player card */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
         <div className="flex items-center gap-3">
           <Skeleton className="w-12 h-12 rounded-full" />
           <Skeleton className="h-4 w-20 rounded" />
@@ -84,14 +84,14 @@ export function SongDetailSkeleton() {
         </div>
       </div>
       {/* Lyrics card */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-2">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-2">
         <Skeleton className="h-4 w-12 rounded" />
         <Skeleton className="h-3 w-full rounded" />
         <Skeleton className="h-3 w-5/6 rounded" />
         <Skeleton className="h-3 w-4/6 rounded" />
       </div>
       {/* Prompt card */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-2">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-2">
         <Skeleton className="h-4 w-14 rounded" />
         <Skeleton className="h-3 w-full rounded" />
         <Skeleton className="h-3 w-2/3 rounded" />

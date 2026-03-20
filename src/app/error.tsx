@@ -17,7 +17,7 @@ export default function Error({
 
   return (
     <div className="flex flex-col min-h-screen max-w-md mx-auto">
-      <header className="sticky top-0 z-10 bg-gray-900 border-b border-gray-800 px-4 py-3">
+      <header className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3">
         <span className="text-violet-400 font-bold text-lg tracking-tight">SunoFlow</span>
       </header>
 
@@ -25,7 +25,7 @@ export default function Error({
         <div className="text-center max-w-sm space-y-4">
           <ExclamationTriangleIcon className="w-12 h-12 text-red-400 mx-auto" />
           <h1 className="text-xl font-bold">Something went wrong</h1>
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
             An error occurred while loading this page. Please try again.
           </p>
           <div className="flex flex-col gap-2">
@@ -37,7 +37,7 @@ export default function Error({
             </button>
             <Link
               href="/"
-              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors text-center"
+              className="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium rounded-lg transition-colors text-center"
             >
               Go Home
             </Link>

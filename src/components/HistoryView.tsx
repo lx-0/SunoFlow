@@ -47,7 +47,7 @@ const STATUS_FILTERS: { label: string; value: string }[] = [
 function StatusBadge({ status, error }: { status: string; error?: string | null }) {
   if (status === "pending") {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-900/50 border border-violet-700 text-violet-300 text-xs font-medium">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/50 border border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300 text-xs font-medium">
         <svg
           className="animate-spin h-3 w-3"
           xmlns="http://www.w3.org/2000/svg"
@@ -66,7 +66,7 @@ function StatusBadge({ status, error }: { status: string; error?: string | null 
   if (status === "failed") {
     return (
       <span
-        className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-900/50 border border-red-700 text-red-300 text-xs font-medium"
+        className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/50 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 text-xs font-medium"
         title={error ?? "Generation failed"}
       >
         Failed
@@ -75,7 +75,7 @@ function StatusBadge({ status, error }: { status: string; error?: string | null 
   }
 
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-green-900/50 border border-green-700 text-green-300 text-xs font-medium">
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/50 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 text-xs font-medium">
       Ready
     </span>
   );
@@ -101,15 +101,15 @@ function HistoryRow({ song }: { song: Song }) {
   const isReady = song.generationStatus === "ready";
 
   return (
-    <li className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+    <li className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
       <div className="flex items-start gap-3 px-3 py-3">
         {/* Cover art / placeholder */}
-        <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gray-800 overflow-hidden flex items-center justify-center">
+        <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center">
           {song.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={song.imageUrl} alt={song.title ?? "Song"} className="w-full h-full object-cover" />
           ) : (
-            <MusicalNoteIcon className="w-6 h-6 text-gray-600" />
+            <MusicalNoteIcon className="w-6 h-6 text-gray-400 dark:text-gray-600" />
           )}
         </div>
 
@@ -120,12 +120,12 @@ function HistoryRow({ song }: { song: Song }) {
             {isReady ? (
               <Link
                 href={`/library/${song.id}`}
-                className="text-sm font-medium text-white truncate hover:text-violet-400 transition-colors"
+                className="text-sm font-medium text-gray-900 dark:text-white truncate hover:text-violet-400 transition-colors"
               >
                 {song.title ?? "Untitled"}
               </Link>
             ) : (
-              <span className="text-sm font-medium text-white truncate">
+              <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
                 {song.title ?? "Untitled"}
               </span>
             )}
@@ -134,7 +134,7 @@ function HistoryRow({ song }: { song: Song }) {
 
           {/* Prompt */}
           {song.prompt && (
-            <p className="text-xs text-gray-400 line-clamp-2">{song.prompt}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{song.prompt}</p>
           )}
 
           {/* Meta row: style, duration, timestamp */}
@@ -143,9 +143,9 @@ function HistoryRow({ song }: { song: Song }) {
               <span className="text-xs text-gray-500">{song.tags}</span>
             )}
             {song.duration && (
-              <span className="text-xs text-gray-600">{formatTime(song.duration)}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-600">{formatTime(song.duration)}</span>
             )}
-            <span className="text-xs text-gray-600 flex items-center gap-1">
+            <span className="text-xs text-gray-400 dark:text-gray-600 flex items-center gap-1">
               <ClockIcon className="w-3 h-3" />
               {formatDate(song.createdAt)}
             </span>
@@ -160,7 +160,7 @@ function HistoryRow({ song }: { song: Song }) {
         {/* Regenerate button */}
         <Link
           href={buildRegenerateUrl(song)}
-          className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white transition-colors"
+          className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
           title="Regenerate with same parameters"
           aria-label="Regenerate"
         >
@@ -201,8 +201,8 @@ export function HistoryView({ songs: initialSongs }: { songs: Song[] }) {
     <div className="px-4 py-4 space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-white">History</h1>
-        <p className="text-gray-400 text-sm mt-0.5">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">History</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">
           {initialSongs.length} generation{initialSongs.length !== 1 ? "s" : ""}
         </p>
       </div>
@@ -218,7 +218,7 @@ export function HistoryView({ songs: initialSongs }: { songs: Song[] }) {
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
                 activeFilter === opt.value
                   ? "bg-violet-600 text-white"
-                  : "bg-gray-800 text-gray-400 hover:text-white"
+                  : "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
               }`}
             >
               {opt.label}{count > 0 ? ` (${count})` : ""}
@@ -229,8 +229,8 @@ export function HistoryView({ songs: initialSongs }: { songs: Song[] }) {
 
       {/* Song list */}
       {paginatedSongs.length === 0 ? (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center space-y-3">
-          <MusicalNoteIcon className="w-10 h-10 text-gray-700 mx-auto" />
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 text-center space-y-3">
+          <MusicalNoteIcon className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto" />
           <p className="text-gray-500 text-sm">
             {initialSongs.length === 0
               ? "No generation history yet. Create your first song!"
@@ -257,7 +257,7 @@ export function HistoryView({ songs: initialSongs }: { songs: Song[] }) {
           {hasMore && (
             <button
               onClick={() => setPage((p) => p + 1)}
-              className="w-full py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium transition-colors min-h-[44px]"
+              className="w-full py-3 rounded-xl bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium transition-colors min-h-[44px]"
             >
               Load more ({filteredSongs.length - paginatedSongs.length} remaining)
             </button>

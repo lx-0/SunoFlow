@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { SessionProvider } from "@/components/SessionProvider";
 import { AppShell } from "@/components/AppShell";
-import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { useTheme } from "@/components/ThemeProvider";
+import { PlusIcon, TrashIcon, SunIcon, MoonIcon, ComputerDesktopIcon } from "@heroicons/react/24/outline";
 
 const RSS_FEEDS_KEY = "sunoflow_rss_feeds";
 
@@ -19,6 +20,41 @@ function Toast({ message, type }: { message: string; type: "success" | "error" }
     >
       {message}
     </div>
+  );
+}
+
+function ThemeSection() {
+  const { theme, setTheme } = useTheme();
+
+  const options: { value: "light" | "dark" | "system"; label: string; icon: typeof SunIcon }[] = [
+    { value: "light", label: "Light", icon: SunIcon },
+    { value: "dark", label: "Dark", icon: MoonIcon },
+    { value: "system", label: "System", icon: ComputerDesktopIcon },
+  ];
+
+  return (
+    <section className="space-y-3">
+      <div>
+        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Appearance</h3>
+        <p className="text-xs text-gray-500 mt-0.5">Choose your preferred theme.</p>
+      </div>
+      <div className="flex gap-2">
+        {options.map(({ value, label, icon: Icon }) => (
+          <button
+            key={value}
+            onClick={() => setTheme(value)}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-sm font-medium transition-colors min-h-[44px] border ${
+              theme === value
+                ? "bg-violet-600 text-white border-violet-600"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700"
+            }`}
+          >
+            <Icon className="w-4 h-4" />
+            {label}
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -110,31 +146,31 @@ function AccountSection() {
       {toast && <Toast message={toast.message} type={toast.type} />}
       <section className="space-y-4">
         <div>
-          <h3 className="text-base font-semibold text-gray-200">Account</h3>
+          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Account</h3>
           <p className="text-xs text-gray-500 mt-0.5">Manage your profile details.</p>
         </div>
 
         {/* Email (read-only) */}
         <div className="space-y-1">
-          <label className="text-xs text-gray-400">Email</label>
+          <label className="text-xs text-gray-500 dark:text-gray-400">Email</label>
           <input
             type="email"
             value={session?.user?.email ?? ""}
             readOnly
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-base text-gray-400 cursor-not-allowed"
+            className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-500 dark:text-gray-400 cursor-not-allowed"
           />
         </div>
 
         {/* Display name */}
         <div className="space-y-1">
-          <label className="text-xs text-gray-400">Display name</label>
+          <label className="text-xs text-gray-500 dark:text-gray-400">Display name</label>
           <div className="flex gap-2">
             <input
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="Your name"
-              className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-base text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="flex-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
             <button
               onClick={handleNameSave}
@@ -148,7 +184,7 @@ function AccountSection() {
 
         {/* Change password */}
         <div className="space-y-3 pt-2">
-          <h4 className="text-sm font-medium text-gray-300">Change password</h4>
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Change password</h4>
           <form onSubmit={handlePasswordChange} className="space-y-2">
             <input
               type="password"
@@ -156,7 +192,7 @@ function AccountSection() {
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Current password"
               autoComplete="current-password"
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-base text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
             <input
               type="password"
@@ -164,7 +200,7 @@ function AccountSection() {
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="New password (min 8 chars)"
               autoComplete="new-password"
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-base text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
             <input
               type="password"
@@ -172,7 +208,7 @@ function AccountSection() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm new password"
               autoComplete="new-password"
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-base text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
             <button
               type="submit"
@@ -246,7 +282,7 @@ function RssFeedsSection() {
   return (
     <section className="space-y-3">
       <div>
-        <h3 className="text-base font-semibold text-gray-200">RSS Feeds</h3>
+        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">RSS Feeds</h3>
         <p className="text-xs text-gray-500 mt-0.5">
           Add RSS feed URLs to see inspiration on the Inspire page.
         </p>
@@ -262,7 +298,7 @@ function RssFeedsSection() {
           }}
           onKeyDown={handleKeyDown}
           placeholder="https://example.com/feed.xml"
-          className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-base text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+          className="flex-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
         />
         <button
           onClick={addFeed}
@@ -277,18 +313,18 @@ function RssFeedsSection() {
       {saved && <p className="text-xs text-green-400">Saved!</p>}
 
       {feedUrls.length === 0 ? (
-        <p className="text-sm text-gray-600">No feeds added yet.</p>
+        <p className="text-sm text-gray-400 dark:text-gray-600">No feeds added yet.</p>
       ) : (
         <ul className="space-y-2">
           {feedUrls.map((url) => (
             <li
               key={url}
-              className="flex items-center gap-2 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2"
+              className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-3 py-2"
             >
-              <span className="flex-1 text-xs text-gray-300 truncate">{url}</span>
+              <span className="flex-1 text-xs text-gray-700 dark:text-gray-300 truncate">{url}</span>
               <button
                 onClick={() => removeFeed(url)}
-                className="text-gray-600 hover:text-red-400 transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                className="text-gray-400 dark:text-gray-600 hover:text-red-400 transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
                 aria-label="Remove feed"
               >
                 <TrashIcon className="w-4 h-4" />
@@ -304,9 +340,11 @@ function RssFeedsSection() {
 function SettingsContent() {
   return (
     <div className="px-4 py-6 space-y-8">
-      <h2 className="text-xl font-bold text-white">Settings</h2>
+      <h2 className="text-xl font-bold text-gray-900 dark:text-white">Settings</h2>
+      <ThemeSection />
+      <div className="border-t border-gray-200 dark:border-gray-800" />
       <AccountSection />
-      <div className="border-t border-gray-800" />
+      <div className="border-t border-gray-200 dark:border-gray-800" />
       <RssFeedsSection />
     </div>
   );

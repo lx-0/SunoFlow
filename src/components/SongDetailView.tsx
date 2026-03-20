@@ -58,7 +58,7 @@ function StarPicker({ value, onChange }: StarPickerProps) {
         >
           <span
             className={
-              star <= (hovered || value) ? "text-yellow-400" : "text-gray-600"
+              star <= (hovered || value) ? "text-yellow-400" : "text-gray-300 dark:text-gray-600"
             }
           >
             ★
@@ -197,14 +197,14 @@ export function SongDetailView({ song, isFavorite: initialFavorite = false, suno
       {/* Back link */}
       <button
         onClick={() => router.back()}
-        className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors min-h-[44px]"
+        className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors min-h-[44px]"
       >
         <ArrowLeftIcon className="w-4 h-4" />
         Library
       </button>
 
       {/* Cover art */}
-      <div className="w-full aspect-square max-h-64 rounded-2xl bg-gray-800 overflow-hidden flex items-center justify-center">
+      <div className="w-full aspect-square max-h-64 rounded-2xl bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center">
         {song.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -213,19 +213,19 @@ export function SongDetailView({ song, isFavorite: initialFavorite = false, suno
             className="w-full h-full object-cover"
           />
         ) : (
-          <MusicalNoteIcon className="w-20 h-20 text-gray-600" />
+          <MusicalNoteIcon className="w-20 h-20 text-gray-400 dark:text-gray-600" />
         )}
       </div>
 
       {/* Title + meta */}
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-white flex-1">{song.title}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex-1">{song.title}</h1>
           <button
             onClick={handleToggleFavorite}
             aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
             className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
-              isFavorite ? "text-pink-500" : "text-gray-500 hover:text-pink-400"
+              isFavorite ? "text-pink-500" : "text-gray-400 dark:text-gray-500 hover:text-pink-400"
             }`}
           >
             {isFavorite ? (
@@ -245,13 +245,13 @@ export function SongDetailView({ song, isFavorite: initialFavorite = false, suno
             </span>
           )}
           {song.model && (
-            <span className="text-sm text-gray-600">{song.model}</span>
+            <span className="text-sm text-gray-400 dark:text-gray-600">{song.model}</span>
           )}
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-gray-400 dark:text-gray-600">
             {formatDate(song.createdAt)}
           </span>
           {sunoJobId && (
-            <span className="text-sm text-gray-600" title="Suno song ID">
+            <span className="text-sm text-gray-400 dark:text-gray-600" title="Suno song ID">
               ID: {sunoJobId}
             </span>
           )}
@@ -264,14 +264,14 @@ export function SongDetailView({ song, isFavorite: initialFavorite = false, suno
           ...(song.prompt ? { prompt: song.prompt } : {}),
           ...(song.tags ? { tags: song.tags } : {}),
         }).toString()}`}
-        className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
+        className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
       >
         <ArrowPathIcon className="w-4 h-4" />
         Regenerate with same prompt
       </Link>
 
       {/* Audio player */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
         <div className="flex items-center gap-3">
           <button
             onClick={handleTogglePlay}
@@ -280,7 +280,7 @@ export function SongDetailView({ song, isFavorite: initialFavorite = false, suno
             className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
               hasAudio
                 ? "bg-violet-600 hover:bg-violet-500 text-white"
-                : "bg-gray-800 text-gray-600 cursor-not-allowed"
+                : "bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed"
             }`}
           >
             {isPlaying ? (
@@ -289,18 +289,18 @@ export function SongDetailView({ song, isFavorite: initialFavorite = false, suno
               <PlayIcon className="w-6 h-6 ml-0.5" />
             )}
           </button>
-          <div className="flex-1 text-sm text-gray-400">
+          <div className="flex-1 text-sm text-gray-500 dark:text-gray-400">
             {hasAudio ? (
               <span>{isPlaying ? "Playing" : "Paused"}</span>
             ) : (
-              <span className="text-gray-600">No audio available</span>
+              <span className="text-gray-400 dark:text-gray-600">No audio available</span>
             )}
           </div>
         </div>
 
         {/* Seek bar */}
         <div className="space-y-1">
-          <div className="relative h-1.5 bg-gray-700 rounded-full">
+          <div className="relative h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full">
             <div
               className="absolute inset-y-0 left-0 bg-violet-500 rounded-full transition-all"
               style={{ width: `${pct}%` }}
@@ -316,7 +316,7 @@ export function SongDetailView({ song, isFavorite: initialFavorite = false, suno
               aria-label="Seek"
             />
           </div>
-          <div className="flex justify-between text-xs text-gray-500">
+          <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500">
             <span>{formatTime(currentTime)}</span>
             <span>{formatTime(audioDuration)}</span>
           </div>
@@ -330,8 +330,8 @@ export function SongDetailView({ song, isFavorite: initialFavorite = false, suno
             aria-label="Download song"
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors min-h-[44px] ${
               hasAudio && downloadProgress === null
-                ? "bg-gray-800 hover:bg-gray-700 text-white"
-                : "bg-gray-800 text-gray-600 cursor-not-allowed"
+                ? "bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+                : "bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed"
             }`}
           >
             <ArrowDownTrayIcon className="w-4 h-4 flex-shrink-0" />
@@ -344,7 +344,7 @@ export function SongDetailView({ song, isFavorite: initialFavorite = false, suno
 
           {/* Progress bar */}
           {downloadProgress !== null && downloadProgress < 100 && (
-            <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
+            <div className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
               <div
                 className="h-full bg-violet-500 rounded-full transition-all duration-300"
                 style={{ width: `${downloadProgress}%` }}
@@ -361,23 +361,23 @@ export function SongDetailView({ song, isFavorite: initialFavorite = false, suno
 
       {/* Lyrics */}
       {song.lyrics && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-          <h2 className="text-sm font-semibold text-gray-300 mb-2">Lyrics</h2>
-          <p className="text-sm text-gray-400 whitespace-pre-line leading-relaxed">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Lyrics</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 whitespace-pre-line leading-relaxed">
             {song.lyrics}
           </p>
         </div>
       )}
 
       {/* Prompt */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-        <h2 className="text-sm font-semibold text-gray-300 mb-2">Prompt</h2>
-        <p className="text-sm text-gray-400">{song.prompt}</p>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Prompt</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{song.prompt}</p>
       </div>
 
       {/* Rating */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-gray-300">Your Rating</h2>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Your Rating</h2>
 
         <StarPicker value={rating.stars} onChange={handleStarChange} />
 
@@ -389,14 +389,14 @@ export function SongDetailView({ song, isFavorite: initialFavorite = false, suno
           }}
           placeholder="Add a note (optional)..."
           rows={3}
-          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-base text-white placeholder-gray-600 resize-none focus:outline-none focus:border-violet-500 transition-colors"
+          className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 resize-none focus:outline-none focus:border-violet-500 transition-colors"
         />
 
         <div className="flex items-center gap-3">
           <button
             onClick={handleSaveRating}
             disabled={rating.stars === 0}
-            className="px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-sm font-medium rounded-lg transition-colors min-h-[44px]"
+            className="px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-600 text-white text-sm font-medium rounded-lg transition-colors min-h-[44px]"
           >
             Save rating
           </button>

@@ -50,11 +50,11 @@ let nextId = 0;
 
 const variantStyles: Record<ToastVariant, string> = {
   success:
-    "bg-green-900/90 border-green-700 text-green-100",
+    "bg-green-100/90 dark:bg-green-900/90 border-green-300 dark:border-green-700 text-green-900 dark:text-green-100",
   error:
-    "bg-red-900/90 border-red-700 text-red-100",
+    "bg-red-100/90 dark:bg-red-900/90 border-red-300 dark:border-red-700 text-red-900 dark:text-red-100",
   info:
-    "bg-gray-800/90 border-gray-600 text-gray-100",
+    "bg-gray-100/90 dark:bg-gray-800/90 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100",
 };
 
 const VariantIcon: Record<ToastVariant, typeof CheckCircleIcon> = {
@@ -90,7 +90,7 @@ function ToastItem({
       <button
         onClick={() => onDismiss(toast.id)}
         aria-label="Dismiss notification"
-        className="flex-shrink-0 p-0.5 rounded hover:bg-white/10 transition-colors"
+        className="flex-shrink-0 p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
       >
         <XMarkIcon className="w-4 h-4" />
       </button>

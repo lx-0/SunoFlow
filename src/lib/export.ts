@@ -42,7 +42,7 @@ export async function exportAsZip(
 
   for (let i = 0; i < downloadable.length; i++) {
     const song = downloadable[i];
-    let name = safeName(song.title, i);
+    const name = safeName(song.title, i);
     const ext = fileExtension(song.audioUrl);
 
     // Deduplicate filenames

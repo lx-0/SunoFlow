@@ -121,10 +121,10 @@ function InspireContent() {
   if (feedUrls.length === 0) {
     return (
       <div className="px-4 py-6 space-y-4">
-        <h2 className="text-xl font-bold text-white">Inspire</h2>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 text-center">
-          <SparklesIcon className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-          <p className="text-gray-400 text-sm mb-4">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Inspire</h2>
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 text-center">
+          <SparklesIcon className="w-10 h-10 text-gray-400 dark:text-gray-600 mx-auto mb-3" />
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
             No RSS feeds added yet. Add feeds in Settings to see inspiration here.
           </p>
           <button
@@ -141,11 +141,11 @@ function InspireContent() {
   return (
     <div className="px-4 py-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white">Inspire</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Inspire</h2>
         <button
           onClick={() => fetchFeeds(feedUrls)}
           disabled={loading}
-          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50"
         >
           <ArrowPathIcon className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           Refresh
@@ -153,7 +153,7 @@ function InspireContent() {
       </div>
 
       {lastRefreshed && (
-        <p className="text-xs text-gray-600">
+        <p className="text-xs text-gray-400 dark:text-gray-600">
           Updated {lastRefreshed.toLocaleTimeString()}
         </p>
       )}
@@ -163,17 +163,17 @@ function InspireContent() {
           {[...Array(5)].map((_, i) => (
             <div
               key={i}
-              className="bg-gray-900 border border-gray-800 rounded-xl p-4 animate-pulse"
+              className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 animate-pulse"
             >
-              <div className="h-4 bg-gray-800 rounded w-3/4 mb-2" />
-              <div className="h-3 bg-gray-800 rounded w-1/2" />
+              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4 mb-2" />
+              <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-1/2" />
             </div>
           ))}
         </div>
       )}
 
       {!loading && allItems.length === 0 && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 text-center">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 text-center">
           <p className="text-gray-500 text-sm">No items found in your feeds.</p>
         </div>
       )}
@@ -184,9 +184,9 @@ function InspireContent() {
             return (
               <div
                 key={i}
-                className="bg-gray-900 border border-red-900 rounded-xl p-4"
+                className="bg-white dark:bg-gray-900 border border-red-200 dark:border-red-900 rounded-xl p-4"
               >
-                <p className="text-xs text-red-400 font-medium">{item.source}</p>
+                <p className="text-xs text-red-500 dark:text-red-400 font-medium">{item.source}</p>
                 <p className="text-xs text-red-500 mt-1">
                   Failed to load: {item.feedError}
                 </p>
@@ -196,16 +196,16 @@ function InspireContent() {
           return (
             <div
               key={i}
-              className="bg-gray-900 border border-gray-800 rounded-xl p-4"
+              className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4"
             >
               <p className="text-xs text-violet-400 font-medium mb-1">
                 {item.source}
               </p>
-              <p className="text-sm font-semibold text-white leading-snug">
+              <p className="text-sm font-semibold text-gray-900 dark:text-white leading-snug">
                 {item.title}
               </p>
               {item.description && (
-                <p className="text-xs text-gray-400 mt-1 line-clamp-2">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
                   {item.description}
                 </p>
               )}

@@ -13,7 +13,7 @@ export default function GenerateError({
     <div className="px-4 py-12 flex flex-col items-center text-center space-y-4">
       <ExclamationTriangleIcon className="w-10 h-10 text-red-400" />
       <h2 className="text-lg font-bold">Failed to load generator</h2>
-      <p className="text-gray-400 text-sm">
+      <p className="text-gray-500 dark:text-gray-400 text-sm">
         Something went wrong loading the song generator. Please try again.
       </p>
       <div className="flex gap-2">
@@ -25,7 +25,7 @@ export default function GenerateError({
         </button>
         <Link
           href="/"
-          className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors"
+          className="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium rounded-lg transition-colors"
         >
           Go Home
         </Link>

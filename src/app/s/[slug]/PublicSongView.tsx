@@ -51,20 +51,20 @@ export function PublicSongView({
   return (
     <div className="w-full max-w-sm space-y-6">
       {/* Cover art */}
-      <div className="aspect-square w-full rounded-2xl bg-gray-900 border border-gray-800 overflow-hidden flex items-center justify-center">
+      <div className="aspect-square w-full rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 overflow-hidden flex items-center justify-center">
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={imageUrl} alt={title} className="w-full h-full object-cover" />
         ) : (
-          <MusicalNoteIcon className="w-20 h-20 text-gray-700" />
+          <MusicalNoteIcon className="w-20 h-20 text-gray-300 dark:text-gray-700" />
         )}
       </div>
 
       {/* Song info */}
       <div className="text-center space-y-1">
-        <h1 className="text-xl font-bold text-white">{title}</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h1>
         {creatorName && (
-          <p className="text-sm text-gray-400">by {creatorName}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">by {creatorName}</p>
         )}
         {tags && (
           <p className="text-xs text-gray-500">{tags}</p>
@@ -91,7 +91,7 @@ export function PublicSongView({
 
           {/* Seek bar */}
           <div className="space-y-1">
-            <div className="relative h-1.5 bg-gray-700 rounded-full">
+            <div className="relative h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full">
               <div
                 className="absolute inset-y-0 left-0 bg-violet-500 rounded-full transition-all"
                 style={{ width: `${pct}%` }}
@@ -106,7 +106,7 @@ export function PublicSongView({
                 aria-label="Seek"
               />
             </div>
-            <div className="flex justify-between text-xs text-gray-500">
+            <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500">
               <span>{formatTime(currentTime)}</span>
               <span>{formatTime(audioDuration)}</span>
             </div>
@@ -125,7 +125,7 @@ export function PublicSongView({
       )}
 
       {/* Branding */}
-      <p className="text-center text-xs text-gray-600">
+      <p className="text-center text-xs text-gray-400 dark:text-gray-600">
         Shared via SunoFlow
       </p>
     </div>
