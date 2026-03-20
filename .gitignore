@@ -8,6 +8,11 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+.playwright-browsers/
 
 # next.js
 /.next/
