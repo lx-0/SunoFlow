@@ -16,17 +16,17 @@ async function fetchSong(id: string) {
   }
 }
 
-async function fetchFavoriteState(songId: string): Promise<boolean> {
+async function fetchDbMeta(songId: string): Promise<{ isFavorite: boolean; sunoJobId: string | null }> {
   try {
     const session = await auth();
-    if (!session?.user?.id) return false;
+    if (!session?.user?.id) return { isFavorite: false, sunoJobId: null };
     const dbSong = await prisma.song.findFirst({
       where: { id: songId, userId: session.user.id },
-      select: { isFavorite: true },
+      select: { isFavorite: true, sunoJobId: true },
     });
-    return dbSong?.isFavorite ?? false;
+    return { isFavorite: dbSong?.isFavorite ?? false, sunoJobId: dbSong?.sunoJobId ?? null };
   } catch {
-    return false;
+    return { isFavorite: false, sunoJobId: null };
   }
 }
 
@@ -35,9 +35,9 @@ export default async function SongDetailPage({
 }: {
   params: { id: string };
 }) {
-  const [song, isFavorite] = await Promise.all([
+  const [song, dbMeta] = await Promise.all([
     fetchSong(params.id),
-    fetchFavoriteState(params.id),
+    fetchDbMeta(params.id),
   ]);
 
   if (!song) {
@@ -47,7 +47,7 @@ export default async function SongDetailPage({
   return (
     <SessionProvider>
       <AppShell>
-        <SongDetailView song={song} isFavorite={isFavorite} />
+        <SongDetailView song={song} isFavorite={dbMeta.isFavorite} sunoJobId={dbMeta.sunoJobId} />
       </AppShell>
     </SessionProvider>
   );

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   PlayIcon,
   PauseIcon,
@@ -9,6 +10,7 @@ import {
   MusicalNoteIcon,
   ArrowDownTrayIcon,
   HeartIcon,
+  ArrowPathIcon,
 } from "@heroicons/react/24/solid";
 import { HeartIcon as HeartOutlineIcon } from "@heroicons/react/24/outline";
 import type { SunoSong } from "@/lib/sunoapi";
@@ -68,7 +70,8 @@ function StarPicker({ value, onChange }: StarPickerProps) {
 
 // ─── Main SongDetailView ──────────────────────────────────────────────────────
 
-export function SongDetailView({ song, isFavorite: initialFavorite = false }: { song: SunoSong; isFavorite?: boolean }) {
+export function SongDetailView({ song, isFavorite: initialFavorite = false, sunoJobId }: { song: SunoSong; isFavorite?: boolean; sunoJobId?: string | null }) {
+  const router = useRouter();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
@@ -181,13 +184,13 @@ export function SongDetailView({ song, isFavorite: initialFavorite = false }: { 
   return (
     <div className="px-4 py-4 space-y-5">
       {/* Back link */}
-      <Link
-        href="/library"
+      <button
+        onClick={() => router.back()}
         className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors min-h-[44px]"
       >
         <ArrowLeftIcon className="w-4 h-4" />
         Library
-      </Link>
+      </button>
 
       {/* Cover art */}
       <div className="w-full aspect-square max-h-64 rounded-2xl bg-gray-800 overflow-hidden flex items-center justify-center">
@@ -236,8 +239,25 @@ export function SongDetailView({ song, isFavorite: initialFavorite = false }: { 
           <span className="text-sm text-gray-600">
             {formatDate(song.createdAt)}
           </span>
+          {sunoJobId && (
+            <span className="text-sm text-gray-600" title="Suno song ID">
+              ID: {sunoJobId}
+            </span>
+          )}
         </div>
       </div>
+
+      {/* Regenerate button */}
+      <Link
+        href={`/generate?${new URLSearchParams({
+          ...(song.prompt ? { prompt: song.prompt } : {}),
+          ...(song.tags ? { tags: song.tags } : {}),
+        }).toString()}`}
+        className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
+      >
+        <ArrowPathIcon className="w-4 h-4" />
+        Regenerate with same prompt
+      </Link>
 
       {/* Audio player */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">

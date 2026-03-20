@@ -1,16 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { SparklesIcon } from "@heroicons/react/24/solid";
 
 export function GenerateForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [title, setTitle] = useState("");
-  const [stylePrompt, setStylePrompt] = useState("");
-  const [customMode, setCustomMode] = useState(false);
-  const [lyrics, setLyrics] = useState("");
+  const [title, setTitle] = useState(searchParams.get("title") ?? "");
+  const [stylePrompt, setStylePrompt] = useState(searchParams.get("tags") ?? "");
+  const [customMode, setCustomMode] = useState(Boolean(searchParams.get("prompt") && !searchParams.get("tags")));
+  const [lyrics, setLyrics] = useState(searchParams.get("prompt") ?? "");
   const [instrumental, setInstrumental] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
