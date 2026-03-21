@@ -1,0 +1,126 @@
+import { type Page, expect } from "@playwright/test";
+
+// ─── Test User Factory ──────────────────────────────────────────────────────
+
+export function uniqueEmail(prefix: string): string {
+  return `e2e-${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@test.local`;
+}
+
+export const DEFAULT_PASSWORD = "E2eTestPass123!";
+
+export async function registerUser(
+  baseURL: string,
+  user: { name: string; email: string; password: string }
+) {
+  const res = await fetch(`${baseURL}/api/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(user),
+  });
+  if (res.status !== 201) {
+    throw new Error(
+      `Failed to register user: ${res.status} ${await res.text()}`
+    );
+  }
+  return res;
+}
+
+export async function loginViaUI(
+  page: Page,
+  email: string,
+  password: string
+) {
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).not.toHaveURL(/\/login/, { timeout: 10000 });
+}
+
+// ─── Mock Song Data ─────────────────────────────────────────────────────────
+
+export function mockSong(overrides: Record<string, unknown> = {}) {
+  return {
+    id: `mock-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    userId: "test-user",
+    sunoJobId: null,
+    title: "Mock Song",
+    prompt: "test prompt",
+    tags: "test",
+    audioUrl: "https://example.com/audio.mp3",
+    imageUrl: null,
+    duration: 120,
+    lyrics: null,
+    sunoModel: null,
+    generationStatus: "ready",
+    errorMessage: null,
+    pollCount: 0,
+    isFavorite: false,
+    isPublic: false,
+    publicSlug: null,
+    rating: null,
+    ratingNote: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+export function mockPlaylist(overrides: Record<string, unknown> = {}) {
+  return {
+    id: `pl-mock-${Date.now()}`,
+    name: "Test Playlist",
+    description: null,
+    userId: "test-user",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    _count: { songs: 0 },
+    ...overrides,
+  };
+}
+
+// ─── API Route Interceptors ─────────────────────────────────────────────────
+
+/** Intercept GET /api/songs to return mock songs */
+export async function mockSongsAPI(page: Page, songs: ReturnType<typeof mockSong>[]) {
+  await page.route("**/api/songs?*", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ songs, total: songs.length }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+  await page.route("**/api/songs", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ songs, total: songs.length }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+}
+
+/** Intercept GET /api/playlists to return mock playlists */
+export async function mockPlaylistsAPI(
+  page: Page,
+  playlists: ReturnType<typeof mockPlaylist>[]
+) {
+  await page.route("**/api/playlists", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(playlists),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+}
