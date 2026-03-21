@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { SparklesIcon, BookmarkIcon, TrashIcon } from "@heroicons/react/24/solid";
 import { BookmarkIcon as BookmarkOutline, ClockIcon } from "@heroicons/react/24/outline";
 import { useToast } from "./Toast";
+import { useGenerationPoller } from "@/hooks/useGenerationPoller";
+import { GenerationProgress } from "./GenerationProgress";
 
 interface RateLimitStatus {
   remaining: number;
@@ -22,9 +24,9 @@ interface PromptTemplate {
 }
 
 export function GenerateForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { songs: trackedSongs, trackSong, clearAll } = useGenerationPoller();
 
   const [title, setTitle] = useState(searchParams.get("title") ?? "");
   const [stylePrompt, setStylePrompt] = useState(searchParams.get("tags") ?? "");
@@ -188,8 +190,10 @@ export function GenerateForm() {
         }
       }
 
-      toast("Song generation started! Redirecting to your library…", "success");
-      setTimeout(() => router.push("/library"), 1500);
+      toast("Song generation started!", "success");
+      const songId = data.song?.id ?? data.id;
+      const songTitle = data.song?.title ?? data.title ?? (title || null);
+      trackSong(songId, songTitle);
     } catch {
       toast("Network error. Please check your connection and try again.", "error");
     } finally {
@@ -207,6 +211,9 @@ export function GenerateForm() {
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">Generate</h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Create a new song with AI</p>
       </div>
+
+      {/* Generation Progress */}
+      <GenerationProgress songs={trackedSongs} onDismiss={clearAll} />
 
       {/* Template Picker Button */}
       <div className="flex gap-2">
