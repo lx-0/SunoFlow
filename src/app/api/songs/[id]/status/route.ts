@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getSongById } from "@/lib/sunoapi";
+import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 
 const MAX_POLL_ATTEMPTS = 20;
 
@@ -52,9 +53,10 @@ export async function GET(
     }
 
     // Check status with Suno API
+    const userApiKey = await resolveUserApiKey(session.user.id);
     let sunoSong;
     try {
-      sunoSong = await getSongById(song.sunoJobId);
+      sunoSong = await getSongById(song.sunoJobId, userApiKey);
     } catch {
       // Transient error — increment poll count but don't fail yet
       const updated = await prisma.song.update({

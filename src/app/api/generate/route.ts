@@ -4,6 +4,7 @@ import { generateSong } from "@/lib/sunoapi";
 import { mockSongs } from "@/lib/sunoapi/mock";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, recordRateLimitHit } from "@/lib/rate-limit";
+import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 
 export async function POST(request: Request) {
   try {
@@ -35,16 +36,22 @@ export async function POST(request: Request) {
       );
     }
 
+    const userApiKey = await resolveUserApiKey(userId);
+
     let sunoSongs;
     let usedMock = false;
     try {
-      sunoSongs = await generateSong(prompt.trim(), {
-        title: title?.trim() || undefined,
-        tags: tags?.trim() || undefined,
-        makeInstrumental: Boolean(makeInstrumental),
-      });
+      sunoSongs = await generateSong(
+        prompt.trim(),
+        {
+          title: title?.trim() || undefined,
+          tags: tags?.trim() || undefined,
+          makeInstrumental: Boolean(makeInstrumental),
+        },
+        userApiKey
+      );
     } catch {
-      // Fall back to mock when SUNOAPI_KEY is not configured
+      // Fall back to mock when no API key is available
       sunoSongs = mockSongs.slice(0, 1);
       usedMock = true;
     }

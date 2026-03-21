@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { AppShell } from "@/components/AppShell";
 import { useTheme } from "@/components/ThemeProvider";
-import { PlusIcon, TrashIcon, SunIcon, MoonIcon, ComputerDesktopIcon, PencilIcon, CheckIcon, XMarkIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, TrashIcon, SunIcon, MoonIcon, ComputerDesktopIcon, PencilIcon, CheckIcon, XMarkIcon, ArrowPathIcon, KeyIcon } from "@heroicons/react/24/outline";
 import { useOnboarding } from "@/components/OnboardingTour";
 
 const RSS_FEEDS_KEY = "sunoflow_rss_feeds";
@@ -482,6 +482,130 @@ function TagManagementSection() {
   );
 }
 
+function ApiKeySection() {
+  const [apiKey, setApiKey] = useState("");
+  const [maskedKey, setMaskedKey] = useState<string | null>(null);
+  const [hasKey, setHasKey] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  useEffect(() => {
+    fetch("/api/profile/api-key")
+      .then((r) => r.json())
+      .then((data) => {
+        setHasKey(data.hasKey);
+        setMaskedKey(data.maskedKey);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/profile/api-key", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sunoApiKey: apiKey }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error ?? "Failed to save API key", "error");
+      } else {
+        setHasKey(data.hasKey);
+        setMaskedKey(data.maskedKey);
+        setApiKey("");
+        showToast(data.hasKey ? "API key saved" : "API key removed", "success");
+      }
+    } catch {
+      showToast("Network error", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemove = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/profile/api-key", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sunoApiKey: "" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error ?? "Failed to remove API key", "error");
+      } else {
+        setHasKey(false);
+        setMaskedKey(null);
+        setApiKey("");
+        showToast("API key removed", "success");
+      }
+    } catch {
+      showToast("Network error", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      {toast && <Toast message={toast.message} type={toast.type} />}
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Suno API Key</h3>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Set your personal <a href="https://sunoapi.org" target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:underline">sunoapi.org</a> API key for music generation. Overrides the server default.
+          </p>
+        </div>
+
+        {loading ? (
+          <p className="text-sm text-gray-400">Loading...</p>
+        ) : (
+          <>
+            {hasKey && maskedKey && (
+              <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2">
+                <KeyIcon className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                <span className="text-sm text-green-700 dark:text-green-300 font-mono">{maskedKey}</span>
+                <button
+                  onClick={handleRemove}
+                  disabled={saving}
+                  className="ml-auto text-xs text-red-500 hover:text-red-400 disabled:opacity-50 min-h-[36px] px-2"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder={hasKey ? "Enter new key to replace" : "Paste your API key"}
+                autoComplete="off"
+                className="flex-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              />
+              <button
+                onClick={handleSave}
+                disabled={saving || !apiKey.trim()}
+                className="px-3 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                {saving ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </>
+        )}
+      </section>
+    </>
+  );
+}
+
 function OnboardingSection() {
   const { restartTour } = useOnboarding();
   const [restarting, setRestarting] = useState(false);
@@ -517,6 +641,8 @@ function SettingsContent() {
       <ThemeSection />
       <div className="border-t border-gray-200 dark:border-gray-800" />
       <AccountSection />
+      <div className="border-t border-gray-200 dark:border-gray-800" />
+      <ApiKeySection />
       <div className="border-t border-gray-200 dark:border-gray-800" />
       <OnboardingSection />
       <div className="border-t border-gray-200 dark:border-gray-800" />

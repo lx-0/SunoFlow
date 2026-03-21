@@ -84,8 +84,8 @@ async function fetchWithRetry(
   }
 }
 
-function buildHeaders(): HeadersInit {
-  const key = process.env.SUNOAPI_KEY;
+function buildHeaders(apiKey?: string): HeadersInit {
+  const key = apiKey || process.env.SUNOAPI_KEY;
   if (!key) {
     throw new SunoApiError(0, "SUNOAPI_KEY environment variable is not set");
   }
@@ -103,11 +103,12 @@ function buildHeaders(): HeadersInit {
  */
 export async function generateSong(
   prompt: string,
-  options: GenerateSongOptions = {}
+  options: GenerateSongOptions = {},
+  apiKey?: string
 ): Promise<SunoSong[]> {
   const res = await fetchWithRetry(`${BASE_URL}/generate`, {
     method: "POST",
-    headers: buildHeaders(),
+    headers: buildHeaders(apiKey),
     body: JSON.stringify({ prompt, ...options }),
   });
   const data = (await res.json()) as { clips?: SunoSong[]; data?: SunoSong[] };
@@ -117,10 +118,10 @@ export async function generateSong(
 /**
  * List all songs associated with the account's API key.
  */
-export async function listSongs(): Promise<SunoSong[]> {
+export async function listSongs(apiKey?: string): Promise<SunoSong[]> {
   const res = await fetchWithRetry(`${BASE_URL}/songs`, {
     method: "GET",
-    headers: buildHeaders(),
+    headers: buildHeaders(apiKey),
   });
   const data = (await res.json()) as { clips?: SunoSong[]; data?: SunoSong[] };
   return data.clips ?? data.data ?? [];
@@ -129,10 +130,10 @@ export async function listSongs(): Promise<SunoSong[]> {
 /**
  * Fetch a single song by ID.
  */
-export async function getSongById(id: string): Promise<SunoSong> {
+export async function getSongById(id: string, apiKey?: string): Promise<SunoSong> {
   const res = await fetchWithRetry(`${BASE_URL}/songs/${encodeURIComponent(id)}`, {
     method: "GET",
-    headers: buildHeaders(),
+    headers: buildHeaders(apiKey),
   });
   const data = (await res.json()) as { clip?: SunoSong; data?: SunoSong };
   const song = data.clip ?? data.data;
@@ -145,8 +146,8 @@ export async function getSongById(id: string): Promise<SunoSong> {
 /**
  * Download the raw audio for a song as an ArrayBuffer.
  */
-export async function downloadSong(id: string): Promise<ArrayBuffer> {
-  const song = await getSongById(id);
+export async function downloadSong(id: string, apiKey?: string): Promise<ArrayBuffer> {
+  const song = await getSongById(id, apiKey);
   const audioRes = await fetchWithRetry(song.audioUrl, {
     method: "GET",
   });
