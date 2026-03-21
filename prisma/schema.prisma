@@ -132,8 +132,10 @@ model PromptTemplate {
   id             String   @id @default(cuid())
   userId         String?
   name           String
+  description    String?
   prompt         String
   style          String?
+  category       String?
   isInstrumental Boolean  @default(false)
   isBuiltIn      Boolean  @default(false)
   createdAt      DateTime @default(now())
@@ -141,6 +143,7 @@ model PromptTemplate {
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([category])
 }
 
 model Tag {

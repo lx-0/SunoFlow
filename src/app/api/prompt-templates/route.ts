@@ -5,21 +5,44 @@ import { prisma } from "@/lib/prisma";
 const MAX_USER_TEMPLATES = 20;
 
 // GET /api/prompt-templates — list built-in + user templates
-export async function GET() {
+// Optional query param: ?category=pop (filter by category)
+export async function GET(request: Request) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const category = searchParams.get("category");
+
+    const where: Record<string, unknown> = {
+      OR: [{ isBuiltIn: true }, { userId: session.user.id }],
+    };
+    if (category) {
+      where.category = category;
+    }
+
     const templates = await prisma.promptTemplate.findMany({
-      where: {
-        OR: [{ isBuiltIn: true }, { userId: session.user.id }],
-      },
-      orderBy: [{ isBuiltIn: "desc" }, { createdAt: "asc" }],
+      where,
+      orderBy: [{ isBuiltIn: "desc" }, { category: "asc" }, { createdAt: "asc" }],
     });
 
-    return NextResponse.json({ templates });
+    // Also return the distinct categories for the filter UI
+    const categories = await prisma.promptTemplate.findMany({
+      where: {
+        OR: [{ isBuiltIn: true }, { userId: session.user.id }],
+        category: { not: null },
+      },
+      select: { category: true },
+      distinct: ["category"],
+      orderBy: { category: "asc" },
+    });
+
+    return NextResponse.json({
+      templates,
+      categories: categories.map((c) => c.category),
+    });
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
@@ -34,7 +57,7 @@ export async function POST(request: Request) {
     }
     const userId = session.user.id;
 
-    const { name, prompt, style, isInstrumental } = await request.json();
+    const { name, prompt, style, category, description, isInstrumental } = await request.json();
 
     if (!name || typeof name !== "string" || !name.trim()) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -60,6 +83,8 @@ export async function POST(request: Request) {
         name: name.trim(),
         prompt: prompt.trim(),
         style: style?.trim() || null,
+        category: category?.trim() || null,
+        description: description?.trim() || null,
         isInstrumental: Boolean(isInstrumental),
         isBuiltIn: false,
       },
