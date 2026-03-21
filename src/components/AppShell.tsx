@@ -18,6 +18,8 @@ import {
   ClockIcon,
 } from "@heroicons/react/24/outline";
 import { GlobalPlayer } from "./GlobalPlayer";
+import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
+import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
 
 const navItems = [
   { label: "Home", href: "/", icon: HomeIcon, dataTour: undefined as string | undefined },
@@ -71,8 +73,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const drawerRef = useRef<HTMLElement>(null);
   useFocusTrap(drawerRef, sidebarOpen);
+  useKeyboardShortcuts(useCallback(() => setShortcutsOpen(true), []));
 
   // Close drawer on Escape
   useEffect(() => {
@@ -307,6 +311,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Global audio player */}
         <GlobalPlayer />
+
+        {/* Keyboard shortcuts help modal */}
+        <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
         {/* Bottom nav (mobile only) */}
         <nav aria-label="Mobile navigation" className="fixed bottom-0 left-0 right-0 z-10 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 md:hidden">
