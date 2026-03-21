@@ -4,8 +4,8 @@ function shimmerClass(className?: string) {
   return `bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 bg-[length:200%_100%] animate-shimmer rounded ${className ?? ""}`.trim();
 }
 
-export function Skeleton({ className }: { className?: string }) {
-  return <div className={shimmerClass(className)} />;
+export function Skeleton({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return <div className={shimmerClass(className)} style={style} />;
 }
 
 /** Skeleton matching a song card in the library list. */
@@ -96,6 +96,201 @@ export function SongDetailSkeleton() {
         <Skeleton className="h-3 w-full rounded" />
         <Skeleton className="h-3 w-2/3 rounded" />
       </div>
+    </div>
+  );
+}
+
+// ─── Reusable skeleton primitives ────────────────────────────────────────────
+
+/** Generic card skeleton — matches the standard card container used across pages. */
+export function SkeletonCard({ className }: { className?: string }) {
+  return (
+    <div className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3 ${className ?? ""}`}>
+      <Skeleton className="h-4 w-3/4 rounded" />
+      <Skeleton className="h-3 w-1/2 rounded" />
+      <Skeleton className="h-3 w-2/3 rounded" />
+    </div>
+  );
+}
+
+/** Table skeleton with header row and body rows. */
+export function SkeletonTable({ rows = 5 }: { rows?: number }) {
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+      {/* Header */}
+      <div className="flex gap-4 px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+        <Skeleton className="h-3 w-1/4 rounded" />
+        <Skeleton className="h-3 w-1/4 rounded" />
+        <Skeleton className="h-3 w-1/6 rounded" />
+        <Skeleton className="h-3 w-1/6 rounded" />
+      </div>
+      {/* Rows */}
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex gap-4 px-4 py-3 border-b border-gray-50 dark:border-gray-800/50 last:border-b-0">
+          <Skeleton className="h-3 w-1/4 rounded" />
+          <Skeleton className="h-3 w-1/4 rounded" />
+          <Skeleton className="h-3 w-1/6 rounded" />
+          <Skeleton className="h-3 w-1/6 rounded" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Text block skeleton — simulates paragraph lines. */
+export function SkeletonText({ lines = 3 }: { lines?: number }) {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: lines }).map((_, i) => (
+        <Skeleton
+          key={i}
+          className={`h-3 rounded ${i === lines - 1 ? "w-2/3" : "w-full"}`}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Circular avatar skeleton. */
+export function SkeletonAvatar({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
+  const sizeClass = size === "sm" ? "w-8 h-8" : size === "lg" ? "w-16 h-16" : "w-12 h-12";
+  return <Skeleton className={`${sizeClass} rounded-full`} />;
+}
+
+// ─── Page-specific skeletons ─────────────────────────────────────────────────
+
+/** Skeleton for the dashboard page — stat cards, tags, chart, recent songs. */
+export function DashboardSkeleton() {
+  return (
+    <div className="px-4 py-6 space-y-6">
+      {/* Greeting */}
+      <div>
+        <Skeleton className="h-6 w-48 rounded" />
+        <Skeleton className="h-4 w-32 rounded mt-1.5" />
+      </div>
+      {/* Stat cards grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-5">
+            <Skeleton className="h-3 w-16 rounded" />
+            <Skeleton className="h-7 w-12 rounded mt-2" />
+          </div>
+        ))}
+      </div>
+      {/* Top tags */}
+      <div>
+        <Skeleton className="h-5 w-20 rounded mb-3" />
+        <div className="flex flex-wrap gap-2">
+          <Skeleton className="h-7 w-12 rounded-full" />
+          <Skeleton className="h-7 w-16 rounded-full" />
+          <Skeleton className="h-7 w-20 rounded-full" />
+          <Skeleton className="h-7 w-14 rounded-full" />
+          <Skeleton className="h-7 w-24 rounded-full" />
+        </div>
+      </div>
+      {/* Usage chart */}
+      <div>
+        <Skeleton className="h-5 w-48 rounded mb-3" />
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+          <div className="flex items-end gap-1.5 h-32">
+            {["h-[20%]", "h-[28%]", "h-[36%]", "h-[44%]", "h-[52%]", "h-[60%]", "h-[68%]"].map((h, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+                <Skeleton className={`w-full rounded-t-md ${h}`} />
+                <Skeleton className="h-3 w-6 rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      {/* Recent songs */}
+      <div>
+        <Skeleton className="h-5 w-28 rounded mb-3" />
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden divide-y divide-gray-100 dark:divide-gray-800">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-3 py-3">
+              <Skeleton className="w-10 h-10 rounded-lg flex-shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <Skeleton className="h-3.5 w-32 rounded" />
+                <Skeleton className="h-3 w-20 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Skeleton for the history page — header, filter chips, history rows. */
+export function HistorySkeleton() {
+  return (
+    <div className="px-4 py-4 space-y-4">
+      {/* Header */}
+      <div>
+        <Skeleton className="h-6 w-20 rounded" />
+        <Skeleton className="h-4 w-24 rounded mt-1" />
+      </div>
+      {/* Filter chips */}
+      <div className="flex gap-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-9 w-20 rounded-full flex-shrink-0" />
+        ))}
+      </div>
+      {/* History rows */}
+      <ul className="space-y-2">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <li key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+            <div className="flex items-start gap-3 px-3 py-3">
+              <Skeleton className="flex-shrink-0 w-12 h-12 rounded-lg" />
+              <div className="flex-1 min-w-0 space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-4 w-32 rounded" />
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                </div>
+                <Skeleton className="h-3 w-full rounded" />
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-3 w-16 rounded" />
+                  <Skeleton className="h-3 w-10 rounded" />
+                  <Skeleton className="h-3 w-14 rounded" />
+                </div>
+              </div>
+              <Skeleton className="flex-shrink-0 w-11 h-11 rounded-full" />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Skeleton for the playlists page — header, playlist items. */
+export function PlaylistsSkeleton() {
+  return (
+    <div className="px-4 py-4 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <Skeleton className="h-6 w-24 rounded" />
+          <Skeleton className="h-4 w-20 rounded mt-1" />
+        </div>
+        <Skeleton className="h-10 w-16 rounded-lg" />
+      </div>
+      {/* Playlist items */}
+      <ul className="space-y-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <li key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+            <div className="flex items-center gap-3 px-4 py-3">
+              <Skeleton className="flex-shrink-0 w-12 h-12 rounded-lg" />
+              <div className="flex-1 min-w-0 space-y-1.5">
+                <Skeleton className="h-4 w-32 rounded" />
+                <Skeleton className="h-3 w-48 rounded" />
+                <Skeleton className="h-3 w-16 rounded" />
+              </div>
+              <Skeleton className="flex-shrink-0 w-11 h-11 rounded-full" />
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
