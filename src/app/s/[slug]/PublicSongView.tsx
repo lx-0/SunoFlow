@@ -18,6 +18,8 @@ interface PublicSongViewProps {
   duration: number | null;
   tags: string | null;
   creatorName: string | null;
+  prompt: string | null;
+  createdAt: string;
 }
 
 export function PublicSongView({
@@ -27,6 +29,8 @@ export function PublicSongView({
   duration,
   tags,
   creatorName,
+  prompt,
+  createdAt,
 }: PublicSongViewProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -69,7 +73,18 @@ export function PublicSongView({
         {tags && (
           <p className="text-xs text-gray-500 dark:text-gray-400">{tags}</p>
         )}
+        <p className="text-xs text-gray-400 dark:text-gray-500">
+          {new Date(createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+        </p>
       </div>
+
+      {/* Prompt */}
+      {prompt && (
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+          <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Prompt</h2>
+          <p className="text-sm text-gray-700 dark:text-gray-300">{prompt}</p>
+        </div>
+      )}
 
       {/* Audio player */}
       {audioUrl && (
