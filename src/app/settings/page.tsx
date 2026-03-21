@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { AppShell } from "@/components/AppShell";
 import { useTheme } from "@/components/ThemeProvider";
-import { PlusIcon, TrashIcon, SunIcon, MoonIcon, ComputerDesktopIcon, PencilIcon, CheckIcon, XMarkIcon, ArrowPathIcon, KeyIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, TrashIcon, SunIcon, MoonIcon, ComputerDesktopIcon, PencilIcon, CheckIcon, XMarkIcon, ArrowPathIcon, KeyIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { useOnboarding } from "@/components/OnboardingTour";
 
 const RSS_FEEDS_KEY = "sunoflow_rss_feeds";
@@ -634,6 +634,102 @@ function OnboardingSection() {
   );
 }
 
+function ExportDataSection() {
+  const [exporting, setExporting] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleExport = async (format: string, type: string, label: string) => {
+    setExporting(label);
+    try {
+      const res = await fetch(`/api/export?format=${format}&type=${type}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Export failed" }));
+        showToast(data.error ?? "Export failed", "error");
+        return;
+      }
+
+      const disposition = res.headers.get("Content-Disposition");
+      const filenameMatch = disposition?.match(/filename="(.+?)"/);
+      const filename = filenameMatch?.[1] ?? `sunoflow-export.${format}`;
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("Export downloaded", "success");
+    } catch {
+      showToast("Network error", "error");
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  return (
+    <>
+      {toast && <Toast message={toast.message} type={toast.type} />}
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Export Data</h3>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Download your data for backup or portability. Exports include metadata only — no audio files.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <button
+            onClick={() => handleExport("json", "all", "json-all")}
+            disabled={exporting !== null}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left min-h-[44px]"
+          >
+            <ArrowDownTrayIcon className="w-5 h-5 text-violet-500 flex-shrink-0" />
+            <div className="flex-1">
+              <span className="text-sm font-medium text-gray-900 dark:text-white">Export all as JSON</span>
+              <span className="block text-xs text-gray-500">Songs, playlists, tags, and ratings</span>
+            </div>
+            {exporting === "json-all" && <span className="text-xs text-violet-500 animate-pulse">Exporting…</span>}
+          </button>
+
+          <button
+            onClick={() => handleExport("csv", "songs", "csv-songs")}
+            disabled={exporting !== null}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left min-h-[44px]"
+          >
+            <ArrowDownTrayIcon className="w-5 h-5 text-green-500 flex-shrink-0" />
+            <div className="flex-1">
+              <span className="text-sm font-medium text-gray-900 dark:text-white">Export songs as CSV</span>
+              <span className="block text-xs text-gray-500">Spreadsheet-friendly format (RFC 4180)</span>
+            </div>
+            {exporting === "csv-songs" && <span className="text-xs text-violet-500 animate-pulse">Exporting…</span>}
+          </button>
+
+          <button
+            onClick={() => handleExport("json", "playlists", "json-playlists")}
+            disabled={exporting !== null}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left min-h-[44px]"
+          >
+            <ArrowDownTrayIcon className="w-5 h-5 text-blue-500 flex-shrink-0" />
+            <div className="flex-1">
+              <span className="text-sm font-medium text-gray-900 dark:text-white">Export playlists as JSON</span>
+              <span className="block text-xs text-gray-500">Playlist names and song references</span>
+            </div>
+            {exporting === "json-playlists" && <span className="text-xs text-violet-500 animate-pulse">Exporting…</span>}
+          </button>
+        </div>
+      </section>
+    </>
+  );
+}
+
 function SettingsContent() {
   return (
     <div className="px-4 py-6 space-y-8">
@@ -645,6 +741,8 @@ function SettingsContent() {
       <ApiKeySection />
       <div className="border-t border-gray-200 dark:border-gray-800" />
       <OnboardingSection />
+      <div className="border-t border-gray-200 dark:border-gray-800" />
+      <ExportDataSection />
       <div className="border-t border-gray-200 dark:border-gray-800" />
       <TagManagementSection />
       <div className="border-t border-gray-200 dark:border-gray-800" />
