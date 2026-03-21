@@ -5,7 +5,8 @@ import { useSession } from "next-auth/react";
 import { SessionProvider } from "@/components/SessionProvider";
 import { AppShell } from "@/components/AppShell";
 import { useTheme } from "@/components/ThemeProvider";
-import { PlusIcon, TrashIcon, SunIcon, MoonIcon, ComputerDesktopIcon, PencilIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, TrashIcon, SunIcon, MoonIcon, ComputerDesktopIcon, PencilIcon, CheckIcon, XMarkIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
+import { useOnboarding } from "@/components/OnboardingTour";
 
 const RSS_FEEDS_KEY = "sunoflow_rss_feeds";
 
@@ -482,6 +483,34 @@ function TagManagementSection() {
   );
 }
 
+function OnboardingSection() {
+  const { restartTour } = useOnboarding();
+  const [restarting, setRestarting] = useState(false);
+
+  const handleRestart = async () => {
+    setRestarting(true);
+    await restartTour();
+    setRestarting(false);
+  };
+
+  return (
+    <section className="space-y-3">
+      <div>
+        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Onboarding</h3>
+        <p className="text-xs text-gray-500 mt-0.5">Replay the getting-started walkthrough.</p>
+      </div>
+      <button
+        onClick={handleRestart}
+        disabled={restarting}
+        className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors min-h-[44px]"
+      >
+        <ArrowPathIcon className="w-4 h-4" />
+        {restarting ? "Restarting…" : "Restart tour"}
+      </button>
+    </section>
+  );
+}
+
 function SettingsContent() {
   return (
     <div className="px-4 py-6 space-y-8">
@@ -489,6 +518,8 @@ function SettingsContent() {
       <ThemeSection />
       <div className="border-t border-gray-200 dark:border-gray-800" />
       <AccountSection />
+      <div className="border-t border-gray-200 dark:border-gray-800" />
+      <OnboardingSection />
       <div className="border-t border-gray-200 dark:border-gray-800" />
       <TagManagementSection />
       <div className="border-t border-gray-200 dark:border-gray-800" />

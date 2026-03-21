@@ -202,7 +202,7 @@ export function DashboardView({ userName }: { userName?: string | null }) {
   return (
     <div className="px-4 py-6 space-y-6">
       {/* Greeting */}
-      <div>
+      <div data-tour="welcome">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">
           Welcome back{userName ? `, ${userName}` : ""}
         </h2>

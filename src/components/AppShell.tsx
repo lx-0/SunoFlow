@@ -20,12 +20,12 @@ import {
 import { GlobalPlayer } from "./GlobalPlayer";
 
 const navItems = [
-  { label: "Home", href: "/", icon: HomeIcon },
-  { label: "Library", href: "/library", icon: BookOpenIcon },
-  { label: "Generate", href: "/generate", icon: PlusCircleIcon },
-  { label: "Playlists", href: "/playlists", icon: QueueListIcon },
-  { label: "Favorites", href: "/favorites", icon: HeartIcon },
-  { label: "History", href: "/history", icon: ClockIcon },
+  { label: "Home", href: "/", icon: HomeIcon, dataTour: undefined as string | undefined },
+  { label: "Library", href: "/library", icon: BookOpenIcon, dataTour: undefined as string | undefined },
+  { label: "Generate", href: "/generate", icon: PlusCircleIcon, dataTour: undefined as string | undefined },
+  { label: "Playlists", href: "/playlists", icon: QueueListIcon, dataTour: "explore" as string | undefined },
+  { label: "Favorites", href: "/favorites", icon: HeartIcon, dataTour: undefined as string | undefined },
+  { label: "History", href: "/history", icon: ClockIcon, dataTour: undefined as string | undefined },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -44,12 +44,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Nav links */}
         <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
-          {navItems.map(({ label, href, icon: Icon }) => {
+          {navItems.map(({ label, href, icon: Icon, dataTour }) => {
             const active = pathname === href;
             return (
               <Link
                 key={href}
                 href={href}
+                {...(dataTour ? { "data-tour": dataTour } : {})}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
                   active
                     ? "bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400"

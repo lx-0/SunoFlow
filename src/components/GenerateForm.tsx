@@ -317,7 +317,7 @@ export function GenerateForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4" data-tour="generate-prompt">
         {/* Title */}
         <div className="space-y-1">
           <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
