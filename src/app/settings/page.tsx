@@ -36,7 +36,7 @@ function ThemeSection() {
     <section className="space-y-3">
       <div>
         <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Appearance</h3>
-        <p className="text-xs text-gray-500 mt-0.5">Choose your preferred theme.</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Choose your preferred theme.</p>
       </div>
       <div className="flex gap-2">
         {options.map(({ value, label, icon: Icon }) => (
@@ -147,7 +147,7 @@ function AccountSection() {
       <section className="space-y-4">
         <div>
           <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Account</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Manage your profile details.</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Manage your profile details.</p>
         </div>
 
         {/* Email (read-only) */}
@@ -283,7 +283,7 @@ function RssFeedsSection() {
     <section className="space-y-3">
       <div>
         <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">RSS Feeds</h3>
-        <p className="text-xs text-gray-500 mt-0.5">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
           Add RSS feed URLs to see inspiration on the Inspire page.
         </p>
       </div>
@@ -313,7 +313,7 @@ function RssFeedsSection() {
       {saved && <p className="text-xs text-green-400">Saved!</p>}
 
       {feedUrls.length === 0 ? (
-        <p className="text-sm text-gray-400 dark:text-gray-600">No feeds added yet.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">No feeds added yet.</p>
       ) : (
         <ul className="space-y-2">
           {feedUrls.map((url) => (
@@ -324,7 +324,7 @@ function RssFeedsSection() {
               <span className="flex-1 text-xs text-gray-700 dark:text-gray-300 truncate">{url}</span>
               <button
                 onClick={() => removeFeed(url)}
-                className="text-gray-400 dark:text-gray-600 hover:text-red-400 transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                className="text-gray-400 dark:text-gray-500 hover:text-red-400 transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
                 aria-label="Remove feed"
               >
                 <TrashIcon className="w-4 h-4" />
@@ -414,15 +414,15 @@ function TagManagementSection() {
       <section className="space-y-3">
         <div>
           <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Tags</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
             Manage your song tags. Rename, recolor, or delete tags here.
           </p>
         </div>
 
         {loading ? (
-          <p className="text-sm text-gray-400">Loading...</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
         ) : tags.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-600">No tags yet. Add tags from any song detail page.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">No tags yet. Add tags from any song detail page.</p>
         ) : (
           <ul className="space-y-2">
             {tags.map((tag) => (
@@ -449,7 +449,7 @@ function TagManagementSection() {
                     <button onClick={() => saveEdit(tag.id)} className="min-w-[36px] min-h-[36px] flex items-center justify-center text-green-500 hover:text-green-400" aria-label="Save">
                       <CheckIcon className="w-4 h-4" />
                     </button>
-                    <button onClick={() => setEditingId(null)} className="min-w-[36px] min-h-[36px] flex items-center justify-center text-gray-400 hover:text-gray-300" aria-label="Cancel">
+                    <button onClick={() => setEditingId(null)} className="min-w-[36px] min-h-[36px] flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300" aria-label="Cancel">
                       <XMarkIcon className="w-4 h-4" />
                     </button>
                   </>
@@ -464,7 +464,7 @@ function TagManagementSection() {
                     {deleteConfirm === tag.id ? (
                       <div className="flex items-center gap-1">
                         <button onClick={() => deleteTag(tag.id)} className="text-xs text-red-500 hover:text-red-400 min-h-[36px] px-2">Delete</button>
-                        <button onClick={() => setDeleteConfirm(null)} className="text-xs text-gray-400 hover:text-gray-300 min-h-[36px] px-2">Cancel</button>
+                        <button onClick={() => setDeleteConfirm(null)} className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 min-h-[36px] px-2">Cancel</button>
                       </div>
                     ) : (
                       <button onClick={() => setDeleteConfirm(tag.id)} className="min-w-[36px] min-h-[36px] flex items-center justify-center text-gray-400 hover:text-red-400 transition-colors" aria-label="Delete tag">
@@ -560,13 +560,13 @@ function ApiKeySection() {
       <section className="space-y-3">
         <div>
           <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Suno API Key</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
             Set your personal <a href="https://sunoapi.org" target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:underline">sunoapi.org</a> API key for music generation. Overrides the server default.
           </p>
         </div>
 
         {loading ? (
-          <p className="text-sm text-gray-400">Loading...</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
         ) : (
           <>
             {hasKey && maskedKey && (
@@ -620,7 +620,7 @@ function OnboardingSection() {
     <section className="space-y-3">
       <div>
         <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Onboarding</h3>
-        <p className="text-xs text-gray-500 mt-0.5">Replay the getting-started walkthrough.</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Replay the getting-started walkthrough.</p>
       </div>
       <button
         onClick={handleRestart}
@@ -680,7 +680,7 @@ function ExportDataSection() {
       <section className="space-y-3">
         <div>
           <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Export Data</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
             Download your data for backup or portability. Exports include metadata only — no audio files.
           </p>
         </div>
@@ -694,7 +694,7 @@ function ExportDataSection() {
             <ArrowDownTrayIcon className="w-5 h-5 text-violet-500 flex-shrink-0" />
             <div className="flex-1">
               <span className="text-sm font-medium text-gray-900 dark:text-white">Export all as JSON</span>
-              <span className="block text-xs text-gray-500">Songs, playlists, tags, and ratings</span>
+              <span className="block text-xs text-gray-500 dark:text-gray-400">Songs, playlists, tags, and ratings</span>
             </div>
             {exporting === "json-all" && <span className="text-xs text-violet-500 animate-pulse">Exporting…</span>}
           </button>
@@ -707,7 +707,7 @@ function ExportDataSection() {
             <ArrowDownTrayIcon className="w-5 h-5 text-green-500 flex-shrink-0" />
             <div className="flex-1">
               <span className="text-sm font-medium text-gray-900 dark:text-white">Export songs as CSV</span>
-              <span className="block text-xs text-gray-500">Spreadsheet-friendly format (RFC 4180)</span>
+              <span className="block text-xs text-gray-500 dark:text-gray-400">Spreadsheet-friendly format (RFC 4180)</span>
             </div>
             {exporting === "csv-songs" && <span className="text-xs text-violet-500 animate-pulse">Exporting…</span>}
           </button>
@@ -720,7 +720,7 @@ function ExportDataSection() {
             <ArrowDownTrayIcon className="w-5 h-5 text-blue-500 flex-shrink-0" />
             <div className="flex-1">
               <span className="text-sm font-medium text-gray-900 dark:text-white">Export playlists as JSON</span>
-              <span className="block text-xs text-gray-500">Playlist names and song references</span>
+              <span className="block text-xs text-gray-500 dark:text-gray-400">Playlist names and song references</span>
             </div>
             {exporting === "json-playlists" && <span className="text-xs text-violet-500 animate-pulse">Exporting…</span>}
           </button>

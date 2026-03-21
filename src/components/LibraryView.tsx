@@ -87,7 +87,7 @@ function PlayerBar({ currentTime, duration, hasAudio, onSeek }: PlayerBarProps) 
           aria-label="Seek"
         />
       </div>
-      <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500">
+      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
         <span>{formatTime(currentTime)}</span>
         <span>{formatTime(duration)}</span>
       </div>
@@ -435,7 +435,7 @@ function SongRow({
               </span>
             )}
             {!isPending && song.duration && (
-              <span className="text-xs text-gray-400 dark:text-gray-600 flex-shrink-0">
+              <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
                 {formatTime(song.duration)}
               </span>
             )}
@@ -1042,7 +1042,7 @@ export function LibraryView({
               style={{ width: `${Math.round((exportProgress.completed / exportProgress.total) * 100)}%` }}
             />
           </div>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             Downloading {exportProgress.completed} of {exportProgress.total} songs\u2026
           </p>
         </div>
@@ -1191,7 +1191,7 @@ export function LibraryView({
       {songs.length === 0 ? (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 text-center">
           <MusicalNoteIcon className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-700 mb-3" aria-hidden="true" />
-          <p className="text-gray-500 text-sm">
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
             {hasAnyFilter
               ? "No songs match your filters."
               : "No songs in your library yet."}

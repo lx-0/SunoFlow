@@ -121,7 +121,7 @@ function ProfileHeader() {
           </button>
           <button
             onClick={handleCancel}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-gray-300"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
             aria-label="Cancel editing"
           >
             <XMarkIcon className="w-5 h-5" />
@@ -260,7 +260,7 @@ function ChangePasswordSection() {
         <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">
           Change Password
         </h3>
-        <p className="text-xs text-gray-500 mt-0.5">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
           Update your account password.
         </p>
       </div>
@@ -347,7 +347,7 @@ function DeleteAccountSection() {
         <h3 className="text-base font-semibold text-red-600 dark:text-red-400">
           Delete Account
         </h3>
-        <p className="text-xs text-gray-500 mt-0.5">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
           Permanently delete your account and all associated data. This action
           cannot be undone.
         </p>

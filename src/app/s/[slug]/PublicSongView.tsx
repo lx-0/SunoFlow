@@ -67,7 +67,7 @@ export function PublicSongView({
           <p className="text-sm text-gray-500 dark:text-gray-400">by {creatorName}</p>
         )}
         {tags && (
-          <p className="text-xs text-gray-500">{tags}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{tags}</p>
         )}
       </div>
 
@@ -106,7 +106,7 @@ export function PublicSongView({
                 aria-label="Seek"
               />
             </div>
-            <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500">
+            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
               <span>{formatTime(currentTime)}</span>
               <span>{formatTime(audioDuration)}</span>
             </div>
@@ -125,7 +125,7 @@ export function PublicSongView({
       )}
 
       {/* Branding */}
-      <p className="text-center text-xs text-gray-400 dark:text-gray-600">
+      <p className="text-center text-xs text-gray-500 dark:text-gray-400">
         Shared via SunoFlow
       </p>
     </div>

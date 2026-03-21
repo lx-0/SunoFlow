@@ -152,7 +152,7 @@ function InspireContent() {
       </div>
 
       {lastRefreshed && (
-        <p className="text-xs text-gray-400 dark:text-gray-600">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
           Updated {lastRefreshed.toLocaleTimeString()}
         </p>
       )}
@@ -173,7 +173,7 @@ function InspireContent() {
 
       {!loading && allItems.length === 0 && (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 text-center">
-          <p className="text-gray-500 text-sm">No items found in your feeds.</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">No items found in your feeds.</p>
         </div>
       )}
 

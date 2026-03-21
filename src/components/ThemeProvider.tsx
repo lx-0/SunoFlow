@@ -81,7 +81,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
     const resolved = newTheme === "system" ? getSystemTheme() : newTheme;
     setResolvedTheme(resolved);
+
+    // Enable smooth transition, then apply theme
+    const root = document.documentElement;
+    root.classList.add("theme-transition");
     applyTheme(resolved);
+
+    // Remove transition class after animation completes to avoid interfering with other transitions
+    setTimeout(() => root.classList.remove("theme-transition"), 350);
   }, []);
 
   return (
