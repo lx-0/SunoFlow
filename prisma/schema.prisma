@@ -46,6 +46,10 @@ model User {
   sunoApiKey           String?
   isAdmin              Boolean   @default(false)
   isDisabled           Boolean   @default(false)
+  bio                  String?
+  avatarUrl            String?
+  defaultStyle         String?
+  preferredGenres      String[]  @default([])
   onboardingCompleted  Boolean   @default(false)
   lastLoginAt          DateTime?
   createdAt            DateTime  @default(now())

@@ -11,7 +11,7 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, email: true, name: true },
+    select: { id: true, email: true, name: true, bio: true, avatarUrl: true, defaultStyle: true, preferredGenres: true },
   });
 
   if (!user) {
@@ -27,16 +27,43 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { name } = await request.json();
+  const body = await request.json();
+  const { name, bio, avatarUrl } = body;
 
-  if (typeof name !== "string" || !name.trim()) {
-    return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  const data: Record<string, unknown> = {};
+
+  if (name !== undefined) {
+    if (typeof name !== "string" || !name.trim()) {
+      return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    }
+    data.name = name.trim();
+  }
+
+  if (bio !== undefined) {
+    if (bio !== null && typeof bio !== "string") {
+      return NextResponse.json({ error: "Bio must be a string" }, { status: 400 });
+    }
+    if (typeof bio === "string" && bio.length > 500) {
+      return NextResponse.json({ error: "Bio must be 500 characters or less" }, { status: 400 });
+    }
+    data.bio = bio ? bio.trim() : null;
+  }
+
+  if (avatarUrl !== undefined) {
+    if (avatarUrl !== null && typeof avatarUrl !== "string") {
+      return NextResponse.json({ error: "Avatar URL must be a string" }, { status: 400 });
+    }
+    data.avatarUrl = avatarUrl ? avatarUrl.trim() : null;
+  }
+
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
   }
 
   const user = await prisma.user.update({
     where: { id: session.user.id },
-    data: { name: name.trim() },
-    select: { id: true, email: true, name: true },
+    data,
+    select: { id: true, email: true, name: true, bio: true, avatarUrl: true },
   });
 
   return NextResponse.json(user);

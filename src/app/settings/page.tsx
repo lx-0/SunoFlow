@@ -1,13 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { AppShell } from "@/components/AppShell";
 import { useTheme } from "@/components/ThemeProvider";
-import { PlusIcon, TrashIcon, SunIcon, MoonIcon, ComputerDesktopIcon, PencilIcon, CheckIcon, XMarkIcon, ArrowPathIcon, KeyIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, TrashIcon, SunIcon, MoonIcon, ComputerDesktopIcon, PencilIcon, CheckIcon, XMarkIcon, ArrowPathIcon, KeyIcon, ArrowDownTrayIcon, UserCircleIcon, Cog6ToothIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 import { useOnboarding } from "@/components/OnboardingTour";
 
 const RSS_FEEDS_KEY = "sunoflow_rss_feeds";
+
+const AVAILABLE_STYLES = ["pop", "rock", "electronic", "hip-hop", "jazz", "classical", "r&b", "country", "folk", "ambient", "metal", "latin", "instrumental", "lo-fi", "cinematic"];
+
+type Tab = "profile" | "preferences" | "account";
 
 function Toast({ message, type }: { message: string; type: "success" | "error" }) {
   return (
@@ -22,6 +26,356 @@ function Toast({ message, type }: { message: string; type: "success" | "error" }
     </div>
   );
 }
+
+function FieldError({ error }: { error?: string }) {
+  if (!error) return null;
+  return <p className="text-xs text-red-500 dark:text-red-400 mt-1">{error}</p>;
+}
+
+// ─── Profile Tab ───
+
+function ProfileTab() {
+  const { data: session, update: updateSession } = useSession();
+  const [displayName, setDisplayName] = useState("");
+  const [bio, setBio] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  useEffect(() => {
+    fetch("/api/profile")
+      .then((r) => r.json())
+      .then((data) => {
+        setDisplayName(data.name ?? "");
+        setBio(data.bio ?? "");
+        setAvatarUrl(data.avatarUrl ?? "");
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const validate = useCallback(() => {
+    const errs: Record<string, string> = {};
+    if (!displayName.trim()) errs.displayName = "Display name is required";
+    if (bio.length > 500) errs.bio = `Bio must be 500 characters or less (${bio.length}/500)`;
+    if (avatarUrl && !avatarUrl.startsWith("http://") && !avatarUrl.startsWith("https://")) {
+      errs.avatarUrl = "Must be a valid URL starting with http:// or https://";
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  }, [displayName, bio, avatarUrl]);
+
+  const handleSave = async () => {
+    if (!validate()) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: displayName.trim(),
+          bio: bio.trim() || null,
+          avatarUrl: avatarUrl.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error ?? "Failed to save profile", "error");
+      } else {
+        await updateSession({ name: data.name });
+        showToast("Profile saved", "success");
+      }
+    } catch {
+      showToast("Network error", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+        <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+        <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {toast && <Toast message={toast.message} type={toast.type} />}
+      <div className="space-y-6">
+        {/* Avatar preview */}
+        <section className="space-y-3">
+          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Profile Picture</h3>
+          <div className="flex items-center gap-4">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt="Avatar"
+                className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                <UserCircleIcon className="w-10 h-10 text-violet-400" />
+              </div>
+            )}
+            <div className="flex-1 space-y-1">
+              <label className="text-xs text-gray-500 dark:text-gray-400">Avatar URL</label>
+              <input
+                type="url"
+                value={avatarUrl}
+                onChange={(e) => { setAvatarUrl(e.target.value); setErrors((p) => ({ ...p, avatarUrl: "" })); }}
+                placeholder="https://example.com/avatar.jpg"
+                className={`w-full bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
+                  errors.avatarUrl ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                }`}
+              />
+              <FieldError error={errors.avatarUrl} />
+            </div>
+          </div>
+        </section>
+
+        <div className="border-t border-gray-200 dark:border-gray-800" />
+
+        {/* Display name */}
+        <section className="space-y-3">
+          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Display Name</h3>
+          <div className="space-y-1">
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => { setDisplayName(e.target.value); setErrors((p) => ({ ...p, displayName: "" })); }}
+              placeholder="Your name"
+              className={`w-full bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
+                errors.displayName ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+              }`}
+            />
+            <FieldError error={errors.displayName} />
+          </div>
+        </section>
+
+        <div className="border-t border-gray-200 dark:border-gray-800" />
+
+        {/* Bio */}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Bio</h3>
+            <span className={`text-xs ${bio.length > 500 ? "text-red-500" : "text-gray-400 dark:text-gray-500"}`}>
+              {bio.length}/500
+            </span>
+          </div>
+          <div className="space-y-1">
+            <textarea
+              value={bio}
+              onChange={(e) => { setBio(e.target.value); setErrors((p) => ({ ...p, bio: "" })); }}
+              placeholder="Tell others about yourself..."
+              rows={3}
+              className={`w-full bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none ${
+                errors.bio ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+              }`}
+            />
+            <FieldError error={errors.bio} />
+          </div>
+        </section>
+
+        {/* Email (read-only) */}
+        <section className="space-y-3">
+          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Email</h3>
+          <input
+            type="email"
+            value={session?.user?.email ?? ""}
+            readOnly
+            className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-500 dark:text-gray-400 cursor-not-allowed"
+          />
+          <p className="text-xs text-gray-400 dark:text-gray-500">Email cannot be changed.</p>
+        </section>
+
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="w-full py-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-colors min-h-[44px]"
+        >
+          {saving ? "Saving..." : "Save Profile"}
+        </button>
+      </div>
+    </>
+  );
+}
+
+// ─── Preferences Tab ───
+
+function PreferencesTab() {
+  const [defaultStyle, setDefaultStyle] = useState<string | null>(null);
+  const [preferredGenres, setPreferredGenres] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  useEffect(() => {
+    fetch("/api/profile/preferences")
+      .then((r) => r.json())
+      .then((data) => {
+        setDefaultStyle(data.defaultStyle ?? null);
+        setPreferredGenres(data.preferredGenres ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const toggleGenre = (genre: string) => {
+    setPreferredGenres((prev) =>
+      prev.includes(genre)
+        ? prev.filter((g) => g !== genre)
+        : prev.length < 10
+          ? [...prev, genre]
+          : prev
+    );
+  };
+
+  const handleSavePreferences = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/profile/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ defaultStyle, preferredGenres }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error ?? "Failed to save preferences", "error");
+      } else {
+        showToast("Preferences saved", "success");
+      }
+    } catch {
+      showToast("Network error", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="h-6 w-40 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+        <div className="flex flex-wrap gap-2">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-8 w-20 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {toast && <Toast message={toast.message} type={toast.type} />}
+      <div className="space-y-6">
+        {/* Default generation style */}
+        <section className="space-y-3">
+          <div>
+            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Default Generation Style</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Pre-fill the style field when generating new music.</p>
+          </div>
+          <select
+            value={defaultStyle ?? ""}
+            onChange={(e) => setDefaultStyle(e.target.value || null)}
+            className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+          >
+            <option value="">No default</option>
+            {AVAILABLE_STYLES.map((style) => (
+              <option key={style} value={style}>
+                {style.charAt(0).toUpperCase() + style.slice(1)}
+              </option>
+            ))}
+          </select>
+        </section>
+
+        <div className="border-t border-gray-200 dark:border-gray-800" />
+
+        {/* Preferred genres */}
+        <section className="space-y-3">
+          <div>
+            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Preferred Genres</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Select up to 10 genres to personalize recommendations. ({preferredGenres.length}/10)
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {AVAILABLE_STYLES.map((genre) => {
+              const selected = preferredGenres.includes(genre);
+              return (
+                <button
+                  key={genre}
+                  onClick={() => toggleGenre(genre)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors min-h-[36px] border ${
+                    selected
+                      ? "bg-violet-600 text-white border-violet-600"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  {genre.charAt(0).toUpperCase() + genre.slice(1)}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <div className="border-t border-gray-200 dark:border-gray-800" />
+
+        <button
+          onClick={handleSavePreferences}
+          disabled={saving}
+          className="w-full py-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-colors min-h-[44px]"
+        >
+          {saving ? "Saving..." : "Save Preferences"}
+        </button>
+
+        <div className="border-t border-gray-200 dark:border-gray-800" />
+
+        <ThemeSection />
+
+        <div className="border-t border-gray-200 dark:border-gray-800" />
+
+        <RssFeedsSection />
+      </div>
+    </>
+  );
+}
+
+// ─── Account Tab ───
+
+function AccountTab() {
+  return (
+    <div className="space-y-6">
+      <PasswordSection />
+      <div className="border-t border-gray-200 dark:border-gray-800" />
+      <ApiKeySection />
+      <div className="border-t border-gray-200 dark:border-gray-800" />
+      <OnboardingSection />
+      <div className="border-t border-gray-200 dark:border-gray-800" />
+      <ExportDataSection />
+      <div className="border-t border-gray-200 dark:border-gray-800" />
+      <TagManagementSection />
+    </div>
+  );
+}
+
+// ─── Shared Sections ───
 
 function ThemeSection() {
   const { theme, setTheme } = useTheme();
@@ -58,66 +412,30 @@ function ThemeSection() {
   );
 }
 
-function AccountSection() {
-  const { data: session, update: updateSession } = useSession();
-  const [displayName, setDisplayName] = useState("");
-  const [nameLoading, setNameLoading] = useState(false);
-
+function PasswordSection() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pwLoading, setPwLoading] = useState(false);
-
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-
-  useEffect(() => {
-    if (session?.user?.name) {
-      setDisplayName(session.user.name);
-    }
-  }, [session?.user?.name]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  const handleNameSave = async () => {
-    if (!displayName.trim()) return;
-    setNameLoading(true);
-    try {
-      const res = await fetch("/api/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: displayName.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        showToast(data.error ?? "Failed to update name", "error");
-      } else {
-        await updateSession({ name: data.name });
-        showToast("Display name updated", "success");
-      }
-    } catch {
-      showToast("Network error", "error");
-    } finally {
-      setNameLoading(false);
-    }
-  };
-
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      showToast("All fields are required", "error");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      showToast("Passwords do not match", "error");
-      return;
-    }
-    if (newPassword.length < 8) {
-      showToast("New password must be at least 8 characters", "error");
-      return;
-    }
+    const errs: Record<string, string> = {};
+    if (!currentPassword) errs.currentPassword = "Current password is required";
+    if (!newPassword) errs.newPassword = "New password is required";
+    else if (newPassword.length < 8) errs.newPassword = "Must be at least 8 characters";
+    if (!confirmPassword) errs.confirmPassword = "Please confirm your password";
+    else if (newPassword !== confirmPassword) errs.confirmPassword = "Passwords do not match";
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
     setPwLoading(true);
     try {
       const res = await fetch("/api/profile/password", {
@@ -132,6 +450,7 @@ function AccountSection() {
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
+        setErrors({});
         showToast("Password changed successfully", "success");
       }
     } catch {
@@ -144,81 +463,59 @@ function AccountSection() {
   return (
     <>
       {toast && <Toast message={toast.message} type={toast.type} />}
-      <section className="space-y-4">
+      <section className="space-y-3">
         <div>
-          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Account</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Manage your profile details.</p>
+          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Change Password</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Update your account password.</p>
         </div>
-
-        {/* Email (read-only) */}
-        <div className="space-y-1">
-          <label className="text-xs text-gray-500 dark:text-gray-400">Email</label>
-          <input
-            type="email"
-            value={session?.user?.email ?? ""}
-            readOnly
-            className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-500 dark:text-gray-400 cursor-not-allowed"
-          />
-        </div>
-
-        {/* Display name */}
-        <div className="space-y-1">
-          <label className="text-xs text-gray-500 dark:text-gray-400">Display name</label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Your name"
-              className="flex-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-            />
-            <button
-              onClick={handleNameSave}
-              disabled={nameLoading || !displayName.trim()}
-              className="px-3 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              {nameLoading ? "Saving…" : "Save"}
-            </button>
-          </div>
-        </div>
-
-        {/* Change password */}
-        <div className="space-y-3 pt-2">
-          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Change password</h4>
-          <form onSubmit={handlePasswordChange} className="space-y-2">
+        <form onSubmit={handlePasswordChange} className="space-y-2">
+          <div>
             <input
               type="password"
               value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
+              onChange={(e) => { setCurrentPassword(e.target.value); setErrors((p) => ({ ...p, currentPassword: "" })); }}
               placeholder="Current password"
               autoComplete="current-password"
-              className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className={`w-full bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
+                errors.currentPassword ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+              }`}
             />
+            <FieldError error={errors.currentPassword} />
+          </div>
+          <div>
             <input
               type="password"
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              onChange={(e) => { setNewPassword(e.target.value); setErrors((p) => ({ ...p, newPassword: "" })); }}
               placeholder="New password (min 8 chars)"
               autoComplete="new-password"
-              className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className={`w-full bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
+                errors.newPassword ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+              }`}
             />
+            <FieldError error={errors.newPassword} />
+          </div>
+          <div>
             <input
               type="password"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e) => { setConfirmPassword(e.target.value); setErrors((p) => ({ ...p, confirmPassword: "" })); }}
               placeholder="Confirm new password"
               autoComplete="new-password"
-              className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className={`w-full bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
+                errors.confirmPassword ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+              }`}
             />
-            <button
-              type="submit"
-              disabled={pwLoading}
-              className="w-full py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              {pwLoading ? "Updating…" : "Update password"}
-            </button>
-          </form>
-        </div>
+            <FieldError error={errors.confirmPassword} />
+          </div>
+          <button
+            type="submit"
+            disabled={pwLoading}
+            className="w-full py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            {pwLoading ? "Updating..." : "Update password"}
+          </button>
+        </form>
       </section>
     </>
   );
@@ -298,7 +595,9 @@ function RssFeedsSection() {
           }}
           onKeyDown={handleKeyDown}
           placeholder="https://example.com/feed.xml"
-          className="flex-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+          className={`flex-1 bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
+            error ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+          }`}
         />
         <button
           onClick={addFeed}
@@ -309,7 +608,7 @@ function RssFeedsSection() {
         </button>
       </div>
 
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      <FieldError error={error} />
       {saved && <p className="text-xs text-green-400">Saved!</p>}
 
       {feedUrls.length === 0 ? (
@@ -596,7 +895,7 @@ function ApiKeySection() {
                 disabled={saving || !apiKey.trim()}
                 className="px-3 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
               >
-                {saving ? "Saving…" : "Save"}
+                {saving ? "Saving..." : "Save"}
               </button>
             </div>
           </>
@@ -628,7 +927,7 @@ function OnboardingSection() {
         className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors min-h-[44px]"
       >
         <ArrowPathIcon className="w-4 h-4" />
-        {restarting ? "Restarting…" : "Restart tour"}
+        {restarting ? "Restarting..." : "Restart tour"}
       </button>
     </section>
   );
@@ -696,7 +995,7 @@ function ExportDataSection() {
               <span className="text-sm font-medium text-gray-900 dark:text-white">Export all as JSON</span>
               <span className="block text-xs text-gray-500 dark:text-gray-400">Songs, playlists, tags, and ratings</span>
             </div>
-            {exporting === "json-all" && <span className="text-xs text-violet-500 animate-pulse">Exporting…</span>}
+            {exporting === "json-all" && <span className="text-xs text-violet-500 animate-pulse">Exporting...</span>}
           </button>
 
           <button
@@ -709,7 +1008,7 @@ function ExportDataSection() {
               <span className="text-sm font-medium text-gray-900 dark:text-white">Export songs as CSV</span>
               <span className="block text-xs text-gray-500 dark:text-gray-400">Spreadsheet-friendly format (RFC 4180)</span>
             </div>
-            {exporting === "csv-songs" && <span className="text-xs text-violet-500 animate-pulse">Exporting…</span>}
+            {exporting === "csv-songs" && <span className="text-xs text-violet-500 animate-pulse">Exporting...</span>}
           </button>
 
           <button
@@ -722,7 +1021,7 @@ function ExportDataSection() {
               <span className="text-sm font-medium text-gray-900 dark:text-white">Export playlists as JSON</span>
               <span className="block text-xs text-gray-500 dark:text-gray-400">Playlist names and song references</span>
             </div>
-            {exporting === "json-playlists" && <span className="text-xs text-violet-500 animate-pulse">Exporting…</span>}
+            {exporting === "json-playlists" && <span className="text-xs text-violet-500 animate-pulse">Exporting...</span>}
           </button>
         </div>
       </section>
@@ -730,23 +1029,45 @@ function ExportDataSection() {
   );
 }
 
+// ─── Main Settings Page ───
+
+const tabs: { key: Tab; label: string; icon: typeof UserCircleIcon }[] = [
+  { key: "profile", label: "Profile", icon: UserCircleIcon },
+  { key: "preferences", label: "Preferences", icon: Cog6ToothIcon },
+  { key: "account", label: "Account", icon: ShieldCheckIcon },
+];
+
 function SettingsContent() {
+  const [activeTab, setActiveTab] = useState<Tab>("profile");
+
   return (
-    <div className="px-4 py-6 space-y-8">
+    <div className="px-4 py-6 space-y-6">
       <h2 className="text-xl font-bold text-gray-900 dark:text-white">Settings</h2>
-      <ThemeSection />
-      <div className="border-t border-gray-200 dark:border-gray-800" />
-      <AccountSection />
-      <div className="border-t border-gray-200 dark:border-gray-800" />
-      <ApiKeySection />
-      <div className="border-t border-gray-200 dark:border-gray-800" />
-      <OnboardingSection />
-      <div className="border-t border-gray-200 dark:border-gray-800" />
-      <ExportDataSection />
-      <div className="border-t border-gray-200 dark:border-gray-800" />
-      <TagManagementSection />
-      <div className="border-t border-gray-200 dark:border-gray-800" />
-      <RssFeedsSection />
+
+      {/* Tab navigation */}
+      <div className="flex border-b border-gray-200 dark:border-gray-800 overflow-x-auto">
+        {tabs.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            onClick={() => setActiveTab(key)}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors min-h-[44px] ${
+              activeTab === key
+                ? "border-violet-600 text-violet-600 dark:text-violet-400 dark:border-violet-400"
+                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
+            }`}
+          >
+            <Icon className="w-4 h-4" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div>
+        {activeTab === "profile" && <ProfileTab />}
+        {activeTab === "preferences" && <PreferencesTab />}
+        {activeTab === "account" && <AccountTab />}
+      </div>
     </div>
   );
 }
