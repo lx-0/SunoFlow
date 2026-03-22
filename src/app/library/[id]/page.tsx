@@ -20,12 +20,13 @@ async function fetchSong(id: string) {
 async function fetchDbMeta(songId: string) {
   try {
     const session = await auth();
-    if (!session?.user?.id) return { isFavorite: false, favoriteCount: 0, sunoJobId: null, isPublic: false, publicSlug: null };
+    if (!session?.user?.id) return { isFavorite: false, favoriteCount: 0, sunoJobId: null, isPublic: false, publicSlug: null, isHidden: false };
     const dbSong = await prisma.song.findFirst({
       where: { id: songId, userId: session.user.id },
       select: {
         sunoJobId: true,
         isPublic: true,
+        isHidden: true,
         publicSlug: true,
         _count: { select: { favorites: true } },
         favorites: { where: { userId: session.user.id }, select: { id: true } },
@@ -37,9 +38,10 @@ async function fetchDbMeta(songId: string) {
       sunoJobId: dbSong?.sunoJobId ?? null,
       isPublic: dbSong?.isPublic ?? false,
       publicSlug: dbSong?.publicSlug ?? null,
+      isHidden: dbSong?.isHidden ?? false,
     };
   } catch {
-    return { isFavorite: false, favoriteCount: 0, sunoJobId: null, isPublic: false, publicSlug: null };
+    return { isFavorite: false, favoriteCount: 0, sunoJobId: null, isPublic: false, publicSlug: null, isHidden: false };
   }
 }
 
@@ -92,6 +94,7 @@ async function SongDetailContent({ id }: { id: string }) {
       playlists={playlists}
       isPublic={dbMeta.isPublic}
       publicSlug={dbMeta.publicSlug}
+      isHidden={dbMeta.isHidden}
       songTags={songTags}
     />
   );

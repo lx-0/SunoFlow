@@ -17,7 +17,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const song = await getSong(params.slug);
 
-  if (!song || !song.isPublic) {
+  if (!song || !song.isPublic || song.isHidden) {
     return { robots: { index: false } };
   }
 
@@ -53,13 +53,14 @@ export default async function PublicSongPage({
 }) {
   const song = await getSong(params.slug);
 
-  if (!song || !song.isPublic) {
+  if (!song || !song.isPublic || song.isHidden) {
     notFound();
   }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white flex items-center justify-center p-4">
       <PublicSongView
+        songId={song.id}
         title={song.title ?? "Untitled"}
         imageUrl={song.imageUrl}
         audioUrl={song.audioUrl}

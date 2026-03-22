@@ -6,12 +6,14 @@ import {
   ChartBarIcon,
   UsersIcon,
   ClipboardDocumentListIcon,
+  FlagIcon,
   ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
 
 const adminNav = [
   { label: "Dashboard", href: "/admin", icon: ChartBarIcon },
   { label: "Users", href: "/admin/users", icon: UsersIcon },
+  { label: "Reports", href: "/admin/reports", icon: FlagIcon },
   { label: "Audit Log", href: "/admin/logs", icon: ClipboardDocumentListIcon },
 ];
 

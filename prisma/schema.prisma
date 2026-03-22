@@ -64,6 +64,7 @@ model User {
   userTags         Tag[]
   favorites        Favorite[]
   adminLogs        AdminLog[] @relation("adminLogs")
+  reports          Report[]
 }
 
 model Song {
@@ -84,6 +85,7 @@ model Song {
   pollCount        Int      @default(0)
   isFavorite       Boolean  @default(false)
   isPublic         Boolean  @default(false)
+  isHidden         Boolean  @default(false)
   publicSlug       String?  @unique
   rating           Int?
   ratingNote       String?
@@ -95,6 +97,7 @@ model Song {
   playlistSongs PlaylistSong[]
   songTags      SongTag[]
   favorites     Favorite[]
+  reports       Report[]
 
   @@index([userId, title])
   @@index([userId, prompt])
@@ -212,6 +215,25 @@ model AdminLog {
 
   @@index([adminId])
   @@index([createdAt])
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  songId      String
+  reporterId  String
+  reason      String   // offensive, copyright, spam, other
+  description String?
+  status      String   @default("pending") // pending, reviewed, actioned, dismissed
+  adminNote   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  song     Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([songId])
+  @@index([reporterId])
+  @@index([status, createdAt])
 }
 
 model VerificationToken {

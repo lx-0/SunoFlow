@@ -16,6 +16,7 @@ import {
   CalendarIcon,
   ClockIcon,
   TagIcon,
+  FlagIcon,
 } from "@heroicons/react/24/solid";
 import { HeartIcon as HeartOutlineIcon } from "@heroicons/react/24/outline";
 import type { SunoSong } from "@/lib/sunoapi";
@@ -24,6 +25,7 @@ import { downloadSongFile } from "@/lib/download";
 import { useToast } from "./Toast";
 import { WaveformPlayer } from "./WaveformPlayer";
 import { TagInput } from "./TagInput";
+import { ReportModal } from "./ReportModal";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -98,6 +100,7 @@ interface SongDetailViewProps {
   playlists?: PlaylistOption[];
   isPublic?: boolean;
   publicSlug?: string | null;
+  isHidden?: boolean;
   songTags?: SongTag[];
 }
 
@@ -111,6 +114,7 @@ export function SongDetailView({
   playlists: initialPlaylists = [],
   isPublic: initialIsPublic = false,
   publicSlug: initialPublicSlug = null,
+  isHidden = false,
   songTags: initialSongTags = [],
 }: SongDetailViewProps) {
   const router = useRouter();
@@ -135,6 +139,9 @@ export function SongDetailView({
   const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [publicSlug, setPublicSlug] = useState(initialPublicSlug);
   const [sharing, setSharing] = useState(false);
+
+  // Report modal
+  const [reportOpen, setReportOpen] = useState(false);
 
   const hasAudio = Boolean(song.audioUrl);
 
@@ -296,7 +303,14 @@ export function SongDetailView({
       {/* Title + favorite */}
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex-1">{song.title}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex-1">
+            {song.title}
+            {isHidden && (
+              <span className="ml-2 inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 align-middle">
+                Hidden
+              </span>
+            )}
+          </h1>
           <button
             onClick={handleToggleFavorite}
             aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
@@ -478,7 +492,26 @@ export function SongDetailView({
             </div>
           )}
         </div>
+
+        {/* Report button */}
+        <button
+          onClick={() => setReportOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors min-h-[44px]"
+          aria-label="Report song"
+        >
+          <FlagIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+          Report
+        </button>
       </div>
+
+      {/* Report modal */}
+      {reportOpen && (
+        <ReportModal
+          songId={song.id}
+          songTitle={song.title}
+          onClose={() => setReportOpen(false)}
+        />
+      )}
 
       {/* Download progress/error */}
       {downloadProgress !== null && downloadProgress < 100 && (

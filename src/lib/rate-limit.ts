@@ -6,6 +6,7 @@ const DEFAULT_MAX_REQUESTS = 10;
 const ACTION_LIMITS: Record<string, number> = {
   generate: DEFAULT_MAX_REQUESTS,
   download: 50,
+  report: 10,
 };
 
 function getMaxRequests(action = "generate"): number {

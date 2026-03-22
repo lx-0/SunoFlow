@@ -2,7 +2,8 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
-import { PlayIcon, PauseIcon, MusicalNoteIcon } from "@heroicons/react/24/solid";
+import { PlayIcon, PauseIcon, MusicalNoteIcon, FlagIcon } from "@heroicons/react/24/solid";
+import { ReportModal } from "@/components/ReportModal";
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
@@ -12,6 +13,7 @@ function formatTime(seconds: number): string {
 }
 
 interface PublicSongViewProps {
+  songId: string;
   title: string;
   imageUrl: string | null;
   audioUrl: string | null;
@@ -23,6 +25,7 @@ interface PublicSongViewProps {
 }
 
 export function PublicSongView({
+  songId,
   title,
   imageUrl,
   audioUrl,
@@ -36,6 +39,7 @@ export function PublicSongView({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(duration ?? 0);
+  const [reportOpen, setReportOpen] = useState(false);
 
   function handleTogglePlay() {
     if (!audioRef.current) return;
@@ -137,6 +141,27 @@ export function PublicSongView({
             onDurationChange={() => setAudioDuration(audioRef.current?.duration ?? 0)}
           />
         </div>
+      )}
+
+      {/* Report button */}
+      <div className="flex justify-center">
+        <button
+          onClick={() => setReportOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors min-h-[44px]"
+          aria-label="Report song"
+        >
+          <FlagIcon className="w-3.5 h-3.5" aria-hidden="true" />
+          Report
+        </button>
+      </div>
+
+      {/* Report modal */}
+      {reportOpen && (
+        <ReportModal
+          songId={songId}
+          songTitle={title}
+          onClose={() => setReportOpen(false)}
+        />
       )}
 
       {/* Branding */}
