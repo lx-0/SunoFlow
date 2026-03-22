@@ -49,6 +49,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
+  // Protect admin routes — require isAdmin on JWT token
+  if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
+    if (!token || !token.isAdmin) {
+      if (pathname.startsWith("/api/admin")) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+
   return NextResponse.next();
 }
 

@@ -16,6 +16,7 @@ import {
   Bars3Icon,
   XMarkIcon,
   ClockIcon,
+  ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 import { GlobalPlayer } from "./GlobalPlayer";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
@@ -129,6 +130,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Bottom section — profile/settings/signout */}
         {session?.user && (
           <div className="border-t border-gray-200 dark:border-gray-800 p-2 space-y-1">
+            {!!(session.user as unknown as Record<string, unknown>).isAdmin && (
+              <Link
+                href="/admin"
+                aria-current={pathname.startsWith("/admin") ? "page" : undefined}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
+                  pathname.startsWith("/admin")
+                    ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                }`}
+              >
+                <ShieldCheckIcon className="w-5 h-5" aria-hidden="true" />
+                Admin
+              </Link>
+            )}
             <Link
               href="/profile"
               aria-current={pathname === "/profile" ? "page" : undefined}
