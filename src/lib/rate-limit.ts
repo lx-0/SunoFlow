@@ -5,6 +5,7 @@ const WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 const ACTION_LIMITS: Record<string, number> = {
   generate: RATE_LIMIT_MAX_GENERATIONS,
+  lyrics_generate: 10,
   download: 50,
   report: 10,
   password_reset: 3,

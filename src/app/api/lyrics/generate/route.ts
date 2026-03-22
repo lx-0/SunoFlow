@@ -1,22 +1,24 @@
 import { NextResponse } from "next/server";
 import { resolveUser } from "@/lib/auth-resolver";
-import { generateLyrics, getTaskStatus, SunoApiError } from "@/lib/sunoapi";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
+import { prisma } from "@/lib/prisma";
+import { generateText } from "@/lib/llm";
+import { acquireRateLimitSlot } from "@/lib/rate-limit";
 import { logServerError } from "@/lib/error-logger";
 
-const MAX_POLLS = 30;
-const POLL_INTERVAL_MS = 1000;
+const SYSTEM_PROMPT =
+  "Generate original song lyrics inspired by the style of the reference lyrics. " +
+  "Never copy — create new original content. " +
+  "Match the mood and style but with fresh words and ideas.";
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+const MAX_REFERENCE_SONGS = 5;
 
 export async function POST(request: Request) {
   try {
     const { userId, error: authError } = await resolveUser(request);
     if (authError) return authError;
 
-    const { prompt } = await request.json();
+    const body = await request.json();
+    const prompt = body?.prompt;
 
     if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
       return NextResponse.json(
@@ -25,56 +27,100 @@ export async function POST(request: Request) {
       );
     }
 
-    if (prompt.length > 200) {
+    // Rate limit: 10 generations per hour per user
+    const { acquired, status: rateLimitStatus } = await acquireRateLimitSlot(
+      userId,
+      "lyrics_generate"
+    );
+    if (!acquired) {
+      const resetAt = new Date(rateLimitStatus.resetAt);
+      const retryAfterSec = Math.ceil(
+        (resetAt.getTime() - Date.now()) / 1000
+      );
       return NextResponse.json(
-        { error: "Lyrics prompt must be 200 characters or less" },
-        { status: 400 }
+        {
+          error: "Rate limit exceeded. Please try again later.",
+          resetAt: rateLimitStatus.resetAt,
+          rateLimit: rateLimitStatus,
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": String(Math.max(1, retryAfterSec)) },
+        }
       );
     }
 
-    const userApiKey = await resolveUserApiKey(userId);
-    const { taskId } = await generateLyrics({ prompt: prompt.trim() }, userApiKey);
+    // Auto-select reference songs: favorites first (by rating desc, download count),
+    // then fall back to any rated songs
+    const favoriteSongs = await prisma.song.findMany({
+      where: {
+        userId,
+        favorites: { some: { userId } },
+        lyrics: { not: null },
+      },
+      orderBy: [{ rating: "desc" }, { downloadCount: "desc" }],
+      take: MAX_REFERENCE_SONGS,
+      select: { id: true, title: true, lyrics: true },
+    });
 
-    // Poll for lyrics result
-    for (let i = 0; i < MAX_POLLS; i++) {
-      await sleep(POLL_INTERVAL_MS);
-      const status = await getTaskStatus(taskId, userApiKey);
+    let referenceSongs = favoriteSongs;
 
-      if (
-        status.status === "TEXT_SUCCESS" ||
-        status.status === "FIRST_SUCCESS" ||
-        status.status === "SUCCESS"
-      ) {
-        const lyricsText = status.songs?.[0]?.prompt ?? status.songs?.[0]?.lyrics ?? "";
-        return NextResponse.json({ lyrics: lyricsText, taskId });
-      }
-
-      if (
-        status.status === "CREATE_TASK_FAILED" ||
-        status.status === "GENERATE_AUDIO_FAILED" ||
-        status.status === "CALLBACK_EXCEPTION" ||
-        status.status === "SENSITIVE_WORD_ERROR"
-      ) {
-        return NextResponse.json(
-          { error: status.errorMessage ?? "Lyrics generation failed" },
-          { status: 502 }
-        );
-      }
+    if (referenceSongs.length < MAX_REFERENCE_SONGS) {
+      const existingIds = referenceSongs.map((s) => s.id);
+      const ratedSongs = await prisma.song.findMany({
+        where: {
+          userId,
+          rating: { not: null },
+          lyrics: { not: null },
+          id: { notIn: existingIds },
+        },
+        orderBy: [{ rating: "desc" }, { downloadCount: "desc" }],
+        take: MAX_REFERENCE_SONGS - referenceSongs.length,
+        select: { id: true, title: true, lyrics: true },
+      });
+      referenceSongs = [...referenceSongs, ...ratedSongs];
     }
 
-    return NextResponse.json(
-      { error: "Lyrics generation timed out. Please try again." },
-      { status: 504 }
-    );
-  } catch (error) {
-    if (error instanceof SunoApiError) {
-      logServerError("lyrics-generate-api", error, { route: "/api/lyrics/generate" });
+    // Build user prompt with reference context
+    let userPrompt: string;
+
+    if (referenceSongs.length > 0) {
+      const referenceContext = referenceSongs
+        .map(
+          (s, i) =>
+            `--- Reference ${i + 1}: "${s.title ?? "Untitled"}" ---\n${s.lyrics}`
+        )
+        .join("\n\n");
+
+      userPrompt = `Theme/mood/topic: ${prompt.trim()}\n\nReference lyrics for style inspiration:\n\n${referenceContext}`;
+    } else {
+      // No reference songs — generate freeform
+      userPrompt = `Theme/mood/topic: ${prompt.trim()}`;
+    }
+
+    const lyrics = await generateText(SYSTEM_PROMPT, userPrompt);
+
+    if (!lyrics) {
       return NextResponse.json(
         { error: "Lyrics generation failed. Please try again." },
-        { status: error.status >= 500 ? 502 : error.status }
+        { status: 500 }
       );
     }
-    logServerError("lyrics-generate", error, { route: "/api/lyrics/generate" });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+
+    return NextResponse.json({
+      lyrics,
+      referenceSongs: referenceSongs.map((s) => ({
+        id: s.id,
+        title: s.title,
+      })),
+    });
+  } catch (error) {
+    logServerError("lyrics-generate", error, {
+      route: "/api/lyrics/generate",
+    });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
