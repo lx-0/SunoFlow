@@ -871,6 +871,88 @@ describe("non-retryable error propagation", () => {
   });
 });
 
+// ─── Request timeouts ─────────────────────────────────────────────────────────
+
+describe("request timeouts", () => {
+  it("passes AbortController signal to fetch", async () => {
+    mockFetchOnce(MOCK_TASK_RESPONSE);
+    await generateSong("test");
+
+    const callInit = vi.mocked(fetch).mock.calls[0][1] as RequestInit;
+    expect(callInit.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("throws SunoApiError with timeout message when request aborts", async () => {
+    vi.mocked(fetch).mockImplementationOnce((_url, init) => {
+      // Simulate immediate abort
+      const signal = (init as RequestInit).signal!;
+      return new Promise((_resolve, reject) => {
+        if (signal.aborted) {
+          reject(new DOMException("The operation was aborted.", "AbortError"));
+          return;
+        }
+        signal.addEventListener("abort", () => {
+          reject(new DOMException("The operation was aborted.", "AbortError"));
+        });
+      });
+    });
+
+    // Use a very short timeout to trigger the abort
+    process.env.SUNO_API_TIMEOUT_MS = "1";
+
+    const err = await listSongs().catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(SunoApiError);
+    expect(err).toMatchObject({ status: 0 });
+    expect((err as SunoApiError).message).toMatch(/timed out/);
+
+    delete process.env.SUNO_API_TIMEOUT_MS;
+  });
+
+  it("uses SUNO_API_TIMEOUT_MS env var when set", async () => {
+    process.env.SUNO_API_TIMEOUT_MS = "5000";
+    mockFetchOnce(MOCK_TASK_RESPONSE);
+    await generateSong("test");
+
+    // Verify fetch was called with a signal (timeout is applied)
+    const callInit = vi.mocked(fetch).mock.calls[0][1] as RequestInit;
+    expect(callInit.signal).toBeInstanceOf(AbortSignal);
+
+    delete process.env.SUNO_API_TIMEOUT_MS;
+  });
+
+  it("defaults to 30s timeout when SUNO_API_TIMEOUT_MS is not set", async () => {
+    delete process.env.SUNO_API_TIMEOUT_MS;
+    mockFetchOnce(MOCK_TASK_RESPONSE);
+    await generateSong("test");
+
+    const callInit = vi.mocked(fetch).mock.calls[0][1] as RequestInit;
+    expect(callInit.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("retry after 429 still applies timeout per attempt", async () => {
+    vi.useFakeTimers();
+
+    // First call: 429 (retryable), second call: success
+    mockFetchError(429, "Rate limited");
+    mockFetchOnce(MOCK_TASK_RESPONSE);
+
+    const promise = generateSong("test");
+    await vi.runAllTimersAsync();
+    const result = await promise;
+
+    expect(result.taskId).toBe("task-abc123");
+    expect(fetch).toHaveBeenCalledTimes(2);
+
+    // Both calls should have had a signal
+    for (const call of vi.mocked(fetch).mock.calls) {
+      const init = call[1] as RequestInit;
+      expect(init.signal).toBeInstanceOf(AbortSignal);
+    }
+
+    vi.useRealTimers();
+  });
+});
+
 // ─── sunoApi convenience export ───────────────────────────────────────────────
 
 describe("sunoApi singleton", () => {

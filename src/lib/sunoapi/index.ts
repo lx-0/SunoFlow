@@ -269,6 +269,19 @@ const NOOP_CALLBACK_URL = "https://localhost/noop";
 
 const DEFAULT_MODEL: SunoModel = "V4";
 
+/** Default request timeout in milliseconds (30 seconds) */
+const DEFAULT_TIMEOUT_MS = 30_000;
+
+/** Read the configured timeout from env, falling back to the default */
+function getTimeoutMs(): number {
+  const env = process.env.SUNO_API_TIMEOUT_MS;
+  if (env) {
+    const parsed = Number(env);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return DEFAULT_TIMEOUT_MS;
+}
+
 /** Statuses that should trigger a retry */
 function isRetryable(status: number): boolean {
   return status === 429 || (status >= 500 && status <= 599);
@@ -279,9 +292,26 @@ async function fetchWithRetry(
   init: RequestInit,
   maxRetries = 3
 ): Promise<Response> {
+  const timeoutMs = getTimeoutMs();
   let attempt = 0;
   while (true) {
-    const res = await fetch(url, init);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    let res: Response;
+    try {
+      res = await fetch(url, { ...init, signal: controller.signal });
+    } catch (err: unknown) {
+      clearTimeout(timeoutId);
+      if (err instanceof DOMException && err.name === "AbortError") {
+        throw new SunoApiError(
+          0,
+          `Suno API request timed out after ${timeoutMs / 1000}s`
+        );
+      }
+      throw err;
+    }
+    clearTimeout(timeoutId);
 
     if (res.ok) return res;
 
