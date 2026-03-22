@@ -31,7 +31,7 @@ COPY --from=build /app/public ./public
 COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=deps /app/node_modules/.pnpm/@prisma+client*/node_modules/@prisma/client ./node_modules/@prisma/client
-COPY --from=deps /app/node_modules/.pnpm/.prisma ./node_modules/.prisma
+COPY --from=deps /app/node_modules/.prisma ./node_modules/.prisma
 COPY prisma ./prisma/
 
 USER nextjs
