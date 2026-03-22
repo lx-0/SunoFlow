@@ -16,6 +16,7 @@ import {
   FunnelIcon,
   TrashIcon,
   CheckIcon,
+  TagIcon,
 } from "@heroicons/react/24/solid";
 import {
   HeartIcon as HeartOutlineIcon,
@@ -979,6 +980,138 @@ export function LibraryView({
     }
   }
 
+  // ─── Batch tag / playlist / download state ───────────────────────────────
+  const [showBatchTagMenu, setShowBatchTagMenu] = useState(false);
+  const [showBatchPlaylistMenu, setShowBatchPlaylistMenu] = useState(false);
+  const [batchTagLoading, setBatchTagLoading] = useState(false);
+  const [batchPlaylistLoading, setBatchPlaylistLoading] = useState(false);
+  const [batchPlaylists, setBatchPlaylists] = useState<PlaylistOption[]>([]);
+  const [batchDownloading, setBatchDownloading] = useState(false);
+  const [batchDownloadProgress, setBatchDownloadProgress] = useState<{ completed: number; total: number } | null>(null);
+  const batchTagMenuRef = useRef<HTMLDivElement>(null);
+  const batchPlaylistMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close batch tag menu on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (batchTagMenuRef.current && !batchTagMenuRef.current.contains(e.target as Node)) {
+        setShowBatchTagMenu(false);
+      }
+    }
+    if (showBatchTagMenu) {
+      document.addEventListener("mousedown", handleClick);
+      return () => document.removeEventListener("mousedown", handleClick);
+    }
+  }, [showBatchTagMenu]);
+
+  // Close batch playlist menu on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (batchPlaylistMenuRef.current && !batchPlaylistMenuRef.current.contains(e.target as Node)) {
+        setShowBatchPlaylistMenu(false);
+      }
+    }
+    if (showBatchPlaylistMenu) {
+      document.addEventListener("mousedown", handleClick);
+      return () => document.removeEventListener("mousedown", handleClick);
+    }
+  }, [showBatchPlaylistMenu]);
+
+  async function handleBatchTag(tagId: string) {
+    setShowBatchTagMenu(false);
+    if (selectedSongIds.size === 0) return;
+    setBatchTagLoading(true);
+    try {
+      const res = await fetch("/api/songs/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "tag", songIds: Array.from(selectedSongIds), tagId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast(data.error || "Batch tag failed", "error");
+        return;
+      }
+      const data = await res.json();
+      toast(`Tagged ${data.affected} song${data.affected !== 1 ? "s" : ""}`, "success");
+      clearSelection();
+      // Refresh songs to show updated tags
+      router.refresh();
+    } catch {
+      toast("Batch tag failed", "error");
+    } finally {
+      setBatchTagLoading(false);
+    }
+  }
+
+  async function handleBatchAddToPlaylist(playlistId: string) {
+    setShowBatchPlaylistMenu(false);
+    if (selectedSongIds.size === 0) return;
+    setBatchPlaylistLoading(true);
+    try {
+      const res = await fetch("/api/songs/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "add_to_playlist", songIds: Array.from(selectedSongIds), playlistId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast(data.error || "Batch add to playlist failed", "error");
+        return;
+      }
+      const data = await res.json();
+      toast(`Added ${data.affected} song${data.affected !== 1 ? "s" : ""} to playlist`, "success");
+      clearSelection();
+    } catch {
+      toast("Batch add to playlist failed", "error");
+    } finally {
+      setBatchPlaylistLoading(false);
+    }
+  }
+
+  async function openBatchPlaylistMenu() {
+    setShowBatchPlaylistMenu(true);
+    try {
+      const res = await fetch("/api/playlists");
+      if (res.ok) {
+        const data = await res.json();
+        setBatchPlaylists(data.playlists);
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function handleBatchDownload() {
+    if (selectedSongIds.size === 0) return;
+    const selectedSongs = songs
+      .filter((s) => selectedSongIds.has(s.id) && s.audioUrl && s.generationStatus === "ready")
+      .map((s) => ({
+        id: s.id,
+        title: s.title,
+        audioUrl: s.audioUrl!,
+        tags: s.tags,
+        duration: s.duration,
+        createdAt: s.createdAt,
+      }));
+    if (selectedSongs.length === 0) {
+      toast("No downloadable songs selected", "info");
+      return;
+    }
+    setBatchDownloading(true);
+    setBatchDownloadProgress({ completed: 0, total: selectedSongs.length });
+    try {
+      await exportAsZip(selectedSongs, (completed, total) => {
+        setBatchDownloadProgress({ completed, total });
+      });
+      toast(`Downloaded ${selectedSongs.length} song${selectedSongs.length !== 1 ? "s" : ""} as ZIP`, "success");
+      clearSelection();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Download failed", "error");
+    } finally {
+      setBatchDownloading(false);
+      setBatchDownloadProgress(null);
+    }
+  }
+
   // ─── Export helpers ───────────────────────────────────────────────────────
   const exportableSongs = useMemo<ExportableSong[]>(() => {
     return songs
@@ -1319,6 +1452,21 @@ export function LibraryView({
         </button>
       )}
 
+      {/* Batch download progress bar */}
+      {batchDownloading && batchDownloadProgress && (
+        <div className="space-y-1">
+          <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-violet-500 rounded-full transition-all duration-300"
+              style={{ width: `${Math.round((batchDownloadProgress.completed / batchDownloadProgress.total) * 100)}%` }}
+            />
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Downloading {batchDownloadProgress.completed} of {batchDownloadProgress.total} songs…
+          </p>
+        </div>
+      )}
+
       {/* Floating action bar */}
       {selectionMode && (
         <div className="fixed bottom-20 md:bottom-4 left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-40 flex items-center gap-2 px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white rounded-2xl shadow-2xl border border-gray-700 animate-slide-in overflow-x-auto">
@@ -1344,6 +1492,90 @@ export function LibraryView({
           >
             <HeartOutlineIcon className="w-4 h-4" />
             <span className="hidden sm:inline">Unfavorite</span>
+          </button>
+
+          {/* Batch Tag */}
+          <div className="relative" ref={batchTagMenuRef}>
+            <button
+              onClick={() => setShowBatchTagMenu((o) => !o)}
+              disabled={batchTagLoading || availableTags.length === 0}
+              aria-label="Tag selected songs"
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 disabled:opacity-50 transition-colors min-h-[44px]"
+            >
+              <TagIcon className="w-4 h-4" />
+              <span className="hidden sm:inline">Tag</span>
+            </button>
+
+            {showBatchTagMenu && (
+              <div className="absolute bottom-full mb-1 left-0 w-48 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 overflow-hidden max-h-60 overflow-y-auto">
+                {availableTags.length === 0 ? (
+                  <p className="px-4 py-3 text-sm text-gray-500">No tags yet</p>
+                ) : (
+                  availableTags.map((tag) => (
+                    <button
+                      key={tag.id}
+                      onClick={() => handleBatchTag(tag.id)}
+                      className="w-full text-left px-4 py-3 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-b last:border-b-0 border-gray-200 dark:border-gray-800 flex items-center gap-2"
+                    >
+                      <span
+                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: tag.color }}
+                      />
+                      {tag.name}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Batch Add to Playlist */}
+          <div className="relative" ref={batchPlaylistMenuRef}>
+            <button
+              onClick={openBatchPlaylistMenu}
+              disabled={batchPlaylistLoading}
+              aria-label="Add selected to playlist"
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gray-700 hover:bg-gray-600 disabled:opacity-50 transition-colors min-h-[44px]"
+            >
+              <QueueListIcon className="w-4 h-4" />
+              <span className="hidden sm:inline">Playlist</span>
+            </button>
+
+            {showBatchPlaylistMenu && (
+              <div className="absolute bottom-full mb-1 left-0 w-48 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 overflow-hidden max-h-60 overflow-y-auto">
+                {batchPlaylists.length === 0 ? (
+                  <p className="px-4 py-3 text-sm text-gray-500">No playlists yet</p>
+                ) : (
+                  batchPlaylists.map((pl) => (
+                    <button
+                      key={pl.id}
+                      onClick={() => handleBatchAddToPlaylist(pl.id)}
+                      className="w-full text-left px-4 py-3 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-b last:border-b-0 border-gray-200 dark:border-gray-800"
+                    >
+                      {pl.name}
+                      <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                        ({pl._count.songs})
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Batch Download */}
+          <button
+            onClick={handleBatchDownload}
+            disabled={batchDownloading}
+            aria-label="Download selected songs as ZIP"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gray-700 hover:bg-gray-600 disabled:opacity-50 transition-colors min-h-[44px]"
+          >
+            <ArrowDownTrayIcon className="w-4 h-4" />
+            <span className="hidden sm:inline">
+              {batchDownloading && batchDownloadProgress
+                ? `${batchDownloadProgress.completed}/${batchDownloadProgress.total}`
+                : "Download"}
+            </span>
           </button>
 
           <button
