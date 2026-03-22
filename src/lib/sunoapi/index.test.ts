@@ -132,7 +132,7 @@ describe("generateSong", () => {
     const body = JSON.parse(callInit.body as string);
     expect(body.instrumental).toBe(false);
     expect(body.customMode).toBe(true);
-    expect(body.model).toBe("V4");
+    expect(body.model).toBe("V4_5");
     expect(body.callBackUrl).toBeDefined();
     expect(body.title).toBe("My Song");
     expect(body.style).toBe("rock");
@@ -356,7 +356,7 @@ describe("extendMusic", () => {
     const body = JSON.parse(callInit.body as string);
     expect(body.audioId).toBe("audio-1");
     expect(body.defaultParamFlag).toBe(false);
-    expect(body.model).toBe("V4");
+    expect(body.model).toBe("V4_5");
     expect(fetch).toHaveBeenCalledWith(
       "https://api.sunoapi.org/api/v1/generate/extend",
       expect.objectContaining({ method: "POST" })
