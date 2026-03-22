@@ -22,6 +22,7 @@ import {
   SpeakerWaveIcon,
   XMarkIcon,
   ScissorsIcon,
+  PaintBrushIcon,
 } from "@heroicons/react/24/solid";
 import { HeartIcon as HeartOutlineIcon } from "@heroicons/react/24/outline";
 import type { SunoSong } from "@/lib/sunoapi";
@@ -31,6 +32,7 @@ import { useToast } from "./Toast";
 import { WaveformPlayer } from "./WaveformPlayer";
 import { TagInput } from "./TagInput";
 import { ReportModal } from "./ReportModal";
+import { SectionEditor } from "./SectionEditor";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -455,6 +457,9 @@ export function SongDetailView({
   const [separateSubmitting, setSeparateSubmitting] = useState(false);
   const [stems, setStems] = useState<StemTrack[]>([]);
   const stemPollRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Section editor state
+  const [sectionEditorOpen, setSectionEditorOpen] = useState(false);
 
   const hasAudio = Boolean(song.audioUrl);
 
@@ -1038,6 +1043,14 @@ export function SongDetailView({
             <ScissorsIcon className="w-4 h-4" aria-hidden="true" />
             Separate Vocals
           </button>
+          <button
+            onClick={() => setSectionEditorOpen(true)}
+            disabled={!hasAudio || !song.duration || initialVariationCount >= maxVariations}
+            className="flex items-center justify-center gap-2 px-3 py-2.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px] col-span-2"
+          >
+            <PaintBrushIcon className="w-4 h-4" aria-hidden="true" />
+            Replace Section
+          </button>
         </div>
       </div>
 
@@ -1060,6 +1073,23 @@ export function SongDetailView({
           onClose={() => setSeparateModalOpen(false)}
           onSubmit={handleSeparateVocals}
           submitting={separateSubmitting}
+        />
+      )}
+
+      {/* Section Editor modal */}
+      {sectionEditorOpen && hasAudio && song.duration && (
+        <SectionEditor
+          songId={song.id}
+          songTitle={song.title}
+          songTags={song.tags ?? null}
+          songDuration={song.duration}
+          audioUrl={song.audioUrl}
+          onClose={() => setSectionEditorOpen(false)}
+          onSubmitted={(newSongId) => {
+            setSectionEditorOpen(false);
+            toast("Section replacement started!", "success");
+            router.push(`/library/${newSongId}`);
+          }}
         />
       )}
 
