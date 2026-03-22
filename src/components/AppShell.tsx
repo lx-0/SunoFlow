@@ -23,6 +23,7 @@ import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
 import { NotificationBell } from "./NotificationBell";
 import { SearchBar } from "./SearchBar";
+import { EmailVerificationBanner } from "./EmailVerificationBanner";
 
 const navItems = [
   { label: "Home", href: "/", icon: HomeIcon, dataTour: undefined as string | undefined },
@@ -384,6 +385,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           )}
         </header>
+
+        {/* Email verification banner */}
+        <EmailVerificationBanner />
 
         {/* Page content */}
         <main id="main-content" className="flex-1 overflow-y-auto pb-36 md:pb-24">

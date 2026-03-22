@@ -1,36 +1,55 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function LoginPage() {
-  const router = useRouter();
+export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
 
-    setLoading(false);
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error ?? "Something went wrong");
+        setLoading(false);
+        return;
+      }
 
-    if (result?.error) {
-      setError("Invalid email or password");
-    } else {
-      router.push("/");
-      router.refresh();
+      setSubmitted(true);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
+  }
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50 dark:bg-gray-950">
+        <div className="w-full max-w-sm text-center">
+          <h1 className="text-3xl font-bold text-violet-400 mb-4">SunoFlow</h1>
+          <div className="bg-green-100 dark:bg-green-900/40 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg text-sm mb-6">
+            If an account with that email exists, a password reset link has been sent. Check your inbox.
+          </div>
+          <Link href="/login" className="text-violet-400 hover:text-violet-300 font-medium text-sm">
+            Back to sign in
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -38,7 +57,9 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-violet-400">SunoFlow</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">Sign in to your music manager</p>
+          <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
+            Enter your email to receive a password reset link
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -64,41 +85,18 @@ export default function LoginPage() {
             />
           </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              className="w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-base"
-              placeholder="••••••••"
-            />
-          </div>
-
           <button
             type="submit"
             disabled={loading}
             className="w-full py-3 px-4 bg-violet-600 hover:bg-violet-500 disabled:bg-violet-800 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors text-base"
           >
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? "Sending..." : "Send reset link"}
           </button>
-
-          <div className="text-right">
-            <Link href="/forgot-password" className="text-violet-400 hover:text-violet-300 text-sm font-medium">
-              Forgot password?
-            </Link>
-          </div>
         </form>
 
         <p className="text-center text-gray-500 dark:text-gray-400 text-sm mt-6">
-          No account?{" "}
-          <Link href="/register" className="text-violet-400 hover:text-violet-300 font-medium">
-            Create one
+          <Link href="/login" className="text-violet-400 hover:text-violet-300 font-medium">
+            Back to sign in
           </Link>
         </p>
       </div>

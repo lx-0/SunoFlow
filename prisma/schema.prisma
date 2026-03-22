@@ -44,6 +44,9 @@ model User {
   image         String?
   passwordHash         String?
   sunoApiKey           String?
+  verificationToken    String?   @unique
+  resetToken           String?   @unique
+  resetTokenExpiry     DateTime?
   isAdmin              Boolean   @default(false)
   isDisabled           Boolean   @default(false)
   bio                  String?
