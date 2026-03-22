@@ -59,12 +59,13 @@ export function useGenerationPoller() {
         if (!res.ok) return;
 
         const data = await res.json();
+        const info = data.song ?? data;
         const newStatus: GenerationStatus =
-          data.generationStatus === "ready"
+          info.generationStatus === "ready"
             ? "ready"
-            : data.generationStatus === "failed"
+            : info.generationStatus === "failed"
               ? "failed"
-              : data.pollCount > 0
+              : info.pollCount > 0
                 ? "processing"
                 : "pending";
 
@@ -74,8 +75,8 @@ export function useGenerationPoller() {
               ? {
                   ...s,
                   status: newStatus,
-                  title: data.title ?? s.title,
-                  errorMessage: data.errorMessage ?? null,
+                  title: info.title ?? s.title,
+                  errorMessage: info.errorMessage ?? null,
                 }
               : s
           )
@@ -93,6 +94,7 @@ export function useGenerationPoller() {
 
   const trackSong = useCallback(
     (songId: string, title: string | null) => {
+      if (!songId) return;
       setSongs((prev) => {
         if (prev.some((s) => s.songId === songId)) return prev;
         return [

@@ -199,10 +199,16 @@ export function GenerateForm() {
         }
       }
 
-      toast("Song generation started!", "success");
       const song = data.songs?.[0] ?? data.song;
       const songId = song?.id ?? data.id;
       const songTitle = song?.title ?? data.title ?? (title || null);
+
+      if (data.error) {
+        toast(data.error, "error");
+        return;
+      }
+
+      toast("Song generation started!", "success");
       trackSong(songId, songTitle);
     } catch {
       toast("Network error. Please check your connection and try again.", "error");
