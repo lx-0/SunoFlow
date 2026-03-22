@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { AppShell } from "@/components/AppShell";
 import { useTheme } from "@/components/ThemeProvider";
-import { PlusIcon, TrashIcon, SunIcon, MoonIcon, ComputerDesktopIcon, PencilIcon, CheckIcon, XMarkIcon, ArrowPathIcon, KeyIcon, ArrowDownTrayIcon, UserCircleIcon, Cog6ToothIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, TrashIcon, SunIcon, MoonIcon, ComputerDesktopIcon, PencilIcon, CheckIcon, XMarkIcon, ArrowPathIcon, KeyIcon, ArrowDownTrayIcon, UserCircleIcon, Cog6ToothIcon, ShieldCheckIcon, BellIcon, SpeakerWaveIcon, ChartBarIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { useOnboarding } from "@/components/OnboardingTour";
 
 // RSS feeds are now stored in the database via /api/rss/feeds
@@ -351,6 +351,14 @@ function PreferencesTab() {
 
         <div className="border-t border-gray-200 dark:border-gray-800" />
 
+        <NotificationPreferencesSection />
+
+        <div className="border-t border-gray-200 dark:border-gray-800" />
+
+        <PlaybackDefaultsSection />
+
+        <div className="border-t border-gray-200 dark:border-gray-800" />
+
         <RssFeedsSection />
 
         <div className="border-t border-gray-200 dark:border-gray-800" />
@@ -370,11 +378,15 @@ function AccountTab() {
       <div className="border-t border-gray-200 dark:border-gray-800" />
       <ApiKeySection />
       <div className="border-t border-gray-200 dark:border-gray-800" />
+      <RateLimitSection />
+      <div className="border-t border-gray-200 dark:border-gray-800" />
       <OnboardingSection />
       <div className="border-t border-gray-200 dark:border-gray-800" />
       <ExportDataSection />
       <div className="border-t border-gray-200 dark:border-gray-800" />
       <TagManagementSection />
+      <div className="border-t border-gray-200 dark:border-gray-800" />
+      <DeleteAccountSection />
     </div>
   );
 }
@@ -767,6 +779,368 @@ function InstagramPostsSection() {
         </ul>
       )}
     </section>
+  );
+}
+
+const NOTIF_PREFS_KEY = "sunoflow_notif_prefs";
+const NOTIFICATION_TYPES = [
+  { key: "generation_complete", label: "Generation complete", description: "When a song finishes generating" },
+  { key: "generation_failed", label: "Generation failed", description: "When a generation encounters an error" },
+  { key: "rate_limit_reset", label: "Rate limit reset", description: "When your rate limit resets" },
+  { key: "announcement", label: "Announcements", description: "Product updates and news" },
+];
+
+function NotificationPreferencesSection() {
+  const [prefs, setPrefs] = useState<Record<string, boolean>>({});
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(NOTIF_PREFS_KEY);
+      if (stored) {
+        setPrefs(JSON.parse(stored));
+      } else {
+        // Default: all enabled
+        const defaults: Record<string, boolean> = {};
+        NOTIFICATION_TYPES.forEach((t) => { defaults[t.key] = true; });
+        setPrefs(defaults);
+      }
+    } catch {
+      const defaults: Record<string, boolean> = {};
+      NOTIFICATION_TYPES.forEach((t) => { defaults[t.key] = true; });
+      setPrefs(defaults);
+    }
+    setLoaded(true);
+  }, []);
+
+  const toggle = (key: string) => {
+    const updated = { ...prefs, [key]: !prefs[key] };
+    setPrefs(updated);
+    try {
+      localStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(updated));
+    } catch {
+      // quota exceeded
+    }
+  };
+
+  if (!loaded) return null;
+
+  return (
+    <section className="space-y-3">
+      <div>
+        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Notifications</h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Choose which notifications you want to receive.</p>
+      </div>
+      <div className="space-y-2">
+        {NOTIFICATION_TYPES.map(({ key, label, description }) => (
+          <label
+            key={key}
+            className="flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-3 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            <input
+              type="checkbox"
+              checked={prefs[key] !== false}
+              onChange={() => toggle(key)}
+              className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-violet-600 focus:ring-violet-500 dark:bg-gray-800"
+            />
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-medium text-gray-900 dark:text-white">{label}</span>
+              <span className="block text-xs text-gray-500 dark:text-gray-400">{description}</span>
+            </div>
+            <BellIcon className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+          </label>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+const PLAYBACK_PREFS_KEY = "sunoflow_playback_prefs";
+
+function PlaybackDefaultsSection() {
+  const [autoplay, setAutoplay] = useState(true);
+  const [quality, setQuality] = useState<"high" | "standard">("high");
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(PLAYBACK_PREFS_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setAutoplay(parsed.autoplay ?? true);
+        setQuality(parsed.quality ?? "high");
+      }
+    } catch {
+      // use defaults
+    }
+    setLoaded(true);
+  }, []);
+
+  const persist = (updates: { autoplay?: boolean; quality?: string }) => {
+    const next = { autoplay, quality, ...updates };
+    if (updates.autoplay !== undefined) setAutoplay(updates.autoplay);
+    if (updates.quality !== undefined) setQuality(updates.quality as "high" | "standard");
+    try {
+      localStorage.setItem(PLAYBACK_PREFS_KEY, JSON.stringify(next));
+    } catch {
+      // quota exceeded
+    }
+  };
+
+  if (!loaded) return null;
+
+  return (
+    <section className="space-y-3">
+      <div>
+        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Playback</h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Configure default playback behavior.</p>
+      </div>
+
+      <label className="flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-3 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+        <div className="flex items-center gap-3">
+          <SpeakerWaveIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+          <div>
+            <span className="text-sm font-medium text-gray-900 dark:text-white">Autoplay</span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400">Automatically play the next song in queue</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={autoplay}
+          onClick={() => persist({ autoplay: !autoplay })}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+            autoplay ? "bg-violet-600" : "bg-gray-300 dark:bg-gray-700"
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              autoplay ? "translate-x-6" : "translate-x-1"
+            }`}
+          />
+        </button>
+      </label>
+
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-3 py-3">
+        <div className="flex items-center gap-3 mb-2">
+          <SpeakerWaveIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+          <div>
+            <span className="text-sm font-medium text-gray-900 dark:text-white">Default Quality</span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400">Audio quality for playback and downloads</span>
+          </div>
+        </div>
+        <div className="flex gap-2 ml-7">
+          {(["high", "standard"] as const).map((q) => (
+            <button
+              key={q}
+              onClick={() => persist({ quality: q })}
+              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors min-h-[36px] border ${
+                quality === q
+                  ? "bg-violet-600 text-white border-violet-600"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700"
+              }`}
+            >
+              {q.charAt(0).toUpperCase() + q.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RateLimitSection() {
+  const [data, setData] = useState<{
+    remaining: number;
+    limit: number;
+    used: number;
+    percentUsed: number;
+    resetAt: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/rate-limit/status")
+      .then((r) => r.json())
+      .then((d) => setData(d))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="space-y-3">
+        <div className="h-6 w-40 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+        <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+      </section>
+    );
+  }
+
+  if (!data) return null;
+
+  const resetDate = data.resetAt ? new Date(data.resetAt) : null;
+  const barColor = data.percentUsed >= 90 ? "bg-red-500" : data.percentUsed >= 70 ? "bg-yellow-500" : "bg-violet-500";
+
+  return (
+    <section className="space-y-3">
+      <div>
+        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Rate Limits</h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Your current API usage and limits.</p>
+      </div>
+
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ChartBarIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+            <span className="text-sm font-medium text-gray-900 dark:text-white">Generations</span>
+          </div>
+          <span className="text-sm text-gray-600 dark:text-gray-300">
+            {data.used} / {data.limit}
+          </span>
+        </div>
+
+        {/* Progress bar */}
+        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+          <div
+            className={`h-2 rounded-full transition-all ${barColor}`}
+            style={{ width: `${Math.min(data.percentUsed, 100)}%` }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+          <span>{data.remaining} remaining</span>
+          {resetDate && (
+            <span>Resets {resetDate.toLocaleDateString()} {resetDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+          )}
+        </div>
+
+        {data.percentUsed >= 90 && (
+          <div className="flex items-center gap-2 text-xs text-red-500 dark:text-red-400">
+            <ExclamationTriangleIcon className="w-4 h-4 flex-shrink-0" />
+            <span>You&apos;re running low on generations. Consider waiting for the reset.</span>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function DeleteAccountSection() {
+  const { data: session } = useSession();
+  const [showForm, setShowForm] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmEmail, setConfirmEmail] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleDelete = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs: Record<string, string> = {};
+    if (!password) errs.password = "Password is required";
+    if (!confirmEmail) errs.confirmEmail = "Please confirm your email";
+    else if (confirmEmail !== session?.user?.email) errs.confirmEmail = "Email does not match your account";
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, confirmEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error ?? "Failed to delete account", "error");
+      } else {
+        // Redirect to home after deletion
+        window.location.href = "/";
+      }
+    } catch {
+      showToast("Network error", "error");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <>
+      {toast && <Toast message={toast.message} type={toast.type} />}
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-base font-semibold text-red-600 dark:text-red-400">Delete Account</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            Permanently delete your account and all associated data. This cannot be undone.
+          </p>
+        </div>
+
+        {!showForm ? (
+          <button
+            onClick={() => setShowForm(true)}
+            className="px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded-lg transition-colors min-h-[44px]"
+          >
+            Delete my account
+          </button>
+        ) : (
+          <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-4 space-y-3">
+            <div className="flex items-center gap-2 text-sm text-red-700 dark:text-red-300 font-medium">
+              <ExclamationTriangleIcon className="w-5 h-5 flex-shrink-0" />
+              This will permanently delete all your songs, playlists, and data.
+            </div>
+            <form onSubmit={handleDelete} className="space-y-2">
+              <div>
+                <input
+                  type="email"
+                  value={confirmEmail}
+                  onChange={(e) => { setConfirmEmail(e.target.value); setErrors((p) => ({ ...p, confirmEmail: "" })); }}
+                  placeholder="Type your email to confirm"
+                  autoComplete="off"
+                  className={`w-full bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                    errors.confirmEmail ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                  }`}
+                />
+                <FieldError error={errors.confirmEmail} />
+              </div>
+              <div>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: "" })); }}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  className={`w-full bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                    errors.password ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                  }`}
+                />
+                <FieldError error={errors.password} />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={deleting}
+                  className="flex-1 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  {deleting ? "Deleting..." : "Permanently delete account"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowForm(false); setPassword(""); setConfirmEmail(""); setErrors({}); }}
+                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+      </section>
+    </>
   );
 }
 
