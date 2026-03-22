@@ -23,6 +23,7 @@ import {
   XMarkIcon,
   ScissorsIcon,
   PaintBrushIcon,
+  FilmIcon,
 } from "@heroicons/react/24/solid";
 import { HeartIcon as HeartOutlineIcon } from "@heroicons/react/24/outline";
 import type { SunoSong } from "@/lib/sunoapi";
@@ -461,6 +462,15 @@ export function SongDetailView({
   // Section editor state
   const [sectionEditorOpen, setSectionEditorOpen] = useState(false);
 
+  // Export/conversion state
+  type ExportFormat = "wav" | "midi" | "mp4";
+  type ExportStatus = "idle" | "converting" | "done" | "error";
+  const [exports, setExports] = useState<Record<ExportFormat, { status: ExportStatus; taskId?: string; error?: string }>>({
+    wav: { status: "idle" },
+    midi: { status: "idle" },
+    mp4: { status: "idle" },
+  });
+
   const hasAudio = Boolean(song.audioUrl);
 
   // Fallback: load from localStorage if no DB rating (graceful degradation for unauthenticated)
@@ -744,6 +754,38 @@ export function SongDetailView({
     }
   }
 
+  async function handleExport(format: ExportFormat) {
+    if (exports[format].status === "converting") return;
+    setExports((prev) => ({ ...prev, [format]: { status: "converting" } }));
+
+    const endpoints: Record<ExportFormat, string> = {
+      wav: `/api/songs/${song.id}/convert-wav`,
+      midi: `/api/songs/${song.id}/generate-midi`,
+      mp4: `/api/songs/${song.id}/music-video`,
+    };
+
+    const labels: Record<ExportFormat, string> = {
+      wav: "WAV conversion",
+      midi: "MIDI extraction",
+      mp4: "Music video generation",
+    };
+
+    try {
+      const res = await fetch(endpoints[format], { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setExports((prev) => ({ ...prev, [format]: { status: "error", error: data.error } }));
+        toast(data.error ?? `${labels[format]} failed`, "error");
+        return;
+      }
+      setExports((prev) => ({ ...prev, [format]: { status: "done", taskId: data.taskId } }));
+      toast(`${labels[format]} started! Task ID: ${data.taskId}`, "success");
+    } catch {
+      setExports((prev) => ({ ...prev, [format]: { status: "error", error: `${labels[format]} failed` } }));
+      toast(`${labels[format]} failed`, "error");
+    }
+  }
+
   return (
     <div className="px-4 py-4 space-y-5 max-w-2xl mx-auto">
       {/* Back link */}
@@ -992,6 +1034,44 @@ export function SongDetailView({
         </div>
       )}
       {downloadError && <p className="text-xs text-red-400">{downloadError}</p>}
+
+      {/* Export / Format Conversion */}
+      {hasAudio && (
+        <div className="space-y-2">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Export</h2>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => handleExport("wav")}
+              disabled={exports.wav.status === "converting"}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
+            >
+              <ArrowDownTrayIcon className="w-4 h-4" aria-hidden="true" />
+              {exports.wav.status === "converting" ? "Converting..." : exports.wav.status === "done" ? "WAV Sent" : "WAV"}
+            </button>
+            <button
+              onClick={() => handleExport("midi")}
+              disabled={exports.midi.status === "converting"}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
+            >
+              <MusicalNoteIcon className="w-4 h-4" aria-hidden="true" />
+              {exports.midi.status === "converting" ? "Extracting..." : exports.midi.status === "done" ? "MIDI Sent" : "MIDI"}
+            </button>
+            <button
+              onClick={() => handleExport("mp4")}
+              disabled={exports.mp4.status === "converting"}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
+            >
+              <FilmIcon className="w-4 h-4" aria-hidden="true" />
+              {exports.mp4.status === "converting" ? "Generating..." : exports.mp4.status === "done" ? "Video Sent" : "Music Video"}
+            </button>
+          </div>
+          {(exports.wav.status === "error" || exports.midi.status === "error" || exports.mp4.status === "error") && (
+            <p className="text-xs text-red-400">
+              {exports.wav.error || exports.midi.error || exports.mp4.error}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Variation / Remix actions */}
       <div className="space-y-2">
