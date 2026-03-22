@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   MusicalNoteIcon,
   ArrowPathIcon,
@@ -101,33 +101,12 @@ function buildVariationUrl(song: Song): string {
 
 // ─── Sort options ─────────────────────────────────────────────────────────────
 
-type SortKey = "newest" | "oldest" | "longest" | "shortest";
+type SortKey = "newest" | "oldest";
 
 const SORT_OPTIONS: { label: string; value: SortKey }[] = [
   { label: "Newest first", value: "newest" },
   { label: "Oldest first", value: "oldest" },
-  { label: "Longest first", value: "longest" },
-  { label: "Shortest first", value: "shortest" },
 ];
-
-function sortSongs(songs: Song[], sortKey: SortKey): Song[] {
-  return [...songs].sort((a, b) => {
-    switch (sortKey) {
-      case "newest":
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      case "oldest":
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      case "longest":
-        return (b.duration ?? 0) - (a.duration ?? 0);
-      case "shortest":
-        return (a.duration ?? 0) - (b.duration ?? 0);
-    }
-  });
-}
-
-// ─── Pagination ───────────────────────────────────────────────────────────────
-
-const PAGE_SIZE = 20;
 
 // ─── History entry row ────────────────────────────────────────────────────────
 
@@ -269,14 +248,114 @@ function HistoryRow({ song, onRetry, retryingId }: { song: Song; onRetry: (song:
 
 // ─── Main HistoryView ─────────────────────────────────────────────────────────
 
-export function HistoryView({ songs: initialSongs }: { songs: Song[] }) {
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [sortKey, setSortKey] = useState<SortKey>("newest");
-  const [page, setPage] = useState(1);
-  const [retryingId, setRetryingId] = useState<string | null>(null);
+interface HistoryViewProps {
+  songs: Song[];
+  initialNextCursor?: string | null;
+  initialTotal?: number;
+}
+
+export function HistoryView({
+  songs: initialSongs,
+  initialNextCursor = null,
+  initialTotal,
+}: HistoryViewProps) {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
 
+  const [activeFilter, setActiveFilter] = useState(searchParams.get("status") ?? "all");
+  const [sortKey, setSortKey] = useState<SortKey>((searchParams.get("sort") as SortKey) ?? "newest");
+  const [songs, setSongs] = useState<Song[]>(initialSongs);
+  const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
+  const [totalSongs, setTotalSongs] = useState(initialTotal ?? initialSongs.length);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
+
+  // ─── Build query params for API fetch ─────────────────────────────────────
+  function buildParams(cursor?: string): URLSearchParams {
+    const params = new URLSearchParams();
+    if (activeFilter !== "all") params.set("status", activeFilter);
+    params.set("sortBy", sortKey);
+    if (cursor) params.set("cursor", cursor);
+    return params;
+  }
+
+  // ─── Sync filter state → URL ──────────────────────────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (activeFilter !== "all") params.set("status", activeFilter);
+    if (sortKey !== "newest") params.set("sort", sortKey);
+    const qs = params.toString();
+    const newUrl = qs ? `${pathname}?${qs}` : pathname;
+    router.replace(newUrl, { scroll: false });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFilter, sortKey]);
+
+  // ─── Re-fetch when filter/sort changes ────────────────────────────────────
+  const [filterVersion, setFilterVersion] = useState(0);
+
+  useEffect(() => {
+    // Skip the initial render — we already have server-side data
+    if (filterVersion === 0) return;
+
+    let cancelled = false;
+    setLoading(true);
+    setNextCursor(null);
+
+    const params = buildParams();
+
+    fetch(`/api/songs?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && data.songs) {
+          setSongs(data.songs);
+          setNextCursor(data.nextCursor ?? null);
+          setTotalSongs(data.total ?? data.songs.length);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterVersion]);
+
+  function handleFilterChange(filter: string) {
+    setActiveFilter(filter);
+    setFilterVersion((v) => v + 1);
+  }
+
+  function handleSortChange(sort: SortKey) {
+    setSortKey(sort);
+    setFilterVersion((v) => v + 1);
+  }
+
+  // ─── Load more ────────────────────────────────────────────────────────────
+  const handleLoadMore = useCallback(() => {
+    if (!nextCursor || loadingMore) return;
+
+    const params = buildParams(nextCursor);
+    setLoadingMore(true);
+
+    fetch(`/api/songs?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.songs) {
+          setSongs((prev) => [...prev, ...data.songs]);
+          setNextCursor(data.nextCursor ?? null);
+          setTotalSongs(data.total ?? totalSongs);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingMore(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nextCursor, loadingMore, activeFilter, sortKey]);
+
+  // ─── Retry handler ────────────────────────────────────────────────────────
   async function handleRetry(song: Song) {
     if (retryingId) return;
     setRetryingId(song.id);
@@ -317,27 +396,7 @@ export function HistoryView({ songs: initialSongs }: { songs: Song[] }) {
     }
   }
 
-  // Filter then sort
-  const filteredSongs = (() => {
-    const filtered = activeFilter === "all"
-      ? initialSongs
-      : initialSongs.filter((s) => s.generationStatus === activeFilter);
-    return sortSongs(filtered, sortKey);
-  })();
-
-  // Pagination
-  const totalPages = Math.max(1, Math.ceil(filteredSongs.length / PAGE_SIZE));
-  const clampedPage = Math.min(page, totalPages);
-  const paginatedSongs = filteredSongs.slice(0, clampedPage * PAGE_SIZE);
-  const hasMore = clampedPage < totalPages;
-
-  // Counts for filter chips
-  const counts: Record<string, number> = {
-    all: initialSongs.length,
-    ready: initialSongs.filter((s) => s.generationStatus === "ready").length,
-    pending: initialSongs.filter((s) => s.generationStatus === "pending").length,
-    failed: initialSongs.filter((s) => s.generationStatus === "failed").length,
-  };
+  const remaining = totalSongs - songs.length;
 
   return (
     <div className="px-4 py-4 space-y-4">
@@ -345,37 +404,36 @@ export function HistoryView({ songs: initialSongs }: { songs: Song[] }) {
       <div>
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">History</h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">
-          {initialSongs.length} generation{initialSongs.length !== 1 ? "s" : ""}
+          {loading ? "Loading…" : `${songs.length}${remaining > 0 ? ` of ${totalSongs}` : ""} generation${totalSongs !== 1 ? "s" : ""}`}
         </p>
       </div>
 
       {/* Filter chips + sort */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex gap-2 overflow-x-auto pb-1 flex-1">
-          {STATUS_FILTERS.map((opt) => {
-            const count = counts[opt.value];
-            return (
-              <button
-                key={opt.value}
-                onClick={() => { setActiveFilter(opt.value); setPage(1); }}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
-                  activeFilter === opt.value
-                    ? "bg-violet-600 text-white"
-                    : "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                }`}
-              >
-                {opt.label}{count > 0 ? ` (${count})` : ""}
-              </button>
-            );
-          })}
+          {STATUS_FILTERS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => handleFilterChange(opt.value)}
+              disabled={loading}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors min-h-[44px] disabled:opacity-50 ${
+                activeFilter === opt.value
+                  ? "bg-violet-600 text-white"
+                  : "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
 
         {/* Sort dropdown */}
         <div className="relative flex-shrink-0">
           <select
             value={sortKey}
-            onChange={(e) => { setSortKey(e.target.value as SortKey); setPage(1); }}
-            className="appearance-none pl-3 pr-8 py-1.5 rounded-full text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-none cursor-pointer min-h-[44px] focus:ring-2 focus:ring-violet-500 focus:outline-none"
+            onChange={(e) => handleSortChange(e.target.value as SortKey)}
+            disabled={loading}
+            className="appearance-none pl-3 pr-8 py-1.5 rounded-full text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-none cursor-pointer min-h-[44px] focus:ring-2 focus:ring-violet-500 focus:outline-none disabled:opacity-50"
             aria-label="Sort generations"
           >
             {SORT_OPTIONS.map((opt) => (
@@ -387,15 +445,22 @@ export function HistoryView({ songs: initialSongs }: { songs: Song[] }) {
       </div>
 
       {/* Song list */}
-      {paginatedSongs.length === 0 ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <svg className="animate-spin h-6 w-6 text-violet-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+        </div>
+      ) : songs.length === 0 ? (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 text-center space-y-3">
           <MusicalNoteIcon className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto" />
           <p className="text-gray-500 text-sm">
-            {initialSongs.length === 0
+            {activeFilter === "all"
               ? "No generation history yet. Create your first song!"
               : "No generations match this filter."}
           </p>
-          {initialSongs.length === 0 && (
+          {activeFilter === "all" && (
             <Link
               href="/generate"
               className="inline-flex items-center gap-1 text-sm text-violet-400 hover:text-violet-300 transition-colors"
@@ -407,19 +472,37 @@ export function HistoryView({ songs: initialSongs }: { songs: Song[] }) {
       ) : (
         <>
           <ul className="space-y-2">
-            {paginatedSongs.map((song) => (
+            {songs.map((song) => (
               <HistoryRow key={song.id} song={song} onRetry={handleRetry} retryingId={retryingId} />
             ))}
           </ul>
 
           {/* Load more */}
-          {hasMore && (
+          {nextCursor && (
             <button
-              onClick={() => setPage((p) => p + 1)}
-              className="w-full py-3 rounded-xl bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium transition-colors min-h-[44px]"
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+              className="w-full py-3 rounded-xl bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium transition-colors min-h-[44px] disabled:opacity-50"
             >
-              Load more ({filteredSongs.length - paginatedSongs.length} remaining)
+              {loadingMore ? (
+                <span className="inline-flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Loading…
+                </span>
+              ) : (
+                `Load more (${remaining} remaining)`
+              )}
             </button>
+          )}
+
+          {/* End of list indicator */}
+          {!nextCursor && songs.length > 0 && (
+            <p className="text-center text-xs text-gray-400 dark:text-gray-600 py-2">
+              All generations loaded
+            </p>
           )}
         </>
       )}

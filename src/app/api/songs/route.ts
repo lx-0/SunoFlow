@@ -83,17 +83,31 @@ export async function GET(request: NextRequest) {
         break;
     }
 
-    const songs = await prisma.song.findMany({
-      where,
-      orderBy,
-      include: {
-        songTags: { include: { tag: true }, orderBy: { tag: { name: "asc" } } },
-        favorites: { where: { userId: session.user.id }, select: { id: true } },
-        _count: { select: { favorites: true } },
-      },
-    });
+    // Pagination: cursor-based (default 20 items)
+    const limitParam = parseInt(params.get("limit") || "", 10);
+    const limit = !isNaN(limitParam) && limitParam >= 1 && limitParam <= 100 ? limitParam : 20;
+    const cursor = params.get("cursor") || "";
 
-    const enriched = songs.map((s) => {
+    const [songs, total] = await Promise.all([
+      prisma.song.findMany({
+        where,
+        orderBy,
+        take: limit + 1, // fetch one extra to detect next page
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        include: {
+          songTags: { include: { tag: true }, orderBy: { tag: { name: "asc" } } },
+          favorites: { where: { userId: session.user.id }, select: { id: true } },
+          _count: { select: { favorites: true } },
+        },
+      }),
+      prisma.song.count({ where }),
+    ]);
+
+    const hasMore = songs.length > limit;
+    const sliced = hasMore ? songs.slice(0, limit) : songs;
+    const nextCursor = hasMore ? sliced[sliced.length - 1].id : null;
+
+    const enriched = sliced.map((s) => {
       const { favorites, _count, ...rest } = s;
       return {
         ...rest,
@@ -102,7 +116,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ songs: enriched });
+    return NextResponse.json({ songs: enriched, nextCursor, total });
   } catch {
     return NextResponse.json(
       { error: "Internal server error" },

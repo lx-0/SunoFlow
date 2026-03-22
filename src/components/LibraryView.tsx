@@ -646,6 +646,9 @@ export function LibraryView({
   // ─── Song + playback state ────────────────────────────────────────────────
   const [songs, setSongs] = useState<Song[]>(initialSongs);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [totalSongs, setTotalSongs] = useState<number>(initialSongs.length);
   const [ratings, setRatings] = useState<Record<string, SongRating>>({});
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
   const [downloadErrors, setDownloadErrors] = useState<Record<string, string>>({});
@@ -749,10 +752,8 @@ export function LibraryView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, enableServerSearch]);
 
-  // ─── Fetch songs from API when filters change ────────────────────────────
-  useEffect(() => {
-    if (!enableServerSearch) return;
-
+  // ─── Build filter query string (shared by initial fetch and load-more) ───
+  function buildFilterParams(): URLSearchParams {
     const params = new URLSearchParams();
     if (debouncedSearch) params.set("q", debouncedSearch);
     if (statusFilter) params.set("status", statusFilter);
@@ -761,15 +762,26 @@ export function LibraryView({
     if (dateTo) params.set("dateTo", dateTo);
     if (sortBy) params.set("sortBy", sortBy);
     if (tagFilter) params.set("tagId", tagFilter);
+    return params;
+  }
+
+  // ─── Fetch songs from API when filters change ────────────────────────────
+  useEffect(() => {
+    if (!enableServerSearch) return;
+
+    const params = buildFilterParams();
 
     let cancelled = false;
     setLoading(true);
+    setNextCursor(null);
 
     fetch(`/api/songs?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
         if (!cancelled && data.songs) {
           setSongs(data.songs);
+          setNextCursor(data.nextCursor ?? null);
+          setTotalSongs(data.total ?? data.songs.length);
         }
       })
       .catch(() => {})
@@ -778,7 +790,31 @@ export function LibraryView({
       });
 
     return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, enableServerSearch]);
+
+  // ─── Load more (next page) ──────────────────────────────────────────────
+  const handleLoadMore = useCallback(() => {
+    if (!nextCursor || loadingMore) return;
+
+    const params = buildFilterParams();
+    params.set("cursor", nextCursor);
+
+    setLoadingMore(true);
+
+    fetch(`/api/songs?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.songs) {
+          setSongs((prev) => [...prev, ...data.songs]);
+          setNextCursor(data.nextCursor ?? null);
+          setTotalSongs(data.total ?? totalSongs);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingMore(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nextCursor, loadingMore, debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter]);
 
   // ─── Clear all filters ────────────────────────────────────────────────────
   function clearAllFilters() {
@@ -1028,7 +1064,7 @@ export function LibraryView({
         <div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">
-            {loading ? "Searching\u2026" : `${songs.length} song${songs.length !== 1 ? "s" : ""}`}
+            {loading ? "Searching\u2026" : `${songs.length}${totalSongs > songs.length ? ` of ${totalSongs}` : ""} song${totalSongs !== 1 ? "s" : ""}`}
           </p>
           {songs.length > 0 && (
             <button
@@ -1273,6 +1309,27 @@ export function LibraryView({
             />
           ))}
         </ul>
+      )}
+
+      {/* Load more */}
+      {nextCursor && !loading && (
+        <button
+          onClick={handleLoadMore}
+          disabled={loadingMore}
+          className="w-full py-3 rounded-xl bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium transition-colors min-h-[44px] disabled:opacity-50"
+        >
+          {loadingMore ? (
+            <span className="inline-flex items-center gap-2">
+              <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              Loading…
+            </span>
+          ) : (
+            `Load more (${totalSongs - songs.length} remaining)`
+          )}
+        </button>
       )}
 
       {/* Floating action bar */}
