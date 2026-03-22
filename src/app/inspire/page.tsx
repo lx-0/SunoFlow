@@ -3,9 +3,23 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
-import { ArrowPathIcon, SparklesIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowPathIcon,
+  SparklesIcon,
+  BoltIcon,
+  MusicalNoteIcon,
+} from "@heroicons/react/24/outline";
 
 // ─── Types ───
+
+interface DailyPrompt {
+  id: string;
+  name: string;
+  prompt: string;
+  style?: string | null;
+  category?: string | null;
+  createdAt: string;
+}
 
 interface FeedItem {
   title: string;
@@ -88,6 +102,125 @@ const MOOD_COLORS: Record<string, string> = {
   intense: "bg-red-500/20 text-red-400",
   neutral: "bg-gray-500/20 text-gray-400",
 };
+
+// ─── Daily Prompts Section ───
+
+function DailyPrompts({
+  prompts,
+  loading,
+  generating,
+  stale,
+  onGenerate,
+  onUsePrompt,
+}: {
+  prompts: DailyPrompt[];
+  loading: boolean;
+  generating: boolean;
+  stale: boolean;
+  onGenerate: () => void;
+  onUsePrompt: (prompt: string) => void;
+}) {
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[...Array(3)].map((_, i) => (
+          <div
+            key={i}
+            className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 animate-pulse"
+          >
+            <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-2/3 mb-2" />
+            <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-full mb-1" />
+            <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-1/2" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <BoltIcon className="w-4 h-4 text-amber-400" />
+          <h3 className="text-sm font-semibold text-amber-400">Daily Prompts</h3>
+          {stale && prompts.length > 0 && (
+            <span className="text-[10px] text-gray-400 bg-gray-500/10 px-1.5 py-0.5 rounded">
+              stale
+            </span>
+          )}
+        </div>
+        <button
+          onClick={onGenerate}
+          disabled={generating}
+          className="flex items-center gap-1 text-xs font-medium text-amber-400 hover:text-amber-300 transition-colors disabled:opacity-50"
+        >
+          <SparklesIcon className={`w-3.5 h-3.5 ${generating ? "animate-spin" : ""}`} />
+          {prompts.length === 0 ? "Generate" : "Refresh"}
+        </button>
+      </div>
+
+      {prompts.length === 0 && !generating && (
+        <div className="bg-white dark:bg-gray-900 border border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-5 text-center">
+          <MusicalNoteIcon className="w-8 h-8 text-gray-400 dark:text-gray-600 mx-auto mb-2" />
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+            Generate music prompts from your feed content
+          </p>
+          <button
+            onClick={onGenerate}
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            Auto-generate prompts
+          </button>
+        </div>
+      )}
+
+      {prompts.map((p) => {
+        // Extract mood-like style keywords for badge display
+        const styleParts = p.style?.split(",").map((s) => s.trim()).filter(Boolean) ?? [];
+        const moodKey = styleParts[0]?.toLowerCase();
+        const badgeColor = MOOD_COLORS[moodKey ?? ""] ?? MOOD_COLORS.neutral;
+
+        return (
+          <div
+            key={p.id}
+            className="bg-white dark:bg-gray-900 border border-amber-200/30 dark:border-amber-900/30 rounded-xl p-4"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-xs text-amber-400 font-medium truncate flex-1">{p.name}</p>
+              {moodKey && (
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeColor}`}>
+                  {moodKey}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-gray-700 dark:text-gray-300 leading-snug mb-1">
+              {p.prompt}
+            </p>
+            {styleParts.length > 1 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {styleParts.slice(1).map((tag) => (
+                  <span
+                    key={tag}
+                    className="text-[10px] text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={() => onUsePrompt(p.prompt)}
+              className="mt-3 flex items-center gap-1.5 text-sm font-medium text-violet-400 hover:text-violet-300 transition-colors min-h-[44px]"
+            >
+              <SparklesIcon className="w-4 h-4" />
+              Generate song
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 // ─── Instagram Section ───
 
@@ -305,6 +438,11 @@ function InspireContent() {
   const [igLoading, setIgLoading] = useState(false);
   const [igRefreshed, setIgRefreshed] = useState<Date | null>(null);
 
+  const [dailyPrompts, setDailyPrompts] = useState<DailyPrompt[]>([]);
+  const [dailyLoading, setDailyLoading] = useState(true);
+  const [dailyGenerating, setDailyGenerating] = useState(false);
+  const [dailyStale, setDailyStale] = useState(false);
+
   const [activeTab, setActiveTab] = useState<InspireTab>("all");
 
   const hasRss = feedUrls.length > 0;
@@ -379,7 +517,47 @@ function InspireContent() {
     }
   }, []);
 
+  // ── Daily prompts ──
+
+  const fetchDailyPrompts = useCallback(async () => {
+    setDailyLoading(true);
+    try {
+      const res = await fetch("/api/prompts/daily");
+      if (!res.ok) throw new Error("Failed to load daily prompts");
+      const data = await res.json();
+      setDailyPrompts(data.prompts ?? []);
+      setDailyStale(data.stale ?? false);
+    } catch {
+      // ignore — empty state will show
+    } finally {
+      setDailyLoading(false);
+    }
+  }, []);
+
+  const generateDailyPrompts = useCallback(async () => {
+    setDailyGenerating(true);
+    try {
+      const res = await fetch("/api/prompts/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ boost: false }),
+      });
+      if (!res.ok) throw new Error("Failed to generate prompts");
+      const data = await res.json();
+      setDailyPrompts(data.prompts ?? []);
+      setDailyStale(false);
+    } catch {
+      // keep existing
+    } finally {
+      setDailyGenerating(false);
+    }
+  }, []);
+
   // ── Load on mount ──
+
+  useEffect(() => {
+    fetchDailyPrompts();
+  }, [fetchDailyPrompts]);
 
   useEffect(() => {
     if (!feedsLoaded || feedUrls.length === 0) return;
@@ -414,7 +592,14 @@ function InspireContent() {
     router.push(`/?prompt=${encodeURIComponent(prompt)}`);
   };
 
+  const handleDailyPrompt = (prompt: string) => {
+    router.push(`/?prompt=${encodeURIComponent(prompt)}`);
+  };
+
   const handleRefresh = () => {
+    if (activeTab === "all") {
+      fetchDailyPrompts();
+    }
     if (hasRss && (activeTab === "all" || activeTab === "rss")) {
       fetchRssFeeds(feedUrls);
     }
@@ -499,6 +684,18 @@ function InspireContent() {
             </button>
           ))}
         </div>
+      )}
+
+      {/* Daily auto-generated prompts */}
+      {(activeTab === "all") && (
+        <DailyPrompts
+          prompts={dailyPrompts}
+          loading={dailyLoading}
+          generating={dailyGenerating}
+          stale={dailyStale}
+          onGenerate={generateDailyPrompts}
+          onUsePrompt={handleDailyPrompt}
+        />
       )}
 
       {/* Instagram mood board */}
