@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { prompt, title, tags, makeInstrumental } = await request.json();
+    const { prompt, title, tags, makeInstrumental, personaId } = await request.json();
 
     if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
       return NextResponse.json(
@@ -98,6 +98,7 @@ export async function POST(request: Request) {
             title: generationParams.title,
             style: generationParams.style,
             instrumental: generationParams.instrumental,
+            personaId: personaId || undefined,
           },
           userApiKey
         );

@@ -3,10 +3,18 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { SparklesIcon, BookmarkIcon, TrashIcon } from "@heroicons/react/24/solid";
-import { BookmarkIcon as BookmarkOutline, ClockIcon } from "@heroicons/react/24/outline";
+import { BookmarkIcon as BookmarkOutline, ClockIcon, BoltIcon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { useToast } from "./Toast";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { GenerationProgress } from "./GenerationProgress";
+
+interface PersonaOption {
+  id: string;
+  personaId: string;
+  name: string;
+  description: string | null;
+  style: string | null;
+}
 
 interface RateLimitStatus {
   remaining: number;
@@ -48,6 +56,13 @@ export function GenerateForm() {
   const [templateCategory, setTemplateCategory] = useState("");
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
 
+  // Persona state
+  const [personas, setPersonas] = useState<PersonaOption[]>([]);
+  const [selectedPersonaId, setSelectedPersonaId] = useState("");
+
+  // Style boost state
+  const [isBoosting, setIsBoosting] = useState(false);
+
   // Track whether we've already shown the 80% toast this session
   const shownLimitToast = useRef(false);
 
@@ -69,6 +84,18 @@ export function GenerateForm() {
     }
   }, [toast]);
 
+  const fetchPersonas = useCallback(async () => {
+    try {
+      const res = await fetch("/api/personas");
+      if (res.ok) {
+        const data = await res.json();
+        setPersonas(data.personas);
+      }
+    } catch {
+      // Non-critical
+    }
+  }, []);
+
   const fetchTemplates = useCallback(async () => {
     try {
       const res = await fetch("/api/prompt-templates");
@@ -85,7 +112,31 @@ export function GenerateForm() {
   useEffect(() => {
     fetchRateLimit();
     fetchTemplates();
-  }, [fetchRateLimit, fetchTemplates]);
+    fetchPersonas();
+  }, [fetchRateLimit, fetchTemplates, fetchPersonas]);
+
+  async function handleBoostStyle() {
+    if (isBoosting || !stylePrompt.trim()) return;
+    setIsBoosting(true);
+    try {
+      const res = await fetch("/api/style-boost", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: stylePrompt.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok && data.result) {
+        setStylePrompt(data.result);
+        toast("Style enhanced!", "success");
+      } else {
+        toast(data.error ?? "Style boost failed", "error");
+      }
+    } catch {
+      toast("Style boost failed", "error");
+    } finally {
+      setIsBoosting(false);
+    }
+  }
 
   function applyTemplate(template: PromptTemplate) {
     setStylePrompt(template.style ?? "");
@@ -164,11 +215,13 @@ export function GenerateForm() {
     setIsSubmitting(true);
 
     try {
+      const selectedPersona = personas.find((p) => p.personaId === selectedPersonaId);
       const body = {
         prompt: customMode ? lyrics : stylePrompt,
         title: title || undefined,
         tags: stylePrompt || undefined,
         makeInstrumental: instrumental,
+        personaId: selectedPersona?.personaId || undefined,
       };
 
       const res = await fetch("/api/generate", {
@@ -437,17 +490,55 @@ export function GenerateForm() {
           <label htmlFor="stylePrompt" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Style / genre
           </label>
-          <input
-            id="stylePrompt"
-            type="text"
-            value={stylePrompt}
-            onChange={(e) => setStylePrompt(e.target.value)}
-            placeholder="e.g. upbeat lo-fi hip-hop, melancholic indie folk…"
-            required={!customMode}
-            disabled={isSubmitting}
-            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50"
-          />
+          <div className="flex gap-2">
+            <input
+              id="stylePrompt"
+              type="text"
+              value={stylePrompt}
+              onChange={(e) => setStylePrompt(e.target.value)}
+              placeholder="e.g. upbeat lo-fi hip-hop, melancholic indie folk…"
+              required={!customMode}
+              disabled={isSubmitting}
+              className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50"
+            />
+            <button
+              type="button"
+              onClick={handleBoostStyle}
+              disabled={isBoosting || !stylePrompt.trim() || isSubmitting}
+              title="Enhance style description with AI"
+              className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-900/30 disabled:opacity-50 transition-colors whitespace-nowrap"
+            >
+              <BoltIcon className="h-4 w-4" />
+              {isBoosting ? "..." : "Enhance"}
+            </button>
+          </div>
         </div>
+
+        {/* Persona picker */}
+        {personas.length > 0 && (
+          <div className="space-y-1">
+            <label htmlFor="persona" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Voice persona <span className="text-gray-500 dark:text-gray-400">(optional)</span>
+            </label>
+            <div className="flex items-center gap-2">
+              <UserCircleIcon className="h-5 w-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+              <select
+                id="persona"
+                value={selectedPersonaId}
+                onChange={(e) => setSelectedPersonaId(e.target.value)}
+                disabled={isSubmitting}
+                className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50"
+              >
+                <option value="">No persona</option>
+                {personas.map((p) => (
+                  <option key={p.personaId} value={p.personaId}>
+                    {p.name}{p.style ? ` — ${p.style}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
 
         {/* Custom lyrics toggle */}
         <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3">

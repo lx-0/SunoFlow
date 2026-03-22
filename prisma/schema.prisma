@@ -70,6 +70,7 @@ model User {
   reports          Report[]
   notifications    Notification[]
   rssFeeds         RssFeedSubscription[]
+  personas         Persona[]
 }
 
 model Song {
@@ -272,6 +273,22 @@ model RssFeedSubscription {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, url])
+  @@index([userId])
+}
+
+model Persona {
+  id          String   @id @default(cuid())
+  userId      String
+  personaId   String   // Suno API persona ID
+  name        String
+  description String?
+  style       String?
+  sourceSongId String? // Song used to create this persona
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, personaId])
   @@index([userId])
 }
 

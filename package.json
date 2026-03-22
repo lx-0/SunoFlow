@@ -5,6 +5,7 @@
   "scripts": {
     "postinstall": "prisma generate",
     "dev": "prisma migrate deploy && NODE_ENV=development next dev",
+    "dev:local": "dotenv -e .env.local -- sh -c 'prisma migrate deploy && NODE_ENV=development next dev'",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
@@ -43,6 +44,7 @@
     "@types/react-dom": "^18",
     "@vitest/coverage-v8": "^3.2.4",
     "dotenv": "^17.3.1",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "postcss": "^8",
