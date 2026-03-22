@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getTaskStatus } from "@/lib/sunoapi";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 import { logServerError } from "@/lib/error-logger";
+import { invalidateByPrefix } from "@/lib/cache";
 
 const MAX_POLL_ATTEMPTS = 20;
 
@@ -118,6 +119,7 @@ export async function GET(
         });
       }
 
+      invalidateByPrefix(`dashboard-stats:${song.userId}`);
       return NextResponse.json({ song: updated });
     }
 

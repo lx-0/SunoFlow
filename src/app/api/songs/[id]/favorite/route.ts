@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { invalidateByPrefix } from "@/lib/cache";
 
 export async function POST(
   _request: Request,
@@ -27,6 +28,8 @@ export async function POST(
     });
 
     const count = await prisma.favorite.count({ where: { songId: song.id } });
+
+    invalidateByPrefix(`dashboard-stats:${session.user.id}`);
 
     return NextResponse.json({ isFavorite: true, favoriteCount: count, favoriteId: favorite.id });
   } catch {
@@ -60,6 +63,8 @@ export async function DELETE(
     });
 
     const count = await prisma.favorite.count({ where: { songId: song.id } });
+
+    invalidateByPrefix(`dashboard-stats:${session.user.id}`);
 
     return NextResponse.json({ isFavorite: false, favoriteCount: count });
   } catch {

@@ -1,16 +1,30 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PublicSongView } from "./PublicSongView";
+import { cached, cacheKey, CacheTTL } from "@/lib/cache";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sunoflow.app";
 
-async function getSong(slug: string) {
-  return prisma.song.findUnique({
-    where: { publicSlug: slug },
-    include: { user: { select: { name: true } } },
-  });
-}
+/** ISR: revalidate public song pages every 60 seconds */
+export const revalidate = 60;
+
+/**
+ * React cache() deduplicates within a single request (metadata + page render).
+ * LRU cache deduplicates across requests (60s TTL).
+ */
+const getSong = cache((slug: string) =>
+  cached(
+    cacheKey("public-song", slug),
+    () =>
+      prisma.song.findUnique({
+        where: { publicSlug: slug },
+        include: { user: { select: { name: true } } },
+      }),
+    CacheTTL.PUBLIC_SONG
+  )
+);
 
 export async function generateMetadata({
   params,

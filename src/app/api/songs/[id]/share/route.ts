@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { invalidateKey, cacheKey } from "@/lib/cache";
 
 export async function PATCH(
   _request: Request,
@@ -30,6 +31,11 @@ export async function PATCH(
       where: { id: song.id },
       data: { isPublic: newIsPublic, publicSlug },
     });
+
+    // Invalidate cached public song page if slug exists
+    if (updated.publicSlug) {
+      invalidateKey(cacheKey("public-song", updated.publicSlug));
+    }
 
     return NextResponse.json({
       isPublic: updated.isPublic,

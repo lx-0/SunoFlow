@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { CacheControl } from "@/lib/cache";
 
 export async function GET(request: NextRequest) {
   try {
@@ -70,7 +71,9 @@ export async function GET(request: NextRequest) {
       favoritedAt: f.createdAt,
     }));
 
-    return NextResponse.json({ songs });
+    return NextResponse.json({ songs }, {
+      headers: { "Cache-Control": CacheControl.privateNoCache },
+    });
   } catch {
     return NextResponse.json(
       { error: "Internal server error" },

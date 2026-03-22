@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { invalidateByPrefix } from "@/lib/cache";
 
 export async function PATCH(
   request: Request,
@@ -35,6 +36,8 @@ export async function PATCH(
         ratingNote: stars === 0 ? null : (note || null),
       },
     });
+
+    invalidateByPrefix(`dashboard-stats:${session.user.id}`);
 
     return NextResponse.json({
       rating: updated.rating,

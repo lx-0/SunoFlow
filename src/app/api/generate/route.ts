@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit, recordRateLimitHit } from "@/lib/rate-limit";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 import { logServerError } from "@/lib/error-logger";
+import { invalidateByPrefix } from "@/lib/cache";
 
 /** Map API errors to user-friendly messages without exposing internals */
 function userFriendlyError(error: unknown): string {
@@ -150,6 +151,7 @@ export async function POST(request: Request) {
 
     // Record rate limit hit after successful generation
     await recordRateLimitHit(userId);
+    invalidateByPrefix(`dashboard-stats:${userId}`);
 
     // Return updated rate limit status
     const { status: updatedRateLimit } = await checkRateLimit(userId);
