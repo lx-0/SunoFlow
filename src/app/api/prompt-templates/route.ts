@@ -15,12 +15,23 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
+    const search = searchParams.get("search");
 
     const where: Record<string, unknown> = {
       OR: [{ isBuiltIn: true }, { userId: session.user.id }],
     };
     if (category) {
       where.category = category;
+    }
+    if (search) {
+      where.AND = {
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { description: { contains: search, mode: "insensitive" } },
+          { prompt: { contains: search, mode: "insensitive" } },
+          { category: { contains: search, mode: "insensitive" } },
+        ],
+      };
     }
 
     const templates = await prisma.promptTemplate.findMany({
