@@ -11,6 +11,8 @@ interface SongResult {
   prompt: string | null;
   imageUrl: string | null;
   generationStatus: string;
+  lyrics: string | null;
+  songTags: { tag: { name: string } }[];
 }
 
 interface PlaylistResult {
@@ -185,7 +187,7 @@ export function SearchBar() {
           aria-activedescendant={
             selectedIndex >= 0 ? `search-item-${selectedIndex}` : undefined
           }
-          placeholder="Search… (⌘K)"
+          placeholder="Search songs, lyrics, tags… (⌘K)"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -282,6 +284,15 @@ export function SearchBar() {
                           <p className="truncate text-xs text-gray-400">
                             {song.prompt}
                           </p>
+                        )}
+                        {song.songTags?.length > 0 && (
+                          <div className="flex gap-1 mt-0.5">
+                            {song.songTags.map((st) => (
+                              <span key={st.tag.name} className="inline-block px-1.5 py-0 text-[10px] rounded bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400">
+                                {st.tag.name}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
                     </button>

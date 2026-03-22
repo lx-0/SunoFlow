@@ -97,6 +97,7 @@ model Song {
   rating           Int?
   ratingNote       String?
   downloadCount    Int      @default(0)
+  playCount        Int      @default(0)
   parentSongId     String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -111,6 +112,8 @@ model Song {
 
   @@index([userId, title])
   @@index([userId, prompt])
+  @@index([userId, createdAt])
+  @@index([userId, playCount])
   @@index([parentSongId])
 }
 

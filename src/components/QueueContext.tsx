@@ -84,6 +84,14 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   // Original (unshuffled) queue preserved for unshuffle
   const originalQueueRef = useRef<QueueSong[]>([]);
 
+  // Track play counts — fire-and-forget POST to avoid double-counting on pause/resume
+  const lastTrackedSongRef = useRef<string | null>(null);
+  const trackPlay = useCallback((songId: string) => {
+    if (lastTrackedSongRef.current === songId) return;
+    lastTrackedSongRef.current = songId;
+    fetch(`/api/songs/${songId}/play`, { method: "POST" }).catch(() => {});
+  }, []);
+
   const [queue, setQueue] = useState<QueueSong[]>([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -101,10 +109,12 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   const repeatRef = useRef(repeat);
   const shuffleRef = useRef(shuffle);
 
+  const trackPlayRef = useRef(trackPlay);
   queueRef.current = queue;
   currentIndexRef.current = currentIndex;
   repeatRef.current = repeat;
   shuffleRef.current = shuffle;
+  trackPlayRef.current = trackPlay;
 
   // ─── Init audio element ───────────────────────────────────────────────────
   useEffect(() => {
@@ -137,6 +147,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
         setCurrentTime(0);
         setDuration(q[next].duration ?? 0);
         audio.play().catch(console.error);
+        trackPlayRef.current(q[next].id);
       } else if (rep === "repeat-all" && q.length > 0) {
         // Wrap to start
         setCurrentIndex(0);
@@ -144,6 +155,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
         setCurrentTime(0);
         setDuration(q[0].duration ?? 0);
         audio.play().catch(console.error);
+        trackPlayRef.current(q[0].id);
       } else {
         // End of queue
         setIsPlaying(false);
@@ -202,8 +214,9 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       audio.pause();
       audio.src = playOrder[playIdx].audioUrl;
       audio.play().catch(console.error);
+      trackPlay(playOrder[playIdx].id);
     },
-    [shuffle]
+    [shuffle, trackPlay]
   );
 
   const togglePlay = useCallback(
@@ -269,7 +282,8 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     setCurrentTime(0);
     setDuration(queue[next].duration ?? 0);
     audio.play().catch(console.error);
-  }, [queue, currentIndex, repeat]);
+    trackPlay(queue[next].id);
+  }, [queue, currentIndex, repeat, trackPlay]);
 
   const skipPrev = useCallback(() => {
     const audio = audioRef.current;
@@ -297,7 +311,8 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     setCurrentTime(0);
     setDuration(queue[prev].duration ?? 0);
     audio.play().catch(console.error);
-  }, [queue, currentIndex, repeat]);
+    trackPlay(queue[prev].id);
+  }, [queue, currentIndex, repeat, trackPlay]);
 
   const seek = useCallback(
     (fraction: number) => {

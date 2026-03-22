@@ -20,15 +20,19 @@ export async function GET(request: NextRequest) {
     const dateFrom = params.get("dateFrom") || "";
     const dateTo = params.get("dateTo") || "";
     const tagId = params.get("tagId") || "";
+    const smartFilter = params.get("smartFilter") || "";
 
     // Build WHERE conditions
     const where: Prisma.SongWhereInput = { userId: userId };
 
-    // Text search: title OR prompt (case-insensitive)
+    // Full-text search: title, prompt, lyrics, tags (case-insensitive)
     if (q) {
       where.OR = [
         { title: { contains: q, mode: "insensitive" } },
         { prompt: { contains: q, mode: "insensitive" } },
+        { lyrics: { contains: q, mode: "insensitive" } },
+        { tags: { contains: q, mode: "insensitive" } },
+        { songTags: { some: { tag: { name: { contains: q, mode: "insensitive" } } } } },
       ];
     }
 
@@ -66,6 +70,19 @@ export async function GET(request: NextRequest) {
       where.songTags = { some: { tagId } };
     }
 
+    // Smart filters
+    if (smartFilter === "this_week") {
+      const now = new Date();
+      const weekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+      where.createdAt = { ...(where.createdAt as Prisma.DateTimeFilter || {}), gte: weekAgo };
+    } else if (smartFilter === "unrated") {
+      where.rating = null;
+    } else if (smartFilter === "most_played") {
+      where.playCount = { gt: 0 };
+    } else if (smartFilter === "favorites") {
+      where.favorites = { some: { userId: userId } };
+    }
+
     // Build ORDER BY
     let orderBy: Prisma.SongOrderByWithRelationInput;
     switch (sortBy) {
@@ -74,6 +91,12 @@ export async function GET(request: NextRequest) {
         break;
       case "highest_rated":
         orderBy = { rating: { sort: "desc", nulls: "last" } };
+        break;
+      case "most_played":
+        orderBy = { playCount: "desc" };
+        break;
+      case "recently_modified":
+        orderBy = { updatedAt: "desc" };
         break;
       case "title_az":
         orderBy = { title: { sort: sortDir === "desc" ? "desc" : "asc", nulls: "last" } };

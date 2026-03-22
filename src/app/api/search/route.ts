@@ -21,6 +21,9 @@ export async function GET(request: NextRequest) {
           OR: [
             { title: { contains: q, mode: "insensitive" } },
             { prompt: { contains: q, mode: "insensitive" } },
+            { lyrics: { contains: q, mode: "insensitive" } },
+            { tags: { contains: q, mode: "insensitive" } },
+            { songTags: { some: { tag: { name: { contains: q, mode: "insensitive" } } } } },
           ],
         },
         orderBy: { createdAt: "desc" },
@@ -32,6 +35,8 @@ export async function GET(request: NextRequest) {
           imageUrl: true,
           generationStatus: true,
           createdAt: true,
+          lyrics: true,
+          songTags: { select: { tag: { select: { name: true } } }, take: 3 },
         },
       }),
       prisma.playlist.findMany({

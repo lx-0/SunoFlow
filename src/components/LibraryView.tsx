@@ -562,7 +562,16 @@ const SORT_OPTIONS = [
   { label: "Newest", value: "newest" },
   { label: "Oldest", value: "oldest" },
   { label: "Highest rated", value: "highest_rated" },
+  { label: "Most played", value: "most_played" },
+  { label: "Recently modified", value: "recently_modified" },
   { label: "Title A\u2013Z", value: "title_az" },
+] as const;
+
+const SMART_FILTER_OPTIONS = [
+  { label: "This week", value: "this_week" },
+  { label: "Unrated", value: "unrated" },
+  { label: "Most played", value: "most_played" },
+  { label: "Favorites", value: "favorites" },
 ] as const;
 
 const STATUS_OPTIONS = [
@@ -639,6 +648,7 @@ export function LibraryView({
   const [dateTo, setDateTo] = useState(searchParams.get("dateTo") ?? "");
   const [sortBy, setSortBy] = useState(searchParams.get("sortBy") ?? "newest");
   const [tagFilter, setTagFilter] = useState(searchParams.get("tagId") ?? "");
+  const [smartFilter, setSmartFilter] = useState(searchParams.get("smartFilter") ?? "");
   const [showFilters, setShowFilters] = useState(false);
   const [availableTags, setAvailableTags] = useState<{ id: string; name: string; color: string }[]>([]);
 
@@ -720,7 +730,7 @@ export function LibraryView({
   }, []);
 
   // ─── Sync filters → URL params ───────────────────────────────────────────
-  const hasAnyFilter = !!(debouncedSearch || statusFilter || ratingFilter || dateFrom || dateTo || tagFilter || sortBy !== "newest");
+  const hasAnyFilter = !!(debouncedSearch || statusFilter || ratingFilter || dateFrom || dateTo || tagFilter || smartFilter || sortBy !== "newest");
 
   useEffect(() => {
     if (!enableServerSearch) return;
@@ -733,12 +743,13 @@ export function LibraryView({
     if (dateTo) params.set("dateTo", dateTo);
     if (sortBy && sortBy !== "newest") params.set("sortBy", sortBy);
     if (tagFilter) params.set("tagId", tagFilter);
+    if (smartFilter) params.set("smartFilter", smartFilter);
 
     const qs = params.toString();
     const newUrl = qs ? `${pathname}?${qs}` : pathname;
     router.replace(newUrl, { scroll: false });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, enableServerSearch]);
+  }, [debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, smartFilter, enableServerSearch]);
 
   // ─── Build filter query string (shared by initial fetch and load-more) ───
   function buildFilterParams(): URLSearchParams {
@@ -750,6 +761,7 @@ export function LibraryView({
     if (dateTo) params.set("dateTo", dateTo);
     if (sortBy) params.set("sortBy", sortBy);
     if (tagFilter) params.set("tagId", tagFilter);
+    if (smartFilter) params.set("smartFilter", smartFilter);
     return params;
   }
 
@@ -779,7 +791,7 @@ export function LibraryView({
 
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, enableServerSearch]);
+  }, [debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, smartFilter, enableServerSearch]);
 
   // ─── Load more (next page) ──────────────────────────────────────────────
   const handleLoadMore = useCallback(() => {
@@ -802,7 +814,7 @@ export function LibraryView({
       .catch(() => {})
       .finally(() => setLoadingMore(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nextCursor, loadingMore, debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter]);
+  }, [nextCursor, loadingMore, debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, smartFilter]);
 
   // ─── Clear all filters ────────────────────────────────────────────────────
   function clearAllFilters() {
@@ -813,6 +825,7 @@ export function LibraryView({
     setDateTo("");
     setSortBy("newest");
     setTagFilter("");
+    setSmartFilter("");
   }
 
   // ─── Song callbacks ───────────────────────────────────────────────────────
@@ -1175,7 +1188,7 @@ export function LibraryView({
   }
 
   const hasPlayableSongs = songs.some((s) => s.audioUrl && s.generationStatus === "ready");
-  const hasActiveFilters = !!(statusFilter || ratingFilter || dateFrom || dateTo || tagFilter);
+  const hasActiveFilters = !!(statusFilter || ratingFilter || dateFrom || dateTo || tagFilter || smartFilter);
 
   return (
     <div className="px-4 py-4 space-y-4" data-tour="library">
@@ -1269,7 +1282,7 @@ export function LibraryView({
                 type="text"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                placeholder="Search by title or prompt\u2026"
+                placeholder="Search titles, lyrics, tags, prompts\u2026"
                 aria-label="Search songs"
                 className="w-full pl-9 pr-9 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent min-h-[44px]"
               />
@@ -1356,6 +1369,23 @@ export function LibraryView({
               </select>
             </div>
           )}
+
+          {/* Smart filter chips */}
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {SMART_FILTER_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setSmartFilter(smartFilter === opt.value ? "" : opt.value)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
+                  smartFilter === opt.value
+                    ? "bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 ring-1 ring-violet-400"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
 
           {/* Sort + Clear row */}
           <div className="flex items-center justify-between">
