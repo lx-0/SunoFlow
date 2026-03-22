@@ -66,6 +66,12 @@ Open http://localhost:3000. You'll be redirected to `/login`. Click "Create one"
 | `npm run start` | Start production server |
 | `npm run lint` | Run ESLint |
 
+## Git Hooks
+
+This project uses [husky](https://typicode.github.io/husky/) + [lint-staged](https://github.com/lint-staged/lint-staged) to run `next lint` on staged `.ts`/`.tsx` files before each commit. Hooks are installed automatically via the `prepare` script when you run `pnpm install`.
+
+If a commit is blocked by lint errors, fix them and re-stage before committing.
+
 ## Project Structure
 
 ```
