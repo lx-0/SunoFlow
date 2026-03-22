@@ -16,6 +16,8 @@ import { PlayIcon as PlaySolidIcon } from "@heroicons/react/24/solid";
 import type { Song } from "@prisma/client";
 import { useToast } from "./Toast";
 import { useQueue, type QueueSong } from "./QueueContext";
+import { SwipeablePlaylistItem } from "./SwipeablePlaylistItem";
+import { BottomSheet } from "./BottomSheet";
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
@@ -322,9 +324,13 @@ export function PlaylistDetailView({
         </button>
       )}
 
-      {/* Delete confirmation dialog */}
-      {showDeleteConfirm && (
-        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl p-4 space-y-3">
+      {/* Delete confirmation — bottom sheet on mobile, dialog on desktop */}
+      <BottomSheet
+        open={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        title="Delete playlist"
+      >
+        <div className="space-y-3">
           <p className="text-sm text-red-700 dark:text-red-300">
             Delete &ldquo;{playlist.name}&rdquo;? This cannot be undone.
           </p>
@@ -343,7 +349,7 @@ export function PlaylistDetailView({
             </button>
           </div>
         </div>
-      )}
+      </BottomSheet>
 
       {/* Song list */}
       {songs.length === 0 ? (
@@ -360,92 +366,96 @@ export function PlaylistDetailView({
             const isDragOver = dragOverIndex === index;
 
             return (
-              <li
+              <SwipeablePlaylistItem
                 key={ps.id}
-                draggable
-                onDragStart={() => handleDragStart(index)}
-                onDragOver={(e) => handleDragOver(e, index)}
-                onDrop={(e) => handleDrop(e, index)}
-                onDragEnd={() => {
-                  setDragIndex(null);
-                  setDragOverIndex(null);
-                }}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
-                  isActive
-                    ? "bg-violet-50 dark:bg-violet-900/20 border border-violet-300 dark:border-violet-700"
-                    : "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
-                } ${isDragOver ? "border-violet-400 dark:border-violet-500" : ""} ${
-                  dragIndex === index ? "opacity-50" : ""
-                }`}
+                onSwipeRemove={() => handleRemoveSong(ps.songId)}
               >
-                {/* Drag handle */}
-                <div className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600">
-                  <Bars3Icon className="w-5 h-5" />
-                </div>
-
-                {/* Position number */}
-                <span className="flex-shrink-0 w-6 text-xs text-gray-400 dark:text-gray-500 text-center">
-                  {index + 1}
-                </span>
-
-                {/* Cover art */}
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center">
-                  {ps.song.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={ps.song.imageUrl}
-                      alt={ps.song.title ?? "Song"}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <MusicalNoteIcon className="w-5 h-5 text-gray-400 dark:text-gray-600" />
-                  )}
-                </div>
-
-                {/* Title + duration */}
-                <div className="flex-1 min-w-0">
-                  <Link
-                    href={`/library/${ps.songId}`}
-                    className="block text-sm font-medium text-gray-900 dark:text-white truncate hover:text-violet-400 transition-colors"
-                  >
-                    {ps.song.title ?? "Untitled"}
-                  </Link>
-                  {ps.song.duration && (
-                    <span className="text-xs text-gray-400 dark:text-gray-500">
-                      {formatTime(ps.song.duration)}
-                    </span>
-                  )}
-                </div>
-
-                {/* Play button */}
-                <button
-                  onClick={() => handleTogglePlay(ps.song)}
-                  disabled={!hasAudio}
-                  aria-label={
-                    isActive && isPlaying ? "Pause" : "Play"
-                  }
-                  className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
-                    hasAudio
-                      ? "bg-violet-600 hover:bg-violet-500 text-white"
-                      : "bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
+                <li
+                  draggable
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDrop={(e) => handleDrop(e, index)}
+                  onDragEnd={() => {
+                    setDragIndex(null);
+                    setDragOverIndex(null);
+                  }}
+                  className={`flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2.5 rounded-xl transition-colors ${
+                    isActive
+                      ? "bg-violet-50 dark:bg-violet-900/20 border border-violet-300 dark:border-violet-700"
+                      : "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
+                  } ${isDragOver ? "border-violet-400 dark:border-violet-500" : ""} ${
+                    dragIndex === index ? "opacity-50" : ""
                   }`}
                 >
-                  {isActive && isPlaying ? (
-                    <PauseIcon className="w-4 h-4" />
-                  ) : (
-                    <PlayIcon className="w-4 h-4 ml-0.5" />
-                  )}
-                </button>
+                  {/* Drag handle */}
+                  <div className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center">
+                    <Bars3Icon className="w-5 h-5" />
+                  </div>
 
-                {/* Remove button */}
-                <button
-                  onClick={() => handleRemoveSong(ps.songId)}
-                  aria-label="Remove from playlist"
-                  className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-red-500 transition-colors"
-                >
-                  <TrashIcon className="w-4 h-4" />
-                </button>
-              </li>
+                  {/* Position number — hidden on very narrow screens */}
+                  <span className="flex-shrink-0 w-6 text-xs text-gray-400 dark:text-gray-500 text-center hidden sm:block">
+                    {index + 1}
+                  </span>
+
+                  {/* Cover art */}
+                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center">
+                    {ps.song.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={ps.song.imageUrl}
+                        alt={ps.song.title ?? "Song"}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <MusicalNoteIcon className="w-5 h-5 text-gray-400 dark:text-gray-600" />
+                    )}
+                  </div>
+
+                  {/* Title + duration */}
+                  <div className="flex-1 min-w-0">
+                    <Link
+                      href={`/library/${ps.songId}`}
+                      className="block text-sm font-medium text-gray-900 dark:text-white truncate hover:text-violet-400 transition-colors"
+                    >
+                      {ps.song.title ?? "Untitled"}
+                    </Link>
+                    {ps.song.duration && (
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
+                        {formatTime(ps.song.duration)}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Play button — larger touch target */}
+                  <button
+                    onClick={() => handleTogglePlay(ps.song)}
+                    disabled={!hasAudio}
+                    aria-label={
+                      isActive && isPlaying ? "Pause" : "Play"
+                    }
+                    className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+                      hasAudio
+                        ? "bg-violet-600 hover:bg-violet-500 text-white"
+                        : "bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
+                    }`}
+                  >
+                    {isActive && isPlaying ? (
+                      <PauseIcon className="w-5 h-5" />
+                    ) : (
+                      <PlayIcon className="w-5 h-5 ml-0.5" />
+                    )}
+                  </button>
+
+                  {/* Remove button — hidden on mobile (use swipe instead) */}
+                  <button
+                    onClick={() => handleRemoveSong(ps.songId)}
+                    aria-label="Remove from playlist"
+                    className="flex-shrink-0 w-11 h-11 rounded-full hidden sm:flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-red-500 transition-colors"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
+                </li>
+              </SwipeablePlaylistItem>
             );
           })}
         </ul>

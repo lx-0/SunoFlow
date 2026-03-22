@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
+import { PullToRefreshContainer } from "@/components/PullToRefreshContainer";
 import {
   ArrowPathIcon,
   SparklesIcon,
@@ -624,17 +625,19 @@ function InspireContent() {
     router.push(`/generate?prompt=${encodeURIComponent(prompt)}`);
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(async () => {
+    const promises: Promise<void>[] = [];
     if (activeTab === "all") {
-      fetchDailyPrompts();
+      promises.push(fetchDailyPrompts());
     }
     if (hasRss && (activeTab === "all" || activeTab === "rss")) {
-      fetchRssFeeds(feedUrls);
+      promises.push(fetchRssFeeds(feedUrls));
     }
     if (hasIg && (activeTab === "all" || activeTab === "instagram")) {
-      fetchIgPosts(igUrls);
+      promises.push(fetchIgPosts(igUrls));
     }
-  };
+    await Promise.all(promises);
+  }, [activeTab, hasRss, hasIg, feedUrls, igUrls, fetchDailyPrompts, fetchRssFeeds, fetchIgPosts]);
 
   const isLoading = rssLoading || igLoading || !feedsLoaded;
 
@@ -677,6 +680,7 @@ function InspireContent() {
   ];
 
   return (
+    <PullToRefreshContainer onRefresh={handleRefresh}>
     <div className="px-4 py-6 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">Inspire</h2>
@@ -808,6 +812,7 @@ function InspireContent() {
         </div>
       )}
     </div>
+    </PullToRefreshContainer>
   );
 }
 

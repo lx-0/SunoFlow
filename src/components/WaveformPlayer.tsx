@@ -205,13 +205,13 @@ export function WaveformPlayer({ audioUrl, duration }: WaveformPlayerProps) {
           <span>{formatTime(totalDuration)}</span>
         </div>
 
-        {/* Volume control */}
-        <div className="flex items-center gap-1.5">
+        {/* Volume control — hidden on mobile to save space */}
+        <div className="hidden sm:flex items-center gap-1.5">
           <button
             onClick={handleToggleMute}
             aria-label={muted ? "Unmute" : "Mute"}
             tabIndex={-1}
-            className="w-8 h-8 flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
           >
             {muted || volume === 0 ? (
               <SpeakerXMarkIcon className="w-4 h-4" />
@@ -403,13 +403,13 @@ function FallbackPlayer({
             <span>{formatTime(audioDuration)}</span>
           </div>
 
-          {/* Volume control */}
-          <div className="flex items-center gap-1.5">
+          {/* Volume control — hidden on mobile */}
+          <div className="hidden sm:flex items-center gap-1.5">
             <button
               onClick={handleToggleMute}
               aria-label={muted ? "Unmute" : "Mute"}
               tabIndex={-1}
-              className="w-8 h-8 flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             >
               {muted || volume === 0 ? (
                 <SpeakerXMarkIcon className="w-4 h-4" />

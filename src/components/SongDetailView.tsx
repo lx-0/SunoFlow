@@ -977,7 +977,7 @@ export function SongDetailView({
           </button>
 
           {playlistOpen && (
-            <div className="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 py-1 max-h-60 overflow-y-auto">
+            <div className="absolute top-full left-0 mt-1 w-56 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 py-1 max-h-60 overflow-y-auto">
               {initialPlaylists.length === 0 ? (
                 <div className="px-3 py-2 text-sm text-gray-400 dark:text-gray-500">
                   No playlists yet.{" "}
@@ -1039,7 +1039,7 @@ export function SongDetailView({
       {hasAudio && (
         <div className="space-y-2">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Export</h2>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             <button
               onClick={() => handleExport("wav")}
               disabled={exports.wav.status === "converting"}

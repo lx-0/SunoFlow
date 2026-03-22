@@ -16,6 +16,7 @@ import { HeartIcon as HeartOutlineIcon } from "@heroicons/react/24/outline";
 import type { Song } from "@prisma/client";
 import { downloadSongFile } from "@/lib/download";
 import { useToast } from "./Toast";
+import { PullToRefreshContainer } from "./PullToRefreshContainer";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -334,6 +335,18 @@ export function SongsGalleryView({ initialSongs }: SongsGalleryViewProps) {
     });
   };
 
+  // Pull-to-refresh: reload songs from API
+  const handlePullRefresh = useCallback(async () => {
+    try {
+      const res = await fetch("/api/songs");
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.songs) setSongs(data.songs);
+    } catch {
+      // keep existing songs
+    }
+  }, []);
+
   const activeFilterCount = selectedStyles.size + selectedMoods.size + (dateFilter >= 0 ? 1 : 0);
 
   const clearFilters = () => {
@@ -344,6 +357,7 @@ export function SongsGalleryView({ initialSongs }: SongsGalleryViewProps) {
   };
 
   return (
+    <PullToRefreshContainer onRefresh={handlePullRefresh}>
     <div className="px-4 py-4 space-y-4">
       {/* Header */}
       <div>
@@ -505,5 +519,6 @@ export function SongsGalleryView({ initialSongs }: SongsGalleryViewProps) {
         </div>
       )}
     </div>
+    </PullToRefreshContainer>
   );
 }
