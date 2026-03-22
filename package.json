@@ -28,6 +28,7 @@
     "pg": "^8.20.0",
     "react": "^18",
     "react-dom": "^18",
+    "recharts": "^3.8.0",
     "swagger-ui-react": "^5.32.1",
     "wavesurfer.js": "^7.12.4"
   },

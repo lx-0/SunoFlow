@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ChartBarIcon,
+  ChartPieIcon,
   UsersIcon,
   ClipboardDocumentListIcon,
   FlagIcon,
@@ -12,6 +13,7 @@ import {
 
 const adminNav = [
   { label: "Dashboard", href: "/admin", icon: ChartBarIcon },
+  { label: "Analytics", href: "/admin/analytics", icon: ChartPieIcon },
   { label: "Users", href: "/admin/users", icon: UsersIcon },
   { label: "Reports", href: "/admin/reports", icon: FlagIcon },
   { label: "Audit Log", href: "/admin/logs", icon: ClipboardDocumentListIcon },

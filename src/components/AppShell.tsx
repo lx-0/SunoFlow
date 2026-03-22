@@ -17,6 +17,7 @@ import {
   XMarkIcon,
   ClockIcon,
   ShieldCheckIcon,
+  ChartBarIcon,
 } from "@heroicons/react/24/outline";
 import { GlobalPlayer } from "./GlobalPlayer";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
@@ -32,6 +33,7 @@ const navItems = [
   { label: "Playlists", href: "/playlists", icon: QueueListIcon, dataTour: "explore" as string | undefined },
   { label: "Favorites", href: "/favorites", icon: HeartIcon, dataTour: undefined as string | undefined },
   { label: "History", href: "/history", icon: ClockIcon, dataTour: undefined as string | undefined },
+  { label: "Analytics", href: "/analytics", icon: ChartBarIcon, dataTour: undefined as string | undefined },
 ];
 
 // ─── Focus trap for mobile drawer ────────────────────────────────────────────
