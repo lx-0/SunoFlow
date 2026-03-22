@@ -65,6 +65,7 @@ model User {
   favorites        Favorite[]
   adminLogs        AdminLog[] @relation("adminLogs")
   reports          Report[]
+  notifications    Notification[]
 }
 
 model Song {
@@ -234,6 +235,23 @@ model Report {
   @@index([songId])
   @@index([reporterId])
   @@index([status, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // generation_complete, generation_failed, rate_limit_reset, announcement
+  title     String
+  message   String
+  href      String?
+  songId    String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+  @@index([userId, createdAt])
 }
 
 model VerificationToken {

@@ -40,6 +40,8 @@ interface NotificationContextValue {
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   clearAll: () => void;
+  browserPermission: NotificationPermission | "default";
+  requestBrowserPermission: () => Promise<void>;
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -57,51 +59,146 @@ export function useNotifications(): NotificationContextValue {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MAX_NOTIFICATIONS = 20;
+const MAX_DROPDOWN_NOTIFICATIONS = 20;
 const POLL_INTERVAL_MS = 30_000;
 
-let nextNotifId = 0;
+// ─── Browser notification helper ──────────────────────────────────────────────
+
+function sendBrowserNotification(title: string, body: string, href?: string) {
+  if (typeof window === "undefined" || !("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+
+  const notif = new Notification(title, {
+    body,
+    icon: "/icon-192x192.png",
+  });
+
+  if (href) {
+    notif.onclick = () => {
+      window.focus();
+      window.location.href = href;
+      notif.close();
+    };
+  }
+}
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { data: session } = useSession();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [browserPermission, setBrowserPermission] =
+    useState<NotificationPermission>("default");
 
   // Track previously-seen pending song IDs so we only notify on transitions
   const knownPendingRef = useRef<Set<string>>(new Set());
   const initializedRef = useRef(false);
 
-  const addNotification = useCallback(
-    (n: Omit<Notification, "id" | "read" | "createdAt">) => {
-      const notification: Notification = {
-        ...n,
-        id: `notif-${++nextNotifId}`,
-        read: false,
-        createdAt: new Date().toISOString(),
-      };
-      setNotifications((prev) =>
-        [notification, ...prev].slice(0, MAX_NOTIFICATIONS)
+  // Initialize browser notification permission state
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      setBrowserPermission(Notification.permission);
+    }
+  }, []);
+
+  const requestBrowserPermission = useCallback(async () => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    const result = await Notification.requestPermission();
+    setBrowserPermission(result);
+  }, []);
+
+  // Fetch notifications from DB
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `/api/notifications?limit=${MAX_DROPDOWN_NOTIFICATIONS}`
       );
+      if (!res.ok) return;
+      const data = await res.json();
+      setNotifications(data.notifications ?? []);
+      setUnreadCount(data.unreadCount ?? 0);
+    } catch {
+      // Silently ignore fetch errors
+    }
+  }, []);
+
+  // Add a notification — persist to DB, then refresh local state
+  const addNotification = useCallback(
+    async (n: Omit<Notification, "id" | "read" | "createdAt">) => {
+      try {
+        // Create in DB via the generation poll endpoint (server-side)
+        // We do an optimistic local add so the UI updates immediately
+        const optimistic: Notification = {
+          ...n,
+          id: `temp-${Date.now()}`,
+          read: false,
+          createdAt: new Date().toISOString(),
+        };
+        setNotifications((prev) =>
+          [optimistic, ...prev].slice(0, MAX_DROPDOWN_NOTIFICATIONS)
+        );
+        setUnreadCount((c) => c + 1);
+
+        // Persist to DB
+        await fetch("/api/notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(n),
+        });
+
+        // Send browser notification
+        sendBrowserNotification(n.title, n.message, n.href);
+
+        // Refresh from DB to get real IDs
+        await fetchNotifications();
+      } catch {
+        // Already added optimistically, fetch will correct on next poll
+      }
     },
-    []
+    [fetchNotifications]
   );
 
-  const markAsRead = useCallback((id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
-  }, []);
+  const markAsRead = useCallback(
+    async (id: string) => {
+      // Optimistic update
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      );
+      setUnreadCount((c) => Math.max(0, c - 1));
 
-  const markAllAsRead = useCallback(() => {
+      try {
+        await fetch(`/api/notifications/${id}/read`, { method: "PATCH" });
+      } catch {
+        // Revert on error by refetching
+        await fetchNotifications();
+      }
+    },
+    [fetchNotifications]
+  );
+
+  const markAllAsRead = useCallback(async () => {
+    // Optimistic update
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  }, []);
+    setUnreadCount(0);
+
+    try {
+      await fetch("/api/notifications/read-all", { method: "PATCH" });
+    } catch {
+      await fetchNotifications();
+    }
+  }, [fetchNotifications]);
 
   const clearAll = useCallback(() => {
     setNotifications([]);
+    setUnreadCount(0);
   }, []);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  // ─── Initial fetch ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!session?.user) return;
+    fetchNotifications();
+  }, [session?.user, fetchNotifications]);
 
   // ─── Poll for generation status changes ─────────────────────────────────
   useEffect(() => {
@@ -172,6 +269,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
         // Update known pending set
         knownPendingRef.current = pendingIds;
+
+        // Also refresh notification list from DB (picks up any server-side notifications)
+        if (active) await fetchNotifications();
       } catch {
         // Silently ignore poll errors
       }
@@ -183,7 +283,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       active = false;
       clearInterval(interval);
     };
-  }, [session?.user, addNotification]);
+  }, [session?.user, addNotification, fetchNotifications]);
 
   const value: NotificationContextValue = {
     notifications,
@@ -192,6 +292,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     markAsRead,
     markAllAsRead,
     clearAll,
+    browserPermission,
+    requestBrowserPermission,
   };
 
   return (
