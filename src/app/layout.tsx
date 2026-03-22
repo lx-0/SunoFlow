@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 import { SessionProvider } from "@/components/SessionProvider";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -60,6 +61,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} antialiased bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white min-h-screen`}>
         <ServiceWorkerRegistrar />
         <OfflineIndicator />
+        <PwaInstallPrompt />
         <SessionProvider>
           {children}
         </SessionProvider>
