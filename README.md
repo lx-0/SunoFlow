@@ -57,6 +57,12 @@ npm run dev
 
 Open http://localhost:3000. You'll be redirected to `/login`. Click "Create one" to register.
 
+## Email Setup
+
+SunoFlow uses Mailjet for transactional email (verification, password resets). See [docs/mailjet-setup.md](docs/mailjet-setup.md) for full setup instructions including DNS records (SPF, DKIM, DMARC) and domain verification.
+
+Without Mailjet configured, emails are logged to the server console.
+
 ## Scripts
 
 | Command | Description |
