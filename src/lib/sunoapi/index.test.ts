@@ -1,4 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+let mockSunoApiKey: string | undefined = "test-api-key";
+let mockTimeoutMs = 30000;
+vi.mock("@/lib/env", () => ({
+  get DATABASE_URL() { return "postgres://test:test@localhost:5432/test"; },
+  get AUTH_SECRET() { return "test-secret"; },
+  get NEXTAUTH_URL() { return "http://localhost:3000"; },
+  get SUNOAPI_KEY() { return mockSunoApiKey; },
+  get SUNO_API_TIMEOUT_MS() { return mockTimeoutMs; },
+  get RATE_LIMIT_MAX_GENERATIONS() { return 10; },
+  env: {},
+}));
+
 import {
   generateSong,
   getTaskStatus,
@@ -67,7 +80,7 @@ const MOCK_TASK_STATUS_SUCCESS = {
           stream_audio_url: "https://cdn.sunoapi.org/stream/audio-1.mp3",
           image_url: "https://cdn.sunoapi.org/images/audio-1.jpg",
           duration: 180,
-          model_name: "V4",
+          model_name: "V5",
           createTime: "2026-03-19T00:00:00.000Z",
         },
       ],
@@ -99,12 +112,14 @@ function mockFetchError(status: number, message = "Server error"): void {
 
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn());
-  process.env.SUNOAPI_KEY = "test-api-key";
+  mockSunoApiKey = "test-api-key";
+  mockTimeoutMs = 30000;
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
-  delete process.env.SUNOAPI_KEY;
+  mockSunoApiKey = "test-api-key";
+  mockTimeoutMs = 30000;
 });
 
 // ─── generateSong ─────────────────────────────────────────────────────────────
@@ -132,7 +147,7 @@ describe("generateSong", () => {
     const body = JSON.parse(callInit.body as string);
     expect(body.instrumental).toBe(false);
     expect(body.customMode).toBe(true);
-    expect(body.model).toBe("V4_5");
+    expect(body.model).toBe("V5");
     expect(body.callBackUrl).toBeDefined();
     expect(body.title).toBe("My Song");
     expect(body.style).toBe("rock");
@@ -158,7 +173,7 @@ describe("generateSong", () => {
   });
 
   it("throws SunoApiError(0) if SUNOAPI_KEY is not set", async () => {
-    delete process.env.SUNOAPI_KEY;
+    mockSunoApiKey = undefined;
     await expect(generateSong("test")).rejects.toThrow(SunoApiError);
     await expect(generateSong("test")).rejects.toMatchObject({ status: 0 });
   });
@@ -180,7 +195,7 @@ describe("generateSong", () => {
     await generateSong("test", {
       style: "pop",
       title: "My Song",
-      model: "V4_5",
+      model: "V5",
       negativeTags: "metal",
       vocalGender: "f",
       styleWeight: 0.8,
@@ -192,7 +207,7 @@ describe("generateSong", () => {
 
     const callInit = vi.mocked(fetch).mock.calls[0][1] as RequestInit;
     const body = JSON.parse(callInit.body as string);
-    expect(body.model).toBe("V4_5");
+    expect(body.model).toBe("V5");
     expect(body.negativeTags).toBe("metal");
     expect(body.vocalGender).toBe("f");
     expect(body.styleWeight).toBe(0.8);
@@ -254,7 +269,7 @@ describe("getTaskStatus", () => {
     const song = result.songs[0];
     expect(song.audioUrl).toBe("https://cdn.sunoapi.org/audio/audio-1.mp3");
     expect(song.imageUrl).toBe("https://cdn.sunoapi.org/images/audio-1.jpg");
-    expect(song.model).toBe("V4");
+    expect(song.model).toBe("V5");
   });
 });
 
@@ -356,7 +371,7 @@ describe("extendMusic", () => {
     const body = JSON.parse(callInit.body as string);
     expect(body.audioId).toBe("audio-1");
     expect(body.defaultParamFlag).toBe(false);
-    expect(body.model).toBe("V4_5");
+    expect(body.model).toBe("V5");
     expect(fetch).toHaveBeenCalledWith(
       "https://api.sunoapi.org/api/v1/generate/extend",
       expect.objectContaining({ method: "POST" })
@@ -372,7 +387,7 @@ describe("extendMusic", () => {
       style: "rock",
       title: "Extended Track",
       continueAt: 120,
-      model: "V4_5",
+      model: "V5",
     });
 
     const callInit = vi.mocked(fetch).mock.calls[0][1] as RequestInit;
@@ -382,7 +397,7 @@ describe("extendMusic", () => {
     expect(body.style).toBe("rock");
     expect(body.title).toBe("Extended Track");
     expect(body.continueAt).toBe(120);
-    expect(body.model).toBe("V4_5");
+    expect(body.model).toBe("V5");
   });
 });
 
@@ -898,30 +913,26 @@ describe("request timeouts", () => {
     });
 
     // Use a very short timeout to trigger the abort
-    process.env.SUNO_API_TIMEOUT_MS = "1";
+    mockTimeoutMs = 1;
 
     const err = await listSongs().catch((e: unknown) => e);
     expect(err).toBeInstanceOf(SunoApiError);
     expect(err).toMatchObject({ status: 0 });
     expect((err as SunoApiError).message).toMatch(/timed out/);
-
-    delete process.env.SUNO_API_TIMEOUT_MS;
   });
 
   it("uses SUNO_API_TIMEOUT_MS env var when set", async () => {
-    process.env.SUNO_API_TIMEOUT_MS = "5000";
+    mockTimeoutMs = 5000;
     mockFetchOnce(MOCK_TASK_RESPONSE);
     await generateSong("test");
 
     // Verify fetch was called with a signal (timeout is applied)
     const callInit = vi.mocked(fetch).mock.calls[0][1] as RequestInit;
     expect(callInit.signal).toBeInstanceOf(AbortSignal);
-
-    delete process.env.SUNO_API_TIMEOUT_MS;
   });
 
   it("defaults to 30s timeout when SUNO_API_TIMEOUT_MS is not set", async () => {
-    delete process.env.SUNO_API_TIMEOUT_MS;
+    mockTimeoutMs = 30000;
     mockFetchOnce(MOCK_TASK_RESPONSE);
     await generateSong("test");
 

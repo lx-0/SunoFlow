@@ -1,4 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+vi.mock("@/lib/env", () => ({
+  get DATABASE_URL() { return "postgres://test:test@localhost:5432/test"; },
+  get AUTH_SECRET() { return "test-secret"; },
+  get NEXTAUTH_URL() { return "http://localhost:3000"; },
+  get SUNOAPI_KEY() { return "test-key"; },
+  get SUNO_API_TIMEOUT_MS() { return 30000; },
+  get RATE_LIMIT_MAX_GENERATIONS() { return 10; },
+  env: {},
+}));
+
 import { checkRateLimit, recordRateLimitHit, acquireRateLimitSlot } from "./rate-limit";
 
 // ─── Mock Prisma ────────────────────────────────────────────────────────────
@@ -40,7 +51,6 @@ describe("rate-limit", () => {
 
   afterEach(() => {
     vi.useRealTimers();
-    delete process.env.RATE_LIMIT_MAX_GENERATIONS;
   });
 
   describe("checkRateLimit", () => {
@@ -88,32 +98,14 @@ describe("rate-limit", () => {
       expect(result.status.limit).toBe(10);
     });
 
-    it("uses configurable limit from RATE_LIMIT_MAX_GENERATIONS", async () => {
-      process.env.RATE_LIMIT_MAX_GENERATIONS = "5";
+    it("uses RATE_LIMIT_MAX_GENERATIONS from env module", async () => {
+      // The env mock provides 10 as the limit
       mockFindMany.mockResolvedValue([makeEntry(30), makeEntry(15)]);
 
       const result = await checkRateLimit("user-1");
 
-      expect(result.status.limit).toBe(5);
-      expect(result.status.remaining).toBe(3);
-    });
-
-    it("ignores invalid RATE_LIMIT_MAX_GENERATIONS values", async () => {
-      process.env.RATE_LIMIT_MAX_GENERATIONS = "abc";
-      mockFindMany.mockResolvedValue([]);
-
-      const result = await checkRateLimit("user-1");
-
       expect(result.status.limit).toBe(10);
-    });
-
-    it("ignores zero or negative RATE_LIMIT_MAX_GENERATIONS", async () => {
-      process.env.RATE_LIMIT_MAX_GENERATIONS = "0";
-      mockFindMany.mockResolvedValue([]);
-
-      const result = await checkRateLimit("user-1");
-
-      expect(result.status.limit).toBe(10);
+      expect(result.status.remaining).toBe(8);
     });
 
     it("calculates resetAt from the oldest entry in the window", async () => {

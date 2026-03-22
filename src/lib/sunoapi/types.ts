@@ -10,7 +10,7 @@ export type TaskStatus =
   | "CALLBACK_EXCEPTION"
   | "SENSITIVE_WORD_ERROR";
 
-export type SunoModel = "V4" | "V4_5" | "V4_5PLUS" | "V4_5ALL" | "V5";
+export type SunoModel = "V5";
 
 export type VocalGender = "m" | "f";
 
@@ -110,7 +110,7 @@ export interface AddVocalsOptions {
   styleWeight?: number;
   weirdnessConstraint?: number;
   audioWeight?: number;
-  model?: "V4_5PLUS" | "V5";
+  model?: SunoModel;
 }
 
 export interface AddInstrumentalOptions {
@@ -122,7 +122,7 @@ export interface AddInstrumentalOptions {
   styleWeight?: number;
   audioWeight?: number;
   weirdnessConstraint?: number;
-  model?: "V4_5PLUS" | "V5";
+  model?: SunoModel;
 }
 
 export interface GenerateLyricsOptions {

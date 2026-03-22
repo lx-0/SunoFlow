@@ -18,7 +18,7 @@ export const FILE_UPLOAD_BASE_URL = "https://sunoapiorg.redpandaai.co";
 /** Use a no-op callback URL — we poll for results instead of receiving callbacks */
 export const NOOP_CALLBACK_URL = "https://localhost/noop";
 
-export const DEFAULT_MODEL: SunoModel = "V4_5";
+export const DEFAULT_MODEL: SunoModel = "V5";
 
 /** Default request timeout in milliseconds (30 seconds) */
 const DEFAULT_TIMEOUT_MS = 30_000;

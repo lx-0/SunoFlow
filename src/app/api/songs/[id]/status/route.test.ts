@@ -3,6 +3,16 @@ import { GET } from "./route";
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
+vi.mock("@/lib/env", () => ({
+  get DATABASE_URL() { return "postgres://test:test@localhost:5432/test"; },
+  get AUTH_SECRET() { return "test-secret"; },
+  get NEXTAUTH_URL() { return "http://localhost:3000"; },
+  get SUNOAPI_KEY() { return "test-key"; },
+  get SUNO_API_TIMEOUT_MS() { return 30000; },
+  get RATE_LIMIT_MAX_GENERATIONS() { return 10; },
+  env: {},
+}));
+
 vi.mock("@/lib/auth", () => ({
   auth: vi.fn(),
 }));
@@ -68,12 +78,10 @@ const baseSong = {
 beforeEach(() => {
   vi.mocked(auth).mockResolvedValue({ user: { id: "user-1" } } as ReturnType<typeof auth> extends Promise<infer T> ? T : never);
   vi.mocked(resolveUserApiKey).mockResolvedValue(undefined);
-  process.env.SUNOAPI_KEY = "test-key";
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
-  delete process.env.SUNOAPI_KEY;
 });
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
@@ -223,7 +231,7 @@ describe("GET /api/songs/[id]/status", () => {
           imageUrl: "https://cdn.suno.com/img.jpg",
           duration: 180,
           status: "complete",
-          model: "V4",
+          model: "V5",
           lyrics: "la la la",
           createdAt: "2026-03-21T00:00:00Z",
         },

@@ -5,15 +5,13 @@
 > File Upload Base URL: `https://sunoapiorg.redpandaai.co`
 > Auth: `Authorization: Bearer <API_KEY>`
 
-## Models
+## Model
 
-| Model | Max Duration | Notes |
-|-------|-------------|-------|
-| V4 | 4 min | Enhanced vocals |
-| V4_5 | 8 min | Smart prompts, faster generation |
-| V4_5PLUS | 8 min | Richer tones |
-| V4_5ALL | 8 min | Better song structure |
-| V5 | — | Latest cutting-edge model |
+SunoFlow targets **V5 only** — the latest Suno model. Legacy models (V4, V4_5, V4_5PLUS, V4_5ALL) are not supported.
+
+| Model | Notes |
+|-------|-------|
+| V5 | Latest cutting-edge model. 5000-char prompt, 1000-char style, 100-char title |
 
 ## Rate Limits & Retention
 
@@ -59,13 +57,13 @@ Generates 2 songs per request asynchronously.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `prompt` | string | Conditional | Lyrics or description. 500 chars (non-custom); 3000 (V4 custom); 5000 (V4.5+/V5 custom) |
+| `prompt` | string | Conditional | Lyrics or description. 500 chars (non-custom); 5000 (custom) |
 | `customMode` | boolean | Yes | Enable advanced settings (style/title) |
 | `instrumental` | boolean | Yes | Generate without vocals |
-| `model` | string | Yes | V4, V4_5, V4_5PLUS, V4_5ALL, V5 |
+| `model` | string | Yes | `V5` |
 | `callBackUrl` | string | Yes | Webhook URL for completion |
-| `style` | string | Conditional | Music style. 200 chars (V4); 1000 chars (V4.5+/V5). Required if customMode=true |
-| `title` | string | Conditional | Track title. 80 chars (V4/V4_5ALL); 100 chars (V4_5/V4_5PLUS/V5). Required if customMode=true |
+| `style` | string | Conditional | Music style (max 1000 chars). Required if customMode=true |
+| `title` | string | Conditional | Track title (max 100 chars). Required if customMode=true |
 | `personaId` | string | No | Persona identifier |
 | `personaModel` | string | No | `style_persona` (default) or `voice_persona` |
 | `negativeTags` | string | No | Styles to exclude |
@@ -107,7 +105,7 @@ Transform uploaded audio into a new style.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `uploadUrl` | string | Yes | Audio file URL (max 8 min; 1 min for V4_5ALL) |
+| `uploadUrl` | string | Yes | Audio file URL (max 8 min) |
 | `customMode` | boolean | Yes | Enable custom settings |
 | `instrumental` | boolean | Yes | Instrumental only |
 | `model` | string | Yes | Model version |
@@ -123,7 +121,7 @@ Upload audio and extend it with AI continuation.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `uploadUrl` | string | Yes | Audio file URL (max 8 min; 1 min for V4_5ALL) |
+| `uploadUrl` | string | Yes | Audio file URL (max 8 min) |
 | `defaultParamFlag` | boolean | Yes | Use custom params or defaults |
 | `model` | string | Yes | Model version |
 | `callBackUrl` | string | Yes | Webhook URL |
@@ -149,7 +147,7 @@ Layer AI vocals over an instrumental track.
 | `styleWeight` | number | No | 0.00–1.00 |
 | `weirdnessConstraint` | number | No | 0.00–1.00 |
 | `audioWeight` | number | No | 0.00–1.00 |
-| `model` | string | No | V4_5PLUS (default) or V5 |
+| `model` | string | No | `V5` |
 
 ### Add Instrumental
 
@@ -168,7 +166,7 @@ Generate backing music for a vocal track.
 | `styleWeight` | number | No | 0.00–1.00 |
 | `audioWeight` | number | No | 0.00–1.00 |
 | `weirdnessConstraint` | number | No | 0.00–1.00 |
-| `model` | string | No | V4_5PLUS (default) or V5 |
+| `model` | string | No | `V5` |
 
 ### Generate Mashup
 
@@ -333,7 +331,7 @@ Create a reusable musical identity from an existing track.
 
 **POST** `/style/generate`
 
-Expand a brief style description into detailed style instructions (V4.5+ feature).
+Expand a brief style description into detailed style instructions.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|

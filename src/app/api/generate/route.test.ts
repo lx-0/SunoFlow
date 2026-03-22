@@ -3,6 +3,21 @@ import { POST } from "./route";
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
+let mockSunoApiKey: string | undefined = "test-key";
+vi.mock("@/lib/env", () => ({
+  get DATABASE_URL() { return "postgres://test:test@localhost:5432/test"; },
+  get AUTH_SECRET() { return "test-secret"; },
+  get NEXTAUTH_URL() { return "http://localhost:3000"; },
+  get SUNOAPI_KEY() { return mockSunoApiKey; },
+  get SUNO_API_TIMEOUT_MS() { return 30000; },
+  get RATE_LIMIT_MAX_GENERATIONS() { return 10; },
+  env: {},
+}));
+
+vi.mock("@/lib/auth-resolver", () => ({
+  resolveUser: vi.fn(),
+}));
+
 vi.mock("@/lib/auth", () => ({
   auth: vi.fn(),
 }));
@@ -36,7 +51,7 @@ vi.mock("@/lib/sunoapi/mock", () => ({
       imageUrl: null,
       duration: 120,
       lyrics: "la la la",
-      model: "V4",
+      model: "V5",
     },
   ],
 }));
@@ -53,7 +68,7 @@ vi.mock("@/lib/error-logger", () => ({
   logServerError: vi.fn(),
 }));
 
-import { auth } from "@/lib/auth";
+import { resolveUser } from "@/lib/auth-resolver";
 import { prisma } from "@/lib/prisma";
 import { generateSong, SunoApiError } from "@/lib/sunoapi";
 import { acquireRateLimitSlot } from "@/lib/rate-limit";
@@ -75,26 +90,31 @@ const DEFAULT_BODY = { prompt: "upbeat pop song", title: "Test", tags: "pop", ma
 // ─── Setup ───────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
-  vi.mocked(auth).mockResolvedValue({ user: { id: "user-1" } } as ReturnType<typeof auth> extends Promise<infer T> ? T : never);
+  vi.mocked(resolveUser).mockResolvedValue({ userId: "user-1", isApiKey: false, error: null });
   vi.mocked(acquireRateLimitSlot).mockResolvedValue({
     acquired: true,
     status: { remaining: 5, limit: 10, resetAt: new Date().toISOString() },
   });
   vi.mocked(resolveUserApiKey).mockResolvedValue(undefined);
-  process.env.SUNOAPI_KEY = "test-key";
+  mockSunoApiKey = "test-key";
   vi.mocked(prisma.song.create).mockResolvedValue({ id: "song-1" } as never);
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
-  delete process.env.SUNOAPI_KEY;
+  mockSunoApiKey = "test-key";
 });
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe("POST /api/generate", () => {
   it("returns 401 when not authenticated", async () => {
-    vi.mocked(auth).mockResolvedValue(null as never);
+    const { NextResponse } = await import("next/server");
+    vi.mocked(resolveUser).mockResolvedValue({
+      userId: null,
+      isApiKey: false,
+      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    });
     const res = await POST(makeRequest(DEFAULT_BODY));
     expect(res.status).toBe(401);
   });
@@ -202,7 +222,7 @@ describe("POST /api/generate", () => {
   });
 
   it("uses mock songs when no API key is configured", async () => {
-    delete process.env.SUNOAPI_KEY;
+    mockSunoApiKey = undefined;
     vi.mocked(resolveUserApiKey).mockResolvedValue(undefined);
 
     const res = await POST(makeRequest(DEFAULT_BODY));
