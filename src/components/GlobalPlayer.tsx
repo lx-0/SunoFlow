@@ -72,9 +72,9 @@ export function GlobalPlayer() {
           />
         </div>
 
-        <div className="flex items-center gap-2 px-3 py-2">
-          {/* Cover art */}
-          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-800 dark:bg-gray-700 overflow-hidden flex items-center justify-center">
+        <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2">
+          {/* Cover art — hidden on very small screens to save space */}
+          <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gray-800 dark:bg-gray-700 overflow-hidden flex items-center justify-center">
             {currentSong.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -96,7 +96,7 @@ export function GlobalPlayer() {
               <span>{formatTime(currentTime)}</span>
               <span>/</span>
               <span>{formatTime(duration)}</span>
-              <span className="ml-auto">
+              <span className="ml-auto hidden sm:inline">
                 {currentIndex + 1} of {queue.length}
               </span>
             </div>
@@ -126,8 +126,8 @@ export function GlobalPlayer() {
             />
           </div>
 
-          {/* Controls — touch-friendly 44x44 targets */}
-          <div className="flex items-center gap-0.5">
+          {/* Controls — touch-friendly targets */}
+          <div className="flex items-center gap-0">
             {/* Shuffle */}
             <button
               onClick={toggleShuffle}
@@ -200,7 +200,7 @@ export function GlobalPlayer() {
             <button
               onClick={clearQueue}
               aria-label="Close player"
-              className="w-11 h-11 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-300 transition-colors"
+              className="w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-300 transition-colors"
             >
               <XMarkIcon className="w-5 h-5" />
             </button>
