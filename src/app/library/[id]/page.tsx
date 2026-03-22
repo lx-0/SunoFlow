@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { SongDetailView } from "@/components/SongDetailView";
+import { SongDetailSkeleton } from "@/components/Skeleton";
 import { sunoApi } from "@/lib/sunoapi";
 import { mockSongs } from "@/lib/sunoapi/mock";
 import { auth } from "@/lib/auth";
@@ -71,34 +73,40 @@ async function fetchPlaylists() {
   }
 }
 
-export default async function SongDetailPage({
+async function SongDetailContent({ id }: { id: string }) {
+  const [song, dbMeta, playlists, songTags] = await Promise.all([
+    fetchSong(id),
+    fetchDbMeta(id),
+    fetchPlaylists(),
+    fetchSongTags(id),
+  ]);
+
+  if (!song) notFound();
+
+  return (
+    <SongDetailView
+      song={song}
+      isFavorite={dbMeta.isFavorite}
+      favoriteCount={dbMeta.favoriteCount}
+      sunoJobId={dbMeta.sunoJobId}
+      playlists={playlists}
+      isPublic={dbMeta.isPublic}
+      publicSlug={dbMeta.publicSlug}
+      songTags={songTags}
+    />
+  );
+}
+
+export default function SongDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
-  const [song, dbMeta, playlists, songTags] = await Promise.all([
-    fetchSong(params.id),
-    fetchDbMeta(params.id),
-    fetchPlaylists(),
-    fetchSongTags(params.id),
-  ]);
-
-  if (!song) {
-    notFound();
-  }
-
   return (
     <AppShell>
-      <SongDetailView
-        song={song}
-        isFavorite={dbMeta.isFavorite}
-        favoriteCount={dbMeta.favoriteCount}
-        sunoJobId={dbMeta.sunoJobId}
-        playlists={playlists}
-        isPublic={dbMeta.isPublic}
-        publicSlug={dbMeta.publicSlug}
-        songTags={songTags}
-      />
+      <Suspense fallback={<SongDetailSkeleton />}>
+        <SongDetailContent id={params.id} />
+      </Suspense>
     </AppShell>
   );
 }

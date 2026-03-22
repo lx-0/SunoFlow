@@ -28,6 +28,7 @@ export function GlobalPlayer() {
     queue,
     currentIndex,
     isPlaying,
+    isBuffering,
     currentTime,
     duration,
     shuffle,
@@ -57,7 +58,7 @@ export function GlobalPlayer() {
         {/* Seek bar (top edge) */}
         <div className="relative h-1 bg-gray-700">
           <div
-            className="absolute inset-y-0 left-0 bg-violet-500 transition-all"
+            className={`absolute inset-y-0 left-0 bg-violet-500 transition-all ${isBuffering ? "animate-pulse" : ""}`}
             style={{ width: `${pct}%` }}
           />
           <input
@@ -152,10 +153,16 @@ export function GlobalPlayer() {
             {/* Play/pause */}
             <button
               onClick={() => togglePlay()}
-              aria-label={isPlaying ? "Pause" : "Play"}
-              className="w-12 h-12 rounded-full bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center transition-colors"
+              aria-label={isBuffering ? "Loading" : isPlaying ? "Pause" : "Play"}
+              disabled={isBuffering}
+              className="w-12 h-12 rounded-full bg-violet-600 hover:bg-violet-500 disabled:opacity-75 text-white flex items-center justify-center transition-colors"
             >
-              {isPlaying ? (
+              {isBuffering ? (
+                <svg className="w-6 h-6 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : isPlaying ? (
                 <PauseIcon className="w-6 h-6" />
               ) : (
                 <PlayIcon className="w-6 h-6 ml-0.5" />

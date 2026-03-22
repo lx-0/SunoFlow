@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import { AppShell } from "@/components/AppShell";
 import { PlaylistsView } from "@/components/PlaylistsView";
+import { PlaylistsSkeleton } from "@/components/Skeleton";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -17,12 +19,17 @@ async function fetchPlaylists() {
   }
 }
 
-export default async function PlaylistsPage() {
+async function PlaylistsContent() {
   const playlists = await fetchPlaylists();
+  return <PlaylistsView playlists={JSON.parse(JSON.stringify(playlists))} />;
+}
 
+export default function PlaylistsPage() {
   return (
     <AppShell>
-      <PlaylistsView playlists={JSON.parse(JSON.stringify(playlists))} />
+      <Suspense fallback={<PlaylistsSkeleton />}>
+        <PlaylistsContent />
+      </Suspense>
     </AppShell>
   );
 }

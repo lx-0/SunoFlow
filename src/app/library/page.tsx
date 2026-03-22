@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { AppShell } from "@/components/AppShell";
 import { LibraryView } from "@/components/LibraryView";
+import { LibrarySkeleton } from "@/components/Skeleton";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -34,7 +35,7 @@ export default async function LibraryPage() {
 
   return (
     <AppShell>
-      <Suspense>
+      <Suspense fallback={<LibrarySkeleton />}>
         <LibraryView initialSongs={songs} />
       </Suspense>
     </AppShell>

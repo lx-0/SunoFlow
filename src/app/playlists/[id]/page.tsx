@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { PlaylistDetailView } from "@/components/PlaylistDetailView";
+import { PlaylistDetailSkeleton } from "@/components/Skeleton";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -23,22 +25,22 @@ async function fetchPlaylist(id: string) {
   }
 }
 
-export default async function PlaylistDetailPage({
+async function PlaylistDetailContent({ id }: { id: string }) {
+  const playlist = await fetchPlaylist(id);
+  if (!playlist) notFound();
+  return <PlaylistDetailView playlist={JSON.parse(JSON.stringify(playlist))} />;
+}
+
+export default function PlaylistDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
-  const playlist = await fetchPlaylist(params.id);
-
-  if (!playlist) {
-    notFound();
-  }
-
   return (
     <AppShell>
-      <PlaylistDetailView
-        playlist={JSON.parse(JSON.stringify(playlist))}
-      />
+      <Suspense fallback={<PlaylistDetailSkeleton />}>
+        <PlaylistDetailContent id={params.id} />
+      </Suspense>
     </AppShell>
   );
 }

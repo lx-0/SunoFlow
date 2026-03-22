@@ -28,6 +28,8 @@ interface QueueState {
   /** Current index in queue (-1 = nothing playing) */
   currentIndex: number;
   isPlaying: boolean;
+  /** True while audio is buffering / waiting for data */
+  isBuffering: boolean;
   currentTime: number;
   duration: number;
   shuffle: boolean;
@@ -85,6 +87,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   const [queue, setQueue] = useState<QueueSong[]>([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [shuffle, setShuffle] = useState(false);
@@ -112,6 +115,9 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     const onPause = () => setIsPlaying(false);
     const onTimeUpdate = () => setCurrentTime(audio.currentTime);
     const onDurationChange = () => setDuration(audio.duration);
+    const onWaiting = () => setIsBuffering(true);
+    const onPlaying = () => setIsBuffering(false);
+    const onCanPlay = () => setIsBuffering(false);
     const onEnded = () => {
       const q = queueRef.current;
       const idx = currentIndexRef.current;
@@ -149,6 +155,9 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     audio.addEventListener("timeupdate", onTimeUpdate);
     audio.addEventListener("durationchange", onDurationChange);
     audio.addEventListener("ended", onEnded);
+    audio.addEventListener("waiting", onWaiting);
+    audio.addEventListener("playing", onPlaying);
+    audio.addEventListener("canplay", onCanPlay);
 
     return () => {
       audio.removeEventListener("play", onPlay);
@@ -156,6 +165,9 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener("timeupdate", onTimeUpdate);
       audio.removeEventListener("durationchange", onDurationChange);
       audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("waiting", onWaiting);
+      audio.removeEventListener("playing", onPlaying);
+      audio.removeEventListener("canplay", onCanPlay);
       audio.pause();
     };
   }, []);
@@ -373,6 +385,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     queue,
     currentIndex,
     isPlaying,
+    isBuffering,
     currentTime,
     duration,
     shuffle,

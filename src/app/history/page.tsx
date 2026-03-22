@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import { AppShell } from "@/components/AppShell";
 import { HistoryView } from "@/components/HistoryView";
+import { HistorySkeleton } from "@/components/Skeleton";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Song } from "@prisma/client";
@@ -17,12 +19,17 @@ async function fetchHistory(): Promise<Song[]> {
   }
 }
 
-export default async function HistoryPage() {
+async function HistoryContent() {
   const songs = await fetchHistory();
+  return <HistoryView songs={songs} />;
+}
 
+export default function HistoryPage() {
   return (
     <AppShell>
-      <HistoryView songs={songs} />
+      <Suspense fallback={<HistorySkeleton />}>
+        <HistoryContent />
+      </Suspense>
     </AppShell>
   );
 }

@@ -295,6 +295,71 @@ export function PlaylistsSkeleton() {
   );
 }
 
+/** Skeleton for the user profile page — avatar, stats grid, form sections. */
+export function ProfileSkeleton() {
+  return (
+    <div className="px-4 py-6 space-y-8">
+      {/* Avatar + name + email */}
+      <div className="flex flex-col items-center gap-3 pt-2">
+        <Skeleton className="w-20 h-20 rounded-full" />
+        <Skeleton className="h-6 w-32 rounded" />
+        <Skeleton className="h-4 w-48 rounded" />
+      </div>
+      <div className="border-t border-gray-200 dark:border-gray-800" />
+      {/* Account stats */}
+      <div className="space-y-3">
+        <Skeleton className="h-5 w-28 rounded" />
+        <div className="grid grid-cols-2 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex flex-col items-center gap-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+              <Skeleton className="w-5 h-5 rounded" />
+              <Skeleton className="h-5 w-8 rounded" />
+              <Skeleton className="h-3 w-14 rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="border-t border-gray-200 dark:border-gray-800" />
+      {/* Change password form */}
+      <div className="space-y-3">
+        <Skeleton className="h-5 w-36 rounded" />
+        <Skeleton className="h-4 w-44 rounded" />
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-full rounded-lg" />
+          <Skeleton className="h-10 w-full rounded-lg" />
+          <Skeleton className="h-10 w-full rounded-lg" />
+          <Skeleton className="h-10 w-full rounded-lg" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Skeleton for a playlist detail page — back link, header, song list. */
+export function PlaylistDetailSkeleton() {
+  return (
+    <div className="px-4 py-4 space-y-4">
+      {/* Back link */}
+      <Skeleton className="h-5 w-24 rounded" />
+      {/* Playlist header */}
+      <div className="flex items-center gap-3">
+        <Skeleton className="flex-shrink-0 w-16 h-16 rounded-lg" />
+        <div className="flex-1 min-w-0 space-y-2">
+          <Skeleton className="h-6 w-40 rounded" />
+          <Skeleton className="h-3 w-24 rounded" />
+        </div>
+        <Skeleton className="w-11 h-11 rounded-full" />
+      </div>
+      {/* Song list */}
+      <ul className="space-y-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <SongCardSkeleton key={i} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /** Skeleton for the generate page form. */
 export function GenerateFormSkeleton() {
   return (
