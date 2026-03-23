@@ -8,6 +8,8 @@ import { getToken } from "next-auth/jwt";
 // Bucket        | Max Requests | Window   | Applies To
 // ------------- | ------------ | -------- | ---------------------------------
 // "public"      | 30           | 1 minute | /s/* (public share pages)
+// "playlist"    | 100          | 1 minute | /p/* (public playlist pages)
+// "embed"       | 200          | 1 minute | /embed/* (embed player pages)
 // "auth"        | 10           | 1 minute | /api/register, forgot/reset password
 // ---------------------------------------------------------------------------
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
@@ -50,7 +52,7 @@ export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.AUTH_SECRET });
   const { pathname } = request.nextUrl;
 
-  const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email", "/api/auth", "/api/register", "/api/health", "/api/agent-skill", "/s/"];
+  const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email", "/api/auth", "/api/register", "/api/health", "/api/agent-skill", "/s/", "/p/", "/embed/"];
   const isPublic = publicPaths.some((p) => pathname.startsWith(p));
 
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? request.ip ?? "unknown";
@@ -58,6 +60,20 @@ export async function middleware(request: NextRequest) {
   // Rate limit public share pages
   if (pathname.startsWith("/s/")) {
     if (!checkPublicRateLimit(ip)) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+  }
+
+  // Rate limit public playlist pages: 100 req/min per IP
+  if (pathname.startsWith("/p/")) {
+    if (!checkIpRateLimit(ip, "playlist", 100)) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+  }
+
+  // Rate limit embed player pages: 200 req/min per IP
+  if (pathname.startsWith("/embed/")) {
+    if (!checkIpRateLimit(ip, "embed", 200)) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
   }

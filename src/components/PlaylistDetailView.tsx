@@ -12,6 +12,10 @@ import {
   ArrowLeftIcon,
   Bars3Icon,
   PencilIcon,
+  ShareIcon,
+  ClipboardDocumentIcon,
+  GlobeAltIcon,
+  LockClosedIcon,
 } from "@heroicons/react/24/outline";
 import { PlayIcon as PlaySolidIcon } from "@heroicons/react/24/solid";
 import type { Song } from "@prisma/client";
@@ -49,6 +53,8 @@ interface PlaylistData {
   id: string;
   name: string;
   description: string | null;
+  isPublic: boolean;
+  slug: string | null;
   songs: PlaylistSongItem[];
   _count: { songs: number };
 }
@@ -77,6 +83,12 @@ export function PlaylistDetailView({
   const [editDesc, setEditDesc] = useState(initialPlaylist.description || "");
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Share state
+  const [isPublic, setIsPublic] = useState(initialPlaylist.isPublic);
+  const [slug, setSlug] = useState(initialPlaylist.slug);
+  const [showSharePanel, setShowSharePanel] = useState(false);
+  const [isTogglingShare, setIsTogglingShare] = useState(false);
 
   // Drag state
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -224,6 +236,41 @@ export function PlaylistDetailView({
     }
   }
 
+  async function handleToggleShare() {
+    if (isTogglingShare) return;
+    setIsTogglingShare(true);
+    try {
+      const res = await fetch(`/api/playlists/${playlist.id}/share`, {
+        method: "PATCH",
+      });
+      if (!res.ok) {
+        toast("Failed to update sharing", "error");
+        return;
+      }
+      const data = await res.json();
+      setIsPublic(data.isPublic);
+      setSlug(data.slug);
+      toast(data.isPublic ? "Playlist is now public" : "Playlist is now private", "success");
+    } catch {
+      toast("Failed to update sharing", "error");
+    } finally {
+      setIsTogglingShare(false);
+    }
+  }
+
+  function handleCopyLink() {
+    if (!slug) return;
+    const url = `${window.location.origin}/p/${slug}`;
+    navigator.clipboard.writeText(url).then(() => toast("Link copied!", "success"));
+  }
+
+  function handleCopyEmbed() {
+    if (!slug) return;
+    const url = `${window.location.origin}/embed/playlist/${slug}`;
+    const code = `<iframe src="${url}" width="400" height="500" frameborder="0" allow="autoplay"></iframe>`;
+    navigator.clipboard.writeText(code).then(() => toast("Embed code copied!", "success"));
+  }
+
   const totalDuration = songs.reduce(
     (sum, ps) => sum + (ps.song.duration ?? 0),
     0
@@ -297,6 +344,18 @@ export function PlaylistDetailView({
           </div>
           <div className="flex items-center gap-1">
             <button
+              onClick={() => setShowSharePanel((v) => !v)}
+              aria-label="Share playlist"
+              aria-expanded={showSharePanel}
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+                isPublic
+                  ? "text-violet-500 dark:text-violet-400 hover:text-violet-600"
+                  : "text-gray-400 dark:text-gray-500 hover:text-violet-400"
+              }`}
+            >
+              <ShareIcon className="w-5 h-5" />
+            </button>
+            <button
               onClick={() => setEditing(true)}
               aria-label="Edit playlist"
               className="w-11 h-11 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-violet-400 transition-colors"
@@ -311,6 +370,82 @@ export function PlaylistDetailView({
               <TrashIcon className="w-5 h-5" />
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Share panel */}
+      {showSharePanel && !editing && (
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
+          {/* Toggle public/private */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {isPublic ? (
+                <GlobeAltIcon className="w-4 h-4 text-violet-500" />
+              ) : (
+                <LockClosedIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+              )}
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                {isPublic ? "Public playlist" : "Private playlist"}
+              </span>
+            </div>
+            <button
+              onClick={handleToggleShare}
+              disabled={isTogglingShare}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 disabled:opacity-50 ${
+                isPublic ? "bg-violet-600" : "bg-gray-400 dark:bg-gray-600"
+              }`}
+              role="switch"
+              aria-checked={isPublic}
+              aria-label="Toggle playlist visibility"
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                  isPublic ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Share link — only shown when public */}
+          {isPublic && slug && (
+            <>
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Share link</p>
+                <div className="flex gap-2">
+                  <input
+                    readOnly
+                    value={`${typeof window !== "undefined" ? window.location.origin : ""}/p/${slug}`}
+                    className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-700 dark:text-gray-300 focus:outline-none"
+                  />
+                  <button
+                    onClick={handleCopyLink}
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-lg hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors whitespace-nowrap"
+                  >
+                    <ClipboardDocumentIcon className="w-3.5 h-3.5" />
+                    Copy
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Embed code</p>
+                <div className="flex gap-2">
+                  <input
+                    readOnly
+                    value={`<iframe src="${typeof window !== "undefined" ? window.location.origin : ""}/embed/playlist/${slug}" width="400" height="500" frameborder="0" allow="autoplay"></iframe>`}
+                    className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-700 dark:text-gray-300 focus:outline-none font-mono"
+                  />
+                  <button
+                    onClick={handleCopyEmbed}
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-lg hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors whitespace-nowrap"
+                  >
+                    <ClipboardDocumentIcon className="w-3.5 h-3.5" />
+                    Copy
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 

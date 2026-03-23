@@ -12,7 +12,12 @@ async function fetchPlaylist(id: string) {
     if (!session?.user?.id) return null;
     return await prisma.playlist.findFirst({
       where: { id, userId: session.user.id },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        isPublic: true,
+        slug: true,
         songs: {
           orderBy: { position: "asc" },
           include: { song: true },
