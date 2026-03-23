@@ -58,12 +58,21 @@ export async function fetchWithRetry(
 
     if (!isRetryable(res.status) || attempt >= maxRetries) {
       let message: string;
+      let rawBody: string | undefined;
       try {
-        const body = (await res.json()) as { msg?: string; message?: string; error?: string };
+        rawBody = await res.text();
+        const body = JSON.parse(rawBody) as { msg?: string; message?: string; error?: string };
         message = body.msg ?? body.message ?? body.error ?? res.statusText;
       } catch {
-        message = res.statusText;
+        message = rawBody || res.statusText;
       }
+      console.error("[SunoAPI] Request failed", {
+        url,
+        status: res.status,
+        statusText: res.statusText,
+        body: rawBody,
+        attempt,
+      });
       throw new SunoApiError(res.status, message);
     }
 

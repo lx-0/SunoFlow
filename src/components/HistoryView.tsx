@@ -361,17 +361,9 @@ export function HistoryView({
     setRetryingId(song.id);
 
     try {
-      const body = {
-        prompt: song.prompt,
-        title: song.title || undefined,
-        tags: song.tags || undefined,
-        makeInstrumental: song.isInstrumental,
-      };
-
-      const res = await fetch("/api/generate", {
+      const res = await fetch(`/api/songs/${song.id}/retry`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
       });
 
       const data = await res.json();
@@ -387,8 +379,8 @@ export function HistoryView({
         return;
       }
 
-      toast("Retry started! Redirecting to library…", "success");
-      setTimeout(() => router.push("/library"), 1500);
+      toast("Retry started! Song is regenerating.", "success");
+      router.refresh();
     } catch {
       toast("Network error. Please check your connection.", "error");
     } finally {

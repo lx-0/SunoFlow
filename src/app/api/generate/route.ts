@@ -9,13 +9,14 @@ import { logServerError } from "@/lib/error-logger";
 import { invalidateByPrefix } from "@/lib/cache";
 import { SUNOAPI_KEY } from "@/lib/env";
 
-/** Map API errors to user-friendly messages without exposing internals */
+/** Map API errors to user-friendly messages, including Suno status for debugging */
 function userFriendlyError(error: unknown): string {
   if (error instanceof SunoApiError) {
-    if (error.status === 429) return "The music generation service is busy. Please try again in a few minutes.";
-    if (error.status === 400) return "Invalid generation parameters. Please adjust your prompt and try again.";
-    if (error.status === 401 || error.status === 403) return "API authentication failed. Please check your API key in settings.";
-    if (error.status >= 500) return "The music generation service is temporarily unavailable. Please try again later.";
+    if (error.status === 429) return `The music generation service is busy (Suno 429). Please try again in a few minutes.`;
+    if (error.status === 400) return `Invalid generation parameters (Suno 400). Please adjust your prompt and try again.`;
+    if (error.status === 401 || error.status === 403) return `API authentication failed (Suno ${error.status}). Please check your API key in settings.`;
+    if (error.status >= 500) return `The music generation service is temporarily unavailable (Suno ${error.status}). Please try again later.`;
+    return `Generation failed (Suno ${error.status}): ${error.message}`;
   }
   if (error instanceof TypeError && (error.message.includes("fetch") || error.message.includes("network"))) {
     return "Could not reach the music generation service. Please check your connection and try again.";

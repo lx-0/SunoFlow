@@ -595,7 +595,7 @@ const SORT_OPTIONS = [
   { label: "Highest rated", value: "highest_rated" },
   { label: "Most played", value: "most_played" },
   { label: "Recently modified", value: "recently_modified" },
-  { label: "Title A\u2013Z", value: "title_az" },
+  { label: "Title A–Z", value: "title_az" },
 ] as const;
 
 const SMART_FILTER_OPTIONS = [
@@ -614,11 +614,11 @@ const STATUS_OPTIONS = [
 
 const RATING_OPTIONS = [
   { label: "Any rating", value: "" },
-  { label: "1\u2605+", value: "1" },
-  { label: "2\u2605+", value: "2" },
-  { label: "3\u2605+", value: "3" },
-  { label: "4\u2605+", value: "4" },
-  { label: "5\u2605", value: "5" },
+  { label: "1★+", value: "1" },
+  { label: "2★+", value: "2" },
+  { label: "3★+", value: "3" },
+  { label: "4★+", value: "4" },
+  { label: "5★", value: "5" },
 ] as const;
 
 // ─── useDebounce ─────────────────────────────────────────────────────────────
@@ -937,17 +937,9 @@ export function LibraryView({
     setRetryingId(song.id);
 
     try {
-      const body = {
-        prompt: song.prompt,
-        title: song.title || undefined,
-        tags: song.tags || undefined,
-        makeInstrumental: song.isInstrumental,
-      };
-
-      const res = await fetch("/api/generate", {
+      const res = await fetch(`/api/songs/${song.id}/retry`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
       });
 
       const data = await res.json();
@@ -963,8 +955,10 @@ export function LibraryView({
         return;
       }
 
-      toast("Retry started! New song will appear shortly.", "success");
-      // Re-fetch the song list to show the new pending song
+      if (data.song) {
+        handleSongUpdate(data.song);
+      }
+      toast("Retry started! Song is regenerating.", "success");
       router.refresh();
     } catch {
       toast("Network error. Please check your connection.", "error");
@@ -1220,7 +1214,7 @@ export function LibraryView({
       return;
     }
     if (exportableSongs.length > 50) {
-      toast(`Exporting ${exportableSongs.length} songs \u2014 this may take a while`, "info");
+      toast(`Exporting ${exportableSongs.length} songs — this may take a while`, "info");
     }
     setExporting(true);
     setExportProgress({ completed: 0, total: exportableSongs.length });
@@ -1271,7 +1265,7 @@ export function LibraryView({
         <div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">
-            {loading ? "Searching\u2026" : `${songs.length}${totalSongs > songs.length ? ` of ${totalSongs}` : ""} song${totalSongs !== 1 ? "s" : ""}`}
+            {loading ? "Searching…" : `${songs.length}${totalSongs > songs.length ? ` of ${totalSongs}` : ""} song${totalSongs !== 1 ? "s" : ""}`}
           </p>
           {songs.length > 0 && (
             <button
@@ -1330,7 +1324,7 @@ export function LibraryView({
             />
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            Downloading {exportProgress.completed} of {exportProgress.total} songs\u2026
+            Downloading {exportProgress.completed} of {exportProgress.total} songs…
           </p>
         </div>
       )}
@@ -1356,7 +1350,7 @@ export function LibraryView({
                 type="text"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                placeholder="Search titles, lyrics, tags, prompts\u2026"
+                placeholder="Search titles, lyrics, tags, prompts…"
                 aria-label="Search songs"
                 className="w-full pl-9 pr-9 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent min-h-[44px]"
               />
@@ -1727,7 +1721,7 @@ export function LibraryView({
                 disabled={batchLoading}
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-500 disabled:opacity-50 transition-colors min-h-[44px]"
               >
-                {batchLoading ? "Deleting\u2026" : "Delete"}
+                {batchLoading ? "Deleting…" : "Delete"}
               </button>
             </div>
           </div>
