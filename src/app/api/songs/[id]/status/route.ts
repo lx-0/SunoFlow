@@ -106,10 +106,10 @@ export async function GET(
         },
       });
 
-      // If the API returned additional songs, create them as new records
+      // If the API returned additional songs, create them as linked alternates
       for (let i = 1; i < taskResult.songs.length; i++) {
         const extra = taskResult.songs[i];
-        await prisma.song.create({
+        const alternateSong = await prisma.song.create({
           data: {
             userId: song.userId,
             sunoJobId: extra.id || null,
@@ -123,14 +123,27 @@ export async function GET(
             sunoModel: extra.model || null,
             isInstrumental: song.isInstrumental,
             generationStatus: "ready",
+            parentSongId: id,
+          },
+        });
+        broadcast(song.userId, {
+          type: "generation_update",
+          data: {
+            songId: alternateSong.id,
+            parentSongId: id,
+            status: "ready",
+            title: alternateSong.title,
+            audioUrl: alternateSong.audioUrl,
+            imageUrl: alternateSong.imageUrl,
           },
         });
       }
 
+      const alternateCount = taskResult.songs.length - 1;
       invalidateByPrefix(`dashboard-stats:${song.userId}`);
       broadcast(song.userId, {
         type: "generation_update",
-        data: { songId: id, status: "ready", title: updated.title, audioUrl: updated.audioUrl, imageUrl: updated.imageUrl },
+        data: { songId: id, status: "ready", title: updated.title, audioUrl: updated.audioUrl, imageUrl: updated.imageUrl, alternateCount },
       });
       return NextResponse.json({ song: updated });
     }
