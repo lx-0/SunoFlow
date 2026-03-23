@@ -1,25 +1,28 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import {
   UsersIcon,
   MusicalNoteIcon,
   BoltIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
+
+const AdminGenerationsBarChart = dynamic(
+  () => import("@/components/analytics/AdminAnalyticsCharts").then((mod) => mod.AdminGenerationsBarChart),
+  { ssr: false, loading: () => <div className="h-[250px] animate-pulse bg-gray-800 rounded" /> }
+);
+
+const DailyActiveUsersChart = dynamic(
+  () => import("@/components/analytics/AdminAnalyticsCharts").then((mod) => mod.DailyActiveUsersChart),
+  { ssr: false, loading: () => <div className="h-[200px] animate-pulse bg-gray-800 rounded" /> }
+);
+
+const AdminGenrePieChart = dynamic(
+  () => import("@/components/analytics/AdminAnalyticsCharts").then((mod) => mod.AdminGenrePieChart),
+  { ssr: false, loading: () => <div className="h-[200px] animate-pulse bg-gray-800 rounded" /> }
+);
 
 interface AdminAnalytics {
   totalUsers: number;
@@ -46,10 +49,6 @@ const RANGE_OPTIONS = [
   { value: "all", label: "All time" },
 ];
 
-const PIE_COLORS = [
-  "#7c3aed", "#a78bfa", "#c4b5fd", "#8b5cf6", "#6d28d9",
-  "#5b21b6", "#4c1d95", "#ddd6fe", "#ede9fe", "#f5f3ff",
-];
 
 function StatCard({
   label,
@@ -140,75 +139,13 @@ export default function AdminAnalyticsPage() {
       {/* Generations per day chart */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
         <h2 className="text-lg font-semibold mb-4">Generations Per Day</h2>
-        {data.dailyGenerations.length > 0 ? (
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={data.dailyGenerations}>
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 10, fill: "#9ca3af" }}
-                tickFormatter={(v: string) => v.slice(5)}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                tick={{ fontSize: 10, fill: "#9ca3af" }}
-                allowDecimals={false}
-                width={40}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#1f2937",
-                  border: "1px solid #374151",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                  color: "#fff",
-                }}
-              />
-              <Bar dataKey="count" fill="#7c3aed" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <p className="text-gray-500 text-sm">No data for this period</p>
-        )}
+        <AdminGenerationsBarChart data={data.dailyGenerations} />
       </div>
 
       {/* Daily Active Users chart */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
         <h2 className="text-lg font-semibold mb-4">Daily Active Users</h2>
-        {data.dailyActiveUsers.length > 0 ? (
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={data.dailyActiveUsers}>
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 10, fill: "#9ca3af" }}
-                tickFormatter={(v: string) => v.slice(5)}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                tick={{ fontSize: 10, fill: "#9ca3af" }}
-                allowDecimals={false}
-                width={30}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#1f2937",
-                  border: "1px solid #374151",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                  color: "#fff",
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="count"
-                stroke="#7c3aed"
-                strokeWidth={2}
-                dot={{ fill: "#7c3aed", r: 3 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        ) : (
-          <p className="text-gray-500 text-sm">No data for this period</p>
-        )}
+        <DailyActiveUsersChart data={data.dailyActiveUsers} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -216,52 +153,7 @@ export default function AdminAnalyticsPage() {
         {data.popularGenres.length > 0 && (
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
             <h2 className="text-lg font-semibold mb-4">Popular Genres</h2>
-            <div className="flex flex-col items-center gap-4">
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={data.popularGenres}
-                    dataKey="count"
-                    nameKey="genre"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    innerRadius={40}
-                  >
-                    {data.popularGenres.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#1f2937",
-                      border: "1px solid #374151",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                      color: "#fff",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {data.popularGenres.map((g, i) => (
-                  <span
-                    key={g.genre}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-                    style={{
-                      backgroundColor: `${PIE_COLORS[i % PIE_COLORS.length]}20`,
-                      color: PIE_COLORS[i % PIE_COLORS.length],
-                    }}
-                  >
-                    <span
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
-                    />
-                    {g.genre} ({g.count})
-                  </span>
-                ))}
-              </div>
-            </div>
+            <AdminGenrePieChart data={data.popularGenres} />
           </div>
         )}
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { AppShell } from "@/components/AppShell";
 import {
   MusicalNoteIcon,
@@ -10,17 +11,16 @@ import {
   CheckCircleIcon,
   ChartBarIcon,
 } from "@heroicons/react/24/outline";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
+
+const GenerationsBarChart = dynamic(
+  () => import("@/components/analytics/UserAnalyticsCharts").then((mod) => mod.GenerationsBarChart),
+  { ssr: false, loading: () => <div className="h-[200px] animate-pulse bg-gray-100 dark:bg-gray-800 rounded" /> }
+);
+
+const GenrePieChart = dynamic(
+  () => import("@/components/analytics/UserAnalyticsCharts").then((mod) => mod.GenrePieChart),
+  { ssr: false, loading: () => <div className="h-[200px] animate-pulse bg-gray-100 dark:bg-gray-800 rounded" /> }
+);
 
 interface UserAnalytics {
   totalGenerations: number;
@@ -41,10 +41,6 @@ interface UserAnalytics {
   dailyGenerations: Array<{ date: string; count: number }>;
 }
 
-const PIE_COLORS = [
-  "#7c3aed", "#a78bfa", "#c4b5fd", "#8b5cf6", "#6d28d9",
-  "#5b21b6", "#4c1d95", "#ddd6fe", "#ede9fe", "#f5f3ff",
-];
 
 function StatCard({
   label,
@@ -134,35 +130,7 @@ export default function AnalyticsPage() {
           <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">
             Generations (Last 30 Days)
           </h2>
-          {data.dailyGenerations.length > 0 ? (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={data.dailyGenerations}>
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 10, fill: "#9ca3af" }}
-                  tickFormatter={(v: string) => v.slice(5)}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  tick={{ fontSize: 10, fill: "#9ca3af" }}
-                  allowDecimals={false}
-                  width={30}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#1f2937",
-                    border: "1px solid #374151",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                    color: "#fff",
-                  }}
-                />
-                <Bar dataKey="count" fill="#7c3aed" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-gray-500 dark:text-gray-400 text-sm">No data yet</p>
-          )}
+          <GenerationsBarChart data={data.dailyGenerations} />
         </div>
 
         {/* Genre breakdown */}
@@ -171,53 +139,7 @@ export default function AnalyticsPage() {
             <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">
               Genre Breakdown
             </h2>
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <ResponsiveContainer width="100%" height={200} className="sm:max-w-[200px]">
-                <PieChart>
-                  <Pie
-                    data={data.genreBreakdown}
-                    dataKey="count"
-                    nameKey="genre"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    innerRadius={40}
-                  >
-                    {data.genreBreakdown.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#1f2937",
-                      border: "1px solid #374151",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                      color: "#fff",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-wrap gap-2">
-                {data.genreBreakdown.map((g, i) => (
-                  <span
-                    key={g.genre}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
-                    style={{
-                      backgroundColor: `${PIE_COLORS[i % PIE_COLORS.length]}20`,
-                      color: PIE_COLORS[i % PIE_COLORS.length],
-                    }}
-                  >
-                    <span
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
-                    />
-                    {g.genre}
-                    <span className="opacity-60">{g.count}</span>
-                  </span>
-                ))}
-              </div>
-            </div>
+            <GenrePieChart data={data.genreBreakdown} />
           </div>
         )}
 
