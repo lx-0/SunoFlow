@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useSSE, SSEEventHandler } from "./useSSE";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 export type GenerationStatus = "pending" | "processing" | "ready" | "failed";
 
@@ -16,7 +15,7 @@ const POLL_INTERVAL_MS = 3000;
 const MAX_POLLS = 40;
 
 /**
- * Tracks generation progress using SSE for real-time updates,
+ * Tracks generation progress using per-job SSE streams for real-time updates,
  * with automatic fallback to polling when SSE is unavailable.
  */
 export function useGenerationPoller() {
@@ -26,7 +25,7 @@ export function useGenerationPoller() {
     new Map()
   );
   const pollCountRef = useRef<Map<string, number>>(new Map());
-  const trackedSongIdsRef = useRef<Set<string>>(new Set());
+  const eventSourcesRef = useRef<Map<string, EventSource>>(new Map());
 
   const stopPolling = useCallback((songId: string) => {
     const interval = intervalsRef.current.get(songId);
@@ -37,6 +36,49 @@ export function useGenerationPoller() {
     pollCountRef.current.delete(songId);
   }, []);
 
+  const closeSSE = useCallback((songId: string) => {
+    const es = eventSourcesRef.current.get(songId);
+    if (es) {
+      es.close();
+      eventSourcesRef.current.delete(songId);
+    }
+  }, []);
+
+  const stopTracking = useCallback(
+    (songId: string) => {
+      stopPolling(songId);
+      closeSSE(songId);
+    },
+    [stopPolling, closeSSE]
+  );
+
+  const updateSong = useCallback(
+    (
+      songId: string,
+      status: GenerationStatus,
+      title?: string | null,
+      errorMessage?: string | null
+    ) => {
+      setSongs((prev) =>
+        prev.map((s) =>
+          s.songId === songId
+            ? {
+                ...s,
+                status,
+                title: title ?? s.title,
+                errorMessage: errorMessage ?? null,
+              }
+            : s
+        )
+      );
+
+      if (status === "ready" || status === "failed") {
+        stopTracking(songId);
+      }
+    },
+    [stopTracking]
+  );
+
   const pollSong = useCallback(
     async (songId: string) => {
       if (!activeRef.current) return;
@@ -45,14 +87,7 @@ export function useGenerationPoller() {
       pollCountRef.current.set(songId, count);
 
       if (count > MAX_POLLS) {
-        setSongs((prev) =>
-          prev.map((s) =>
-            s.songId === songId
-              ? { ...s, status: "failed", errorMessage: "Generation timed out" }
-              : s
-          )
-        );
-        stopPolling(songId);
+        updateSong(songId, "failed", null, "Generation timed out");
         return;
       }
 
@@ -71,71 +106,19 @@ export function useGenerationPoller() {
                 ? "processing"
                 : "pending";
 
-        setSongs((prev) =>
-          prev.map((s) =>
-            s.songId === songId
-              ? {
-                  ...s,
-                  status: newStatus,
-                  title: info.title ?? s.title,
-                  errorMessage: info.errorMessage ?? null,
-                }
-              : s
-          )
-        );
-
-        if (newStatus === "ready" || newStatus === "failed") {
-          stopPolling(songId);
-        }
+        updateSong(songId, newStatus, info.title, info.errorMessage);
       } catch {
         // Network error — keep polling
       }
     },
-    [stopPolling]
+    [updateSong]
   );
 
-  // Handle SSE generation updates — update state instantly
-  const handleGenerationUpdate: SSEEventHandler = useCallback((data) => {
-    const songId = data.songId as string;
-    if (!songId || !trackedSongIdsRef.current.has(songId)) return;
-
-    const status = data.status as string;
-    const newStatus: GenerationStatus =
-      status === "ready" ? "ready" : status === "failed" ? "failed" : "processing";
-
-    setSongs((prev) =>
-      prev.map((s) =>
-        s.songId === songId
-          ? {
-              ...s,
-              status: newStatus,
-              title: (data.title as string) ?? s.title,
-              errorMessage: (data.errorMessage as string) ?? null,
-            }
-          : s
-      )
-    );
-
-    // Stop polling for this song since we got a terminal SSE event
-    if (newStatus === "ready" || newStatus === "failed") {
-      stopPolling(songId);
-    }
-  }, [stopPolling]);
-
-  const handlers = useMemo(() => ({
-    generation_update: handleGenerationUpdate,
-  }), [handleGenerationUpdate]);
-
-  // SSE is enabled whenever we have songs being tracked
-  const hasActiveSongs = songs.some((s) => s.status === "pending" || s.status === "processing");
-  const { getConnected } = useSSE({
-    handlers,
-    enabled: hasActiveSongs,
-  });
-
-  const startPolling = useCallback(
+  const startPollingFallback = useCallback(
     (songId: string) => {
-      // Always start polling as a fallback; SSE events will stop it early if connected
+      // Don't start if already polling
+      if (intervalsRef.current.has(songId)) return;
+
       pollCountRef.current.set(songId, 0);
       const interval = setInterval(() => pollSong(songId), POLL_INTERVAL_MS);
       intervalsRef.current.set(songId, interval);
@@ -144,10 +127,44 @@ export function useGenerationPoller() {
     [pollSong]
   );
 
+  const connectSSE = useCallback(
+    (songId: string) => {
+      // Don't create duplicate connections
+      if (eventSourcesRef.current.has(songId)) return;
+
+      const es = new EventSource(`/api/generate/${songId}/stream`);
+      eventSourcesRef.current.set(songId, es);
+
+      es.addEventListener("generation_update", (e: MessageEvent) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.songId !== songId) return;
+
+          const status: GenerationStatus =
+            data.status === "ready"
+              ? "ready"
+              : data.status === "failed"
+                ? "failed"
+                : "processing";
+
+          updateSong(songId, status, data.title, data.errorMessage);
+        } catch {
+          // Invalid JSON — ignore
+        }
+      });
+
+      es.onerror = () => {
+        // SSE failed — close and fall back to polling
+        closeSSE(songId);
+        startPollingFallback(songId);
+      };
+    },
+    [updateSong, closeSSE, startPollingFallback]
+  );
+
   const trackSong = useCallback(
     (songId: string, title: string | null) => {
       if (!songId) return;
-      trackedSongIdsRef.current.add(songId);
 
       setSongs((prev) => {
         if (prev.some((s) => s.songId === songId)) return prev;
@@ -157,35 +174,39 @@ export function useGenerationPoller() {
         ];
       });
 
-      // If SSE is connected, polling serves as a slower fallback
-      // If SSE is not connected, polling is the primary mechanism
-      startPolling(songId);
+      // Try SSE first; falls back to polling on error
+      connectSSE(songId);
     },
-    [startPolling]
+    [connectSSE]
   );
 
   const clearAll = useCallback(() => {
-    const currentIntervals = intervalsRef.current;
-    Array.from(currentIntervals.keys()).forEach((songId) => {
-      stopPolling(songId);
-    });
-    trackedSongIdsRef.current.clear();
+    Array.from(intervalsRef.current.keys()).forEach(stopPolling);
+    Array.from(eventSourcesRef.current.keys()).forEach(closeSSE);
     setSongs([]);
-  }, [stopPolling]);
+  }, [stopPolling, closeSSE]);
 
   useEffect(() => {
     activeRef.current = true;
+    const intervals = intervalsRef.current;
+    const pollCounts = pollCountRef.current;
+    const eventSources = eventSourcesRef.current;
     return () => {
       activeRef.current = false;
-      const currentIntervals = intervalsRef.current;
-      const currentPollCounts = pollCountRef.current;
-      Array.from(currentIntervals.values()).forEach((interval) => {
+      Array.from(intervals.values()).forEach((interval) => {
         clearInterval(interval);
       });
-      currentIntervals.clear();
-      currentPollCounts.clear();
+      intervals.clear();
+      pollCounts.clear();
+      Array.from(eventSources.values()).forEach((es) => es.close());
+      eventSources.clear();
     };
   }, []);
 
-  return { songs, trackSong, clearAll, sseConnected: getConnected };
+  const sseConnected = useCallback(
+    () => eventSourcesRef.current.size > 0,
+    []
+  );
+
+  return { songs, trackSong, clearAll, sseConnected };
 }
