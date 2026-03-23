@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       );
       return NextResponse.json(
         {
-          error: `Rate limit exceeded. You can generate up to ${rateLimitStatus.limit} songs per hour.`,
+          error: `Rate limit exceeded. You can generate up to ${rateLimitStatus.limit} songs per hour.`, code: "RATE_LIMIT",
           resetAt: rateLimitStatus.resetAt,
           rateLimit: rateLimitStatus,
         },
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
 
     if (mode !== "cover" && mode !== "extend") {
       return NextResponse.json(
-        { error: 'Mode must be "cover" or "extend"' },
+        { error: 'Mode must be "cover" or "extend"', code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "Either a base64-encoded file or a file URL is required",
+            "Either a base64-encoded file or a file URL is required", code: "VALIDATION_ERROR",
         },
         { status: 400 }
       );
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
 
     if (base64Data && fileUrl) {
       return NextResponse.json(
-        { error: "Provide either base64Data or fileUrl, not both" },
+        { error: "Provide either base64Data or fileUrl, not both", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "No API key configured. Set your API key in Settings or contact an admin.",
+            "No API key configured. Set your API key in Settings or contact an admin.", code: "VALIDATION_ERROR",
         },
         { status: 400 }
       );
@@ -215,7 +215,7 @@ export async function POST(request: Request) {
   } catch (error) {
     logServerError("upload-route", error, { route: "/api/upload" });
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

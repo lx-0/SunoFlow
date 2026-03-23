@@ -17,7 +17,7 @@ export async function GET(
     });
 
     if (!song) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -26,7 +26,7 @@ export async function GET(
     });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }
@@ -46,7 +46,7 @@ export async function PATCH(
     });
 
     if (!song) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     const body = await request.json();
@@ -55,7 +55,7 @@ export async function PATCH(
     const note = rawNote && rawNote.length > 500 ? rawNote.slice(0, 500) : rawNote;
 
     if (typeof stars !== "number" || stars < 0 || stars > 5 || !Number.isInteger(stars)) {
-      return NextResponse.json({ error: "stars must be an integer 0-5" }, { status: 400 });
+      return NextResponse.json({ error: "stars must be an integer 0-5", code: "VALIDATION_ERROR" }, { status: 400 });
     }
 
     const updated = await prisma.song.update({
@@ -74,7 +74,7 @@ export async function PATCH(
     });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

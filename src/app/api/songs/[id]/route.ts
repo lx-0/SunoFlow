@@ -25,7 +25,7 @@ export async function GET(
     });
 
     if (!song) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     const { favorites, _count, ...rest } = song;
@@ -58,7 +58,7 @@ export async function GET(
   } catch (error) {
     logServerError("song-detail", error, { route: "/api/songs/[id]" });
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

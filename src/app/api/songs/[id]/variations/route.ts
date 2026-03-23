@@ -33,7 +33,7 @@ export async function GET(
 
     const song = await prisma.song.findUnique({ where: { id } });
     if (!song || song.userId !== userId) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     // Find the root song (walk up the parent chain)
@@ -89,7 +89,7 @@ export async function GET(
     });
   } catch (error) {
     logServerError("variations-list", error, { route: "/api/songs/variations" });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }
 
@@ -107,7 +107,7 @@ export async function POST(
     // Verify parent song exists and belongs to user
     const parentSong = await prisma.song.findUnique({ where: { id: parentId } });
     if (!parentSong || parentSong.userId !== userId) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     // Find the root song for variation counting
@@ -119,7 +119,7 @@ export async function POST(
     });
     if (variationCount >= MAX_VARIATIONS) {
       return NextResponse.json(
-        { error: `Maximum ${MAX_VARIATIONS} variations per song reached.` },
+        { error: `Maximum ${MAX_VARIATIONS} variations per song reached.`, code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -132,7 +132,7 @@ export async function POST(
         Math.ceil((new Date(rateLimitStatus.resetAt).getTime() - Date.now()) / 1000)
       );
       return NextResponse.json(
-        { error: `Rate limit exceeded. You can generate up to ${rateLimitStatus.limit} songs per hour.`, resetAt: rateLimitStatus.resetAt, rateLimit: rateLimitStatus },
+        { error: `Rate limit exceeded. You can generate up to ${rateLimitStatus.limit} songs per hour.`, code: "RATE_LIMIT", resetAt: rateLimitStatus.resetAt, rateLimit: rateLimitStatus },
         { status: 429, headers: { "Retry-After": String(retryAfterSec) } }
       );
     }
@@ -145,7 +145,7 @@ export async function POST(
     const makeInstrumental = body.makeInstrumental ?? parentSong.isInstrumental;
 
     if (!prompt) {
-      return NextResponse.json({ error: "A prompt is required" }, { status: 400 });
+      return NextResponse.json({ error: "A prompt is required", code: "VALIDATION_ERROR" }, { status: 400 });
     }
 
     const userApiKey = await resolveUserApiKey(userId);
@@ -221,6 +221,6 @@ export async function POST(
     );
   } catch (error) {
     logServerError("variation-route", error, { route: "/api/songs/variations" });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

@@ -18,7 +18,7 @@ export async function GET(
       where: { id: params.id, userId: userId },
     });
     if (!song) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     const songTags = await prisma.songTag.findMany({
@@ -29,7 +29,7 @@ export async function GET(
 
     return NextResponse.json({ tags: songTags.map((st) => st.tag) });
   } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }
 
@@ -46,7 +46,7 @@ export async function POST(
       where: { id: params.id, userId: userId },
     });
     if (!song) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     const body = await request.json();
@@ -54,17 +54,17 @@ export async function POST(
     const tagId = typeof body.tagId === "string" ? body.tagId : "";
 
     if (!tagName && !tagId) {
-      return NextResponse.json({ error: "Tag name or tagId required" }, { status: 400 });
+      return NextResponse.json({ error: "Tag name or tagId required", code: "VALIDATION_ERROR" }, { status: 400 });
     }
 
     if (tagName && tagName.length > 50) {
-      return NextResponse.json({ error: "Tag name must be 50 characters or less" }, { status: 400 });
+      return NextResponse.json({ error: "Tag name must be 50 characters or less", code: "VALIDATION_ERROR" }, { status: 400 });
     }
 
     // Check tags-per-song limit
     const songTagCount = await prisma.songTag.count({ where: { songId: song.id } });
     if (songTagCount >= MAX_TAGS_PER_SONG) {
-      return NextResponse.json({ error: `Maximum ${MAX_TAGS_PER_SONG} tags per song` }, { status: 400 });
+      return NextResponse.json({ error: `Maximum ${MAX_TAGS_PER_SONG} tags per song`, code: "VALIDATION_ERROR" }, { status: 400 });
     }
 
     let tag;
@@ -73,7 +73,7 @@ export async function POST(
         where: { id: tagId, userId: userId },
       });
       if (!tag) {
-        return NextResponse.json({ error: "Tag not found" }, { status: 404 });
+        return NextResponse.json({ error: "Tag not found", code: "NOT_FOUND" }, { status: 404 });
       }
     } else {
       // Find or create tag by name
@@ -84,7 +84,7 @@ export async function POST(
         // Check user tag limit before creating
         const userTagCount = await prisma.tag.count({ where: { userId: userId } });
         if (userTagCount >= MAX_TAGS_PER_USER) {
-          return NextResponse.json({ error: `Maximum ${MAX_TAGS_PER_USER} tags allowed` }, { status: 400 });
+          return NextResponse.json({ error: `Maximum ${MAX_TAGS_PER_USER} tags allowed`, code: "VALIDATION_ERROR" }, { status: 400 });
         }
         tag = await prisma.tag.create({
           data: { name: tagName, userId: userId },
@@ -106,6 +106,6 @@ export async function POST(
 
     return NextResponse.json({ tag }, { status: 201 });
   } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

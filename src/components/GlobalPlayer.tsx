@@ -24,7 +24,7 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export function GlobalPlayer() {
+export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean }) {
   const {
     queue,
     currentIndex,
@@ -54,7 +54,7 @@ export function GlobalPlayer() {
   const pct = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div role="region" aria-label="Audio player" className="fixed bottom-16 left-0 right-0 z-20 px-2 md:bottom-0 md:left-56">
+    <div role="region" aria-label="Audio player" className={`fixed bottom-16 left-0 right-0 z-20 px-2 md:bottom-0 transition-all duration-200 ${sidebarCollapsed ? "md:left-16" : "md:left-56"}`}>
       <div className="bg-gray-900 dark:bg-gray-800 rounded-2xl md:rounded-none md:rounded-t-2xl shadow-2xl border border-gray-700 dark:border-gray-600 overflow-hidden max-w-3xl mx-auto md:mx-0">
         {/* Seek bar (top edge) */}
         <div className="relative h-1 bg-gray-700">

@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       );
       return NextResponse.json(
         {
-          error: `Rate limit exceeded. You can generate up to ${rateLimitStatus.limit} songs per hour.`,
+          error: `Rate limit exceeded. You can generate up to ${rateLimitStatus.limit} songs per hour.`, code: "RATE_LIMIT",
           resetAt: rateLimitStatus.resetAt,
           rateLimit: rateLimitStatus,
         },
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
 
     if (!trackA || !trackB) {
       return NextResponse.json(
-        { error: "Two tracks are required for a mashup" },
+        { error: "Two tracks are required for a mashup", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "No API key configured. Set your API key in Settings or contact an admin.",
+            "No API key configured. Set your API key in Settings or contact an admin.", code: "VALIDATION_ERROR",
         },
         { status: 400 }
       );
@@ -205,7 +205,7 @@ export async function POST(request: Request) {
   } catch (error) {
     logServerError("mashup-route", error, { route: "/api/mashup" });
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

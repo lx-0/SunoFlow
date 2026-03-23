@@ -34,7 +34,7 @@ export async function POST(
 
     const parentSong = await prisma.song.findUnique({ where: { id: songId } });
     if (!parentSong || parentSong.userId !== userId) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     const rootId = parentSong.parentSongId ?? songId;
@@ -42,7 +42,7 @@ export async function POST(
     const variationCount = await prisma.song.count({ where: { parentSongId: rootId } });
     if (variationCount >= MAX_VARIATIONS) {
       return NextResponse.json(
-        { error: `Maximum ${MAX_VARIATIONS} variations per song reached.` },
+        { error: `Maximum ${MAX_VARIATIONS} variations per song reached.`, code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -56,34 +56,34 @@ export async function POST(
     const negativeTags = body.negativeTags?.trim() || undefined;
 
     if (infillStartS == null || infillEndS == null) {
-      return NextResponse.json({ error: "Start and end times are required." }, { status: 400 });
+      return NextResponse.json({ error: "Start and end times are required.", code: "VALIDATION_ERROR" }, { status: 400 });
     }
     if (infillStartS < 0 || infillEndS <= infillStartS) {
-      return NextResponse.json({ error: "Invalid time range. End must be after start." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid time range. End must be after start.", code: "VALIDATION_ERROR" }, { status: 400 });
     }
     const sectionLen = infillEndS - infillStartS;
     if (sectionLen < MIN_SECTION_S) {
-      return NextResponse.json({ error: `Section must be at least ${MIN_SECTION_S} seconds.` }, { status: 400 });
+      return NextResponse.json({ error: `Section must be at least ${MIN_SECTION_S} seconds.`, code: "VALIDATION_ERROR" }, { status: 400 });
     }
     if (sectionLen > MAX_SECTION_S) {
-      return NextResponse.json({ error: `Section must be at most ${MAX_SECTION_S} seconds.` }, { status: 400 });
+      return NextResponse.json({ error: `Section must be at most ${MAX_SECTION_S} seconds.`, code: "VALIDATION_ERROR" }, { status: 400 });
     }
     if (parentSong.duration && sectionLen > parentSong.duration * MAX_SECTION_RATIO) {
-      return NextResponse.json({ error: "Section must be at most 50% of the song duration." }, { status: 400 });
+      return NextResponse.json({ error: "Section must be at most 50% of the song duration.", code: "VALIDATION_ERROR" }, { status: 400 });
     }
 
     if (!prompt) {
-      return NextResponse.json({ error: "A replacement prompt is required." }, { status: 400 });
+      return NextResponse.json({ error: "A replacement prompt is required.", code: "VALIDATION_ERROR" }, { status: 400 });
     }
     if (!tags) {
-      return NextResponse.json({ error: "Style tags are required." }, { status: 400 });
+      return NextResponse.json({ error: "Style tags are required.", code: "VALIDATION_ERROR" }, { status: 400 });
     }
 
     const { acquired, status: rateLimitStatus } = await acquireRateLimitSlot(userId);
     if (!acquired) {
       const retryAfterSec = Math.max(1, Math.ceil((new Date(rateLimitStatus.resetAt).getTime() - Date.now()) / 1000));
       return NextResponse.json(
-        { error: `Rate limit exceeded. You can generate up to ${rateLimitStatus.limit} songs per hour.`, resetAt: rateLimitStatus.resetAt, rateLimit: rateLimitStatus },
+        { error: `Rate limit exceeded. You can generate up to ${rateLimitStatus.limit} songs per hour.`, code: "RATE_LIMIT", resetAt: rateLimitStatus.resetAt, rateLimit: rateLimitStatus },
         { status: 429, headers: { "Retry-After": String(retryAfterSec) } }
       );
     }
@@ -112,7 +112,7 @@ export async function POST(
       });
     } else {
       if (!parentSong.sunoJobId) {
-        return NextResponse.json({ error: "Cannot replace section on a song without a Suno audio ID." }, { status: 400 });
+        return NextResponse.json({ error: "Cannot replace section on a song without a Suno audio ID.", code: "VALIDATION_ERROR" }, { status: 400 });
       }
 
       // replaceSection needs both taskId and audioId from the parent's sunoJobId
@@ -168,6 +168,6 @@ export async function POST(
     return NextResponse.json({ song: savedSong, rateLimit: rateLimitStatus }, { status: 201 });
   } catch (error) {
     logServerError("replace-section-route", error, { route: "/api/songs/replace-section" });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

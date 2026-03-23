@@ -11,7 +11,7 @@ export async function POST(request: Request) {
 
   if (!Array.isArray(orderedIds)) {
     return NextResponse.json(
-      { error: "orderedIds must be an array" },
+      { error: "orderedIds must be an array", code: "VALIDATION_ERROR" },
       { status: 400 }
     );
   }

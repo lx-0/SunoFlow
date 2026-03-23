@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ personas });
   } catch (error) {
     logServerError("personas-list", error, { route: "/api/personas" });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }
 
@@ -34,24 +34,24 @@ export async function POST(request: Request) {
 
     if (!taskId || !audioId || !name) {
       return NextResponse.json(
-        { error: "taskId, audioId, and name are required" },
+        { error: "taskId, audioId, and name are required", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
 
     if (typeof name !== "string" || name.length > 100) {
-      return NextResponse.json({ error: "Name must be 100 characters or less" }, { status: 400 });
+      return NextResponse.json({ error: "Name must be 100 characters or less", code: "VALIDATION_ERROR" }, { status: 400 });
     }
 
     if (description && typeof description === "string" && description.length > 500) {
-      return NextResponse.json({ error: "Description must be 500 characters or less" }, { status: 400 });
+      return NextResponse.json({ error: "Description must be 500 characters or less", code: "VALIDATION_ERROR" }, { status: 400 });
     }
 
     // Check persona limit (max 50 per user)
     const count = await prisma.persona.count({ where: { userId } });
     if (count >= 50) {
       return NextResponse.json(
-        { error: "Maximum of 50 personas reached. Delete some to create new ones." },
+        { error: "Maximum of 50 personas reached. Delete some to create new ones.", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -92,6 +92,6 @@ export async function POST(request: Request) {
       );
     }
     logServerError("personas-create", error, { route: "/api/personas" });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

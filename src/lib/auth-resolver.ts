@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { resolveApiKeyUser } from "@/lib/api-key-auth";
 import { NextResponse } from "next/server";
+import { unauthorized } from "@/lib/api-error";
 
 export type AuthResult =
   | { userId: string; isApiKey: boolean; error: null }
@@ -28,6 +29,6 @@ export async function resolveUser(request: Request): Promise<AuthResult> {
   return {
     userId: null,
     isApiKey: false,
-    error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    error: unauthorized(),
   };
 }

@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   });
 
   if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
+    return NextResponse.json({ error: "User not found", code: "NOT_FOUND" }, { status: 404 });
   }
 
   // Return masked key so the full key is never exposed to the client after saving
@@ -34,7 +34,7 @@ export async function PATCH(request: Request) {
 
   if (typeof sunoApiKey !== "string") {
     return NextResponse.json(
-      { error: "sunoApiKey must be a string" },
+      { error: "sunoApiKey must be a string", code: "VALIDATION_ERROR" },
       { status: 400 }
     );
   }

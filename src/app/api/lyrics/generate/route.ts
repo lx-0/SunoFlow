@@ -22,14 +22,14 @@ export async function POST(request: Request) {
 
     if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
       return NextResponse.json(
-        { error: "A lyrics prompt is required" },
+        { error: "A lyrics prompt is required", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
 
     if (prompt.length > 2000) {
       return NextResponse.json(
-        { error: "Prompt must be 2000 characters or less" },
+        { error: "Prompt must be 2000 characters or less", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       );
       return NextResponse.json(
         {
-          error: "Rate limit exceeded. Please try again later.",
+          error: "Rate limit exceeded. Please try again later.", code: "RATE_LIMIT",
           resetAt: rateLimitStatus.resetAt,
           rateLimit: rateLimitStatus,
         },
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
 
     if (!lyrics) {
       return NextResponse.json(
-        { error: "Lyrics generation failed. Please try again." },
+        { error: "Lyrics generation failed. Please try again.", code: "INTERNAL_ERROR" },
         { status: 500 }
       );
     }
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
       route: "/api/lyrics/generate",
     });
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

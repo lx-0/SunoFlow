@@ -113,7 +113,7 @@ describe("POST /api/generate", () => {
     vi.mocked(resolveUser).mockResolvedValue({
       userId: null,
       isApiKey: false,
-      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+      error: NextResponse.json({ error: "Unauthorized", code: "UNAUTHORIZED" }, { status: 401 }),
     });
     const res = await POST(makeRequest(DEFAULT_BODY));
     expect(res.status).toBe(401);

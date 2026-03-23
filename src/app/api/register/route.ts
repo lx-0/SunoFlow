@@ -10,28 +10,28 @@ export async function POST(request: Request) {
 
     if (!email || !password) {
       return NextResponse.json(
-        { error: "Email and password are required" },
+        { error: "Email and password are required", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
 
     if (typeof email !== "string" || email.length > 255) {
       return NextResponse.json(
-        { error: "Invalid email" },
+        { error: "Invalid email", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
 
     if (name !== undefined && (typeof name !== "string" || name.length > 100)) {
       return NextResponse.json(
-        { error: "Name must be 100 characters or less" },
+        { error: "Name must be 100 characters or less", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
 
     if (typeof password !== "string" || password.length < 8 || password.length > 128) {
       return NextResponse.json(
-        { error: "Password must be between 8 and 128 characters" },
+        { error: "Password must be between 8 and 128 characters", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       return NextResponse.json(
-        { error: "Email already registered" },
+        { error: "Email already registered", code: "CONFLICT" },
         { status: 409 }
       );
     }
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
   } catch (err) {
     console.error("Register error:", err);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

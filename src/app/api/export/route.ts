@@ -20,14 +20,14 @@ export async function GET(request: NextRequest) {
 
     if (!["json", "csv"].includes(format)) {
       return NextResponse.json(
-        { error: "Invalid format. Use 'json' or 'csv'." },
+        { error: "Invalid format. Use 'json' or 'csv'.", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
 
     if (!["songs", "playlists", "all"].includes(type)) {
       return NextResponse.json(
-        { error: "Invalid type. Use 'songs', 'playlists', or 'all'." },
+        { error: "Invalid type. Use 'songs', 'playlists', or 'all'.", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
     return jsonResponse(data, filename);
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

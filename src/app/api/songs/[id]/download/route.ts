@@ -19,12 +19,12 @@ export async function GET(
     });
 
     if (!song) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     if (!song.audioUrl) {
       return NextResponse.json(
-        { error: "No audio available" },
+        { error: "No audio available", code: "NOT_FOUND" },
         { status: 404 }
       );
     }
@@ -37,7 +37,7 @@ export async function GET(
     if (!acquired) {
       return NextResponse.json(
         {
-          error: "Download rate limit exceeded. Try again later.",
+          error: "Download rate limit exceeded. Try again later.", code: "RATE_LIMIT",
           resetAt: status.resetAt,
         },
         {
@@ -58,7 +58,7 @@ export async function GET(
     const upstream = await fetch(song.audioUrl);
     if (!upstream.ok) {
       return NextResponse.json(
-        { error: "Failed to fetch audio from source" },
+        { error: "Failed to fetch audio from source", code: "INTERNAL_ERROR" },
         { status: 502 }
       );
     }
@@ -104,7 +104,7 @@ export async function GET(
     return new Response(upstream.body, { status: 200, headers });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

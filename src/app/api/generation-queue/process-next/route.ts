@@ -7,6 +7,7 @@ import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 import { mockSongs } from "@/lib/sunoapi/mock";
 import { logServerError } from "@/lib/error-logger";
 import { SUNOAPI_KEY } from "@/lib/env";
+import { rateLimited, internalError, ErrorCode } from "@/lib/api-error";
 import {
   recordCreditUsage,
   shouldNotifyLowCredits,
@@ -16,19 +17,19 @@ import {
 } from "@/lib/credits";
 import { invalidateByPrefix } from "@/lib/cache";
 
-function userFriendlyError(error: unknown): string {
+function userFriendlyError(error: unknown): { message: string; code: string } {
   if (error instanceof SunoApiError) {
     if (error.status === 429)
-      return "The music generation service is busy (Suno 429). Please try again in a few minutes.";
+      return { message: "The music generation service is busy. Please try again in a few minutes.", code: ErrorCode.SUNO_RATE_LIMIT };
     if (error.status === 400)
-      return "Invalid generation parameters (Suno 400). Please adjust your prompt and try again.";
+      return { message: "Invalid generation parameters. Please adjust your prompt and try again.", code: ErrorCode.VALIDATION_ERROR };
     if (error.status === 401 || error.status === 403)
-      return `API authentication failed (Suno ${error.status}). Please check your API key in settings.`;
+      return { message: "API authentication failed. Please check your API key in settings.", code: ErrorCode.SUNO_AUTH_ERROR };
     if (error.status >= 500)
-      return `The music generation service is temporarily unavailable (Suno ${error.status}). Please try again later.`;
-    return `Generation failed (Suno ${error.status}): ${error.message}`;
+      return { message: "The music generation service is temporarily unavailable — please try again in a moment.", code: ErrorCode.SERVICE_UNAVAILABLE };
+    return { message: `Generation failed: ${error.message}`, code: ErrorCode.SUNO_API_ERROR };
   }
-  return "Song generation failed. Please try again.";
+  return { message: "Song generation failed. Please try again.", code: ErrorCode.INTERNAL_ERROR };
 }
 
 /**
@@ -65,12 +66,9 @@ export async function POST(request: Request) {
     const { acquired, status: rateLimitStatus } =
       await acquireRateLimitSlot(userId);
     if (!acquired) {
-      return NextResponse.json(
-        {
-          error: `Rate limit exceeded. Resets at ${rateLimitStatus.resetAt}`,
-          rateLimit: rateLimitStatus,
-        },
-        { status: 429 }
+      return rateLimited(
+        `Rate limit exceeded. Resets at ${rateLimitStatus.resetAt}`,
+        { rateLimit: rateLimitStatus }
       );
     }
 
@@ -128,12 +126,12 @@ export async function POST(request: Request) {
           },
         });
       } catch (apiError) {
-        logServerError("queue-process", apiError, {
+        const correlationId = logServerError("queue-process", apiError, {
           userId,
           route: "/api/generation-queue/process-next",
           params: { queueItemId: nextItem.id },
         });
-        const errorMsg = userFriendlyError(apiError);
+        const { message: errorMsg, code: errorCode } = userFriendlyError(apiError);
 
         song = await prisma.song.create({
           data: {
@@ -153,7 +151,13 @@ export async function POST(request: Request) {
         });
 
         return NextResponse.json(
-          { item: { ...nextItem, status: "failed", songId: song.id, errorMessage: errorMsg }, song },
+          {
+            item: { ...nextItem, status: "failed", songId: song.id, errorMessage: errorMsg },
+            song,
+            error: errorMsg,
+            code: errorCode,
+            correlationId,
+          },
           { status: 201 }
         );
       }
@@ -188,6 +192,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ item: { ...nextItem, status: queueStatus, songId: song.id }, song }, { status: 201 });
   } catch (error) {
     logServerError("queue-process-route", error, { route: "/api/generation-queue/process-next" });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return internalError();
   }
 }

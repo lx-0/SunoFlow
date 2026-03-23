@@ -14,14 +14,14 @@ export async function POST(request: Request) {
 
     if (!content || typeof content !== "string" || !content.trim()) {
       return NextResponse.json(
-        { error: "A style description is required" },
+        { error: "A style description is required", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
 
     if (content.length > 500) {
       return NextResponse.json(
-        { error: "Style description must be 500 characters or less" },
+        { error: "Style description must be 500 characters or less", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -43,6 +43,6 @@ export async function POST(request: Request) {
       );
     }
     logServerError("style-boost", error, { route: "/api/style-boost" });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

@@ -9,7 +9,7 @@ export async function POST() {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized", code: "UNAUTHORIZED" }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -18,7 +18,7 @@ export async function POST() {
     });
 
     if (!user || !user.email) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "User not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     if (user.emailVerified) {
@@ -29,7 +29,7 @@ export async function POST() {
     const { acquired } = await acquireRateLimitSlot(user.id, "verification_email");
     if (!acquired) {
       return NextResponse.json(
-        { error: "Too many requests. Please try again later." },
+        { error: "Too many requests. Please try again later.", code: "RATE_LIMIT" },
         { status: 429 }
       );
     }
@@ -47,7 +47,7 @@ export async function POST() {
   } catch (err) {
     console.error("Resend verification error:", err);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

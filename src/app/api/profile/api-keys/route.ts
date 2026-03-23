@@ -11,7 +11,7 @@ export async function GET() {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized", code: "UNAUTHORIZED" }, { status: 401 });
     }
 
     const keys = await prisma.apiKey.findMany({
@@ -29,7 +29,7 @@ export async function GET() {
     return NextResponse.json({ keys });
   } catch (error) {
     logServerError("api-keys", error, { route: "GET /api/profile/api-keys" });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }
 
@@ -38,17 +38,17 @@ export async function POST(request: Request) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized", code: "UNAUTHORIZED" }, { status: 401 });
     }
 
     const body = await request.json();
     const name = typeof body.name === "string" ? body.name.trim() : "";
 
     if (!name) {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 });
+      return NextResponse.json({ error: "Name is required", code: "VALIDATION_ERROR" }, { status: 400 });
     }
     if (name.length > 64) {
-      return NextResponse.json({ error: "Name must be 64 characters or less" }, { status: 400 });
+      return NextResponse.json({ error: "Name must be 64 characters or less", code: "VALIDATION_ERROR" }, { status: 400 });
     }
 
     // Enforce max active keys
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     });
     if (activeCount >= MAX_ACTIVE_KEYS) {
       return NextResponse.json(
-        { error: `Maximum of ${MAX_ACTIVE_KEYS} active API keys allowed` },
+        { error: `Maximum of ${MAX_ACTIVE_KEYS} active API keys allowed`, code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -82,6 +82,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ...created, key }, { status: 201 });
   } catch (error) {
     logServerError("api-keys", error, { route: "POST /api/profile/api-keys" });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ playlists });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }
@@ -36,21 +36,21 @@ export async function POST(request: Request) {
 
     if (!name || typeof name !== "string" || name.trim().length === 0) {
       return NextResponse.json(
-        { error: "Name is required" },
+        { error: "Name is required", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
 
     if (name.trim().length > 100) {
       return NextResponse.json(
-        { error: "Name must be 100 characters or less" },
+        { error: "Name must be 100 characters or less", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
 
     if (description && typeof description === "string" && description.length > 1000) {
       return NextResponse.json(
-        { error: "Description must be 1000 characters or less" },
+        { error: "Description must be 1000 characters or less", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
 
     if (count >= MAX_PLAYLISTS) {
       return NextResponse.json(
-        { error: `Maximum of ${MAX_PLAYLISTS} playlists reached` },
+        { error: `Maximum of ${MAX_PLAYLISTS} playlists reached`, code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ playlist }, { status: 201 });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

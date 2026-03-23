@@ -17,7 +17,7 @@ export async function POST(
     });
 
     if (!song) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     const favorite = await prisma.favorite.upsert({
@@ -33,7 +33,7 @@ export async function POST(
     return NextResponse.json({ isFavorite: true, favoriteCount: count, favoriteId: favorite.id });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }
@@ -53,7 +53,7 @@ export async function DELETE(
     });
 
     if (!song) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     await prisma.favorite.deleteMany({
@@ -67,7 +67,7 @@ export async function DELETE(
     return NextResponse.json({ isFavorite: false, favoriteCount: count });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
 
     if (feeds.length === 0) {
       return NextResponse.json(
-        { error: "No RSS feeds configured. Add feeds in Settings first." },
+        { error: "No RSS feeds configured. Add feeds in Settings first.", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
 
     if (allItems.length === 0) {
       return NextResponse.json(
-        { error: "No feed items found. Your RSS feeds may be empty or unreachable." },
+        { error: "No feed items found. Your RSS feeds may be empty or unreachable.", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -157,6 +157,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ prompts });
   } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

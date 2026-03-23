@@ -19,14 +19,20 @@ import {
 
 type ToastVariant = "success" | "error" | "info";
 
+interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface Toast {
   id: string;
   message: string;
   variant: ToastVariant;
+  action?: ToastAction;
 }
 
 interface ToastContextValue {
-  toast: (message: string, variant?: ToastVariant) => void;
+  toast: (message: string, variant?: ToastVariant, action?: ToastAction) => void;
 }
 
 // ─── Context ─────────────────────────────────────────────────────────────────
@@ -74,11 +80,13 @@ function ToastItem({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    timerRef.current = setTimeout(() => onDismiss(toast.id), AUTO_DISMISS_MS);
+    // Toasts with actions stay longer to give the user time to click
+    const delay = toast.action ? AUTO_DISMISS_MS * 2 : AUTO_DISMISS_MS;
+    timerRef.current = setTimeout(() => onDismiss(toast.id), delay);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [toast.id, onDismiss]);
+  }, [toast.id, toast.action, onDismiss]);
 
   return (
     <div
@@ -86,7 +94,20 @@ function ToastItem({
       className={`flex items-start gap-2 border rounded-xl px-4 py-3 shadow-lg backdrop-blur-sm animate-slide-in ${variantStyles[toast.variant]}`}
     >
       <Icon className="w-5 h-5 flex-shrink-0 mt-0.5" />
-      <p className="text-sm flex-1">{toast.message}</p>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm">{toast.message}</p>
+        {toast.action && (
+          <button
+            onClick={() => {
+              toast.action!.onClick();
+              onDismiss(toast.id);
+            }}
+            className="mt-1.5 text-xs font-semibold underline underline-offset-2 hover:no-underline"
+          >
+            {toast.action.label}
+          </button>
+        )}
+      </div>
       <button
         onClick={() => onDismiss(toast.id)}
         aria-label="Dismiss notification"
@@ -107,9 +128,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const toast = useCallback((message: string, variant: ToastVariant = "info") => {
+  const toast = useCallback((message: string, variant: ToastVariant = "info", action?: ToastAction) => {
     const id = `toast-${++nextId}`;
-    setToasts((prev) => [...prev.slice(-(MAX_VISIBLE - 1)), { id, message, variant }]);
+    setToasts((prev) => [...prev.slice(-(MAX_VISIBLE - 1)), { id, message, variant, action }]);
   }, []);
 
   return (

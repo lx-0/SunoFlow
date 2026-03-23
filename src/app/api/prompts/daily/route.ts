@@ -35,6 +35,6 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ prompts, stale });
   } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

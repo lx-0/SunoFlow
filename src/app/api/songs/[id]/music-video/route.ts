@@ -29,18 +29,18 @@ export async function POST(
 
     const song = await prisma.song.findUnique({ where: { id: songId } });
     if (!song || song.userId !== userId) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     if (song.generationStatus !== "ready") {
-      return NextResponse.json({ error: "Song must be fully generated before creating a music video." }, { status: 400 });
+      return NextResponse.json({ error: "Song must be fully generated before creating a music video.", code: "VALIDATION_ERROR" }, { status: 400 });
     }
 
     const { acquired, status: rateLimitStatus } = await acquireRateLimitSlot(userId);
     if (!acquired) {
       const retryAfterSec = Math.max(1, Math.ceil((new Date(rateLimitStatus.resetAt).getTime() - Date.now()) / 1000));
       return NextResponse.json(
-        { error: `Rate limit exceeded. You can generate up to ${rateLimitStatus.limit} songs per hour.`, resetAt: rateLimitStatus.resetAt, rateLimit: rateLimitStatus },
+        { error: `Rate limit exceeded. You can generate up to ${rateLimitStatus.limit} songs per hour.`, code: "RATE_LIMIT", resetAt: rateLimitStatus.resetAt, rateLimit: rateLimitStatus },
         { status: 429, headers: { "Retry-After": String(retryAfterSec) } }
       );
     }
@@ -56,7 +56,7 @@ export async function POST(
       status = "ready";
     } else {
       if (!song.sunoJobId) {
-        return NextResponse.json({ error: "Song has no Suno task ID for music video generation." }, { status: 400 });
+        return NextResponse.json({ error: "Song has no Suno task ID for music video generation.", code: "VALIDATION_ERROR" }, { status: 400 });
       }
 
       try {
@@ -80,6 +80,6 @@ export async function POST(
     );
   } catch (error) {
     logServerError("music-video-route", error, { route: "/api/songs/music-video" });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

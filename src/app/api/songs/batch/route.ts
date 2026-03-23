@@ -29,14 +29,14 @@ export async function POST(request: Request) {
 
     if (!Array.isArray(songIds) || songIds.length === 0) {
       return NextResponse.json(
-        { error: "songIds must be a non-empty array" },
+        { error: "songIds must be a non-empty array", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
 
     if (songIds.length > MAX_BATCH_SIZE) {
       return NextResponse.json(
-        { error: `Maximum ${MAX_BATCH_SIZE} songs per batch operation` },
+        { error: `Maximum ${MAX_BATCH_SIZE} songs per batch operation`, code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
 
     const validIds = userSongs.map((s) => s.id);
     if (validIds.length === 0) {
-      return NextResponse.json({ error: "No valid songs found" }, { status: 404 });
+      return NextResponse.json({ error: "No valid songs found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     let affected = 0;
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
       case "tag": {
         if (!tagId || typeof tagId !== "string") {
           return NextResponse.json(
-            { error: "tagId is required for tag action" },
+            { error: "tagId is required for tag action", code: "VALIDATION_ERROR" },
             { status: 400 }
           );
         }
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
           where: { id: tagId, userId },
         });
         if (!tag) {
-          return NextResponse.json({ error: "Tag not found" }, { status: 404 });
+          return NextResponse.json({ error: "Tag not found", code: "NOT_FOUND" }, { status: 404 });
         }
 
         // Get existing song-tag pairs to skip duplicates
@@ -131,7 +131,7 @@ export async function POST(request: Request) {
       case "add_to_playlist": {
         if (!playlistId || typeof playlistId !== "string") {
           return NextResponse.json(
-            { error: "playlistId is required for add_to_playlist action" },
+            { error: "playlistId is required for add_to_playlist action", code: "VALIDATION_ERROR" },
             { status: 400 }
           );
         }
@@ -142,14 +142,14 @@ export async function POST(request: Request) {
           include: { _count: { select: { songs: true } } },
         });
         if (!playlist) {
-          return NextResponse.json({ error: "Playlist not found" }, { status: 404 });
+          return NextResponse.json({ error: "Playlist not found", code: "NOT_FOUND" }, { status: 404 });
         }
 
         // Check capacity
         const maxSongs = 500;
         if (playlist._count.songs + validIds.length > maxSongs) {
           return NextResponse.json(
-            { error: `Would exceed maximum of ${maxSongs} songs per playlist` },
+            { error: `Would exceed maximum of ${maxSongs} songs per playlist`, code: "VALIDATION_ERROR" },
             { status: 400 }
           );
         }
@@ -186,7 +186,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ action, affected, songIds: validIds });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

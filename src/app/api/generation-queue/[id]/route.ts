@@ -17,7 +17,7 @@ export async function DELETE(
   });
 
   if (!item) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
   }
 
   if (item.status === "processing") {

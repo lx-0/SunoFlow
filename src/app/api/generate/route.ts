@@ -9,20 +9,25 @@ import { logServerError } from "@/lib/error-logger";
 import { invalidateByPrefix } from "@/lib/cache";
 import { SUNOAPI_KEY } from "@/lib/env";
 import { recordCreditUsage, shouldNotifyLowCredits, createLowCreditNotification, getMonthlyCreditUsage, CREDIT_COSTS } from "@/lib/credits";
+import { badRequest, rateLimited, internalError, ErrorCode } from "@/lib/api-error";
 
-/** Map API errors to user-friendly messages, including Suno status for debugging */
-function userFriendlyError(error: unknown): string {
+/** Map API errors to user-friendly messages */
+function userFriendlyError(error: unknown): { message: string; code: string } {
   if (error instanceof SunoApiError) {
-    if (error.status === 429) return `The music generation service is busy (Suno 429). Please try again in a few minutes.`;
-    if (error.status === 400) return `Invalid generation parameters (Suno 400). Please adjust your prompt and try again.`;
-    if (error.status === 401 || error.status === 403) return `API authentication failed (Suno ${error.status}). Please check your API key in settings.`;
-    if (error.status >= 500) return `The music generation service is temporarily unavailable (Suno ${error.status}). Please try again later.`;
-    return `Generation failed (Suno ${error.status}): ${error.message}`;
+    if (error.status === 429)
+      return { message: "The music generation service is busy. Please try again in a few minutes.", code: ErrorCode.SUNO_RATE_LIMIT };
+    if (error.status === 400)
+      return { message: "Invalid generation parameters. Please adjust your prompt and try again.", code: ErrorCode.VALIDATION_ERROR };
+    if (error.status === 401 || error.status === 403)
+      return { message: "API authentication failed. Please check your API key in settings.", code: ErrorCode.SUNO_AUTH_ERROR };
+    if (error.status >= 500)
+      return { message: "The music generation service is temporarily unavailable — please try again in a moment.", code: ErrorCode.SERVICE_UNAVAILABLE };
+    return { message: `Generation failed: ${error.message}`, code: ErrorCode.SUNO_API_ERROR };
   }
   if (error instanceof TypeError && (error.message.includes("fetch") || error.message.includes("network"))) {
-    return "Could not reach the music generation service. Please check your connection and try again.";
+    return { message: "Could not reach the music generation service. Please check your connection and try again.", code: ErrorCode.SERVICE_UNAVAILABLE };
   }
-  return "Song generation failed. Please try again.";
+  return { message: "Song generation failed. Please try again.", code: ErrorCode.INTERNAL_ERROR };
 }
 
 export async function POST(request: Request) {
@@ -38,47 +43,29 @@ export async function POST(request: Request) {
         1,
         Math.ceil((new Date(rateLimitStatus.resetAt).getTime() - Date.now()) / 1000)
       );
-      return NextResponse.json(
-        {
-          error: `Rate limit exceeded. You can generate up to ${rateLimitStatus.limit} songs per hour.`,
-          resetAt: rateLimitStatus.resetAt,
-          rateLimit: rateLimitStatus,
-        },
-        {
-          status: 429,
-          headers: { "Retry-After": String(retryAfterSec) },
-        }
+      return rateLimited(
+        `Rate limit exceeded. You can generate up to ${rateLimitStatus.limit} songs per hour.`,
+        { resetAt: rateLimitStatus.resetAt, rateLimit: rateLimitStatus },
+        { "Retry-After": String(retryAfterSec) }
       );
     }
 
     const { prompt, title, tags, makeInstrumental, personaId } = await request.json();
 
     if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
-      return NextResponse.json(
-        { error: "A style/genre prompt is required" },
-        { status: 400 }
-      );
+      return badRequest("A style/genre prompt is required");
     }
 
     if (prompt.length > 3000) {
-      return NextResponse.json(
-        { error: "Prompt must be 3000 characters or less" },
-        { status: 400 }
-      );
+      return badRequest("Prompt must be 3000 characters or less");
     }
 
     if (title && (typeof title !== "string" || title.length > 200)) {
-      return NextResponse.json(
-        { error: "Title must be 200 characters or less" },
-        { status: 400 }
-      );
+      return badRequest("Title must be 200 characters or less");
     }
 
     if (tags && (typeof tags !== "string" || tags.length > 500)) {
-      return NextResponse.json(
-        { error: "Tags must be 500 characters or less" },
-        { status: 400 }
-      );
+      return badRequest("Tags must be 500 characters or less");
     }
 
     const generationParams = {
@@ -139,14 +126,14 @@ export async function POST(request: Request) {
 
         savedSongs = [song];
       } catch (apiError) {
-        logServerError("generate-api", apiError, {
+        const correlationId = logServerError("generate-api", apiError, {
           userId,
           route: "/api/generate",
           params: generationParams,
         });
 
         // Save a failed record so the user can see it in history and retry
-        const errorMsg = userFriendlyError(apiError);
+        const { message: errorMsg, code: errorCode } = userFriendlyError(apiError);
         const song = await prisma.song.create({
           data: {
             userId,
@@ -163,7 +150,13 @@ export async function POST(request: Request) {
 
         // Rate limit slot already claimed above — just return current status
         return NextResponse.json(
-          { songs: savedSongs, error: errorMsg, rateLimit: rateLimitStatus },
+          {
+            songs: savedSongs,
+            error: errorMsg,
+            code: errorCode,
+            rateLimit: rateLimitStatus,
+            correlationId,
+          },
           { status: 201 }
         );
       }
@@ -196,12 +189,7 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
-    logServerError("generate-route", error, {
-      route: "/api/generate",
-    });
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    logServerError("generate-route", error, { route: "/api/generate" });
+    return internalError();
   }
 }

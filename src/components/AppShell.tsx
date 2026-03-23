@@ -23,6 +23,8 @@ import {
   BookmarkIcon,
   UserGroupIcon,
   GlobeAltIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import { GlobalPlayer } from "./GlobalPlayer";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
@@ -149,11 +151,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const drawerRef = useRef<HTMLElement>(null);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
   useFocusTrap(drawerRef, sidebarOpen);
   useSwipeToDismiss(drawerRef, sidebarOpen, closeSidebar);
   useKeyboardShortcuts(useCallback(() => setShortcutsOpen(true), []));
+
+  // Load collapsed preference from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("sidebar-collapsed");
+    if (stored === "true") setSidebarCollapsed(true);
+  }, []);
+
+  const toggleSidebarCollapsed = useCallback(() => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("sidebar-collapsed", String(next));
+      return next;
+    });
+  }, []);
 
   // Close drawer on Escape
   useEffect(() => {
@@ -172,10 +189,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         Skip to content
       </a>
       {/* ── Desktop sidebar (md+) ── */}
-      <aside aria-label="Main navigation" className="hidden md:flex md:flex-col md:w-56 md:fixed md:inset-y-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 z-20">
-        {/* Logo */}
-        <div className="flex items-center h-14 px-4 border-b border-gray-200 dark:border-gray-800">
-          <span className="text-violet-400 font-bold text-lg tracking-tight">SunoFlow</span>
+      <aside aria-label="Main navigation" className={`hidden md:flex md:flex-col md:fixed md:inset-y-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 z-20 transition-all duration-200 ${sidebarCollapsed ? "md:w-16" : "md:w-56"}`}>
+        {/* Logo + collapse toggle */}
+        <div className={`flex items-center h-14 border-b border-gray-200 dark:border-gray-800 ${sidebarCollapsed ? "justify-center px-2" : "px-4 justify-between"}`}>
+          {!sidebarCollapsed && (
+            <span className="text-violet-400 font-bold text-lg tracking-tight">SunoFlow</span>
+          )}
+          <button
+            onClick={toggleSidebarCollapsed}
+            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
+            {sidebarCollapsed ? <ChevronRightIcon className="w-4 h-4" /> : <ChevronLeftIcon className="w-4 h-4" />}
+          </button>
         </div>
 
         {/* Nav links */}
@@ -187,15 +213,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={href}
                 href={href}
                 aria-current={active ? "page" : undefined}
+                title={sidebarCollapsed ? label : undefined}
                 {...(dataTour ? { "data-tour": dataTour } : {})}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
+                className={`flex items-center rounded-lg text-sm font-medium transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"} ${
                   active
                     ? "bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400"
                     : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                 }`}
               >
-                <Icon className="w-5 h-5" aria-hidden="true" />
-                {label}
+                <Icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                {!sidebarCollapsed && label}
               </Link>
             );
           })}
@@ -208,45 +235,53 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 href="/admin"
                 aria-current={pathname.startsWith("/admin") ? "page" : undefined}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
+                title={sidebarCollapsed ? "Admin" : undefined}
+                className={`flex items-center rounded-lg text-sm font-medium transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"} ${
                   pathname.startsWith("/admin")
                     ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
                     : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                 }`}
               >
-                <ShieldCheckIcon className="w-5 h-5" aria-hidden="true" />
-                Admin
+                <ShieldCheckIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                {!sidebarCollapsed && "Admin"}
               </Link>
             )}
             <Link
               href="/profile"
               aria-current={pathname === "/profile" ? "page" : undefined}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
+              title={sidebarCollapsed ? "Profile" : undefined}
+              className={`flex items-center rounded-lg text-sm font-medium transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"} ${
                 pathname === "/profile"
                   ? "bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400"
                   : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
               }`}
             >
-              <UserCircleIcon className="w-5 h-5" aria-hidden="true" />
-              Profile
+              <UserCircleIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+              {!sidebarCollapsed && "Profile"}
             </Link>
             <Link
               href="/settings"
               aria-current={pathname === "/settings" ? "page" : undefined}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
+              title={sidebarCollapsed ? "Settings" : undefined}
+              className={`flex items-center rounded-lg text-sm font-medium transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"} ${
                 pathname === "/settings"
                   ? "bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400"
                   : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
               }`}
             >
-              <Cog6ToothIcon className="w-5 h-5" aria-hidden="true" />
-              Settings
+              <Cog6ToothIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+              {!sidebarCollapsed && "Settings"}
             </Link>
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors min-h-[44px]"
+              title={sidebarCollapsed ? "Sign out" : undefined}
+              className={`w-full flex items-center rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"}`}
             >
-              Sign out
+              {sidebarCollapsed ? (
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              ) : "Sign out"}
             </button>
           </div>
         )}
@@ -346,7 +381,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ── Main content area ── */}
-      <div className="flex flex-col flex-1 min-w-0 md:ml-56">
+      <div className={`flex flex-col flex-1 min-w-0 transition-all duration-200 ${sidebarCollapsed ? "md:ml-16" : "md:ml-56"}`}>
         {/* Top header */}
         <header className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
           {/* Hamburger (mobile only) */}
@@ -409,7 +444,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
 
         {/* Global audio player */}
-        <GlobalPlayer />
+        <GlobalPlayer sidebarCollapsed={sidebarCollapsed} />
 
         {/* Keyboard shortcuts help modal */}
         <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />

@@ -25,31 +25,31 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON", code: "VALIDATION_ERROR" }, { status: 400 });
   }
 
   const { url } = body as { url?: string };
   if (!url || typeof url !== "string") {
-    return NextResponse.json({ error: "url is required" }, { status: 400 });
+    return NextResponse.json({ error: "url is required", code: "VALIDATION_ERROR" }, { status: 400 });
   }
 
   const trimmed = url.trim();
   if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
-    return NextResponse.json({ error: "URL must start with http:// or https://" }, { status: 400 });
+    return NextResponse.json({ error: "URL must start with http:// or https://", code: "VALIDATION_ERROR" }, { status: 400 });
   }
 
   const existing = await prisma.rssFeedSubscription.findUnique({
     where: { userId_url: { userId: userId, url: trimmed } },
   });
   if (existing) {
-    return NextResponse.json({ error: "Feed already added" }, { status: 409 });
+    return NextResponse.json({ error: "Feed already added", code: "CONFLICT" }, { status: 409 });
   }
 
   const count = await prisma.rssFeedSubscription.count({
     where: { userId: userId },
   });
   if (count >= 20) {
-    return NextResponse.json({ error: "Maximum 20 feeds allowed" }, { status: 400 });
+    return NextResponse.json({ error: "Maximum 20 feeds allowed", code: "VALIDATION_ERROR" }, { status: 400 });
   }
 
   const feed = await prisma.rssFeedSubscription.create({
@@ -68,12 +68,12 @@ export async function DELETE(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
   if (!id) {
-    return NextResponse.json({ error: "id query param required" }, { status: 400 });
+    return NextResponse.json({ error: "id query param required", code: "VALIDATION_ERROR" }, { status: 400 });
   }
 
   const feed = await prisma.rssFeedSubscription.findUnique({ where: { id } });
   if (!feed || feed.userId !== userId) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
   }
 
   await prisma.rssFeedSubscription.delete({ where: { id } });

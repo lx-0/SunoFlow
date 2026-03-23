@@ -36,12 +36,12 @@ export async function POST(
 
     const song = await prisma.song.findUnique({ where: { id } });
     if (!song || song.userId !== userId) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     if (song.generationStatus !== "failed") {
       return NextResponse.json(
-        { error: "Only failed songs can be retried" },
+        { error: "Only failed songs can be retried", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -54,7 +54,7 @@ export async function POST(
       );
       return NextResponse.json(
         {
-          error: `Rate limit exceeded. You can generate up to ${rateLimitStatus.limit} songs per hour.`,
+          error: `Rate limit exceeded. You can generate up to ${rateLimitStatus.limit} songs per hour.`, code: "RATE_LIMIT",
           resetAt: rateLimitStatus.resetAt,
           rateLimit: rateLimitStatus,
         },
@@ -136,7 +136,7 @@ export async function POST(
   } catch (error) {
     logServerError("retry-route", error, { route: "/api/songs/retry" });
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   });
 
   if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
+    return NextResponse.json({ error: "User not found", code: "NOT_FOUND" }, { status: 404 });
   }
 
   return NextResponse.json(user);
@@ -32,43 +32,43 @@ export async function PATCH(request: Request) {
 
   if (name !== undefined) {
     if (typeof name !== "string" || !name.trim()) {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 });
+      return NextResponse.json({ error: "Name is required", code: "VALIDATION_ERROR" }, { status: 400 });
     }
     if (name.length > 100) {
-      return NextResponse.json({ error: "Name must be 100 characters or less" }, { status: 400 });
+      return NextResponse.json({ error: "Name must be 100 characters or less", code: "VALIDATION_ERROR" }, { status: 400 });
     }
     data.name = name.trim();
   }
 
   if (bio !== undefined) {
     if (bio !== null && typeof bio !== "string") {
-      return NextResponse.json({ error: "Bio must be a string" }, { status: 400 });
+      return NextResponse.json({ error: "Bio must be a string", code: "VALIDATION_ERROR" }, { status: 400 });
     }
     if (typeof bio === "string" && bio.length > 500) {
-      return NextResponse.json({ error: "Bio must be 500 characters or less" }, { status: 400 });
+      return NextResponse.json({ error: "Bio must be 500 characters or less", code: "VALIDATION_ERROR" }, { status: 400 });
     }
     data.bio = bio ? bio.trim() : null;
   }
 
   if (avatarUrl !== undefined) {
     if (avatarUrl !== null && typeof avatarUrl !== "string") {
-      return NextResponse.json({ error: "Avatar URL must be a string" }, { status: 400 });
+      return NextResponse.json({ error: "Avatar URL must be a string", code: "VALIDATION_ERROR" }, { status: 400 });
     }
     if (typeof avatarUrl === "string" && avatarUrl.length > 2048) {
-      return NextResponse.json({ error: "Avatar URL too long" }, { status: 400 });
+      return NextResponse.json({ error: "Avatar URL too long", code: "VALIDATION_ERROR" }, { status: 400 });
     }
     if (typeof avatarUrl === "string" && avatarUrl) {
       try {
         new URL(avatarUrl);
       } catch {
-        return NextResponse.json({ error: "Invalid avatar URL" }, { status: 400 });
+        return NextResponse.json({ error: "Invalid avatar URL", code: "VALIDATION_ERROR" }, { status: 400 });
       }
     }
     data.avatarUrl = avatarUrl ? avatarUrl.trim() : null;
   }
 
   if (Object.keys(data).length === 0) {
-    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+    return NextResponse.json({ error: "No fields to update", code: "VALIDATION_ERROR" }, { status: 400 });
   }
 
   const user = await prisma.user.update({
@@ -89,7 +89,7 @@ export async function DELETE(request: Request) {
 
   if (!password || !confirmEmail) {
     return NextResponse.json(
-      { error: "Password and email confirmation are required" },
+      { error: "Password and email confirmation are required", code: "VALIDATION_ERROR" },
       { status: 400 }
     );
   }
@@ -100,12 +100,12 @@ export async function DELETE(request: Request) {
   });
 
   if (!user?.passwordHash) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
+    return NextResponse.json({ error: "User not found", code: "NOT_FOUND" }, { status: 404 });
   }
 
   if (confirmEmail !== user.email) {
     return NextResponse.json(
-      { error: "Email does not match your account" },
+      { error: "Email does not match your account", code: "VALIDATION_ERROR" },
       { status: 400 }
     );
   }
@@ -113,7 +113,7 @@ export async function DELETE(request: Request) {
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
     return NextResponse.json(
-      { error: "Password is incorrect" },
+      { error: "Password is incorrect", code: "VALIDATION_ERROR" },
       { status: 400 }
     );
   }

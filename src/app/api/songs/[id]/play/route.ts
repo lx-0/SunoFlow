@@ -18,13 +18,13 @@ export async function POST(
     });
 
     if (song.count === 0) {
-      return NextResponse.json({ error: "Song not found" }, { status: 404 });
+      return NextResponse.json({ error: "Song not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

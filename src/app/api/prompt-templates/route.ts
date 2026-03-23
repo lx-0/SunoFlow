@@ -54,7 +54,7 @@ export async function GET(request: Request) {
       categories: categories.map((c) => c.category),
     });
   } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }
 
@@ -68,19 +68,19 @@ export async function POST(request: Request) {
     const { name, prompt, style, category, description, isInstrumental } = await request.json();
 
     if (!name || typeof name !== "string" || !name.trim()) {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 });
+      return NextResponse.json({ error: "Name is required", code: "VALIDATION_ERROR" }, { status: 400 });
     }
     if (name.length > 100) {
-      return NextResponse.json({ error: "Name must be 100 characters or less" }, { status: 400 });
+      return NextResponse.json({ error: "Name must be 100 characters or less", code: "VALIDATION_ERROR" }, { status: 400 });
     }
     if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
-      return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
+      return NextResponse.json({ error: "Prompt is required", code: "VALIDATION_ERROR" }, { status: 400 });
     }
     if (prompt.length > 3000) {
-      return NextResponse.json({ error: "Prompt must be 3000 characters or less" }, { status: 400 });
+      return NextResponse.json({ error: "Prompt must be 3000 characters or less", code: "VALIDATION_ERROR" }, { status: 400 });
     }
     if (description && typeof description === "string" && description.length > 500) {
-      return NextResponse.json({ error: "Description must be 500 characters or less" }, { status: 400 });
+      return NextResponse.json({ error: "Description must be 500 characters or less", code: "VALIDATION_ERROR" }, { status: 400 });
     }
 
     // Enforce max 20 user templates
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     });
     if (count >= MAX_USER_TEMPLATES) {
       return NextResponse.json(
-        { error: `Maximum of ${MAX_USER_TEMPLATES} templates reached. Delete one to create a new one.` },
+        { error: `Maximum of ${MAX_USER_TEMPLATES} templates reached. Delete one to create a new one.`, code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -109,6 +109,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ template }, { status: 201 });
   } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

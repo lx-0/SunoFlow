@@ -18,7 +18,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ tags });
   } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }
 
@@ -34,13 +34,13 @@ export async function POST(request: Request) {
     const color = /^#[0-9A-Fa-f]{6}$/.test(rawColor) ? rawColor : "#7c3aed";
 
     if (!name || name.length > 50) {
-      return NextResponse.json({ error: "Tag name is required (max 50 chars)" }, { status: 400 });
+      return NextResponse.json({ error: "Tag name is required (max 50 chars)", code: "VALIDATION_ERROR" }, { status: 400 });
     }
 
     // Check user tag limit
     const count = await prisma.tag.count({ where: { userId: userId } });
     if (count >= MAX_TAGS_PER_USER) {
-      return NextResponse.json({ error: `Maximum ${MAX_TAGS_PER_USER} tags allowed` }, { status: 400 });
+      return NextResponse.json({ error: `Maximum ${MAX_TAGS_PER_USER} tags allowed`, code: "VALIDATION_ERROR" }, { status: 400 });
     }
 
     // Check for duplicate
@@ -57,6 +57,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ tag }, { status: 201 });
   } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

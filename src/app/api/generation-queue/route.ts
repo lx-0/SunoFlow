@@ -27,14 +27,14 @@ export async function POST(request: Request) {
 
   if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
     return NextResponse.json(
-      { error: "A prompt is required" },
+      { error: "A prompt is required", code: "VALIDATION_ERROR" },
       { status: 400 }
     );
   }
 
   if (prompt.length > 3000) {
     return NextResponse.json(
-      { error: "Prompt must be 3000 characters or less" },
+      { error: "Prompt must be 3000 characters or less", code: "VALIDATION_ERROR" },
       { status: 400 }
     );
   }

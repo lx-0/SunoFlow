@@ -11,7 +11,7 @@ export async function DELETE(
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized", code: "UNAUTHORIZED" }, { status: 401 });
     }
 
     const apiKey = await prisma.apiKey.findFirst({
@@ -23,7 +23,7 @@ export async function DELETE(
     });
 
     if (!apiKey) {
-      return NextResponse.json({ error: "API key not found" }, { status: 404 });
+      return NextResponse.json({ error: "API key not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     await prisma.apiKey.update({
@@ -37,6 +37,6 @@ export async function DELETE(
       route: "DELETE /api/profile/api-keys/:id",
       params: { id: params.id },
     });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

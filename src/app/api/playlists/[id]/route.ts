@@ -23,13 +23,13 @@ export async function GET(
     });
 
     if (!playlist) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     return NextResponse.json({ playlist });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }
@@ -49,7 +49,7 @@ export async function PATCH(
     });
 
     if (!playlist) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     const body = await request.json();
@@ -58,13 +58,13 @@ export async function PATCH(
     if (body.name !== undefined) {
       if (typeof body.name !== "string" || body.name.trim().length === 0) {
         return NextResponse.json(
-          { error: "Name is required" },
+          { error: "Name is required", code: "VALIDATION_ERROR" },
           { status: 400 }
         );
       }
       if (body.name.trim().length > 100) {
         return NextResponse.json(
-          { error: "Name must be 100 characters or less" },
+          { error: "Name must be 100 characters or less", code: "VALIDATION_ERROR" },
           { status: 400 }
         );
       }
@@ -74,7 +74,7 @@ export async function PATCH(
     if (body.description !== undefined) {
       if (typeof body.description === "string" && body.description.length > 1000) {
         return NextResponse.json(
-          { error: "Description must be 1000 characters or less" },
+          { error: "Description must be 1000 characters or less", code: "VALIDATION_ERROR" },
           { status: 400 }
         );
       }
@@ -90,7 +90,7 @@ export async function PATCH(
     return NextResponse.json({ playlist: updated });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }
@@ -110,7 +110,7 @@ export async function DELETE(
     });
 
     if (!playlist) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     await prisma.playlist.delete({ where: { id: playlist.id } });
@@ -118,7 +118,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

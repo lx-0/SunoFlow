@@ -6,12 +6,12 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON", code: "VALIDATION_ERROR" }, { status: 400 });
   }
 
   const { urls } = body as { urls?: unknown };
   if (!Array.isArray(urls) || urls.length === 0) {
-    return NextResponse.json({ error: "urls array required" }, { status: 400 });
+    return NextResponse.json({ error: "urls array required", code: "VALIDATION_ERROR" }, { status: 400 });
   }
 
   const validUrls = (urls as unknown[])
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     .slice(0, 10);
 
   if (validUrls.length === 0) {
-    return NextResponse.json({ error: "No valid URLs provided" }, { status: 400 });
+    return NextResponse.json({ error: "No valid URLs provided", code: "VALIDATION_ERROR" }, { status: 400 });
   }
 
   const feeds = await Promise.all(validUrls.map(fetchFeed));

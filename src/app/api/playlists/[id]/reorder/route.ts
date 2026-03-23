@@ -16,7 +16,7 @@ export async function PATCH(
     });
 
     if (!playlist) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     const body = await request.json();
@@ -24,7 +24,7 @@ export async function PATCH(
 
     if (!Array.isArray(songIds)) {
       return NextResponse.json(
-        { error: "songIds array is required" },
+        { error: "songIds array is required", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -39,7 +39,7 @@ export async function PATCH(
 
     if (!valid || songIds.length !== existing.length) {
       return NextResponse.json(
-        { error: "songIds must match all songs in the playlist" },
+        { error: "songIds must match all songs in the playlist", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -59,7 +59,7 @@ export async function PATCH(
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

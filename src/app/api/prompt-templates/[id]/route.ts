@@ -17,15 +17,15 @@ export async function PATCH(
     });
 
     if (!template) {
-      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+      return NextResponse.json({ error: "Template not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     if (template.isBuiltIn) {
-      return NextResponse.json({ error: "Cannot edit built-in templates" }, { status: 403 });
+      return NextResponse.json({ error: "Cannot edit built-in templates", code: "FORBIDDEN" }, { status: 403 });
     }
 
     if (template.userId !== userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden", code: "FORBIDDEN" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -33,13 +33,13 @@ export async function PATCH(
 
     if (body.name !== undefined) {
       if (!body.name || typeof body.name !== "string" || !body.name.trim()) {
-        return NextResponse.json({ error: "Name is required" }, { status: 400 });
+        return NextResponse.json({ error: "Name is required", code: "VALIDATION_ERROR" }, { status: 400 });
       }
       data.name = body.name.trim();
     }
     if (body.prompt !== undefined) {
       if (!body.prompt || typeof body.prompt !== "string" || !body.prompt.trim()) {
-        return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
+        return NextResponse.json({ error: "Prompt is required", code: "VALIDATION_ERROR" }, { status: 400 });
       }
       data.prompt = body.prompt.trim();
     }
@@ -55,7 +55,7 @@ export async function PATCH(
 
     return NextResponse.json({ template: updated });
   } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }
 
@@ -74,21 +74,21 @@ export async function DELETE(
     });
 
     if (!template) {
-      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+      return NextResponse.json({ error: "Template not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     if (template.isBuiltIn) {
-      return NextResponse.json({ error: "Cannot delete built-in templates" }, { status: 403 });
+      return NextResponse.json({ error: "Cannot delete built-in templates", code: "FORBIDDEN" }, { status: 403 });
     }
 
     if (template.userId !== userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden", code: "FORBIDDEN" }, { status: 403 });
     }
 
     await prisma.promptTemplate.delete({ where: { id: params.id } });
 
     return NextResponse.json({ success: true });
   } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
   if (isRateLimited(ip)) {
     return NextResponse.json(
-      { error: "Too many error reports. Please try again later." },
+      { error: "Too many error reports. Please try again later.", code: "RATE_LIMIT" },
       { status: 429, headers: { "Retry-After": "60" } }
     );
   }
@@ -49,19 +49,19 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON", code: "VALIDATION_ERROR" }, { status: 400 });
   }
 
   const { message, stack, url, userAgent, source } = body as Record<string, unknown>;
 
   if (!message || typeof message !== "string") {
-    return NextResponse.json({ error: "message is required" }, { status: 400 });
+    return NextResponse.json({ error: "message is required", code: "VALIDATION_ERROR" }, { status: 400 });
   }
   if (!url || typeof url !== "string") {
-    return NextResponse.json({ error: "url is required" }, { status: 400 });
+    return NextResponse.json({ error: "url is required", code: "VALIDATION_ERROR" }, { status: 400 });
   }
   if (!source || typeof source !== "string" || !VALID_SOURCES.includes(source)) {
-    return NextResponse.json({ error: "source must be one of: " + VALID_SOURCES.join(", ") }, { status: 400 });
+    return NextResponse.json({ error: "source must be one of: ", code: "VALIDATION_ERROR" + VALID_SOURCES.join(", ") }, { status: 400 });
   }
 
   try {
@@ -78,6 +78,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: "ok" });
   } catch (err) {
     console.error("[error-report] Failed to store error report:", err);
-    return NextResponse.json({ error: "Failed to store report" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to store report", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

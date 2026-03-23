@@ -51,7 +51,10 @@ export function logError(
 
 /**
  * Structured server-side error logger with request context.
+ * Generates a correlation ID for each log entry to aid debugging.
  * Use in API routes to log errors with userId and request parameters.
+ *
+ * @returns The correlation ID for this log entry (include in error responses for traceability).
  */
 export function logServerError(
   source: string,
@@ -60,10 +63,18 @@ export function logServerError(
     userId?: string;
     route: string;
     params?: Record<string, unknown>;
+    correlationId?: string;
   }
-): void {
+): string {
+  const correlationId =
+    context.correlationId ??
+    (typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
   const entry = {
     timestamp: new Date().toISOString(),
+    correlationId,
     source,
     route: context.route,
     userId: context.userId ?? "unknown",
@@ -75,4 +86,5 @@ export function logServerError(
   };
 
   console.error("[SunoFlow ServerError]", JSON.stringify(entry, null, 2));
+  return correlationId;
 }

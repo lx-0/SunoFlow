@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logServerError("notifications-list", error, { route: "/api/notifications" });
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     const { type, title, message, href, songId } = body;
 
     if (!type || !title || !message || !VALID_TYPES.includes(type)) {
-      return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid input", code: "VALIDATION_ERROR" }, { status: 400 });
     }
 
     const notification = await prisma.notification.create({
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ notification }, { status: 201 });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

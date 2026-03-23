@@ -9,7 +9,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
 
   if (id === admin!.id) {
-    return NextResponse.json({ error: "Cannot disable your own account" }, { status: 400 });
+    return NextResponse.json({ error: "Cannot disable your own account", code: "VALIDATION_ERROR" }, { status: 400 });
   }
 
   const target = await prisma.user.findUnique({
@@ -18,7 +18,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   });
 
   if (!target) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
+    return NextResponse.json({ error: "User not found", code: "NOT_FOUND" }, { status: 404 });
   }
 
   const updated = await prisma.user.update({

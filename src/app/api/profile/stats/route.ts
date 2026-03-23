@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     ]);
 
   if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
+    return NextResponse.json({ error: "User not found", code: "NOT_FOUND" }, { status: 404 });
   }
 
   return NextResponse.json({

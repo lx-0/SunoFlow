@@ -6,12 +6,12 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON", code: "VALIDATION_ERROR" }, { status: 400 });
   }
 
   const { urls } = body as { urls?: unknown };
   if (!Array.isArray(urls) || urls.length === 0) {
-    return NextResponse.json({ error: "urls array required" }, { status: 400 });
+    return NextResponse.json({ error: "urls array required", code: "VALIDATION_ERROR" }, { status: 400 });
   }
 
   const validUrls = (urls as unknown[])
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
   if (validUrls.length === 0) {
     return NextResponse.json(
-      { error: "No valid Instagram URLs provided. Use post, reel, or IGTV links." },
+      { error: "No valid Instagram URLs provided. Use post, reel, or IGTV links.", code: "VALIDATION_ERROR" },
       { status: 400 }
     );
   }

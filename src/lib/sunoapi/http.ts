@@ -25,13 +25,15 @@ function getTimeoutMs(): number {
 }
 
 function isRetryable(status: number): boolean {
-  return status === 429 || (status >= 500 && status <= 599);
+  // Only retry transient server errors (5xx). 429 (rate limit) is not retried
+  // here — callers handle rate limit messages directly.
+  return status >= 500 && status <= 599;
 }
 
 export async function fetchWithRetry(
   url: string,
   init: RequestInit,
-  maxRetries = 3
+  maxRetries = 1
 ): Promise<Response> {
   const timeoutMs = getTimeoutMs();
   let attempt = 0;

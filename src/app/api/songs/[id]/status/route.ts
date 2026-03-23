@@ -22,7 +22,7 @@ export async function GET(
 
     const song = await prisma.song.findUnique({ where: { id } });
     if (!song || song.userId !== userId) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     // Already terminal — return as-is
@@ -197,7 +197,7 @@ export async function GET(
       route: "/api/songs/status",
     });
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

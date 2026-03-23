@@ -15,7 +15,7 @@ export async function PATCH(
   });
 
   if (!report) {
-    return NextResponse.json({ error: "Report not found" }, { status: 404 });
+    return NextResponse.json({ error: "Report not found", code: "NOT_FOUND" }, { status: 404 });
   }
 
   const body = await request.json();
@@ -23,7 +23,7 @@ export async function PATCH(
 
   if (!action || !["dismiss", "hide_song", "warn_user"].includes(action)) {
     return NextResponse.json(
-      { error: "action must be one of: dismiss, hide_song, warn_user" },
+      { error: "action must be one of: dismiss, hide_song, warn_user", code: "VALIDATION_ERROR" },
       { status: 400 }
     );
   }

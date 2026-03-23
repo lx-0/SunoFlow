@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   });
 
   if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
+    return NextResponse.json({ error: "User not found", code: "NOT_FOUND" }, { status: 404 });
   }
 
   return NextResponse.json({ defaultStyle: user.defaultStyle, preferredGenres: user.preferredGenres, availableStyles: VALID_STYLES });
@@ -33,30 +33,30 @@ export async function PATCH(request: Request) {
 
   if (defaultStyle !== undefined) {
     if (defaultStyle !== null && typeof defaultStyle !== "string") {
-      return NextResponse.json({ error: "Default style must be a string" }, { status: 400 });
+      return NextResponse.json({ error: "Default style must be a string", code: "VALIDATION_ERROR" }, { status: 400 });
     }
     if (defaultStyle && !VALID_STYLES.includes(defaultStyle.toLowerCase())) {
-      return NextResponse.json({ error: `Invalid style. Choose from: ${VALID_STYLES.join(", ")}` }, { status: 400 });
+      return NextResponse.json({ error: `Invalid style. Choose from: ${VALID_STYLES.join(", ")}`, code: "VALIDATION_ERROR" }, { status: 400 });
     }
     data.defaultStyle = defaultStyle ? defaultStyle.toLowerCase() : null;
   }
 
   if (preferredGenres !== undefined) {
     if (!Array.isArray(preferredGenres)) {
-      return NextResponse.json({ error: "Preferred genres must be an array" }, { status: 400 });
+      return NextResponse.json({ error: "Preferred genres must be an array", code: "VALIDATION_ERROR" }, { status: 400 });
     }
     if (preferredGenres.length > 10) {
-      return NextResponse.json({ error: "Maximum 10 preferred genres" }, { status: 400 });
+      return NextResponse.json({ error: "Maximum 10 preferred genres", code: "VALIDATION_ERROR" }, { status: 400 });
     }
     const invalid = preferredGenres.filter((g: unknown) => typeof g !== "string" || !VALID_STYLES.includes((g as string).toLowerCase()));
     if (invalid.length > 0) {
-      return NextResponse.json({ error: `Invalid genres: ${invalid.join(", ")}` }, { status: 400 });
+      return NextResponse.json({ error: `Invalid genres: ${invalid.join(", ")}`, code: "VALIDATION_ERROR" }, { status: 400 });
     }
     data.preferredGenres = preferredGenres.map((g: string) => g.toLowerCase());
   }
 
   if (Object.keys(data).length === 0) {
-    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+    return NextResponse.json({ error: "No fields to update", code: "VALIDATION_ERROR" }, { status: 400 });
   }
 
   const user = await prisma.user.update({

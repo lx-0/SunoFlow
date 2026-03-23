@@ -32,11 +32,11 @@ export async function POST(
 
     const parentSong = await prisma.song.findUnique({ where: { id: parentId } });
     if (!parentSong || parentSong.userId !== userId) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     if (!parentSong.isInstrumental) {
-      return NextResponse.json({ error: "Add vocals is only available for instrumental tracks." }, { status: 400 });
+      return NextResponse.json({ error: "Add vocals is only available for instrumental tracks.", code: "VALIDATION_ERROR" }, { status: 400 });
     }
 
     const rootId = parentSong.parentSongId ?? parentId;
@@ -44,7 +44,7 @@ export async function POST(
     const variationCount = await prisma.song.count({ where: { parentSongId: rootId } });
     if (variationCount >= MAX_VARIATIONS) {
       return NextResponse.json(
-        { error: `Maximum ${MAX_VARIATIONS} variations per song reached.` },
+        { error: `Maximum ${MAX_VARIATIONS} variations per song reached.`, code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -53,7 +53,7 @@ export async function POST(
     if (!acquired) {
       const retryAfterSec = Math.max(1, Math.ceil((new Date(rateLimitStatus.resetAt).getTime() - Date.now()) / 1000));
       return NextResponse.json(
-        { error: `Rate limit exceeded. You can generate up to ${rateLimitStatus.limit} songs per hour.`, resetAt: rateLimitStatus.resetAt, rateLimit: rateLimitStatus },
+        { error: `Rate limit exceeded. You can generate up to ${rateLimitStatus.limit} songs per hour.`, code: "RATE_LIMIT", resetAt: rateLimitStatus.resetAt, rateLimit: rateLimitStatus },
         { status: 429, headers: { "Retry-After": String(retryAfterSec) } }
       );
     }
@@ -64,7 +64,7 @@ export async function POST(
     const title = body.title?.trim() || (parentSong.title ? `${parentSong.title} (with vocals)` : null);
 
     if (!prompt) {
-      return NextResponse.json({ error: "A prompt describing the vocals is required." }, { status: 400 });
+      return NextResponse.json({ error: "A prompt describing the vocals is required.", code: "VALIDATION_ERROR" }, { status: 400 });
     }
 
     const userApiKey = await resolveUserApiKey(userId);
@@ -91,7 +91,7 @@ export async function POST(
       });
     } else {
       if (!parentSong.audioUrl) {
-        return NextResponse.json({ error: "Parent song has no audio URL to add vocals to." }, { status: 400 });
+        return NextResponse.json({ error: "Parent song has no audio URL to add vocals to.", code: "VALIDATION_ERROR" }, { status: 400 });
       }
       try {
         const result = await addVocals(
@@ -139,6 +139,6 @@ export async function POST(
     return NextResponse.json({ song: savedSong, rateLimit: rateLimitStatus }, { status: 201 });
   } catch (error) {
     logServerError("add-vocals-route", error, { route: "/api/songs/add-vocals" });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

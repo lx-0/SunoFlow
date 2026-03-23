@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { logServerError } from "@/lib/error-logger";
 import { CacheControl } from "@/lib/cache";
+import { internalError } from "@/lib/api-error";
 
 export async function GET(request: NextRequest) {
   try {
@@ -153,9 +154,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     logServerError("songs-list", error, { route: "/api/songs" });
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return internalError();
   }
 }

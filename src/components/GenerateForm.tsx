@@ -7,6 +7,7 @@ import { BookmarkIcon as BookmarkOutline, ClockIcon, BoltIcon, UserCircleIcon, P
 import { useToast } from "./Toast";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { useGenerationQueue } from "@/hooks/useGenerationQueue";
+import { fetchWithTimeout, clientFetchErrorMessage } from "@/lib/fetch-client";
 import { GenerationProgress } from "./GenerationProgress";
 import { GenerationQueue } from "./GenerationQueue";
 import { Confetti } from "./Confetti";
@@ -58,6 +59,7 @@ export function GenerateForm() {
   const [instrumental, setInstrumental] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rateLimit, setRateLimit] = useState<RateLimitStatus | null>(null);
+  const [promptError, setPromptError] = useState<string | null>(null);
 
   // Template state
   const [templates, setTemplates] = useState<PromptTemplate[]>([]);
@@ -325,6 +327,18 @@ export function GenerateForm() {
     e.preventDefault();
     if (isSubmitting) return;
 
+    // Client-side inline validation before hitting the server
+    const promptValue = customMode ? lyrics : stylePrompt;
+    if (!promptValue.trim()) {
+      setPromptError(customMode ? "Lyrics are required" : "Style / genre is required");
+      return;
+    }
+    if (promptValue.length > 3000) {
+      setPromptError("Prompt must be 3000 characters or less");
+      return;
+    }
+    setPromptError(null);
+
     setIsSubmitting(true);
 
     try {
@@ -337,20 +351,33 @@ export function GenerateForm() {
         personaId: selectedPersona?.personaId || undefined,
       };
 
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      let res: Response;
+      try {
+        res = await fetchWithTimeout("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      } catch (fetchErr) {
+        const msg = clientFetchErrorMessage(fetchErr);
+        toast(msg, "error", { label: "Retry", onClick: () => handleSubmit(e) });
+        return;
+      }
 
       const data = await res.json();
 
       if (!res.ok) {
-        if (res.status === 429 && data.resetAt) {
-          const resetTime = new Date(data.resetAt);
+        if (res.status === 429 && (data.details?.resetAt || data.details?.rateLimit?.resetAt)) {
+          const resetAt = data.details?.resetAt ?? data.details?.rateLimit?.resetAt;
+          const resetTime = new Date(resetAt);
           const minutesLeft = Math.ceil((resetTime.getTime() - Date.now()) / 60000);
           toast(`Rate limit reached. Try again in ${minutesLeft} minute${minutesLeft === 1 ? "" : "s"}.`, "error");
-          if (data.rateLimit) setRateLimit(data.rateLimit);
+          if (data.details?.rateLimit) setRateLimit(data.details.rateLimit);
+        } else if (res.status >= 500) {
+          toast(data.error ?? "Generation service unavailable. Please try again.", "error", {
+            label: "Retry",
+            onClick: () => handleSubmit(e),
+          });
         } else {
           toast(data.error ?? "Generation failed. Please try again.", "error");
         }
@@ -378,7 +405,10 @@ export function GenerateForm() {
       trackSong(songId, songTitle);
       fetchCredits();
     } catch {
-      toast("Network error. Please check your connection and try again.", "error");
+      toast("Network error. Please check your connection and try again.", "error", {
+        label: "Retry",
+        onClick: () => handleSubmit(e),
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -695,11 +725,17 @@ export function GenerateForm() {
               id="stylePrompt"
               type="text"
               value={stylePrompt}
-              onChange={(e) => setStylePrompt(e.target.value)}
+              onChange={(e) => { setStylePrompt(e.target.value); if (promptError && !customMode) setPromptError(null); }}
               placeholder="e.g. upbeat lo-fi hip-hop, melancholic indie folk…"
               required={!customMode}
               disabled={isSubmitting}
-              className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50"
+              aria-invalid={!customMode && !!promptError}
+              aria-describedby={!customMode && promptError ? "prompt-error" : undefined}
+              className={`flex-1 bg-white dark:bg-gray-800 border rounded-xl px-4 py-3 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent disabled:opacity-50 ${
+                !customMode && promptError
+                  ? "border-red-400 dark:border-red-600 focus:ring-red-500"
+                  : "border-gray-300 dark:border-gray-700 focus:ring-violet-500"
+              }`}
             />
             <button
               type="button"
@@ -712,6 +748,11 @@ export function GenerateForm() {
               {isBoosting ? "..." : "Enhance"}
             </button>
           </div>
+          {!customMode && promptError && (
+            <p id="prompt-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
+              {promptError}
+            </p>
+          )}
         </div>
 
         {/* Persona picker */}
@@ -854,13 +895,24 @@ export function GenerateForm() {
             <textarea
               id="lyrics"
               value={lyrics}
-              onChange={(e) => setLyrics(e.target.value)}
+              onChange={(e) => { setLyrics(e.target.value); if (promptError && customMode) setPromptError(null); }}
               placeholder="[Verse 1]&#10;Your lyrics here…&#10;&#10;[Chorus]&#10;…"
               rows={8}
               required={customMode}
               disabled={isSubmitting}
-              className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none disabled:opacity-50"
+              aria-invalid={customMode && !!promptError}
+              aria-describedby={customMode && promptError ? "prompt-error" : undefined}
+              className={`w-full bg-white dark:bg-gray-800 border rounded-xl px-4 py-3 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent resize-none disabled:opacity-50 ${
+                customMode && promptError
+                  ? "border-red-400 dark:border-red-600 focus:ring-red-500"
+                  : "border-gray-300 dark:border-gray-700 focus:ring-violet-500"
+              }`}
             />
+            {customMode && promptError && (
+              <p id="prompt-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
+                {promptError}
+              </p>
+            )}
           </div>
         )}
 

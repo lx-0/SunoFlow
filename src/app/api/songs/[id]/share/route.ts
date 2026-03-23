@@ -18,7 +18,7 @@ export async function PATCH(
     });
 
     if (!song) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     const newIsPublic = !song.isPublic;
@@ -42,7 +42,7 @@ export async function PATCH(
     });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

@@ -16,7 +16,7 @@ export async function DELETE(
 
     const persona = await prisma.persona.findUnique({ where: { id } });
     if (!persona || persona.userId !== userId) {
-      return NextResponse.json({ error: "Persona not found" }, { status: 404 });
+      return NextResponse.json({ error: "Persona not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     await prisma.persona.delete({ where: { id } });
@@ -24,6 +24,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     logServerError("personas-delete", error, { route: "/api/personas/[id]" });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

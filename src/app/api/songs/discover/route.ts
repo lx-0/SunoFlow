@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     if (isRateLimited(ip)) {
       return NextResponse.json(
-        { error: "Too many requests" },
+        { error: "Too many requests", code: "RATE_LIMIT" },
         { status: 429, headers: { "Retry-After": "60" } }
       );
     }
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logServerError("songs-discover", error, { route: "/api/songs/discover" });
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

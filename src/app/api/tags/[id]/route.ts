@@ -15,7 +15,7 @@ export async function PATCH(
       where: { id: params.id, userId: userId },
     });
     if (!tag) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     const body = await request.json();
@@ -23,7 +23,7 @@ export async function PATCH(
     const color = typeof body.color === "string" ? body.color.trim() : undefined;
 
     if (name !== undefined && (!name || name.length > 50)) {
-      return NextResponse.json({ error: "Tag name is required (max 50 chars)" }, { status: 400 });
+      return NextResponse.json({ error: "Tag name is required (max 50 chars)", code: "VALIDATION_ERROR" }, { status: 400 });
     }
 
     // Check duplicate name if renaming
@@ -32,7 +32,7 @@ export async function PATCH(
         where: { userId_name: { userId: userId, name } },
       });
       if (existing) {
-        return NextResponse.json({ error: "A tag with that name already exists" }, { status: 409 });
+        return NextResponse.json({ error: "A tag with that name already exists", code: "CONFLICT" }, { status: 409 });
       }
     }
 
@@ -46,7 +46,7 @@ export async function PATCH(
 
     return NextResponse.json({ tag: updated });
   } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }
 
@@ -63,13 +63,13 @@ export async function DELETE(
       where: { id: params.id, userId: userId },
     });
     if (!tag) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     await prisma.tag.delete({ where: { id: tag.id } });
 
     return NextResponse.json({ success: true });
   } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

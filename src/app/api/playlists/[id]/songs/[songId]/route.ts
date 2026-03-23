@@ -16,7 +16,7 @@ export async function DELETE(
     });
 
     if (!playlist) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     const playlistSong = await prisma.playlistSong.findUnique({
@@ -30,7 +30,7 @@ export async function DELETE(
 
     if (!playlistSong) {
       return NextResponse.json(
-        { error: "Song not in playlist" },
+        { error: "Song not in playlist", code: "NOT_FOUND" },
         { status: 404 }
       );
     }
@@ -57,7 +57,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

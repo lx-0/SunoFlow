@@ -19,7 +19,7 @@ export async function POST(
     });
 
     if (!playlist) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     const body = await request.json();
@@ -27,7 +27,7 @@ export async function POST(
 
     if (!songId || typeof songId !== "string") {
       return NextResponse.json(
-        { error: "songId is required" },
+        { error: "songId is required", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -38,12 +38,12 @@ export async function POST(
     });
 
     if (!song) {
-      return NextResponse.json({ error: "Song not found" }, { status: 404 });
+      return NextResponse.json({ error: "Song not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     if (playlist._count.songs >= MAX_SONGS_PER_PLAYLIST) {
       return NextResponse.json(
-        { error: `Maximum of ${MAX_SONGS_PER_PLAYLIST} songs per playlist` },
+        { error: `Maximum of ${MAX_SONGS_PER_PLAYLIST} songs per playlist`, code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -55,7 +55,7 @@ export async function POST(
 
     if (existing) {
       return NextResponse.json(
-        { error: "Song already in playlist" },
+        { error: "Song already in playlist", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -80,7 +80,7 @@ export async function POST(
     return NextResponse.json({ playlistSong }, { status: 201 });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

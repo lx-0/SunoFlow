@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ ratings });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }
@@ -47,14 +47,14 @@ export async function POST(request: Request) {
 
     if (!songId || typeof songId !== "string") {
       return NextResponse.json(
-        { error: "songId is required" },
+        { error: "songId is required", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
 
     if (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 5) {
       return NextResponse.json(
-        { error: "value must be an integer between 1 and 5" },
+        { error: "value must be an integer between 1 and 5", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
 
     if (!song) {
       return NextResponse.json(
-        { error: "Song not found" },
+        { error: "Song not found", code: "NOT_FOUND" },
         { status: 404 }
       );
     }
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
     });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

@@ -19,7 +19,7 @@ export async function PATCH(
     });
 
     if (!notification || notification.userId !== userId) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     await prisma.notification.update({
@@ -30,7 +30,7 @@ export async function PATCH(
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }
