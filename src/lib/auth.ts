@@ -62,20 +62,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id;
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { onboardingCompleted: true, isAdmin: true, emailVerified: true },
+          select: { onboardingCompleted: true, isAdmin: true, emailVerified: true, sunoApiKey: true },
         });
         token.onboardingCompleted = dbUser?.onboardingCompleted ?? false;
         token.isAdmin = dbUser?.isAdmin ?? false;
         token.emailVerified = dbUser?.emailVerified?.toISOString() ?? null;
+        token.hasSunoApiKey = Boolean(dbUser?.sunoApiKey);
       }
       if (trigger === "update") {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { onboardingCompleted: true, isAdmin: true, emailVerified: true },
+          select: { onboardingCompleted: true, isAdmin: true, emailVerified: true, sunoApiKey: true },
         });
         token.onboardingCompleted = dbUser?.onboardingCompleted ?? false;
         token.isAdmin = dbUser?.isAdmin ?? false;
         token.emailVerified = dbUser?.emailVerified?.toISOString() ?? null;
+        token.hasSunoApiKey = Boolean(dbUser?.sunoApiKey);
       }
       return token;
     },
@@ -88,6 +90,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token.isAdmin as boolean;
         (session.user as unknown as Record<string, unknown>).emailVerified =
           token.emailVerified ?? null;
+        (session.user as unknown as Record<string, unknown>).hasSunoApiKey =
+          token.hasSunoApiKey as boolean;
       }
       return session;
     },

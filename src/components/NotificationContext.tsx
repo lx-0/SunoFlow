@@ -42,6 +42,8 @@ interface NotificationContextValue {
   clearAll: () => void;
   browserPermission: NotificationPermission | "default";
   requestBrowserPermission: () => Promise<void>;
+  showConfetti: boolean;
+  dismissConfetti: () => void;
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -90,6 +92,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [browserPermission, setBrowserPermission] =
     useState<NotificationPermission>("default");
+  const [showConfetti, setShowConfetti] = useState(false);
+  const firstCelebrationFiredRef = useRef(false);
 
   // Track previously-seen pending song IDs so we only notify on transitions
   const knownPendingRef = useRef<Set<string>>(new Set());
@@ -258,6 +262,19 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                 href: `/library`,
                 songId: song.id,
               });
+
+              // First-generation confetti celebration
+              if (!firstCelebrationFiredRef.current) {
+                try {
+                  if (!localStorage.getItem("sunoflow-first-gen-celebrated")) {
+                    localStorage.setItem("sunoflow-first-gen-celebrated", "true");
+                    setShowConfetti(true);
+                    firstCelebrationFiredRef.current = true;
+                  }
+                } catch {
+                  // localStorage unavailable
+                }
+              }
             } else if (song.generationStatus === "failed") {
               addNotification({
                 type: "generation_failed",
@@ -288,6 +305,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     };
   }, [session?.user, addNotification, fetchNotifications]);
 
+  const dismissConfetti = useCallback(() => setShowConfetti(false), []);
+
   const value: NotificationContextValue = {
     notifications,
     unreadCount,
@@ -297,6 +316,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     clearAll,
     browserPermission,
     requestBrowserPermission,
+    showConfetti,
+    dismissConfetti,
   };
 
   return (

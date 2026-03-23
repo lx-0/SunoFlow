@@ -25,10 +25,19 @@ const TOUR_STEPS: TourStep[] = [
     position: "bottom",
   },
   {
+    id: "nav-generate",
+    title: "Generate Music",
+    description:
+      "This is where the magic happens. Click Generate to open the music creation studio.",
+    targetSelector: "[data-tour='nav-generate']",
+    requiredPath: "/",
+    position: "right",
+  },
+  {
     id: "generate",
     title: "Create Your First Song",
     description:
-      "Head to the Generate page and enter a prompt to create AI music. Try describing a mood, genre, or theme.",
+      "Enter a prompt describing a mood, genre, or theme. You can also pick a template or persona to get started faster.",
     targetSelector: "[data-tour='generate-prompt']",
     requiredPath: "/generate",
     position: "bottom",
@@ -37,19 +46,37 @@ const TOUR_STEPS: TourStep[] = [
     id: "library",
     title: "Your Music Library",
     description:
-      "All your generated songs appear here. Filter by status, search, and manage your collection.",
+      "All your generated songs appear here. Filter by status, rating, or tags. Download, remix, and manage your collection.",
     targetSelector: "[data-tour='library']",
     requiredPath: "/library",
     position: "bottom",
   },
   {
-    id: "explore",
-    title: "Favorites, Playlists & Sharing",
+    id: "nav-favorites",
+    title: "Save Your Favorites",
     description:
-      "Tap the heart to favorite songs, organize them into playlists, and share your creations with others. You're all set!",
-    targetSelector: "[data-tour='explore']",
-    requiredPath: "/",
+      "Tap the heart icon on any song to save it here. Quick access to the tracks you love most.",
+    targetSelector: "[data-tour='nav-favorites']",
+    requiredPath: "/library",
     position: "right",
+  },
+  {
+    id: "playlists",
+    title: "Organize into Playlists",
+    description:
+      "Create playlists to group songs by mood, project, or anything you like. Share them with others too!",
+    targetSelector: "[data-tour='explore']",
+    requiredPath: "/playlists",
+    position: "bottom",
+  },
+  {
+    id: "ready",
+    title: "You're All Set!",
+    description:
+      "You know the basics. Make sure to set up your Suno API key in Settings if you haven't already — then start creating!",
+    targetSelector: "[data-tour='welcome']",
+    requiredPath: "/",
+    position: "bottom",
   },
 ];
 

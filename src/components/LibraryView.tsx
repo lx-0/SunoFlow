@@ -1512,20 +1512,31 @@ export function LibraryView({
       {songs.length === 0 ? (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 text-center">
           <MusicalNoteIcon className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-700 mb-3" aria-hidden="true" />
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
-            {isArchiveView
-              ? "Your archive is empty."
-              : hasAnyFilter
-                ? "No songs match your filters."
-                : "No songs in your library yet."}
-          </p>
-          {hasAnyFilter && (
-            <button
-              onClick={clearAllFilters}
-              className="mt-3 px-4 py-2 rounded-lg text-sm font-medium text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors"
-            >
-              Clear all filters
-            </button>
+          {isArchiveView ? (
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Your archive is empty.</p>
+          ) : hasAnyFilter ? (
+            <>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">No songs match your filters.</p>
+              <button
+                onClick={clearAllFilters}
+                className="mt-3 px-4 py-2 rounded-lg text-sm font-medium text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors"
+              >
+                Clear all filters
+              </button>
+            </>
+          ) : (
+            <>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">No songs yet</h3>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
+                Create your first AI-generated song — describe a mood, genre, or vibe and let the music flow.
+              </p>
+              <Link
+                href="/generate"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-xl transition-colors"
+              >
+                Generate your first song
+              </Link>
+            </>
           )}
         </div>
       ) : (
