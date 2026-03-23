@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { AppShell } from "@/components/AppShell";
 import { PullToRefreshContainer } from "@/components/PullToRefreshContainer";
 import {
@@ -279,12 +280,13 @@ function InstagramMoodBoard({
           >
             {post.thumbnailUrl && (
               <div className="aspect-square relative overflow-hidden bg-gray-100 dark:bg-gray-800">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={post.thumbnailUrl}
                   alt={post.title || "Instagram post"}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 640px) 50vw, 33vw"
+                  unoptimized
                 />
                 {post.mood !== "neutral" && (
                   <span

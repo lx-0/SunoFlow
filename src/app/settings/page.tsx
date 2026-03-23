@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import { AppShell } from "@/components/AppShell";
 import { useTheme } from "@/components/ThemeProvider";
 import { PlusIcon, TrashIcon, SunIcon, MoonIcon, ComputerDesktopIcon, PencilIcon, CheckIcon, XMarkIcon, ArrowPathIcon, KeyIcon, ArrowDownTrayIcon, UserCircleIcon, Cog6ToothIcon, ShieldCheckIcon, BellIcon, SpeakerWaveIcon, ChartBarIcon, ExclamationTriangleIcon, CommandLineIcon, ClipboardDocumentIcon } from "@heroicons/react/24/outline";
@@ -118,10 +119,13 @@ function ProfileTab() {
           <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Profile Picture</h3>
           <div className="flex items-center gap-4">
             {avatarUrl ? (
-              <img
+              <Image
                 src={avatarUrl}
                 alt="Avatar"
-                className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
+                width={64}
+                height={64}
+                className="rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
+                unoptimized
                 onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
               />
             ) : (

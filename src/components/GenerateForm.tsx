@@ -581,6 +581,7 @@ export function GenerateForm() {
           <button
             type="button"
             onClick={() => setShowLyricsGenerator((v) => !v)}
+            aria-expanded={showLyricsGenerator}
             className="w-full flex items-center justify-between bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl px-4 py-3 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
           >
             <span className="flex items-center gap-2 text-sm font-medium text-violet-700 dark:text-violet-300">
@@ -602,6 +603,7 @@ export function GenerateForm() {
                   value={lyricsPrompt}
                   onChange={(e) => setLyricsPrompt(e.target.value)}
                   placeholder="Describe your song theme, mood, or topic..."
+                  aria-label="Lyrics generation prompt"
                   maxLength={200}
                   disabled={isGeneratingLyrics}
                   className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50"
@@ -640,6 +642,7 @@ export function GenerateForm() {
                   <textarea
                     value={generatedLyrics}
                     onChange={(e) => setGeneratedLyrics(e.target.value)}
+                    aria-label="Generated lyrics"
                     rows={8}
                     className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-base sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
                   />
@@ -658,11 +661,12 @@ export function GenerateForm() {
 
         {/* Custom lyrics toggle */}
         <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3">
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Custom lyrics</span>
+          <span id="custom-lyrics-label" className="text-sm font-medium text-gray-700 dark:text-gray-300">Custom lyrics</span>
           <button
             type="button"
             role="switch"
             aria-checked={customMode}
+            aria-labelledby="custom-lyrics-label"
             onClick={() => setCustomMode((v) => !v)}
             disabled={isSubmitting}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 disabled:opacity-50 ${
@@ -698,11 +702,12 @@ export function GenerateForm() {
 
         {/* Instrumental toggle */}
         <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3">
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Instrumental only</span>
+          <span id="instrumental-label" className="text-sm font-medium text-gray-700 dark:text-gray-300">Instrumental only</span>
           <button
             type="button"
             role="switch"
             aria-checked={instrumental}
+            aria-labelledby="instrumental-label"
             onClick={() => setInstrumental((v) => !v)}
             disabled={isSubmitting}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 disabled:opacity-50 ${

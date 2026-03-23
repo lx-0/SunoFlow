@@ -8,6 +8,7 @@ import {
   SparklesIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/solid";
+import Image from "next/image";
 import { useToast } from "./Toast";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { GenerationProgress } from "./GenerationProgress";
@@ -194,10 +195,12 @@ function SongPickerModal({
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors"
                 >
                   {song.imageUrl ? (
-                    <img
+                    <Image
                       src={song.imageUrl}
                       alt=""
-                      className="h-10 w-10 rounded-lg object-cover flex-shrink-0"
+                      width={40}
+                      height={40}
+                      className="rounded-lg object-cover flex-shrink-0"
                     />
                   ) : (
                     <div className="h-10 w-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
@@ -346,10 +349,12 @@ function TrackSelector({
           {track.songId ? (
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 flex items-center gap-3">
               {track.songImageUrl ? (
-                <img
+                <Image
                   src={track.songImageUrl}
                   alt=""
-                  className="h-10 w-10 rounded-lg object-cover flex-shrink-0"
+                  width={40}
+                  height={40}
+                  className="rounded-lg object-cover flex-shrink-0"
                 />
               ) : (
                 <div className="h-10 w-10 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">

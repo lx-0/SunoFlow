@@ -14,6 +14,7 @@ import {
   ArrowsRightLeftIcon,
   MusicalNoteIcon,
 } from "@heroicons/react/24/outline";
+import Image from "next/image";
 import { useQueue } from "./QueueContext";
 
 function formatTime(seconds: number): string {
@@ -74,13 +75,14 @@ export function GlobalPlayer() {
 
         <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2">
           {/* Cover art — hidden on very small screens to save space */}
-          <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gray-800 dark:bg-gray-700 overflow-hidden flex items-center justify-center">
+          <div className="relative flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gray-800 dark:bg-gray-700 overflow-hidden flex items-center justify-center">
             {currentSong.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={currentSong.imageUrl}
                 alt={currentSong.title ?? "Song"}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
+                sizes="40px"
               />
             ) : (
               <MusicalNoteIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { MusicalNoteIcon, QueueListIcon } from "@heroicons/react/24/outline";
+import Image from "next/image";
 
 interface SongResult {
   id: string;
@@ -268,10 +269,12 @@ export function SearchBar() {
                       }`}
                     >
                       {song.imageUrl ? (
-                        <img
+                        <Image
                           src={song.imageUrl}
                           alt=""
-                          className="w-8 h-8 rounded object-cover flex-shrink-0"
+                          width={32}
+                          height={32}
+                          className="rounded object-cover flex-shrink-0"
                         />
                       ) : (
                         <MusicalNoteIcon className="w-8 h-8 p-1.5 text-gray-400 bg-gray-100 dark:bg-gray-800 rounded flex-shrink-0" />

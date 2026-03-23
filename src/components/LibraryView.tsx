@@ -1630,9 +1630,9 @@ export function LibraryView({
 
       {/* Delete confirmation dialog */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="delete-dialog-title" onKeyDown={(e) => { if (e.key === "Escape") setShowDeleteConfirm(false); }}>
           <div className="bg-white dark:bg-gray-900 w-full sm:rounded-2xl rounded-t-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 sm:mx-4 sm:max-w-sm">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <h3 id="delete-dialog-title" className="text-lg font-semibold text-gray-900 dark:text-white">
               Delete {selectedSongIds.size} song{selectedSongIds.size !== 1 ? "s" : ""}?
             </h3>
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">

@@ -115,6 +115,7 @@ export function PlaylistsView({
           <input
             type="text"
             placeholder="Playlist name"
+            aria-label="Playlist name"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             maxLength={100}
@@ -124,6 +125,7 @@ export function PlaylistsView({
           <input
             type="text"
             placeholder="Description (optional)"
+            aria-label="Playlist description"
             value={newDesc}
             onChange={(e) => setNewDesc(e.target.value)}
             className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
@@ -192,12 +194,14 @@ export function PlaylistsView({
                     <button
                       onClick={() => handleDelete(pl.id)}
                       disabled={deletingId === pl.id}
+                      aria-label={`Confirm delete ${pl.name}`}
                       className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-600 hover:bg-red-500 text-white transition-colors disabled:opacity-50"
                     >
                       {deletingId === pl.id ? "…" : "Delete"}
                     </button>
                     <button
                       onClick={() => setConfirmDeleteId(null)}
+                      aria-label="Cancel delete"
                       className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors"
                     >
                       Cancel

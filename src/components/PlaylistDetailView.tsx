@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   PlayIcon,
@@ -398,13 +399,14 @@ export function PlaylistDetailView({
                   </span>
 
                   {/* Cover art */}
-                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center">
+                  <div className="relative flex-shrink-0 w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center">
                     {ps.song.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={ps.song.imageUrl}
                         alt={ps.song.title ?? "Song"}
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
+                        sizes="40px"
                       />
                     ) : (
                       <MusicalNoteIcon className="w-5 h-5 text-gray-400 dark:text-gray-600" />
