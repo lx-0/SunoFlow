@@ -23,39 +23,26 @@ test.beforeAll(async ({ baseURL }) => {
 // ─── Library Search ─────────────────────────────────────────────────────────
 
 test.describe("Library — Search", () => {
-  test("search input filters songs by title", async ({ page }) => {
+  test("search input accepts text and triggers search", async ({ page }) => {
     await loginViaUI(page, testEmail, TEST_PASSWORD);
-
-    const songs = [
-      mockSong({ title: "Sunset Groove", prompt: "chill vibes" }),
-      mockSong({ title: "Midnight Run", prompt: "energetic beats" }),
-      mockSong({ title: "Ocean Waves", prompt: "ambient relaxation" }),
-    ];
-    await mockSongsAPI(page, songs);
 
     await page.goto("/library");
     await expect(page.locator("h1")).toContainText("Library");
 
-    // Type in search
-    const searchInput = page.getByLabel("Search songs");
+    // Type in search — the search input may have different aria-labels
+    const searchInput = page.getByPlaceholder(/Search songs/i);
     await searchInput.fill("Sunset");
 
-    // Wait for search to trigger (debounced)
-    await page.waitForTimeout(500);
-
-    // The search should filter results — verify the search input has value
+    // Verify the search input has value
     await expect(searchInput).toHaveValue("Sunset");
   });
 
   test("clear search button resets search", async ({ page }) => {
     await loginViaUI(page, testEmail, TEST_PASSWORD);
 
-    const songs = [mockSong({ title: "Test Song" })];
-    await mockSongsAPI(page, songs);
-
     await page.goto("/library");
 
-    const searchInput = page.getByLabel("Search songs");
+    const searchInput = page.getByPlaceholder(/Search songs/i);
     await searchInput.fill("something");
     await expect(searchInput).toHaveValue("something");
 
@@ -200,6 +187,39 @@ test.describe("Library — Song Actions", () => {
     // Favorite button should be present
     await expect(
       page.getByLabel("Add to favorites").first()
+    ).toBeVisible({ timeout: 3000 });
+  });
+
+  test("favorites toggle changes state on click", async ({ page }) => {
+    await loginViaUI(page, testEmail, TEST_PASSWORD);
+
+    const songId = "fav-toggle-123";
+    const songs = [mockSong({ id: songId, title: "Toggle Fav Song", isFavorite: false })];
+    await mockSongsAPI(page, songs);
+
+    // Mock favorite toggle endpoint
+    await page.route(`**/api/songs/${songId}/favorite`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ isFavorite: true }),
+      });
+    });
+
+    await page.goto("/library");
+    await expect(page.getByText("Toggle Fav Song")).toBeVisible({ timeout: 5000 });
+
+    // Hover to reveal action buttons
+    await page.getByText("Toggle Fav Song").hover();
+
+    // Click the favorite button
+    const favBtn = page.getByLabel("Add to favorites").first();
+    await expect(favBtn).toBeVisible({ timeout: 3000 });
+    await favBtn.click();
+
+    // After toggling, the button label should change to "Remove from favorites"
+    await expect(
+      page.getByLabel("Remove from favorites").first()
     ).toBeVisible({ timeout: 3000 });
   });
 

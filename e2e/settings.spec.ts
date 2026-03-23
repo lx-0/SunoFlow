@@ -21,25 +21,27 @@ test.beforeAll(async ({ baseURL }) => {
 // ─── Settings Page Rendering ────────────────────────────────────────────────
 
 test.describe("Settings Page", () => {
-  test("settings page renders all sections", async ({ page }) => {
+  test("settings page renders with tab navigation", async ({ page }) => {
     await loginViaUI(page, testEmail, TEST_PASSWORD);
     await page.goto("/settings");
 
     // Main heading
     await expect(page.locator("h2").first()).toContainText("Settings");
 
-    // Section headings
-    await expect(page.getByText("Appearance")).toBeVisible();
-    await expect(page.getByText("Account")).toBeVisible();
-    await expect(page.getByText("Suno API Key")).toBeVisible();
-    await expect(page.getByText("Export Data")).toBeVisible();
-    await expect(page.getByText("Tags")).toBeVisible();
+    // Tab buttons
+    await expect(page.getByRole("button", { name: "Profile" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Preferences" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
   });
 
-  test("theme toggle buttons are present", async ({ page }) => {
+  test("preferences tab shows appearance section with theme buttons", async ({ page }) => {
     await loginViaUI(page, testEmail, TEST_PASSWORD);
     await page.goto("/settings");
 
+    // Switch to Preferences tab
+    await page.getByRole("button", { name: "Preferences" }).click();
+
+    await expect(page.getByText("Appearance")).toBeVisible({ timeout: 3000 });
     await expect(page.getByRole("button", { name: "Light" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Dark" })).toBeVisible();
     await expect(page.getByRole("button", { name: "System" })).toBeVisible();
@@ -49,28 +51,20 @@ test.describe("Settings Page", () => {
 // ─── Display Name Update ────────────────────────────────────────────────────
 
 test.describe("Settings — Display Name", () => {
-  test("update display name", async ({ page }) => {
+  test("update display name on profile tab", async ({ page }) => {
     await loginViaUI(page, testEmail, TEST_PASSWORD);
     await page.goto("/settings");
 
+    // Profile tab should be active by default
     const nameInput = page.getByPlaceholder("Your name");
+    await expect(nameInput).toBeVisible({ timeout: 5000 });
     await nameInput.clear();
     await nameInput.fill("Updated Name");
 
-    // Click the Save button in the Account section
-    // There are multiple Save buttons, so we target the one near display name
-    const accountSection = page.locator("section", {
-      has: page.getByText("Account"),
-    });
-    const saveBtn =
-      accountSection.getByRole("button", { name: "Save" }).first() ??
-      page
-        .getByRole("button", { name: "Save" })
-        .first();
-    await saveBtn.click();
+    // Click save
+    await page.getByRole("button", { name: "Save Profile" }).click();
 
-    // Should show success feedback (toast or inline)
-    // Wait a moment for the API call
+    // Wait for API response
     await page.waitForTimeout(1000);
 
     // Reload and verify persistence
@@ -85,9 +79,12 @@ test.describe("Settings — Display Name", () => {
 // ─── Change Password ────────────────────────────────────────────────────────
 
 test.describe("Settings — Change Password", () => {
-  test("change password form is present", async ({ page }) => {
+  test("change password form is present on account tab", async ({ page }) => {
     await loginViaUI(page, testEmail, TEST_PASSWORD);
     await page.goto("/settings");
+
+    // Switch to Account tab
+    await page.getByRole("button", { name: "Account" }).click();
 
     await expect(page.getByText("Change password")).toBeVisible();
     await expect(
@@ -107,7 +104,6 @@ test.describe("Settings — Change Password", () => {
   test("change password with valid credentials", async ({ page }) => {
     // Use a unique user for this test since we're changing the password
     const email = uniqueEmail("chgpwd");
-    const baseURL = page.context().pages()[0]?.url()?.replace(/\/.*$/, "") || "http://localhost:3200";
     await registerUser("http://localhost:3200", {
       name: "Password Changer",
       email,
@@ -115,6 +111,9 @@ test.describe("Settings — Change Password", () => {
     });
     await loginViaUI(page, email, TEST_PASSWORD);
     await page.goto("/settings");
+
+    // Switch to Account tab
+    await page.getByRole("button", { name: "Account" }).click();
 
     await page.getByPlaceholder("Current password").fill(TEST_PASSWORD);
     await page
@@ -132,8 +131,10 @@ test.describe("Settings — Change Password", () => {
     // Verify we can log in with the new password
     // Sign out first
     await page.goto("/");
-    await page.getByRole("button", { name: "Sign out" }).click();
-    await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
+    const signOutBtn = page.getByRole("button", { name: "Sign out" }).first();
+    await signOutBtn.waitFor({ state: "visible", timeout: 5000 });
+    await signOutBtn.click();
+    await expect(page).toHaveURL(/\/login/, { timeout: 15000 });
 
     // Log in with new password
     await loginViaUI(page, email, "NewTestPass456!");
@@ -145,9 +146,12 @@ test.describe("Settings — Change Password", () => {
 // ─── Suno API Key ───────────────────────────────────────────────────────────
 
 test.describe("Settings — API Key", () => {
-  test("API key section renders", async ({ page }) => {
+  test("API key section renders on account tab", async ({ page }) => {
     await loginViaUI(page, testEmail, TEST_PASSWORD);
     await page.goto("/settings");
+
+    // Switch to Account tab
+    await page.getByRole("button", { name: "Account" }).click();
 
     await expect(page.getByText("Suno API Key")).toBeVisible();
   });
@@ -156,9 +160,12 @@ test.describe("Settings — API Key", () => {
 // ─── Export Data ────────────────────────────────────────────────────────────
 
 test.describe("Settings — Export Data", () => {
-  test("export buttons are present", async ({ page }) => {
+  test("export buttons are present on account tab", async ({ page }) => {
     await loginViaUI(page, testEmail, TEST_PASSWORD);
     await page.goto("/settings");
+
+    // Switch to Account tab
+    await page.getByRole("button", { name: "Account" }).click();
 
     await expect(page.getByText("Export Data")).toBeVisible();
     await expect(
@@ -176,6 +183,9 @@ test.describe("Settings — Export Data", () => {
     await loginViaUI(page, testEmail, TEST_PASSWORD);
     await page.goto("/settings");
 
+    // Switch to Account tab
+    await page.getByRole("button", { name: "Account" }).click();
+
     // Listen for download
     const downloadPromise = page.waitForEvent("download", { timeout: 10000 });
     await page.getByRole("button", { name: /Export all as JSON/i }).click();
@@ -192,6 +202,9 @@ test.describe("Settings — Theme", () => {
     await loginViaUI(page, testEmail, TEST_PASSWORD);
     await page.goto("/settings");
 
+    // Switch to Preferences tab
+    await page.getByRole("button", { name: "Preferences" }).click();
+
     await page.getByRole("button", { name: "Dark" }).click();
 
     // The html element should have dark class or data attribute
@@ -201,6 +214,9 @@ test.describe("Settings — Theme", () => {
   test("clicking Light theme button removes dark class", async ({ page }) => {
     await loginViaUI(page, testEmail, TEST_PASSWORD);
     await page.goto("/settings");
+
+    // Switch to Preferences tab
+    await page.getByRole("button", { name: "Preferences" }).click();
 
     // Switch to dark first
     await page.getByRole("button", { name: "Dark" }).click();

@@ -1,23 +1,16 @@
 import { test, expect } from "@playwright/test";
+import {
+  uniqueEmail,
+  DEFAULT_PASSWORD,
+  registerUser,
+  loginViaUI,
+} from "./helpers";
 
 const TEST_USER = {
   name: "E2E Test User",
   email: `e2e-auth-${Date.now()}@test.local`,
   password: "TestPass123!",
 };
-
-// Helper: register a user via API and return the response
-async function registerUser(
-  baseURL: string,
-  user: { name: string; email: string; password: string }
-) {
-  const res = await fetch(`${baseURL}/api/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(user),
-  });
-  return res;
-}
 
 test.describe("Register", () => {
   test("happy path — register and redirect to authenticated page", async ({
@@ -147,5 +140,91 @@ test.describe("Login", () => {
 
     // Should stay on login page
     await expect(page).toHaveURL(/\/login/);
+  });
+});
+
+// ─── Logout ──────────────────────────────────────────────────────────────────
+
+test.describe("Logout", () => {
+  let logoutEmail: string;
+  const logoutPassword = DEFAULT_PASSWORD;
+
+  test.beforeAll(async ({ baseURL }) => {
+    logoutEmail = uniqueEmail("logout");
+    await registerUser(baseURL ?? "http://localhost:3200", {
+      name: "Logout Tester",
+      email: logoutEmail,
+      password: logoutPassword,
+    });
+  });
+
+  test("sign out redirects to login and prevents access to protected pages", async ({
+    page,
+  }) => {
+    await loginViaUI(page, logoutEmail, logoutPassword);
+
+    // Verify we're on an authenticated page
+    await expect(page).not.toHaveURL(/\/login/);
+
+    // Click sign out (may have multiple buttons for mobile/desktop layouts)
+    await page.getByRole("button", { name: "Sign out" }).first().click();
+
+    // Should redirect to login
+    await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
+
+    // Trying to access a protected page should redirect back to login
+    await page.goto("/library");
+    await expect(page).toHaveURL(/\/login/, { timeout: 5000 });
+  });
+});
+
+// ─── Password Reset Request ──────────────────────────────────────────────────
+
+test.describe("Password Reset", () => {
+  test("forgot password page renders and accepts email submission", async ({
+    page,
+  }) => {
+    await page.goto("/forgot-password");
+
+    // Should show the reset form
+    await expect(page.getByText("Enter your email to receive a password reset link")).toBeVisible();
+    await expect(page.getByLabel("Email")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Send reset link" })).toBeVisible();
+  });
+
+  test("submitting forgot password shows confirmation message", async ({
+    page,
+    baseURL,
+  }) => {
+    // Seed a user to request reset for
+    const email = uniqueEmail("reset");
+    await registerUser(baseURL ?? "http://localhost:3200", {
+      name: "Reset Tester",
+      email,
+      password: DEFAULT_PASSWORD,
+    });
+
+    await page.goto("/forgot-password");
+
+    await page.getByLabel("Email").fill(email);
+    await page.getByRole("button", { name: "Send reset link" }).click();
+
+    // Should show success message
+    await expect(
+      page.getByText("If an account with that email exists, a password reset link has been sent.")
+    ).toBeVisible({ timeout: 5000 });
+
+    // Should show back to sign in link
+    await expect(page.getByRole("link", { name: "Back to sign in" })).toBeVisible();
+  });
+
+  test("login page has forgot password link", async ({ page }) => {
+    await page.goto("/login");
+
+    const forgotLink = page.getByRole("link", { name: /Forgot password/i });
+    await expect(forgotLink).toBeVisible();
+    await forgotLink.click();
+
+    await expect(page).toHaveURL(/\/forgot-password/, { timeout: 5000 });
   });
 });

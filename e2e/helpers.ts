@@ -35,6 +35,19 @@ export async function loginViaUI(
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).not.toHaveURL(/\/login/, { timeout: 10000 });
+
+  // Dismiss onboarding tour if present
+  const skipTour = page.getByRole("button", { name: "Skip tour" }).first();
+  if (await skipTour.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await skipTour.click();
+    await expect(skipTour).not.toBeVisible({ timeout: 2000 }).catch(() => {});
+  }
+
+  // Dismiss email verification banner if present
+  const dismissBanner = page.getByRole("button", { name: "Dismiss" });
+  if (await dismissBanner.isVisible({ timeout: 1000 }).catch(() => false)) {
+    await dismissBanner.click();
+  }
 }
 
 // ─── Mock Song Data ─────────────────────────────────────────────────────────
