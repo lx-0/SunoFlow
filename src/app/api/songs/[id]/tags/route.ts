@@ -57,6 +57,10 @@ export async function POST(
       return NextResponse.json({ error: "Tag name or tagId required" }, { status: 400 });
     }
 
+    if (tagName && tagName.length > 50) {
+      return NextResponse.json({ error: "Tag name must be 50 characters or less" }, { status: 400 });
+    }
+
     // Check tags-per-song limit
     const songTagCount = await prisma.songTag.count({ where: { songId: song.id } });
     if (songTagCount >= MAX_TAGS_PER_SONG) {

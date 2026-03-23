@@ -48,6 +48,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (description && typeof description === "string" && description.length > 1000) {
+      return NextResponse.json(
+        { error: "Description must be 1000 characters or less" },
+        { status: 400 }
+      );
+    }
+
     const count = await prisma.playlist.count({
       where: { userId: userId },
     });

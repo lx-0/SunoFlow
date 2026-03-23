@@ -51,7 +51,8 @@ export async function PATCH(
 
     const body = await request.json();
     const stars = body.stars;
-    const note = typeof body.note === "string" ? body.note.trim() : null;
+    const rawNote = typeof body.note === "string" ? body.note.trim() : null;
+    const note = rawNote && rawNote.length > 500 ? rawNote.slice(0, 500) : rawNote;
 
     if (typeof stars !== "number" || stars < 0 || stars > 5 || !Number.isInteger(stars)) {
       return NextResponse.json({ error: "stars must be an integer 0-5" }, { status: 400 });

@@ -70,8 +70,17 @@ export async function POST(request: Request) {
     if (!name || typeof name !== "string" || !name.trim()) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
+    if (name.length > 100) {
+      return NextResponse.json({ error: "Name must be 100 characters or less" }, { status: 400 });
+    }
     if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
+    }
+    if (prompt.length > 3000) {
+      return NextResponse.json({ error: "Prompt must be 3000 characters or less" }, { status: 400 });
+    }
+    if (description && typeof description === "string" && description.length > 500) {
+      return NextResponse.json({ error: "Description must be 500 characters or less" }, { status: 400 });
     }
 
     // Enforce max 20 user templates

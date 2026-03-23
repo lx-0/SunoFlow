@@ -39,8 +39,12 @@ export async function POST(request: Request) {
       );
     }
 
-    if (name.length > 100) {
+    if (typeof name !== "string" || name.length > 100) {
       return NextResponse.json({ error: "Name must be 100 characters or less" }, { status: 400 });
+    }
+
+    if (description && typeof description === "string" && description.length > 500) {
+      return NextResponse.json({ error: "Description must be 500 characters or less" }, { status: 400 });
     }
 
     // Check persona limit (max 50 per user)

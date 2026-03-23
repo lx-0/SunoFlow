@@ -58,6 +58,27 @@ export async function POST(request: Request) {
       );
     }
 
+    if (prompt.length > 3000) {
+      return NextResponse.json(
+        { error: "Prompt must be 3000 characters or less" },
+        { status: 400 }
+      );
+    }
+
+    if (title && (typeof title !== "string" || title.length > 200)) {
+      return NextResponse.json(
+        { error: "Title must be 200 characters or less" },
+        { status: 400 }
+      );
+    }
+
+    if (tags && (typeof tags !== "string" || tags.length > 500)) {
+      return NextResponse.json(
+        { error: "Tags must be 500 characters or less" },
+        { status: 400 }
+      );
+    }
+
     const generationParams = {
       prompt: prompt.trim(),
       title: title?.trim() || undefined,

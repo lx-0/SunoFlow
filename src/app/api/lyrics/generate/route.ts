@@ -27,6 +27,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (prompt.length > 2000) {
+      return NextResponse.json(
+        { error: "Prompt must be 2000 characters or less" },
+        { status: 400 }
+      );
+    }
+
     // Rate limit: 10 generations per hour per user
     const { acquired, status: rateLimitStatus } = await acquireRateLimitSlot(
       userId,

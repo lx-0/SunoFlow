@@ -72,6 +72,12 @@ export async function PATCH(
     }
 
     if (body.description !== undefined) {
+      if (typeof body.description === "string" && body.description.length > 1000) {
+        return NextResponse.json(
+          { error: "Description must be 1000 characters or less" },
+          { status: 400 }
+        );
+      }
       data.description = body.description?.trim() || null;
     }
 

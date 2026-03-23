@@ -30,7 +30,8 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const name = typeof body.name === "string" ? body.name.trim().toLowerCase() : "";
-    const color = typeof body.color === "string" ? body.color.trim() : "#7c3aed";
+    const rawColor = typeof body.color === "string" ? body.color.trim() : "#7c3aed";
+    const color = /^#[0-9A-Fa-f]{6}$/.test(rawColor) ? rawColor : "#7c3aed";
 
     if (!name || name.length > 50) {
       return NextResponse.json({ error: "Tag name is required (max 50 chars)" }, { status: 400 });

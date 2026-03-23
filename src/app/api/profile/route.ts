@@ -34,6 +34,9 @@ export async function PATCH(request: Request) {
     if (typeof name !== "string" || !name.trim()) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
+    if (name.length > 100) {
+      return NextResponse.json({ error: "Name must be 100 characters or less" }, { status: 400 });
+    }
     data.name = name.trim();
   }
 
@@ -50,6 +53,16 @@ export async function PATCH(request: Request) {
   if (avatarUrl !== undefined) {
     if (avatarUrl !== null && typeof avatarUrl !== "string") {
       return NextResponse.json({ error: "Avatar URL must be a string" }, { status: 400 });
+    }
+    if (typeof avatarUrl === "string" && avatarUrl.length > 2048) {
+      return NextResponse.json({ error: "Avatar URL too long" }, { status: 400 });
+    }
+    if (typeof avatarUrl === "string" && avatarUrl) {
+      try {
+        new URL(avatarUrl);
+      } catch {
+        return NextResponse.json({ error: "Invalid avatar URL" }, { status: 400 });
+      }
     }
     data.avatarUrl = avatarUrl ? avatarUrl.trim() : null;
   }
