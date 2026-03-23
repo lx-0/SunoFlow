@@ -790,69 +790,91 @@ export function SongDetailView({
   }
 
   return (
-    <div className="px-4 py-4 space-y-5 max-w-2xl mx-auto">
-      {/* Back link */}
-      <button
-        onClick={() => router.back()}
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors min-h-[44px]"
-      >
-        <ArrowLeftIcon className="w-4 h-4" aria-hidden="true" />
-        Back
-      </button>
-
-      {/* Cover art */}
-      <div className="relative w-full aspect-square max-h-64 rounded-2xl bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center">
-        {song.imageUrl ? (
-          <Image
-            src={song.imageUrl}
-            alt={song.title}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 256px"
-          />
-        ) : (
-          <MusicalNoteIcon className="w-20 h-20 text-gray-400 dark:text-gray-600" aria-hidden="true" />
+    <div className="max-w-2xl mx-auto">
+      {/* Hero cover art with blurred background */}
+      <div className="relative w-full overflow-hidden rounded-b-3xl mb-6">
+        {/* Blurred background layer */}
+        {song.imageUrl && (
+          <div className="absolute inset-0">
+            <Image
+              src={song.imageUrl}
+              alt=""
+              fill
+              className="object-cover scale-110 blur-2xl opacity-60"
+              sizes="100vw"
+              aria-hidden="true"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-gray-50/30 via-gray-50/50 to-gray-50 dark:from-gray-950/30 dark:via-gray-950/50 dark:to-gray-950" />
+          </div>
         )}
-      </div>
 
-      {/* Title + favorite */}
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex-1">
-            {song.title}
-            {isHidden && (
-              <span className="ml-2 inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 align-middle">
-                Hidden
-              </span>
-            )}
-          </h1>
+        <div className="relative px-4 pt-4 pb-6 space-y-4">
+          {/* Back link */}
           <button
-            onClick={handleToggleFavorite}
-            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-            className={`flex-shrink-0 flex items-center gap-1 px-2 h-11 rounded-full transition-colors ${
-              isFavorite ? "text-pink-500" : "text-gray-400 dark:text-gray-500 hover:text-pink-400"
-            }`}
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors min-h-[44px]"
           >
-            {isFavorite ? (
-              <HeartIcon className="w-6 h-6" />
-            ) : (
-              <HeartOutlineIcon className="w-6 h-6" />
-            )}
-            {favoriteCount > 0 && (
-              <span className="text-sm font-medium">{favoriteCount}</span>
-            )}
+            <ArrowLeftIcon className="w-4 h-4" aria-hidden="true" />
+            Back
           </button>
+
+          {/* Cover art */}
+          <div className="relative w-full aspect-square max-h-80 sm:max-h-[400px] rounded-2xl bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center shadow-xl ring-1 ring-black/5 dark:ring-white/10 mx-auto">
+            {song.imageUrl ? (
+              <Image
+                src={song.imageUrl}
+                alt={song.title}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 400px"
+              />
+            ) : (
+              <MusicalNoteIcon className="w-20 h-20 text-gray-400 dark:text-gray-600" aria-hidden="true" />
+            )}
+          </div>
+
+          {/* Title + favorite */}
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white flex-1">
+                {song.title}
+                {isHidden && (
+                  <span className="ml-2 inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 align-middle">
+                    Hidden
+                  </span>
+                )}
+              </h1>
+              <button
+                onClick={handleToggleFavorite}
+                aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                className={`flex-shrink-0 flex items-center gap-1 px-2 h-11 rounded-full transition-all duration-200 active:scale-95 ${
+                  isFavorite ? "text-pink-500" : "text-gray-400 dark:text-gray-500 hover:text-pink-400"
+                }`}
+              >
+                {isFavorite ? (
+                  <HeartIcon className="w-6 h-6" />
+                ) : (
+                  <HeartOutlineIcon className="w-6 h-6" />
+                )}
+                {favoriteCount > 0 && (
+                  <span className="text-sm font-medium">{favoriteCount}</span>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
+      <div className="px-4 space-y-6">
+
       {/* Full metadata grid */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 transition-shadow duration-200 hover:shadow-md">
         <div className="grid grid-cols-2 gap-3 text-sm">
           {song.tags && (
             <div className="flex items-start gap-2">
               <TagIcon className="w-4 h-4 text-violet-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
               <div>
-                <span className="text-gray-500 dark:text-gray-400 text-xs block">Style</span>
+                <span className="text-gray-500 dark:text-gray-400 text-xs block uppercase tracking-wider">Style</span>
                 <span className="text-gray-900 dark:text-white">{song.tags}</span>
               </div>
             </div>
@@ -861,7 +883,7 @@ export function SongDetailView({
             <div className="flex items-start gap-2">
               <ClockIcon className="w-4 h-4 text-violet-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
               <div>
-                <span className="text-gray-500 dark:text-gray-400 text-xs block">Duration</span>
+                <span className="text-gray-500 dark:text-gray-400 text-xs block uppercase tracking-wider">Duration</span>
                 <span className="text-gray-900 dark:text-white">{formatTime(song.duration)}</span>
               </div>
             </div>
@@ -869,7 +891,7 @@ export function SongDetailView({
           <div className="flex items-start gap-2">
             <CalendarIcon className="w-4 h-4 text-violet-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
             <div>
-              <span className="text-gray-500 dark:text-gray-400 text-xs block">Created</span>
+              <span className="text-gray-500 dark:text-gray-400 text-xs block uppercase tracking-wider">Created</span>
               <span className="text-gray-900 dark:text-white">{formatDate(song.createdAt)}</span>
             </div>
           </div>
@@ -877,7 +899,7 @@ export function SongDetailView({
             <div className="flex items-start gap-2">
               <MusicalNoteIcon className="w-4 h-4 text-violet-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
               <div>
-                <span className="text-gray-500 dark:text-gray-400 text-xs block">Model</span>
+                <span className="text-gray-500 dark:text-gray-400 text-xs block uppercase tracking-wider">Model</span>
                 <span className="text-gray-900 dark:text-white">{song.model}</span>
               </div>
             </div>
@@ -886,7 +908,7 @@ export function SongDetailView({
             <div className="flex items-start gap-2">
               <span className="text-violet-400 mt-0.5 flex-shrink-0 text-sm">★</span>
               <div>
-                <span className="text-gray-500 dark:text-gray-400 text-xs block">Rating</span>
+                <span className="text-gray-500 dark:text-gray-400 text-xs block uppercase tracking-wider">Rating</span>
                 <span className="text-yellow-400">{Array(rating.stars).fill("★").join("")}</span>
               </div>
             </div>
@@ -895,7 +917,7 @@ export function SongDetailView({
             <div className="flex items-start gap-2 col-span-2">
               <span className="text-violet-400 mt-0.5 flex-shrink-0 text-xs font-mono">#</span>
               <div>
-                <span className="text-gray-500 dark:text-gray-400 text-xs block">Suno ID</span>
+                <span className="text-gray-500 dark:text-gray-400 text-xs block uppercase tracking-wider">Suno ID</span>
                 <span className="text-gray-900 dark:text-white font-mono text-xs">{sunoJobId}</span>
               </div>
             </div>
@@ -905,7 +927,7 @@ export function SongDetailView({
 
       {/* Tags */}
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-2">
-        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Tags</h2>
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Tags</h2>
         <TagInput songId={song.id} initialTags={initialSongTags} />
       </div>
 
@@ -918,16 +940,16 @@ export function SongDetailView({
         </div>
       )}
 
-      {/* Action buttons row */}
-      <div className="flex flex-wrap gap-2">
-        {/* Download */}
+      {/* Action buttons row — primary | secondary groups */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Primary actions */}
         <button
           onClick={handleDownload}
           disabled={!hasAudio || downloadProgress !== null}
           aria-label="Download song"
-          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors min-h-[44px] ${
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 active:scale-95 min-h-[44px] ${
             hasAudio && downloadProgress === null
-              ? "bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+              ? "bg-violet-600 hover:bg-violet-500 text-white shadow-sm"
               : "bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed"
           }`}
         >
@@ -939,12 +961,16 @@ export function SongDetailView({
             : `${downloadProgress}%`}
         </button>
 
+        {/* Divider dot */}
+        <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700 hidden sm:block" aria-hidden="true" />
+
+        {/* Secondary actions */}
         {/* Share button */}
         {isPublic ? (
           <>
             <button
               onClick={handleCopyLink}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors min-h-[44px]"
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200 active:scale-95 min-h-[44px]"
             >
               <ClipboardDocumentIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
               Copy link
@@ -952,7 +978,7 @@ export function SongDetailView({
             <button
               onClick={handleShare}
               disabled={sharing}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-colors min-h-[44px]"
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-all duration-200 active:scale-95 min-h-[44px]"
             >
               <ShareIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
               {sharing ? "Updating..." : "Make private"}
@@ -962,7 +988,7 @@ export function SongDetailView({
           <button
             onClick={handleShare}
             disabled={sharing}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors min-h-[44px]"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200 active:scale-95 min-h-[44px]"
           >
             <ShareIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
             {sharing ? "Sharing..." : "Share"}
@@ -973,7 +999,7 @@ export function SongDetailView({
         <div className="relative" ref={playlistRef}>
           <button
             onClick={() => setPlaylistOpen(!playlistOpen)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors min-h-[44px]"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200 active:scale-95 min-h-[44px]"
           >
             <PlusIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
             Add to playlist
@@ -981,7 +1007,7 @@ export function SongDetailView({
           </button>
 
           {playlistOpen && (
-            <div className="absolute top-full left-0 mt-1 w-56 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 py-1 max-h-60 overflow-y-auto">
+            <div className="absolute top-full left-0 mt-1 w-56 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-20 py-1 max-h-60 overflow-y-auto">
               {initialPlaylists.length === 0 ? (
                 <div className="px-3 py-2 text-sm text-gray-400 dark:text-gray-500">
                   No playlists yet.{" "}
@@ -1011,7 +1037,7 @@ export function SongDetailView({
         {/* Report button */}
         <button
           onClick={() => setReportOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors min-h-[44px]"
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 active:scale-95 min-h-[44px]"
           aria-label="Report song"
         >
           <FlagIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
@@ -1042,7 +1068,7 @@ export function SongDetailView({
       {/* Export / Format Conversion */}
       {hasAudio && (
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Export</h2>
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Export</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             <button
               onClick={() => handleExport("wav")}
@@ -1080,7 +1106,7 @@ export function SongDetailView({
       {/* Variation / Remix actions */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Remix & Extend</h2>
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Remix & Extend</h2>
           <span className="text-xs text-gray-400 dark:text-gray-500">{initialVariationCount}/{maxVariations} variations</span>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -1195,7 +1221,7 @@ export function SongDetailView({
       {/* Variation tree */}
       {initialVariations.length > 0 && (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">
             Variations ({initialVariations.length}/{maxVariations})
           </h2>
           <div className="space-y-2">
@@ -1257,7 +1283,7 @@ export function SongDetailView({
       {compareVariation && (
         <div className="bg-white dark:bg-gray-900 border border-violet-300 dark:border-violet-700 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Comparison</h2>
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Comparison</h2>
             <button
               onClick={() => setCompareVariation(null)}
               className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -1302,8 +1328,8 @@ export function SongDetailView({
 
       {/* Lyrics */}
       {song.lyrics && (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Lyrics</h2>
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 transition-shadow duration-200 hover:shadow-md">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide mb-2">Lyrics</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 whitespace-pre-line leading-relaxed">
             {song.lyrics}
           </p>
@@ -1311,14 +1337,14 @@ export function SongDetailView({
       )}
 
       {/* Prompt */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
-        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Prompt</h2>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 transition-shadow duration-200 hover:shadow-md">
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide mb-2">Prompt</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">{song.prompt}</p>
       </div>
 
       {/* Rating */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Your Rating</h2>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3 transition-shadow duration-200 hover:shadow-md">
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Your Rating</h2>
 
         <StarPicker value={rating.stars} onChange={handleStarChange} />
 
@@ -1346,6 +1372,7 @@ export function SongDetailView({
             <span className="text-sm text-green-400">Saved</span>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

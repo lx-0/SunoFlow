@@ -58,34 +58,55 @@ export function PublicSongView({
   const pct = audioDuration > 0 ? (currentTime / audioDuration) * 100 : 0;
 
   return (
-    <div className="w-full max-w-sm space-y-6">
-      {/* Cover art */}
-      <div className="relative aspect-square w-full rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 overflow-hidden flex items-center justify-center">
-        {imageUrl ? (
-          <Image src={imageUrl} alt={title} fill className="object-cover" sizes="(max-width: 384px) 100vw, 384px" priority />
-        ) : (
-          <MusicalNoteIcon className="w-20 h-20 text-gray-300 dark:text-gray-700" />
+    <div className="w-full max-w-sm">
+      {/* Hero cover art with blurred background */}
+      <div className="relative w-full overflow-hidden rounded-b-3xl mb-6">
+        {/* Blurred background layer */}
+        {imageUrl && (
+          <div className="absolute inset-0">
+            <Image
+              src={imageUrl}
+              alt=""
+              fill
+              className="object-cover scale-110 blur-2xl opacity-60"
+              sizes="100vw"
+              aria-hidden="true"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-gray-50/30 via-gray-50/50 to-gray-50 dark:from-gray-950/30 dark:via-gray-950/50 dark:to-gray-950" />
+          </div>
         )}
+
+        <div className="relative px-4 pt-4 pb-6 space-y-4">
+          {/* Cover art */}
+          <div className="relative aspect-square w-full rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 overflow-hidden flex items-center justify-center shadow-xl ring-1 ring-black/5 dark:ring-white/10">
+            {imageUrl ? (
+              <Image src={imageUrl} alt={title} fill className="object-cover" sizes="(max-width: 384px) 100vw, 384px" priority />
+            ) : (
+              <MusicalNoteIcon className="w-20 h-20 text-gray-300 dark:text-gray-700" />
+            )}
+          </div>
+
+          {/* Song info */}
+          <div className="text-center space-y-1.5">
+            <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">{title}</h1>
+            {creatorName && (
+              <p className="text-sm text-gray-500 dark:text-gray-400">by {creatorName}</p>
+            )}
+            {tags && (
+              <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">{tags}</p>
+            )}
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              {new Date(createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Song info */}
-      <div className="text-center space-y-1">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h1>
-        {creatorName && (
-          <p className="text-sm text-gray-500 dark:text-gray-400">by {creatorName}</p>
-        )}
-        {tags && (
-          <p className="text-xs text-gray-500 dark:text-gray-400">{tags}</p>
-        )}
-        <p className="text-xs text-gray-400 dark:text-gray-500">
-          {new Date(createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
-        </p>
-      </div>
-
+      <div className="space-y-6 px-4">
       {/* Prompt */}
       {prompt && (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
-          <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Prompt</h2>
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 transition-shadow duration-200 hover:shadow-md">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Prompt</h2>
           <p className="text-sm text-gray-700 dark:text-gray-300">{prompt}</p>
         </div>
       )}
@@ -147,7 +168,7 @@ export function PublicSongView({
       <div className="flex justify-center">
         <button
           onClick={() => setReportOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors min-h-[44px]"
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 active:scale-95 min-h-[44px]"
           aria-label="Report song"
         >
           <FlagIcon className="w-3.5 h-3.5" aria-hidden="true" />
@@ -168,6 +189,7 @@ export function PublicSongView({
       <p className="text-center text-xs text-gray-500 dark:text-gray-400">
         Shared via SunoFlow
       </p>
+      </div>
     </div>
   );
 }
