@@ -86,7 +86,7 @@ export function PlaylistsView({
   }
 
   return (
-    <div className="px-4 py-4 space-y-4">
+    <div className="px-4 py-4 space-y-4" data-tour="explore">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

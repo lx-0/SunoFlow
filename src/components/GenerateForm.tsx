@@ -7,6 +7,7 @@ import { BookmarkIcon as BookmarkOutline, ClockIcon, BoltIcon, UserCircleIcon, P
 import { useToast } from "./Toast";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { GenerationProgress } from "./GenerationProgress";
+import { Confetti } from "./Confetti";
 
 interface PersonaOption {
   id: string;
@@ -68,6 +69,26 @@ export function GenerateForm() {
   const [lyricsPrompt, setLyricsPrompt] = useState("");
   const [generatedLyrics, setGeneratedLyrics] = useState("");
   const [isGeneratingLyrics, setIsGeneratingLyrics] = useState(false);
+
+  // First-generation confetti celebration
+  const [showConfetti, setShowConfetti] = useState(false);
+  const prevReadyCountRef = useRef(0);
+
+  useEffect(() => {
+    const readyCount = trackedSongs.filter((s) => s.status === "ready").length;
+    if (readyCount > prevReadyCountRef.current) {
+      // A song just completed — check if this is the user's first ever generation
+      try {
+        if (!localStorage.getItem("sunoflow-first-gen-celebrated")) {
+          setShowConfetti(true);
+          localStorage.setItem("sunoflow-first-gen-celebrated", "true");
+        }
+      } catch {
+        // localStorage unavailable
+      }
+    }
+    prevReadyCountRef.current = readyCount;
+  }, [trackedSongs]);
 
   // Track whether we've already shown the 80% toast this session
   const shownLimitToast = useRef(false);
@@ -317,6 +338,9 @@ export function GenerateForm() {
 
   return (
     <div className="px-4 py-4 space-y-6">
+      {/* First-generation celebration */}
+      {showConfetti && <Confetti onDone={() => setShowConfetti(false)} />}
+
       {/* Header */}
       <div>
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">Generate</h1>
