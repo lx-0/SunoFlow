@@ -7,6 +7,7 @@ import {
   BoltIcon,
   UserGroupIcon,
   FlagIcon,
+  ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 
 interface Stats {
@@ -15,6 +16,7 @@ interface Stats {
   generationsToday: number;
   activeUsers: number;
   pendingReports: number;
+  recentErrors: number;
   dailyGenerations: Array<{ date: string; count: number }>;
 }
 
@@ -94,12 +96,13 @@ export default function AdminDashboardPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Admin Dashboard</h1>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <StatCard label="Total Users" value={stats.totalUsers} icon={UsersIcon} />
         <StatCard label="Total Generations" value={stats.totalGenerations} icon={MusicalNoteIcon} />
         <StatCard label="Today" value={stats.generationsToday} icon={BoltIcon} />
         <StatCard label="Active (7d)" value={stats.activeUsers} icon={UserGroupIcon} />
         <StatCard label="Pending Reports" value={stats.pendingReports} icon={FlagIcon} />
+        <StatCard label="Errors Today" value={stats.recentErrors} icon={ExclamationTriangleIcon} />
       </div>
 
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">

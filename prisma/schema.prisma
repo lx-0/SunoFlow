@@ -330,6 +330,19 @@ model ApiKey {
   @@index([userId])
 }
 
+model ErrorReport {
+  id        String   @id @default(cuid())
+  message   String
+  stack     String?  @db.Text
+  url       String
+  userAgent String?
+  source    String   // error-boundary, unhandled-error, unhandled-rejection
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([source])
+}
+
 model VerificationToken {
   identifier String
   token      String   @unique

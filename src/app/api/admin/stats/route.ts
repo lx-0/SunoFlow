@@ -11,12 +11,13 @@ export async function GET() {
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-  const [totalUsers, totalGenerations, generationsToday, activeUsers, pendingReports] = await Promise.all([
+  const [totalUsers, totalGenerations, generationsToday, activeUsers, pendingReports, recentErrors] = await Promise.all([
     prisma.user.count(),
     prisma.song.count(),
     prisma.song.count({ where: { createdAt: { gte: todayStart } } }),
     prisma.user.count({ where: { lastLoginAt: { gte: sevenDaysAgo } } }),
     prisma.report.count({ where: { status: "pending" } }),
+    prisma.errorReport.count({ where: { createdAt: { gte: todayStart } } }),
   ]);
 
   // Daily generation volume for last 30 days
@@ -39,6 +40,7 @@ export async function GET() {
     generationsToday,
     activeUsers,
     pendingReports,
+    recentErrors,
     dailyGenerations: chartData,
   });
 }

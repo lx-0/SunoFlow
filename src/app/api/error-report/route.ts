@@ -1,0 +1,83 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+const MAX_MESSAGE_LENGTH = 500;
+const MAX_STACK_LENGTH = 2048;
+const MAX_URL_LENGTH = 2048;
+
+// Simple in-memory rate limiter per IP: max 10 reports per minute
+const ipCounts = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 10;
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = ipCounts.get(ip);
+
+  if (!entry || now >= entry.resetAt) {
+    ipCounts.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+
+  entry.count++;
+  return entry.count > RATE_LIMIT_MAX;
+}
+
+// Cleanup stale entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  ipCounts.forEach((entry, ip) => {
+    if (now >= entry.resetAt) {
+      ipCounts.delete(ip);
+    }
+  });
+}, 5 * 60_000).unref?.();
+
+const VALID_SOURCES = ["error-boundary", "unhandled-error", "unhandled-rejection"];
+
+export async function POST(request: NextRequest) {
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+
+  if (isRateLimited(ip)) {
+    return NextResponse.json(
+      { error: "Too many error reports. Please try again later." },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const { message, stack, url, userAgent, source } = body as Record<string, unknown>;
+
+  if (!message || typeof message !== "string") {
+    return NextResponse.json({ error: "message is required" }, { status: 400 });
+  }
+  if (!url || typeof url !== "string") {
+    return NextResponse.json({ error: "url is required" }, { status: 400 });
+  }
+  if (!source || typeof source !== "string" || !VALID_SOURCES.includes(source)) {
+    return NextResponse.json({ error: "source must be one of: " + VALID_SOURCES.join(", ") }, { status: 400 });
+  }
+
+  try {
+    await prisma.errorReport.create({
+      data: {
+        message: message.slice(0, MAX_MESSAGE_LENGTH),
+        stack: typeof stack === "string" ? stack.slice(0, MAX_STACK_LENGTH) : null,
+        url: url.slice(0, MAX_URL_LENGTH),
+        userAgent: typeof userAgent === "string" ? userAgent.slice(0, 512) : null,
+        source,
+      },
+    });
+
+    return NextResponse.json({ status: "ok" });
+  } catch (err) {
+    console.error("[error-report] Failed to store error report:", err);
+    return NextResponse.json({ error: "Failed to store report" }, { status: 500 });
+  }
+}
