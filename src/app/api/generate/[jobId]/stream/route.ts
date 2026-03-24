@@ -8,8 +8,8 @@ import { broadcast } from "@/lib/event-bus";
 
 export const dynamic = "force-dynamic";
 
-const POLL_INTERVAL_MS = 3000;
-const MAX_POLL_ATTEMPTS = 20;
+const POLL_INTERVAL_MS = 4000;
+const MAX_POLL_ATTEMPTS = 60;
 
 /**
  * SSE endpoint that streams generation status updates for a specific song.

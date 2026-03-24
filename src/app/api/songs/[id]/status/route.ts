@@ -7,7 +7,7 @@ import { logServerError } from "@/lib/error-logger";
 import { invalidateByPrefix } from "@/lib/cache";
 import { broadcast } from "@/lib/event-bus";
 
-const MAX_POLL_ATTEMPTS = 20;
+const MAX_POLL_ATTEMPTS = 60;
 
 export async function GET(
   request: Request,

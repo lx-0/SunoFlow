@@ -11,8 +11,8 @@ export interface GenerationState {
   errorMessage: string | null;
 }
 
-const POLL_INTERVAL_MS = 3000;
-const MAX_POLLS = 40;
+const POLL_INTERVAL_MS = 4000;
+const MAX_POLLS = 60;
 
 /**
  * Tracks generation progress using per-job SSE streams for real-time updates,
