@@ -45,3 +45,5 @@ next-env.d.ts
 # environment files
 .env
 prisma.config.ts
+
+.claude/settings.local.json
