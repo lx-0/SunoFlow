@@ -271,7 +271,7 @@ export function SearchBar() {
                       {song.imageUrl ? (
                         <Image
                           src={song.imageUrl}
-                          alt=""
+                          alt={song.title || "Song cover"}
                           width={32}
                           height={32}
                           className="rounded object-cover flex-shrink-0"

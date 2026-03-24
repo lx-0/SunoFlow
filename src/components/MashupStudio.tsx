@@ -197,7 +197,7 @@ function SongPickerModal({
                   {song.imageUrl ? (
                     <Image
                       src={song.imageUrl}
-                      alt=""
+                      alt={song.title || "Song cover"}
                       width={40}
                       height={40}
                       className="rounded-lg object-cover flex-shrink-0"
@@ -352,7 +352,7 @@ function TrackSelector({
               {track.songImageUrl ? (
                 <Image
                   src={track.songImageUrl}
-                  alt=""
+                  alt={track.songTitle || "Song cover"}
                   width={40}
                   height={40}
                   className="rounded-lg object-cover flex-shrink-0"
