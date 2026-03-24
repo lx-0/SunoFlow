@@ -34,7 +34,11 @@ setInterval(() => {
   });
 }, 5 * 60_000).unref?.();
 
-const VALID_SOURCES = ["error-boundary", "unhandled-error", "unhandled-rejection"];
+const VALID_SOURCE_PREFIXES = ["error-boundary", "global-error-boundary", "unhandled-error", "unhandled-rejection"];
+
+function isValidSource(source: string): boolean {
+  return VALID_SOURCE_PREFIXES.some((prefix) => source === prefix || source.startsWith(prefix + ":"));
+}
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
@@ -61,8 +65,8 @@ export async function POST(request: NextRequest) {
   if (!url || typeof url !== "string") {
     return NextResponse.json({ error: "url is required", code: "VALIDATION_ERROR" }, { status: 400 });
   }
-  if (!source || typeof source !== "string" || !VALID_SOURCES.includes(source)) {
-    return NextResponse.json({ error: "source must be one of: " + VALID_SOURCES.join(", "), code: "VALIDATION_ERROR" }, { status: 400 });
+  if (!source || typeof source !== "string" || !isValidSource(source)) {
+    return NextResponse.json({ error: "source must start with one of: " + VALID_SOURCE_PREFIXES.join(", "), code: "VALIDATION_ERROR" }, { status: 400 });
   }
 
   try {
