@@ -275,6 +275,7 @@ export function SearchBar() {
                           width={32}
                           height={32}
                           className="rounded object-cover flex-shrink-0"
+                          loading="lazy"
                         />
                       ) : (
                         <MusicalNoteIcon className="w-8 h-8 p-1.5 text-gray-400 bg-gray-100 dark:bg-gray-800 rounded flex-shrink-0" />

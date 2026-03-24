@@ -26,9 +26,10 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "@heroicons/react/24/outline";
+import dynamic from "next/dynamic";
 import { GlobalPlayer } from "./GlobalPlayer";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
-import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
+const KeyboardShortcutsModal = dynamic(() => import("./KeyboardShortcutsModal").then((m) => m.KeyboardShortcutsModal), { ssr: false });
 import { NotificationBell } from "./NotificationBell";
 import { SearchBar } from "./SearchBar";
 import { EmailVerificationBanner } from "./EmailVerificationBanner";

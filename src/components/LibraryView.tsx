@@ -18,6 +18,9 @@ import {
   CheckIcon,
   TagIcon,
   ArrowPathIcon,
+  EllipsisVerticalIcon,
+  ArchiveBoxIcon,
+  ArrowUturnLeftIcon,
 } from "@heroicons/react/24/solid";
 import {
   HeartIcon as HeartOutlineIcon,
@@ -284,6 +287,120 @@ function songToQueueSong(song: Song): QueueSong | null {
   };
 }
 
+// ─── Per-song action menu (three-dot/kebab) ───────────────────────────────────
+
+interface SongRowMenuProps {
+  song: Song;
+  isArchiveView: boolean;
+  hasAudio: boolean;
+  onToggleFavorite: (song: Song) => void;
+  onShare: () => void;
+  onDownload: (song: Song) => void;
+  onSingleArchive: (song: Song) => void;
+  onSingleRestore: (song: Song) => void;
+  onSingleDeleteForever: (song: Song) => void;
+}
+
+function SongRowMenu({
+  song,
+  isArchiveView,
+  hasAudio,
+  onToggleFavorite,
+  onShare,
+  onDownload,
+  onSingleArchive,
+  onSingleRestore,
+  onSingleDeleteForever,
+}: SongRowMenuProps) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) {
+      document.addEventListener("mousedown", handleClick);
+      return () => document.removeEventListener("mousedown", handleClick);
+    }
+  }, [open]);
+
+  const itemClass =
+    "w-full text-left px-4 py-3 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-b border-gray-200 dark:border-gray-800 flex items-center gap-2";
+
+  return (
+    <div className="relative ml-auto" ref={menuRef}>
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+        aria-label="More actions"
+        className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
+      >
+        <EllipsisVerticalIcon className="w-5 h-5" aria-hidden="true" />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 bottom-full mb-1 w-48 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-30 overflow-hidden">
+          <button
+            onClick={() => { setOpen(false); onToggleFavorite(song); }}
+            className={itemClass}
+          >
+            {song.isFavorite
+              ? <HeartIcon className="w-4 h-4 text-pink-500 flex-shrink-0" />
+              : <HeartOutlineIcon className="w-4 h-4 flex-shrink-0" />}
+            {song.isFavorite ? "Unfavorite" : "Favorite"}
+          </button>
+          {hasAudio && (
+            <button
+              onClick={() => { setOpen(false); onShare(); }}
+              className={itemClass}
+            >
+              <ShareIcon className="w-4 h-4 flex-shrink-0" />
+              Share
+            </button>
+          )}
+          {hasAudio && (
+            <button
+              onClick={() => { setOpen(false); onDownload(song); }}
+              className={itemClass}
+            >
+              <ArrowDownTrayIcon className="w-4 h-4 flex-shrink-0" />
+              Download
+            </button>
+          )}
+          {isArchiveView ? (
+            <>
+              <button
+                onClick={() => { setOpen(false); onSingleRestore(song); }}
+                className={itemClass}
+              >
+                <ArrowUturnLeftIcon className="w-4 h-4 text-green-500 flex-shrink-0" />
+                Restore
+              </button>
+              <button
+                onClick={() => { setOpen(false); onSingleDeleteForever(song); }}
+                className="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center gap-2"
+              >
+                <TrashIcon className="w-4 h-4 flex-shrink-0" />
+                Delete forever
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => { setOpen(false); onSingleArchive(song); }}
+              className="w-full text-left px-4 py-3 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
+            >
+              <ArchiveBoxIcon className="w-4 h-4 flex-shrink-0" />
+              Archive
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Song row (handles its own polling) ───────────────────────────────────────
 
 interface SongRowProps {
@@ -305,6 +422,10 @@ interface SongRowProps {
   onToggleSelect: (songId: string, shiftKey: boolean) => void;
   onRetry: (song: Song) => void;
   retryingId: string | null;
+  isArchiveView: boolean;
+  onSingleArchive: (song: Song) => void;
+  onSingleRestore: (song: Song) => void;
+  onSingleDeleteForever: (song: Song) => void;
 }
 
 function SongRow({
@@ -326,6 +447,10 @@ function SongRow({
   onToggleSelect,
   onRetry,
   retryingId,
+  isArchiveView,
+  onSingleArchive,
+  onSingleRestore,
+  onSingleDeleteForever,
 }: SongRowProps) {
   const { toast } = useToast();
   const [song, setSong] = useState(initialSong);
@@ -393,7 +518,7 @@ function SongRow({
       tabIndex={0}
       aria-selected={isActive}
       aria-label={songAriaLabel}
-      className={`bg-white dark:bg-gray-900 border rounded-xl overflow-hidden transition-colors ${
+      className={`group bg-white dark:bg-gray-900 border rounded-xl overflow-hidden transition-colors ${
         isSelected
           ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30"
           : isActive
@@ -565,6 +690,18 @@ function SongRow({
         </button>
 
         <AddToPlaylistButton songId={song.id} />
+
+        <SongRowMenu
+          song={song}
+          isArchiveView={isArchiveView}
+          hasAudio={hasAudio}
+          onToggleFavorite={onToggleFavorite}
+          onShare={handleShare}
+          onDownload={onDownload}
+          onSingleArchive={onSingleArchive}
+          onSingleRestore={onSingleRestore}
+          onSingleDeleteForever={onSingleDeleteForever}
+        />
       </div>
 
       {isActive && (
@@ -791,6 +928,10 @@ export function LibraryView({
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [batchLoading, setBatchLoading] = useState(false);
+
+  // Per-song menu action state
+  const [pendingMenuDelete, setPendingMenuDelete] = useState<{ song: Song } | null>(null);
+  const [menuDeleteLoading, setMenuDeleteLoading] = useState(false);
 
   const selectionMode = selectedSongIds.size > 0;
   const isArchiveView = smartFilter === "archived";
@@ -1162,6 +1303,62 @@ export function LibraryView({
     } finally {
       setBatchLoading(false);
       setShowDeleteConfirm(false);
+    }
+  }
+
+  // ─── Per-song (menu) actions ──────────────────────────────────────────────
+
+  async function handleSingleSongAction(song: Song, action: "delete" | "restore" | "permanent_delete") {
+    if (action === "permanent_delete") {
+      setPendingMenuDelete({ song });
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/songs/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, songIds: [song.id] }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast(data.error || "Action failed", "error");
+        return;
+      }
+      if (action === "delete") {
+        setSongs((prev) => prev.filter((s) => s.id !== song.id));
+        toast(`"${song.title ?? "Song"}" moved to archive`, "success");
+      } else if (action === "restore") {
+        setSongs((prev) => prev.filter((s) => s.id !== song.id));
+        toast(`"${song.title ?? "Song"}" restored`, "success");
+      }
+    } catch {
+      toast("Action failed", "error");
+    }
+  }
+
+  async function executePendingMenuDelete() {
+    if (!pendingMenuDelete) return;
+    const { song } = pendingMenuDelete;
+    setMenuDeleteLoading(true);
+    try {
+      const res = await fetch("/api/songs/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "permanent_delete", songIds: [song.id] }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast(data.error || "Delete failed", "error");
+        return;
+      }
+      setSongs((prev) => prev.filter((s) => s.id !== song.id));
+      toast(`"${song.title ?? "Song"}" permanently deleted`, "success");
+      setPendingMenuDelete(null);
+    } catch {
+      toast("Delete failed", "error");
+    } finally {
+      setMenuDeleteLoading(false);
     }
   }
 
@@ -1676,6 +1873,10 @@ export function LibraryView({
               onToggleSelect={handleToggleSelect}
               onRetry={handleRetry}
               retryingId={retryingId}
+              isArchiveView={isArchiveView}
+              onSingleArchive={(s) => handleSingleSongAction(s, "delete")}
+              onSingleRestore={(s) => handleSingleSongAction(s, "restore")}
+              onSingleDeleteForever={(s) => handleSingleSongAction(s, "permanent_delete")}
             />
           ))}
         </ul>
@@ -1901,6 +2102,42 @@ export function LibraryView({
                 {batchLoading
                   ? (isArchiveView ? "Deleting forever…" : "Archiving…")
                   : (isArchiveView ? "Delete forever" : "Delete")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Per-song menu: permanent delete confirmation */}
+      {pendingMenuDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="menu-delete-dialog-title"
+          onKeyDown={(e) => { if (e.key === "Escape") setPendingMenuDelete(null); }}
+        >
+          <div className="bg-white dark:bg-gray-900 w-full sm:rounded-2xl rounded-t-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 sm:mx-4 sm:max-w-sm">
+            <h3 id="menu-delete-dialog-title" className="text-lg font-semibold text-gray-900 dark:text-white">
+              Permanently delete &ldquo;{pendingMenuDelete.song.title ?? "this song"}&rdquo;?
+            </h3>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              This action cannot be undone. The song will be permanently removed from your library.
+            </p>
+            <div className="mt-4 flex gap-3 justify-end">
+              <button
+                onClick={() => setPendingMenuDelete(null)}
+                disabled={menuDeleteLoading}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors min-h-[44px]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executePendingMenuDelete}
+                disabled={menuDeleteLoading}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-500 disabled:opacity-50 transition-colors min-h-[44px]"
+              >
+                {menuDeleteLoading ? "Deleting…" : "Delete forever"}
               </button>
             </div>
           </div>

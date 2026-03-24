@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeftIcon,
@@ -31,9 +32,9 @@ import type { SunoSong } from "@/lib/sunoapi";
 import { getRating, type SongRating } from "@/lib/ratings";
 import { downloadSongFile } from "@/lib/download";
 import { useToast } from "./Toast";
-import { WaveformPlayer } from "./WaveformPlayer";
+const WaveformPlayer = dynamic(() => import("./WaveformPlayer").then((m) => m.WaveformPlayer), { ssr: false });
+const ReportModal = dynamic(() => import("./ReportModal").then((m) => m.ReportModal), { ssr: false });
 import { TagInput } from "./TagInput";
-import { ReportModal } from "./ReportModal";
 import { SectionEditor } from "./SectionEditor";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -803,6 +804,7 @@ export function SongDetailView({
               className="object-cover scale-110 blur-2xl opacity-60"
               sizes="100vw"
               aria-hidden="true"
+              priority
             />
             <div className="absolute inset-0 bg-gradient-to-b from-gray-50/30 via-gray-50/50 to-gray-50 dark:from-gray-950/30 dark:via-gray-950/50 dark:to-gray-950" />
           </div>
@@ -827,6 +829,7 @@ export function SongDetailView({
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, 400px"
+                priority
               />
             ) : (
               <MusicalNoteIcon className="w-20 h-20 text-gray-400 dark:text-gray-600" aria-hidden="true" />

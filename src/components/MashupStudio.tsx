@@ -201,6 +201,7 @@ function SongPickerModal({
                       width={40}
                       height={40}
                       className="rounded-lg object-cover flex-shrink-0"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="h-10 w-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
@@ -355,6 +356,7 @@ function TrackSelector({
                   width={40}
                   height={40}
                   className="rounded-lg object-cover flex-shrink-0"
+                  loading="lazy"
                 />
               ) : (
                 <div className="h-10 w-10 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
