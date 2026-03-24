@@ -25,7 +25,11 @@ import {
   GlobeAltIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  SunIcon,
+  MoonIcon,
+  ComputerDesktopIcon,
 } from "@heroicons/react/24/outline";
+import { useTheme } from "./ThemeProvider";
 import dynamic from "next/dynamic";
 import { GlobalPlayer } from "./GlobalPlayer";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
@@ -147,17 +151,50 @@ function useSwipeToDismiss(
   }, [active, containerRef, onDismiss]);
 }
 
+const themeOrder = ["light", "dark", "system"] as const;
+type ThemeOption = (typeof themeOrder)[number];
+
+const themeIcons: Record<ThemeOption, React.ElementType> = {
+  light: SunIcon,
+  dark: MoonIcon,
+  system: ComputerDesktopIcon,
+};
+
+const themeLabels: Record<ThemeOption, string> = {
+  light: "Light theme",
+  dark: "Dark theme",
+  system: "System theme",
+};
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { theme, setTheme } = useTheme();
+
+  const cycleTheme = useCallback(() => {
+    const idx = themeOrder.indexOf(theme as ThemeOption);
+    const next = themeOrder[(idx + 1) % themeOrder.length];
+    setTheme(next);
+  }, [theme, setTheme]);
+
+  const ThemeIcon = themeIcons[(theme as ThemeOption) ?? "system"];
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [kbFeedback, setKbFeedback] = useState<string | null>(null);
+  const kbFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const drawerRef = useRef<HTMLElement>(null);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+
+  const showKbFeedback = useCallback((message: string) => {
+    if (kbFeedbackTimerRef.current) clearTimeout(kbFeedbackTimerRef.current);
+    setKbFeedback(message);
+    kbFeedbackTimerRef.current = setTimeout(() => setKbFeedback(null), 1000);
+  }, []);
+
   useFocusTrap(drawerRef, sidebarOpen);
   useSwipeToDismiss(drawerRef, sidebarOpen, closeSidebar);
-  useKeyboardShortcuts(useCallback(() => setShortcutsOpen(true), []));
+  useKeyboardShortcuts(useCallback(() => setShortcutsOpen(true), []), showKbFeedback);
 
   // Load collapsed preference from localStorage
   useEffect(() => {
@@ -406,6 +443,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           {session?.user && (
             <div className="flex items-center gap-3">
+              <button
+                onClick={cycleTheme}
+                aria-label={themeLabels[(theme as ThemeOption) ?? "system"]}
+                title={themeLabels[(theme as ThemeOption) ?? "system"]}
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                <ThemeIcon className="w-5 h-5" aria-hidden="true" />
+              </button>
               <NotificationBell />
               <Link
                 href="/profile"
@@ -450,6 +495,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Keyboard shortcuts help modal */}
         <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+
+        {/* Keyboard action feedback overlay */}
+        {kbFeedback && (
+          <div
+            aria-live="polite"
+            aria-atomic="true"
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[200] pointer-events-none"
+          >
+            <div className="bg-black/75 text-white text-sm font-medium px-4 py-2 rounded-full whitespace-nowrap">
+              {kbFeedback}
+            </div>
+          </div>
+        )}
 
         {/* Bottom nav (mobile only) */}
         <nav aria-label="Mobile navigation" className="fixed bottom-0 left-0 right-0 z-10 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 md:hidden">

@@ -5,11 +5,69 @@
 :root {
   --background: #f9fafb;
   --foreground: #171717;
+
+  /* Surface colors */
+  --surface: #ffffff;
+  --surface-hover: #f3f4f6;
+
+  /* Text colors */
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+
+  /* Border */
+  --border: #e5e7eb;
+
+  /* Accent */
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+
+  /* Player bar */
+  --player-bg: #111827;
+  --player-border: #374151;
+
+  /* Cards */
+  --card-bg: #ffffff;
+  --card-border: #e5e7eb;
+
+  /* Inputs */
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+  --input-text: #111827;
 }
 
 .dark {
   --background: #0a0a0a;
   --foreground: #ededed;
+
+  /* Surface colors */
+  --surface: #111827;
+  --surface-hover: #1f2937;
+
+  /* Text colors */
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+
+  /* Border */
+  --border: #1f2937;
+
+  /* Accent */
+  --accent: #7c3aed;
+  --accent-hover: #8b5cf6;
+
+  /* Player bar */
+  --player-bg: #1f2937;
+  --player-border: #374151;
+
+  /* Cards */
+  --card-bg: #111827;
+  --card-border: #1f2937;
+
+  /* Inputs */
+  --input-bg: #1f2937;
+  --input-border: #374151;
+  --input-text: #f9fafb;
 }
 
 body {
