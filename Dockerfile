@@ -41,6 +41,9 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=build /app/public ./public
 COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
+# The standalone output bundles its own node_modules subset; replace any
+# Prisma packages it included with the fully-built versions from the deps stage.
+RUN rm -rf node_modules/@prisma node_modules/prisma node_modules/.prisma
 COPY --from=deps /prisma-flat/node_modules/.prisma ./node_modules/.prisma
 COPY --from=deps /prisma-flat/node_modules/@prisma ./node_modules/@prisma
 COPY --from=deps /prisma-flat/node_modules/prisma ./node_modules/prisma
