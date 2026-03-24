@@ -16,7 +16,7 @@ RUN pnpm exec prisma generate
 # shamefully-hoist puts @prisma/client and prisma at the top level, but
 # .prisma/client (the generated output) lives inside the .pnpm store.
 # We dereference symlinks (-L) since pnpm uses them internally.
-RUN mkdir -p /prisma-flat/node_modules/.prisma && \
+RUN mkdir -p /prisma-flat/node_modules/.prisma /prisma-flat/node_modules/@prisma && \
     cp -rL node_modules/@prisma/client /prisma-flat/node_modules/@prisma/client && \
     cp -rL node_modules/@prisma/engines /prisma-flat/node_modules/@prisma/engines && \
     cp -rL node_modules/prisma /prisma-flat/node_modules/prisma && \
