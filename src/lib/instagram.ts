@@ -1,9 +1,13 @@
 /**
  * Instagram integration via oEmbed API.
  *
- * Instagram Basic Display API was deprecated Dec 2024. Instead we use:
- * 1. Instagram oEmbed endpoint (no auth, works for public posts)
- * 2. Caption/hashtag extraction for creative inspiration
+ * Instagram Basic Display API was deprecated Dec 2024.
+ * The unauthenticated oEmbed endpoint was subsequently restricted too.
+ *
+ * Current approach: Facebook Graph API oembed endpoint with app-level credentials.
+ * Requires INSTAGRAM_APP_ID and INSTAGRAM_CLIENT_TOKEN env vars (server-side only).
+ * Get these from: Meta App Dashboard → Settings → Advanced → Client Token.
+ * Your Meta App must have the "oembed_read" permission.
  */
 
 export interface InstagramPost {
@@ -100,8 +104,8 @@ function generatePromptSuggestion(
 }
 
 /**
- * Fetch Instagram post data via the oEmbed API.
- * Works for public posts without authentication.
+ * Fetch Instagram post data via the Facebook Graph API oEmbed endpoint.
+ * Requires INSTAGRAM_APP_ID and INSTAGRAM_CLIENT_TOKEN env vars (server-side).
  */
 export async function fetchInstagramPost(
   postUrl: string
@@ -118,26 +122,41 @@ export async function fetchInstagramPost(
     };
   }
 
+  const appId = process.env.INSTAGRAM_APP_ID;
+  const clientToken = process.env.INSTAGRAM_CLIENT_TOKEN;
+
+  if (!appId || !clientToken) {
+    return makeError(
+      postUrl,
+      "Instagram integration requires INSTAGRAM_APP_ID and INSTAGRAM_CLIENT_TOKEN. " +
+        "Get these from Meta App Dashboard → Settings → Advanced → Client Token."
+    );
+  }
+
   try {
-    const oembedUrl = `https://api.instagram.com/oembed/?url=${encodeURIComponent(postUrl)}&omitscript=true`;
+    const accessToken = `${appId}|${clientToken}`;
+    const oembedUrl =
+      `https://graph.facebook.com/v22.0/instagram_oembed` +
+      `?url=${encodeURIComponent(postUrl)}` +
+      `&access_token=${encodeURIComponent(accessToken)}` +
+      `&omitscript=true`;
+
     const res = await fetch(oembedUrl, {
       signal: AbortSignal.timeout(10000),
       headers: { "User-Agent": "SunoFlow/1.0" },
     });
 
     if (!res.ok) {
-      if (res.status === 404) {
-        return makeError(postUrl, "Post not found or is private");
+      if (res.status === 400 || res.status === 404) {
+        return makeError(postUrl, "Post not found, is private, or URL is unsupported");
+      }
+      if (res.status === 401 || res.status === 403) {
+        return makeError(postUrl, "Instagram credentials invalid. Check INSTAGRAM_APP_ID and INSTAGRAM_CLIENT_TOKEN.");
       }
       if (res.status === 429) {
         return makeError(postUrl, "Rate limited — try again later");
       }
-      return makeError(postUrl, `Instagram returned HTTP ${res.status}`);
-    }
-
-    const contentType = res.headers.get("content-type") ?? "";
-    if (!contentType.includes("application/json")) {
-      return makeError(postUrl, "Instagram oEmbed API requires authentication. Configure INSTAGRAM_APP_ID and INSTAGRAM_CLIENT_TOKEN in .env.");
+      return makeError(postUrl, `Instagram API returned HTTP ${res.status}`);
     }
 
     const data: OEmbedResponse = await res.json();
