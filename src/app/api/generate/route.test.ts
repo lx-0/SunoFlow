@@ -86,6 +86,12 @@ import { generateSong, SunoApiError } from "@/lib/sunoapi";
 import { acquireRateLimitSlot } from "@/lib/rate-limit";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 import { logServerError } from "@/lib/error-logger";
+import {
+  getMonthlyCreditUsage,
+  recordCreditUsage,
+  shouldNotifyLowCredits,
+  createLowCreditNotification,
+} from "@/lib/credits";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -101,6 +107,18 @@ const DEFAULT_BODY = { prompt: "upbeat pop song", title: "Test", tags: "pop", ma
 
 // ─── Setup ───────────────────────────────────────────────────────────────────
 
+const DEFAULT_CREDIT_USAGE = {
+  budget: 500,
+  creditsUsedThisMonth: 100,
+  creditsRemaining: 100,
+  generationsThisMonth: 10,
+  usagePercent: 20,
+  isLow: false,
+  totalCreditsAllTime: 100,
+  totalGenerationsAllTime: 10,
+  dailyChart: [] as never[],
+};
+
 beforeEach(() => {
   vi.mocked(resolveUser).mockResolvedValue({ userId: "user-1", isApiKey: false, error: null });
   vi.mocked(acquireRateLimitSlot).mockResolvedValue({
@@ -108,6 +126,10 @@ beforeEach(() => {
     status: { remaining: 5, limit: 10, resetAt: new Date().toISOString() },
   });
   vi.mocked(resolveUserApiKey).mockResolvedValue(undefined);
+  vi.mocked(getMonthlyCreditUsage).mockResolvedValue(DEFAULT_CREDIT_USAGE);
+  vi.mocked(recordCreditUsage).mockResolvedValue(undefined);
+  vi.mocked(shouldNotifyLowCredits).mockResolvedValue(false);
+  vi.mocked(createLowCreditNotification).mockResolvedValue(undefined);
   mockSunoApiKey = "test-key";
   vi.mocked(prisma.song.create).mockResolvedValue({ id: "song-1" } as never);
 });
@@ -270,5 +292,72 @@ describe("POST /api/generate", () => {
         }),
       })
     );
+  });
+
+  it("records credit usage after successful generation", async () => {
+    vi.mocked(generateSong).mockResolvedValue({ taskId: "task-xyz" });
+
+    await POST(makeRequest(DEFAULT_BODY));
+
+    expect(recordCreditUsage).toHaveBeenCalledWith(
+      "user-1",
+      "generate",
+      expect.objectContaining({
+        songId: "song-1",
+        creditCost: 1, // CREDIT_COSTS.generate in mock
+      })
+    );
+  });
+
+  it("returns 402 when user has insufficient credits", async () => {
+    vi.mocked(getMonthlyCreditUsage).mockResolvedValue({
+      ...DEFAULT_CREDIT_USAGE,
+      creditsUsedThisMonth: 500,
+      creditsRemaining: 0,
+      generationsThisMonth: 50,
+      usagePercent: 100,
+      isLow: true,
+    });
+
+    const res = await POST(makeRequest(DEFAULT_BODY));
+    expect(res.status).toBe(402);
+
+    const data = await res.json();
+    expect(data.code).toBe("INSUFFICIENT_CREDITS");
+    expect(data.error).toContain("Insufficient credits");
+
+    // Should not attempt generation
+    expect(generateSong).not.toHaveBeenCalled();
+    expect(prisma.song.create).not.toHaveBeenCalled();
+  });
+
+  it("does not record credit usage when credits are insufficient", async () => {
+    vi.mocked(getMonthlyCreditUsage).mockResolvedValue({
+      ...DEFAULT_CREDIT_USAGE,
+      creditsRemaining: 0,
+    });
+
+    await POST(makeRequest(DEFAULT_BODY));
+
+    expect(recordCreditUsage).not.toHaveBeenCalled();
+  });
+
+  it("triggers low credit notification when credits are running low after generation", async () => {
+    vi.mocked(generateSong).mockResolvedValue({ taskId: "task-xyz" });
+    vi.mocked(shouldNotifyLowCredits).mockResolvedValue(true);
+    vi.mocked(getMonthlyCreditUsage).mockResolvedValue({
+      ...DEFAULT_CREDIT_USAGE,
+      creditsUsedThisMonth: 450,
+      creditsRemaining: 50,
+      generationsThisMonth: 45,
+      usagePercent: 90,
+      isLow: true,
+      totalCreditsAllTime: 450,
+      totalGenerationsAllTime: 45,
+    });
+
+    await POST(makeRequest(DEFAULT_BODY));
+
+    expect(createLowCreditNotification).toHaveBeenCalledWith("user-1", 50);
   });
 });

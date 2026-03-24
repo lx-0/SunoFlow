@@ -26,6 +26,7 @@ export const ErrorCode = {
   SUNO_RATE_LIMIT: "SUNO_RATE_LIMIT",
   SUNO_AUTH_ERROR: "SUNO_AUTH_ERROR",
   TIMEOUT: "TIMEOUT",
+  INSUFFICIENT_CREDITS: "INSUFFICIENT_CREDITS",
 } as const;
 
 export type ErrorCodeValue = (typeof ErrorCode)[keyof typeof ErrorCode];
@@ -78,6 +79,10 @@ export const rateLimited = (
 /** 500 — internal server error (never expose internals) */
 export const internalError = (msg = "Internal server error") =>
   apiError(msg, ErrorCode.INTERNAL_ERROR, 500);
+
+/** 402 — insufficient credits */
+export const insufficientCredits = (msg = "Insufficient credits") =>
+  apiError(msg, ErrorCode.INSUFFICIENT_CREDITS, 402);
 
 /** 503 — upstream/external service unavailable */
 export const serviceUnavailable = (msg: string) =>

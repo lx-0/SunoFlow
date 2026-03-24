@@ -9,7 +9,7 @@ import { logServerError } from "@/lib/error-logger";
 import { invalidateByPrefix } from "@/lib/cache";
 import { SUNOAPI_KEY } from "@/lib/env";
 import { recordCreditUsage, shouldNotifyLowCredits, createLowCreditNotification, getMonthlyCreditUsage, CREDIT_COSTS } from "@/lib/credits";
-import { badRequest, rateLimited, internalError, ErrorCode } from "@/lib/api-error";
+import { badRequest, rateLimited, internalError, insufficientCredits, ErrorCode } from "@/lib/api-error";
 import { stripHtml } from "@/lib/sanitize";
 import { recordGenerationStart, recordGenerationEnd } from "@/lib/metrics";
 
@@ -76,6 +76,14 @@ export async function POST(request: Request) {
       style: tags ? stripHtml(tags).trim() || undefined : undefined,
       instrumental: Boolean(makeInstrumental),
     };
+
+    // Check credit balance before consuming any upstream resources
+    const creditUsage = await getMonthlyCreditUsage(userId);
+    if (creditUsage.creditsRemaining < CREDIT_COSTS.generate) {
+      return insufficientCredits(
+        `Insufficient credits. You need ${CREDIT_COSTS.generate} credits but only have ${creditUsage.creditsRemaining} remaining.`
+      );
+    }
 
     const userApiKey = await resolveUserApiKey(userId);
 
