@@ -135,6 +135,11 @@ export async function fetchInstagramPost(
       return makeError(postUrl, `Instagram returned HTTP ${res.status}`);
     }
 
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      return makeError(postUrl, "Instagram oEmbed API requires authentication. Configure INSTAGRAM_APP_ID and INSTAGRAM_CLIENT_TOKEN in .env.");
+    }
+
     const data: OEmbedResponse = await res.json();
     const caption = data.title ?? "";
     const hashtags = extractHashtags(caption);
