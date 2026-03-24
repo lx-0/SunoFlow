@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveUser } from "@/lib/auth-resolver";
 import { prisma } from "@/lib/prisma";
 import { acquireRateLimitSlot } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 
 const VALID_REASONS = ["offensive", "copyright", "spam", "other"];
 
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Console log placeholder for admin notification
-    console.log(`[MODERATION] New report filed: ${report.id} for song ${songId} by user ${userId} (reason: ${reason})`);
+    logger.info({ reportId: report.id, songId, userId, reason }, "moderation: new report filed");
 
     return NextResponse.json({ id: report.id, status: "pending" }, { status: 201 });
   } catch {

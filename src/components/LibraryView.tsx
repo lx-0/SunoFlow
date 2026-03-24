@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -21,6 +22,8 @@ import {
   EllipsisVerticalIcon,
   ArchiveBoxIcon,
   ArrowUturnLeftIcon,
+  CloudArrowDownIcon,
+  ForwardIcon,
 } from "@heroicons/react/24/solid";
 import {
   HeartIcon as HeartOutlineIcon,
@@ -37,6 +40,7 @@ import { exportAsZip, exportAsM3U, type ExportableSong } from "@/lib/export";
 import { useToast } from "./Toast";
 import { useQueue, type QueueSong } from "./QueueContext";
 import { TagChip } from "./TagInput";
+import { SunoImportModal } from "./SunoImportModal";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -47,6 +51,33 @@ interface SongTagRelation {
 type SongWithTags = Song & { songTags: SongTagRelation[] };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Highlight matching search terms in text with bold spans. */
+function Highlight({ text, query }: { text: string; query: string }) {
+  if (!query || query.length < 3) return <>{text}</>;
+  // Strip quotes and split into tokens, ignoring short fragments
+  const tokens = query
+    .replace(/["']/g, " ")
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 2);
+  if (tokens.length === 0) return <>{text}</>;
+  const pattern = new RegExp(`(${tokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "gi");
+  const parts = text.split(pattern);
+  return (
+    <>
+      {parts.map((part, i) =>
+        pattern.test(part) ? (
+          <mark key={i} className="bg-yellow-200 dark:bg-yellow-800/60 text-inherit rounded-sm px-0.5">
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+}
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
@@ -314,6 +345,9 @@ function SongRowMenu({
 }: SongRowMenuProps) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { playNext, addToQueue } = useQueue();
+  const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -353,6 +387,34 @@ function SongRowMenu({
           </button>
           {hasAudio && (
             <button
+              onClick={() => {
+                setOpen(false);
+                const qs: QueueSong = { id: song.id, title: song.title, audioUrl: song.audioUrl!, imageUrl: song.imageUrl, duration: song.duration };
+                playNext(qs);
+                toast("Playing next", "success");
+              }}
+              className={itemClass}
+            >
+              <ForwardIcon className="w-4 h-4 flex-shrink-0" />
+              Play Next
+            </button>
+          )}
+          {hasAudio && (
+            <button
+              onClick={() => {
+                setOpen(false);
+                const qs: QueueSong = { id: song.id, title: song.title, audioUrl: song.audioUrl!, imageUrl: song.imageUrl, duration: song.duration };
+                addToQueue(qs);
+                toast("Added to queue", "success");
+              }}
+              className={itemClass}
+            >
+              <QueueListIcon className="w-4 h-4 flex-shrink-0" />
+              Add to Queue
+            </button>
+          )}
+          {hasAudio && (
+            <button
               onClick={() => { setOpen(false); onShare(); }}
               className={itemClass}
             >
@@ -367,6 +429,15 @@ function SongRowMenu({
             >
               <ArrowDownTrayIcon className="w-4 h-4 flex-shrink-0" />
               Download
+            </button>
+          )}
+          {!isArchiveView && (
+            <button
+              onClick={() => { setOpen(false); router.push(`/library/${song.id}`); }}
+              className={itemClass}
+            >
+              <ArrowPathIcon className="w-4 h-4 flex-shrink-0" />
+              Create Variation
             </button>
           )}
           {isArchiveView ? (
@@ -414,6 +485,7 @@ interface SongRowProps {
   downloadError: string | null;
   isSelected: boolean;
   selectionMode: boolean;
+  searchQuery?: string;
   onTogglePlay: (song: Song) => void;
   onDownload: (song: Song) => void;
   onSeek: (pct: number) => void;
@@ -439,6 +511,7 @@ function SongRow({
   downloadError,
   isSelected,
   selectionMode,
+  searchQuery = "",
   onTogglePlay,
   onDownload,
   onSeek,
@@ -513,7 +586,7 @@ function SongRow({
   }
 
   return (
-    <li
+    <div
       role="option"
       tabIndex={0}
       aria-selected={isActive}
@@ -544,7 +617,7 @@ function SongRow({
 
         <div className="relative flex-shrink-0 w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center">
           {song.imageUrl ? (
-            <Image src={song.imageUrl} alt={song.title ?? "Song"} fill className="object-cover" sizes="48px" loading="lazy" />
+            <Image src={song.imageUrl} alt={song.title ?? "Song"} fill className="object-cover" sizes="48px" loading="lazy" placeholder="blur" blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHZpZXdCb3g9IjAgMCAxMCAxMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiM3YzNhZWQiIGZpbGwtb3BhY2l0eT0iMC4yIi8+PC9zdmc+" />
           ) : (
             <MusicalNoteIcon className="w-6 h-6 text-gray-400 dark:text-gray-600" aria-hidden="true" />
           )}
@@ -555,7 +628,7 @@ function SongRow({
             href={`/library/${song.id}`}
             className="block text-sm font-medium text-gray-900 dark:text-white truncate hover:text-violet-400 transition-colors"
           >
-            {song.title ?? "Untitled"}
+            <Highlight text={song.title ?? "Untitled"} query={searchQuery} />
           </Link>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             {isPending && <GeneratingBadge />}
@@ -731,7 +804,7 @@ function SongRow({
           <p className="text-xs text-red-400">{downloadError}</p>
         </div>
       )}
-    </li>
+    </div>
   );
 }
 
@@ -798,11 +871,12 @@ interface SongGridCardProps {
   song: Song;
   isActive: boolean;
   isPlaying: boolean;
+  searchQuery?: string;
   onTogglePlay: (song: Song) => void;
   onToggleFavorite: (song: Song) => void;
 }
 
-function SongGridCard({ song, isActive, isPlaying, onTogglePlay, onToggleFavorite }: SongGridCardProps) {
+function SongGridCard({ song, isActive, isPlaying, searchQuery = "", onTogglePlay, onToggleFavorite }: SongGridCardProps) {
   return (
     <li className="group relative bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden hover:border-violet-300 dark:hover:border-violet-700 transition-colors">
       {/* Cover image */}
@@ -814,6 +888,9 @@ function SongGridCard({ song, isActive, isPlaying, onTogglePlay, onToggleFavorit
             fill
             className="object-cover"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            loading="lazy"
+            placeholder="blur"
+            blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHZpZXdCb3g9IjAgMCAxMCAxMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiM3YzNhZWQiIGZpbGwtb3BhY2l0eT0iMC4yIi8+PC9zdmc+"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -849,7 +926,7 @@ function SongGridCard({ song, isActive, isPlaying, onTogglePlay, onToggleFavorit
       {/* Info row */}
       <div className="px-3 py-2 flex items-center justify-between gap-2">
         <Link href={`/library/${song.id}`} className="text-sm font-medium text-gray-900 dark:text-white truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors min-w-0">
-          {song.title ?? "Untitled"}
+          <Highlight text={song.title ?? "Untitled"} query={searchQuery} />
         </Link>
         <button
           onClick={() => onToggleFavorite(song)}
@@ -942,15 +1019,18 @@ export function LibraryView({
   const [exportProgress, setExportProgress] = useState<{ completed: number; total: number } | null>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
 
+  // Suno import modal state
+  const [sunoImportOpen, setSunoImportOpen] = useState(false);
+
   // Arrow-key navigation for song list
-  const songListRef = useRef<HTMLUListElement>(null);
+  const songListRef = useRef<HTMLDivElement>(null);
   const handleSongListKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLUListElement>) => {
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
       const list = songListRef.current;
       if (!list) return;
-      const items = Array.from(list.querySelectorAll<HTMLElement>(":scope > li"));
+      const items = Array.from(list.querySelectorAll<HTMLElement>('[role="option"]'));
       if (items.length === 0) return;
-      const currentIdx = items.findIndex((li) => li.contains(document.activeElement) || li === document.activeElement);
+      const currentIdx = items.findIndex((el) => el.contains(document.activeElement) || el === document.activeElement);
 
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -1102,17 +1182,47 @@ export function LibraryView({
     setSongs((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
   }, []);
 
-  function handleTogglePlay(song: Song) {
-    const qs = songToQueueSong(song);
-    if (!qs) return;
-
-    // If the song is already in the active queue, toggle it
+  async function handleTogglePlay(song: Song) {
+    // If the song is already active, just toggle without re-loading
     if (currentSongId === song.id) {
-      togglePlay(qs);
+      const qs = songToQueueSong(song);
+      if (qs) togglePlay(qs);
       return;
     }
 
-    // Otherwise, build a queue from all playable songs and start at this one
+    // Check if the audio URL might be expired (within 3 days of expiry or no expiry set)
+    const REFRESH_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000;
+    const expiresAt = (song as Song & { audioUrlExpiresAt?: Date | null }).audioUrlExpiresAt;
+    const isNearExpiry =
+      song.audioUrl &&
+      (!expiresAt || expiresAt.getTime() - Date.now() < REFRESH_THRESHOLD_MS);
+
+    let playSong = song;
+    if (isNearExpiry) {
+      try {
+        const res = await fetch(`/api/songs/${song.id}/refresh`, { method: "POST" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.song?.audioUrl) {
+            playSong = { ...song, audioUrl: data.song.audioUrl };
+            handleSongUpdate(playSong);
+          }
+        } else if (res.status === 404) {
+          const data = await res.json().catch(() => ({}));
+          if (data.code === "SONG_DELETED") {
+            toast("This song no longer exists on Suno and cannot be played.", "error");
+            return;
+          }
+        }
+      } catch {
+        // Transient error — try playing with whatever URL we have
+      }
+    }
+
+    const qs = songToQueueSong(playSong);
+    if (!qs) return;
+
+    // Build a queue from all playable songs and start at this one
     const allQueueSongs = songs
       .map(songToQueueSong)
       .filter((s): s is QueueSong => s !== null);
@@ -1559,6 +1669,37 @@ export function LibraryView({
   const hasPlayableSongs = songs.some((s) => s.audioUrl && s.generationStatus === "ready");
   const hasActiveFilters = !!(statusFilter || ratingFilter || dateFrom || dateTo || tagFilter || smartFilter);
 
+  // ─── Virtualizer for list view ───────────────────────────────────────────
+  const listScrollMarginRef = useRef(0);
+  useLayoutEffect(() => {
+    listScrollMarginRef.current = songListRef.current?.offsetTop ?? 0;
+  });
+
+  const rowVirtualizer = useWindowVirtualizer({
+    count: viewMode === "list" ? songs.length : 0,
+    estimateSize: () => 120,
+    overscan: 5,
+    scrollMargin: listScrollMarginRef.current,
+  });
+
+  // ─── Infinite scroll sentinel ────────────────────────────────────────────
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sentinel = loadMoreSentinelRef.current;
+    if (!sentinel || !nextCursor || loadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          handleLoadMore();
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [nextCursor, loadingMore, handleLoadMore]);
+
   return (
     <div className="px-4 py-4 space-y-4" data-tour="library">
       {/* Header */}
@@ -1577,6 +1718,18 @@ export function LibraryView({
             </button>
           )}
         </div>
+
+        {/* Header actions */}
+        <div className="flex items-center gap-2">
+          {/* Import from Suno button */}
+          <button
+            onClick={() => setSunoImportOpen(true)}
+            aria-label="Import from Suno"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors min-h-[44px]"
+          >
+            <CloudArrowDownIcon className="w-4 h-4" />
+            <span className="hidden sm:inline">Import</span>
+          </button>
 
         {/* Export button */}
         <div className="relative" ref={exportMenuRef}>
@@ -1612,6 +1765,7 @@ export function LibraryView({
               </button>
             </div>
           )}
+        </div>
         </div>
       </div>
 
@@ -1845,62 +1999,90 @@ export function LibraryView({
               song={song}
               isActive={currentSongId === song.id}
               isPlaying={isPlaying}
+              searchQuery={debouncedSearch}
               onTogglePlay={handleTogglePlay}
               onToggleFavorite={handleToggleFavorite}
             />
           ))}
         </ul>
       ) : (
-        <ul ref={songListRef} aria-label="Song library" role="listbox" aria-orientation="vertical" onKeyDown={handleSongListKeyDown} className={`space-y-2 ${selectionMode ? "pb-20" : ""}`}>
-          {songs.map((song) => (
-            <SongRow
-              key={song.id}
-              initialSong={song}
-              isActive={currentSongId === song.id}
-              isPlaying={isPlaying}
-              currentTime={currentTime}
-              audioDuration={audioDuration}
-              rating={song.rating ? { stars: song.rating, note: song.ratingNote ?? "" } : undefined}
-              downloadProgress={downloadProgress[song.id] ?? null}
-              downloadError={downloadErrors[song.id] ?? null}
-              isSelected={selectedSongIds.has(song.id)}
-              selectionMode={selectionMode}
-              onTogglePlay={handleTogglePlay}
-              onDownload={handleDownload}
-              onSeek={handleSeek}
-              onUpdate={handleSongUpdate}
-              onToggleFavorite={handleToggleFavorite}
-              onToggleSelect={handleToggleSelect}
-              onRetry={handleRetry}
-              retryingId={retryingId}
-              isArchiveView={isArchiveView}
-              onSingleArchive={(s) => handleSingleSongAction(s, "delete")}
-              onSingleRestore={(s) => handleSingleSongAction(s, "restore")}
-              onSingleDeleteForever={(s) => handleSingleSongAction(s, "permanent_delete")}
-            />
-          ))}
-        </ul>
+        <div
+          ref={songListRef}
+          aria-label="Song library"
+          role="listbox"
+          aria-orientation="vertical"
+          onKeyDown={handleSongListKeyDown}
+          className={selectionMode ? "pb-20" : ""}
+          style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}
+        >
+          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+            const song = songs[virtualRow.index];
+            return (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={rowVirtualizer.measureElement}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  transform: `translateY(${virtualRow.start - rowVirtualizer.options.scrollMargin}px)`,
+                  paddingBottom: "0.5rem",
+                }}
+              >
+                <SongRow
+                  key={song.id}
+                  initialSong={song}
+                  isActive={currentSongId === song.id}
+                  isPlaying={isPlaying}
+                  currentTime={currentTime}
+                  audioDuration={audioDuration}
+                  rating={song.rating ? { stars: song.rating, note: song.ratingNote ?? "" } : undefined}
+                  downloadProgress={downloadProgress[song.id] ?? null}
+                  downloadError={downloadErrors[song.id] ?? null}
+                  isSelected={selectedSongIds.has(song.id)}
+                  selectionMode={selectionMode}
+                  searchQuery={debouncedSearch}
+                  onTogglePlay={handleTogglePlay}
+                  onDownload={handleDownload}
+                  onSeek={handleSeek}
+                  onUpdate={handleSongUpdate}
+                  onToggleFavorite={handleToggleFavorite}
+                  onToggleSelect={handleToggleSelect}
+                  onRetry={handleRetry}
+                  retryingId={retryingId}
+                  isArchiveView={isArchiveView}
+                  onSingleArchive={(s) => handleSingleSongAction(s, "delete")}
+                  onSingleRestore={(s) => handleSingleSongAction(s, "restore")}
+                  onSingleDeleteForever={(s) => handleSingleSongAction(s, "permanent_delete")}
+                />
+              </div>
+            );
+          })}
+        </div>
       )}
 
-      {/* Load more */}
+      {/* Infinite scroll sentinel + loading indicator */}
       {nextCursor && !loading && (
-        <button
-          onClick={handleLoadMore}
-          disabled={loadingMore}
-          className="w-full py-3 rounded-xl bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium transition-colors min-h-[44px] disabled:opacity-50"
-        >
+        <div ref={loadMoreSentinelRef} className="flex items-center justify-center py-4" aria-live="polite">
           {loadingMore ? (
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
               <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              Loading…
+              Loading more…
             </span>
           ) : (
-            `Load more (${totalSongs - songs.length} remaining)`
+            <button
+              onClick={handleLoadMore}
+              className="text-sm text-violet-600 dark:text-violet-400 hover:underline"
+            >
+              Load more ({totalSongs - songs.length} remaining)
+            </button>
           )}
-        </button>
+        </div>
       )}
 
       {/* Batch download progress bar */}
@@ -2142,6 +2324,14 @@ export function LibraryView({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Suno import modal */}
+      {sunoImportOpen && (
+        <SunoImportModal
+          onClose={() => setSunoImportOpen(false)}
+          onImportComplete={() => router.refresh()}
+        />
       )}
     </div>
   );

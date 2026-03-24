@@ -1,5 +1,6 @@
 import { LRUCache } from "lru-cache";
 import crypto from "crypto";
+import { logger } from "@/lib/logger";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -39,6 +40,8 @@ export const CacheTTL = {
   DISCOVER: 60_000, // 60s
   /** Playlist list and aggregate stats — per-user */
   PLAYLIST: 30_000, // 30s
+  /** Song recommendations — updated hourly */
+  RECOMMENDATIONS: 3_600_000, // 1h
 } as const;
 
 /** Build a cache key from a prefix and components */
@@ -59,13 +62,13 @@ export async function cached<T>(
   const hit = apiCache.get(key) as T | undefined;
   if (hit !== undefined) {
     if (isDev) {
-      console.log(`[cache] HIT  ${key}`);
+      logger.debug({ key }, "cache: HIT");
     }
     return hit;
   }
 
   if (isDev) {
-    console.log(`[cache] MISS ${key}`);
+    logger.debug({ key }, "cache: MISS");
   }
 
   const value = await fetcher();
@@ -87,7 +90,7 @@ export function invalidateByPrefix(prefix: string): void {
     }
   }
   if (isDev && count > 0) {
-    console.log(`[cache] INVALIDATED ${count} entries with prefix "${prefix}"`);
+    logger.debug({ prefix, count }, "cache: invalidated entries by prefix");
   }
 }
 
@@ -95,7 +98,7 @@ export function invalidateByPrefix(prefix: string): void {
 export function invalidateKey(key: string): void {
   const deleted = apiCache.delete(key);
   if (isDev && deleted) {
-    console.log(`[cache] INVALIDATED key "${key}"`);
+    logger.debug({ key }, "cache: invalidated key");
   }
 }
 

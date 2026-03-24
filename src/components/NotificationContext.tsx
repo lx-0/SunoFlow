@@ -16,6 +16,8 @@ import { useSession } from "next-auth/react";
 export type NotificationType =
   | "generation_complete"
   | "generation_failed"
+  | "import_complete"
+  | "error"
   | "rate_limit_reset"
   | "announcement";
 

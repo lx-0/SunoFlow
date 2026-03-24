@@ -43,7 +43,7 @@ describe("resolveUser", () => {
   });
 
   it("falls back to API key auth when no session", async () => {
-    vi.mocked(auth).mockResolvedValue(null);
+    vi.mocked(auth).mockResolvedValue(null as never);
     vi.mocked(resolveApiKeyUser).mockResolvedValue("api-key-user");
 
     const result = await resolveUser(makeRequest({ authorization: "Bearer sk-abc123" }));
@@ -54,7 +54,7 @@ describe("resolveUser", () => {
   });
 
   it("returns error response when neither session nor API key is valid", async () => {
-    vi.mocked(auth).mockResolvedValue(null);
+    vi.mocked(auth).mockResolvedValue(null as never);
     vi.mocked(resolveApiKeyUser).mockResolvedValue(null);
 
     const result = await resolveUser(makeRequest());

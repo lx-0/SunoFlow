@@ -10,6 +10,7 @@ import { invalidateByPrefix } from "@/lib/cache";
 import { SUNOAPI_KEY } from "@/lib/env";
 import { recordCreditUsage, shouldNotifyLowCredits, createLowCreditNotification, getMonthlyCreditUsage, CREDIT_COSTS } from "@/lib/credits";
 import { badRequest, rateLimited, internalError, ErrorCode } from "@/lib/api-error";
+import { recordGenerationStart, recordGenerationEnd } from "@/lib/metrics";
 
 /** Map API errors to user-friendly messages */
 function userFriendlyError(error: unknown): { message: string; code: string } {
@@ -101,6 +102,8 @@ export async function POST(request: Request) {
       savedSongs = [song];
     } else {
       try {
+        const genStartMs = Date.now();
+        recordGenerationStart();
         const result = await generateSong(
           generationParams.prompt,
           {
@@ -111,6 +114,7 @@ export async function POST(request: Request) {
           },
           userApiKey
         );
+        recordGenerationEnd(Date.now() - genStartMs, true);
 
         const song = await prisma.song.create({
           data: {
@@ -126,6 +130,7 @@ export async function POST(request: Request) {
 
         savedSongs = [song];
       } catch (apiError) {
+        recordGenerationEnd(0, false);
         const correlationId = logServerError("generate-api", apiError, {
           userId,
           route: "/api/generate",

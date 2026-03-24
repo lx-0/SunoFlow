@@ -11,7 +11,7 @@ export default function ApiDocsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/docs")
+    fetch("/api/v1/openapi.json")
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load API spec");
         return res.json();

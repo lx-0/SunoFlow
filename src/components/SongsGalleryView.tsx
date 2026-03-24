@@ -28,6 +28,7 @@ type SongWithMeta = Song & {
   songTags: SongTagRelation[];
   isFavorite: boolean;
   favoriteCount: number;
+  variationCount?: number;
 };
 
 interface SongsGalleryViewProps {
@@ -112,6 +113,12 @@ function SongCard({ song, isPlaying, onPlayToggle, onFavoriteToggle, onDownload 
         {song.duration && (
           <span className="absolute bottom-2 right-2 px-1.5 py-0.5 text-xs font-medium bg-black/70 text-white rounded">
             {formatDuration(song.duration)}
+          </span>
+        )}
+        {/* Variation badge */}
+        {(song.variationCount ?? 0) > 0 && (
+          <span className="absolute top-2 right-2 px-1.5 py-0.5 text-[10px] font-medium bg-violet-600/90 text-white rounded-full">
+            {(song.variationCount ?? 0) + 1} versions
           </span>
         )}
         {/* Playing indicator */}

@@ -5,7 +5,13 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import { SHORTCUTS, type Shortcut } from "./useKeyboardShortcuts";
 
 function KeyLabel({ keyName }: { keyName: string }) {
-  const display = keyName === " " ? "Space" : keyName;
+  const display =
+    keyName === " " ? "Space" :
+    keyName === "←" ? "← Left" :
+    keyName === "→" ? "→ Right" :
+    keyName === "↑" ? "↑ Up" :
+    keyName === "↓" ? "↓ Down" :
+    keyName;
   return (
     <kbd className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-xs font-mono font-semibold text-gray-700 dark:text-gray-200">
       {display}

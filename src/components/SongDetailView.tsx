@@ -27,15 +27,17 @@ import {
   PaintBrushIcon,
   FilmIcon,
 } from "@heroicons/react/24/solid";
-import { HeartIcon as HeartOutlineIcon } from "@heroicons/react/24/outline";
+import { HeartIcon as HeartOutlineIcon, QueueListIcon } from "@heroicons/react/24/outline";
 import type { SunoSong } from "@/lib/sunoapi";
 import { getRating, type SongRating } from "@/lib/ratings";
 import { downloadSongFile } from "@/lib/download";
 import { useToast } from "./Toast";
+import { useQueue } from "./QueueContext";
 const WaveformPlayer = dynamic(() => import("./WaveformPlayer").then((m) => m.WaveformPlayer), { ssr: false });
 const ReportModal = dynamic(() => import("./ReportModal").then((m) => m.ReportModal), { ssr: false });
 import { TagInput } from "./TagInput";
 import { SectionEditor } from "./SectionEditor";
+import { RecommendationSection } from "./SongRecommendations";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -84,6 +86,109 @@ function StarPicker({ value, onChange }: StarPickerProps) {
           </span>
         </button>
       ))}
+    </div>
+  );
+}
+
+// ─── Create Variation Modal ───────────────────────────────────────────────────
+
+interface CreateVariationModalProps {
+  sourceSong: { prompt: string | null; tags: string | null; lyrics: string | null; title: string | null; isInstrumental?: boolean };
+  onClose: () => void;
+  onSubmit: (data: { prompt: string; tags: string; lyrics: string; title: string; makeInstrumental: boolean }) => void;
+  submitting: boolean;
+}
+
+function CreateVariationModal({ sourceSong, onClose, onSubmit, submitting }: CreateVariationModalProps) {
+  const [prompt, setPrompt] = useState(sourceSong.prompt ?? "");
+  const [tags, setTags] = useState(sourceSong.tags ?? "");
+  const [lyrics, setLyrics] = useState(sourceSong.lyrics ?? "");
+  const [title, setTitle] = useState(sourceSong.title ? `${sourceSong.title} (variation)` : "");
+  const [makeInstrumental, setMakeInstrumental] = useState(sourceSong.isInstrumental ?? false);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    onSubmit({ prompt, tags, lyrics, title, makeInstrumental });
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Create Variation</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1">
+            <XMarkIcon className="w-5 h-5" />
+          </button>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Pre-filled from the source song. Modify any field before generating.
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Prompt *</label>
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Describe the song..."
+              rows={3}
+              required
+              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 resize-none focus:outline-none focus:border-violet-500 transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Style / tags (optional)</label>
+            <input
+              type="text"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder="e.g. pop, rock, electronic"
+              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Lyrics (optional)</label>
+            <textarea
+              value={lyrics}
+              onChange={(e) => setLyrics(e.target.value)}
+              placeholder="Enter lyrics or leave blank for AI-generated lyrics..."
+              rows={4}
+              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 resize-none focus:outline-none focus:border-violet-500 transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Title (optional)</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Variation title..."
+              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
+            />
+          </div>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={makeInstrumental}
+              onChange={(e) => setMakeInstrumental(e.target.checked)}
+              className="w-4 h-4 accent-violet-600"
+            />
+            <span className="text-sm text-gray-700 dark:text-gray-300">Instrumental</span>
+          </label>
+
+          <button
+            type="submit"
+            disabled={submitting || !prompt.trim()}
+            className="w-full px-4 py-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
+          >
+            {submitting ? "Generating..." : "Create Variation"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
@@ -397,6 +502,7 @@ interface SongDetailViewProps {
   variationCount?: number;
   maxVariations?: number;
   parentSongId?: string | null;
+  parentSongTitle?: string | null;
 }
 
 // ─── Main SongDetailView ──────────────────────────────────────────────────────
@@ -418,14 +524,17 @@ export function SongDetailView({
   variationCount: initialVariationCount = 0,
   maxVariations = 5,
   parentSongId = null,
+  parentSongTitle = null,
 }: SongDetailViewProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const { playNext, addToQueue } = useQueue();
 
   const [isFavorite, setIsFavorite] = useState(initialFavorite);
   const [favoriteCount, setFavoriteCount] = useState(initialFavoriteCount);
 
   // Variation state
+  const [variationModalOpen, setVariationModalOpen] = useState(false);
   const [creatingVariation, setCreatingVariation] = useState(false);
   const [compareVariation, setCompareVariation] = useState<VariationSummary | null>(null);
   const [remixAction, setRemixAction] = useState<RemixAction | null>(null);
@@ -703,7 +812,7 @@ export function SongDetailView({
     }
   }
 
-  async function handleCreateVariation() {
+  async function handleCreateVariation(data: { prompt: string; tags: string; lyrics: string; title: string; makeInstrumental: boolean }) {
     if (creatingVariation) return;
     if (initialVariationCount >= maxVariations) {
       toast(`Maximum ${maxVariations} variations reached`, "error");
@@ -714,15 +823,21 @@ export function SongDetailView({
       const res = await fetch(`/api/songs/${song.id}/variations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          prompt: data.prompt || undefined,
+          tags: data.tags || undefined,
+          title: data.title || undefined,
+          makeInstrumental: data.makeInstrumental,
+        }),
       });
-      const data = await res.json();
+      const result = await res.json();
       if (!res.ok) {
-        toast(data.error ?? "Failed to create variation", "error");
+        toast(result.error ?? "Failed to create variation", "error");
         return;
       }
       toast("Variation generation started!", "success");
-      router.push(`/library/${data.song.id}`);
+      setVariationModalOpen(false);
+      router.push(`/library/${result.song.id}`);
     } catch {
       toast("Failed to create variation", "error");
     } finally {
@@ -998,6 +1113,32 @@ export function SongDetailView({
           </button>
         )}
 
+        {/* Queue actions */}
+        {song.audioUrl && (
+          <>
+            <button
+              onClick={() => {
+                playNext({ id: song.id, title: song.title, audioUrl: song.audioUrl!, imageUrl: song.imageUrl ?? null, duration: song.duration ?? null });
+                toast("Playing next", "success");
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200 active:scale-95 min-h-[44px]"
+            >
+              <ForwardIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+              Play Next
+            </button>
+            <button
+              onClick={() => {
+                addToQueue({ id: song.id, title: song.title, audioUrl: song.audioUrl!, imageUrl: song.imageUrl ?? null, duration: song.duration ?? null });
+                toast("Added to queue", "success");
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200 active:scale-95 min-h-[44px]"
+            >
+              <QueueListIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+              Add to Queue
+            </button>
+          </>
+        )}
+
         {/* Add to playlist dropdown */}
         <div className="relative" ref={playlistRef}>
           <button
@@ -1114,12 +1255,18 @@ export function SongDetailView({
         </div>
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={handleCreateVariation}
-            disabled={creatingVariation || initialVariationCount >= maxVariations}
+            onClick={() => {
+              if (initialVariationCount >= maxVariations) {
+                toast(`Maximum ${maxVariations} variations reached`, "error");
+                return;
+              }
+              setVariationModalOpen(true);
+            }}
+            disabled={initialVariationCount >= maxVariations}
             className="flex items-center justify-center gap-2 px-3 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
           >
             <ArrowPathIcon className="w-4 h-4" aria-hidden="true" />
-            {creatingVariation ? "Creating..." : "Variation"}
+            Create Variation
           </button>
           <button
             onClick={() => setRemixAction("extend")}
@@ -1168,6 +1315,21 @@ export function SongDetailView({
       </div>
 
       {/* Remix modal */}
+      {variationModalOpen && (
+        <CreateVariationModal
+          sourceSong={{
+            prompt: song.prompt ?? null,
+            tags: song.tags ?? null,
+            lyrics: song.lyrics ?? null,
+            title: song.title ?? null,
+            isInstrumental: isInstrumental,
+          }}
+          onClose={() => setVariationModalOpen(false)}
+          onSubmit={handleCreateVariation}
+          submitting={creatingVariation}
+        />
+      )}
+
       {remixAction && (
         <RemixModal
           action={remixAction}
@@ -1214,9 +1376,9 @@ export function SongDetailView({
       {/* Parent link */}
       {parentSongId && (
         <div className="text-sm text-gray-500 dark:text-gray-400">
-          This is a variation of{" "}
+          Variation of:{" "}
           <Link href={`/library/${parentSongId}`} className="text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 underline">
-            the original song
+            {parentSongTitle ?? "Original song"}
           </Link>
         </div>
       )}
@@ -1328,6 +1490,20 @@ export function SongDetailView({
           </div>
         </div>
       )}
+
+      {/* Similar songs */}
+      <RecommendationSection
+        songId={song.id}
+        type="similar"
+        title="Similar songs"
+      />
+
+      {/* Listeners also liked */}
+      <RecommendationSection
+        songId={song.id}
+        type="also-liked"
+        title="Listeners also liked"
+      />
 
       {/* Lyrics */}
       {song.lyrics && (

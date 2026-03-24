@@ -1,5 +1,6 @@
 import type { SunoModel, StyleTuningOptions, SunoSong, SongStatus, TaskStatus } from "./types";
 import { SUNO_API_TIMEOUT_MS, SUNOAPI_KEY } from "@/lib/env";
+import { logger } from "@/lib/logger";
 
 export class SunoApiError extends Error {
   constructor(
@@ -68,13 +69,7 @@ export async function fetchWithRetry(
       } catch {
         message = rawBody || res.statusText;
       }
-      console.error("[SunoAPI] Request failed", {
-        url,
-        status: res.status,
-        statusText: res.statusText,
-        body: rawBody,
-        attempt,
-      });
+      logger.error({ url, status: res.status, statusText: res.statusText, body: rawBody, attempt }, "suno-api: request failed");
       throw new SunoApiError(res.status, message);
     }
 

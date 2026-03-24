@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   PlayIcon,
   PauseIcon,
@@ -13,9 +14,12 @@ import {
   ArrowPathRoundedSquareIcon,
   ArrowsRightLeftIcon,
   MusicalNoteIcon,
+  QueueListIcon,
 } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import { useQueue } from "./QueueContext";
+import { UpNextPanel } from "./UpNextPanel";
+import { PlayerWaveform } from "./PlayerWaveform";
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
@@ -47,29 +51,30 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
     toggleMute,
   } = useQueue();
 
+  const [showUpNext, setShowUpNext] = useState(false);
+
   const currentSong = currentIndex >= 0 ? queue[currentIndex] : null;
 
   if (!currentSong) return null;
 
-  const pct = duration > 0 ? (currentTime / duration) * 100 : 0;
-
   return (
     <div role="region" aria-label="Audio player" className={`fixed bottom-16 left-0 right-0 z-20 px-2 md:bottom-0 transition-all duration-200 ${sidebarCollapsed ? "md:left-16" : "md:left-56"}`}>
+      {/* Up Next panel */}
+      {showUpNext && (
+        <div className="max-w-3xl mx-auto md:mx-0 mb-1">
+          <UpNextPanel onClose={() => setShowUpNext(false)} />
+        </div>
+      )}
+
       <div className="bg-gray-900 dark:bg-gray-800 rounded-2xl md:rounded-none md:rounded-t-2xl shadow-2xl border border-gray-700 dark:border-gray-600 overflow-hidden max-w-3xl mx-auto md:mx-0">
-        {/* Seek bar (top edge) */}
-        <div className="relative h-1 bg-gray-700">
-          <div
-            className={`absolute inset-y-0 left-0 bg-violet-500 transition-all ${isBuffering ? "animate-pulse" : ""}`}
-            style={{ width: `${pct}%` }}
-          />
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={pct}
-            onChange={(e) => seek(Number(e.target.value) / 100)}
-            className="absolute left-0 right-0 top-1/2 -translate-y-1/2 w-full opacity-0 cursor-pointer min-h-[44px]"
-            aria-label="Seek"
+        {/* Waveform seek bar */}
+        <div className="relative h-10 px-2 pt-1 pb-0.5 bg-gray-900 dark:bg-gray-800">
+          <PlayerWaveform
+            songId={currentSong.id}
+            currentTime={currentTime}
+            duration={duration}
+            isBuffering={isBuffering}
+            onSeek={seek}
           />
         </div>
 
@@ -196,6 +201,20 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
                   1
                 </span>
               )}
+            </button>
+
+            {/* Up Next toggle */}
+            <button
+              onClick={() => setShowUpNext((v) => !v)}
+              aria-label={showUpNext ? "Hide Up Next" : "Show Up Next"}
+              aria-expanded={showUpNext}
+              className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-colors ${
+                showUpNext
+                  ? "text-violet-400"
+                  : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              <QueueListIcon className="w-5 h-5" />
             </button>
 
             {/* Close */}

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { MusicalNoteIcon } from "@heroicons/react/24/solid";
+import { MusicalNoteIcon, SparklesIcon } from "@heroicons/react/24/solid";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -162,12 +162,26 @@ function UsageChartSkeleton() {
   );
 }
 
+// ─── Daily discovery types ────────────────────────────────────────────────────
+
+interface DiscoverySong {
+  id: string;
+  title: string | null;
+  tags: string | null;
+  imageUrl: string | null;
+  duration: number | null;
+  createdAt: string;
+  rating: number | null;
+}
+
 // ─── DashboardView ───────────────────────────────────────────────────────────
 
 export function DashboardView({ userName }: { userName?: string | null }) {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [rateLimitStatus, setRateLimitStatus] = useState<RateLimitStatusFull | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dailySongs, setDailySongs] = useState<DiscoverySong[] | null>(null);
+  const [dailyLoading, setDailyLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -191,6 +205,11 @@ export function DashboardView({ userName }: { userName?: string | null }) {
   // Initial fetch
   useEffect(() => {
     fetchStats();
+    fetch("/api/recommendations/daily")
+      .then((r) => r.json())
+      .then((data) => setDailySongs(data.songs ?? []))
+      .catch(() => setDailySongs([]))
+      .finally(() => setDailyLoading(false));
   }, [fetchStats]);
 
   // Revalidate on page focus
@@ -326,6 +345,53 @@ export function DashboardView({ userName }: { userName?: string | null }) {
           </div>
         )}
       </div>
+
+      {/* Daily discovery */}
+      {(dailyLoading || (dailySongs && dailySongs.length > 0)) && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <SparklesIcon className="w-4 h-4 text-violet-500" />
+            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Daily discovery</h3>
+          </div>
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden divide-y divide-gray-100 dark:divide-gray-800">
+            {dailyLoading ? (
+              <>
+                <RecentSongSkeleton />
+                <RecentSongSkeleton />
+                <RecentSongSkeleton />
+              </>
+            ) : (
+              dailySongs!.map((song) => (
+                <Link
+                  key={song.id}
+                  href={`/library/${song.id}`}
+                  className="flex items-center gap-3 px-3 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                >
+                  <div className="relative w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                    {song.imageUrl ? (
+                      <Image src={song.imageUrl} alt={song.title ?? "Song"} fill className="object-cover" sizes="40px" loading="lazy" />
+                    ) : (
+                      <MusicalNoteIcon className="w-5 h-5 text-gray-400 dark:text-gray-600" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {song.title ?? "Untitled"}
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      {song.tags && <span className="truncate">{song.tags.split(",")[0].trim()}</span>}
+                      {song.duration != null && <span>{formatTime(song.duration)}</span>}
+                    </div>
+                  </div>
+                  {song.rating != null && (
+                    <span className="text-xs text-yellow-500 flex-shrink-0">{song.rating}★</span>
+                  )}
+                </Link>
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

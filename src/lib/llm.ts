@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { logger } from "@/lib/logger";
 
 const DEFAULT_MODEL = "gpt-4o-mini";
 
@@ -46,9 +47,9 @@ export async function generateText(
     return response.choices[0]?.message?.content ?? null;
   } catch (error) {
     if (error instanceof OpenAI.APIError) {
-      console.error(`[llm] OpenAI API error (${error.status}): ${error.message}`);
+      logger.error({ status: error.status, message: error.message }, "llm: openai api error");
     } else {
-      console.error("[llm] Unexpected error:", error);
+      logger.error({ err: error }, "llm: unexpected error");
     }
     return null;
   }

@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sunoflow
+      POSTGRES_PASSWORD: sunoflow
+      POSTGRES_DB: sunoflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sunoflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://sunoflow:sunoflow@db:5432/sunoflow
+      SUNOFLOW_DATABASE_URL: postgres://sunoflow:sunoflow@db:5432/sunoflow
+      AUTH_SECRET: dev-secret-change-in-production
+      AUTH_URL: http://localhost:3000
+      NODE_ENV: development
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

@@ -1,7 +1,10 @@
 /**
  * Structured error logger.
- * Logs errors to the console and reports them to /api/error-report.
+ *
+ * Server-side calls go through pino (JSON to stdout).
+ * Client-side calls fall back to window.fetch → /api/error-report.
  */
+import { logger } from "@/lib/logger";
 
 function extractErrorInfo(error: unknown): { message: string; stack?: string } {
   if (error instanceof Error) {
@@ -38,15 +41,18 @@ export function logError(
   const { message, stack } = extractErrorInfo(error);
 
   const entry = {
-    timestamp: new Date().toISOString(),
     source,
     route: route ?? (typeof window !== "undefined" ? window.location.pathname : "unknown"),
     error: stack ? { message, stack } : message,
   };
 
-  console.error("[SunoFlow Error]", JSON.stringify(entry, null, 2));
-
-  reportToServer(source, error, route);
+  // Server-side: structured pino log; client-side: console fallback + report
+  if (typeof window === "undefined") {
+    logger.error(entry, "client-error");
+  } else {
+    console.error("[SunoFlow Error]", entry);
+    reportToServer(source, error, route);
+  }
 }
 
 /**
@@ -72,19 +78,17 @@ export function logServerError(
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
-  const entry = {
-    timestamp: new Date().toISOString(),
-    correlationId,
-    source,
-    route: context.route,
-    userId: context.userId ?? "unknown",
-    params: context.params ?? {},
-    error:
-      error instanceof Error
-        ? { name: error.name, message: error.message, stack: error.stack }
-        : String(error),
-  };
+  logger.error(
+    {
+      correlationId,
+      source,
+      route: context.route,
+      userId: context.userId ?? "unknown",
+      params: context.params ?? {},
+      err: error instanceof Error ? error : new Error(String(error)),
+    },
+    "server-error"
+  );
 
-  console.error("[SunoFlow ServerError]", JSON.stringify(entry, null, 2));
   return correlationId;
 }

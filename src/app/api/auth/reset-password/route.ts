@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ message: "Password reset successfully" });
   } catch (err) {
-    console.error("Reset password error:", err);
+    logger.error({ err }, "reset-password: error");
     return NextResponse.json(
       { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }

@@ -1,9 +1,28 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { logServerError, logError } from "./error-logger";
 
+// Mock pino logger so tests don't write to stdout and we can assert calls
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
+  childLogger: vi.fn((bindings) => ({
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+    bindings,
+  })),
+}));
+
+import { logger } from "@/lib/logger";
+
 describe("logServerError", () => {
   beforeEach(() => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
@@ -16,12 +35,12 @@ describe("logServerError", () => {
     expect(id.length).toBeGreaterThan(0);
   });
 
-  it("logs to console.error", () => {
+  it("logs to structured logger", () => {
     logServerError("test-source", new Error("test error"), {
       route: "/api/songs",
       userId: "user-1",
     });
-    expect(console.error).toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalled();
   });
 
   it("uses provided correlationId", () => {
@@ -35,7 +54,7 @@ describe("logServerError", () => {
   it("handles non-Error objects", () => {
     const id = logServerError("src", "string error", { route: "/api/x" });
     expect(typeof id).toBe("string");
-    expect(console.error).toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalled();
   });
 
   it("handles null/undefined errors", () => {
@@ -48,33 +67,37 @@ describe("logServerError", () => {
       route: "/api/generate",
       params: { prompt: "test" },
     });
-    const call = (console.error as ReturnType<typeof vi.fn>).mock.calls[0];
-    const logged = call[1];
-    expect(logged).toContain("prompt");
+    const call = (logger.error as ReturnType<typeof vi.fn>).mock.calls[0];
+    const loggedObj = call[0] as Record<string, unknown>;
+    const params = loggedObj.params as Record<string, unknown>;
+    expect(params).toHaveProperty("prompt");
   });
 });
 
 describe("logError", () => {
   beforeEach(() => {
     vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("logs an error to console", () => {
+  it("logs an error (server-side uses structured logger)", () => {
     logError("component", new Error("client error"));
-    expect(console.error).toHaveBeenCalled();
+    // Server-side: pino logger.error; client-side: console.error
+    // In vitest (Node.js), typeof window === "undefined", so logger.error is used
+    expect(logger.error).toHaveBeenCalled();
   });
 
   it("handles non-Error objects", () => {
     logError("component", "plain string error");
-    expect(console.error).toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalled();
   });
 
   it("accepts optional route", () => {
     logError("component", new Error("err"), "/dashboard");
-    expect(console.error).toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalled();
   });
 });

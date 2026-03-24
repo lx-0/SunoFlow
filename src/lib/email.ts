@@ -1,4 +1,5 @@
 import Mailjet from "node-mailjet";
+import { logger } from "@/lib/logger";
 
 const APP_NAME = "SunoFlow";
 
@@ -21,12 +22,8 @@ async function sendEmail(payload: EmailPayload): Promise<void> {
   const secretKey = process.env.MAILJET_SECRET_KEY;
 
   if (!apiKey || !secretKey) {
-    // Dev fallback: log to console when Mailjet keys are not configured
-    console.log("────────────────────────────────────────");
-    console.log(`📧 Email to: ${payload.to}`);
-    console.log(`   Subject:  ${payload.subject}`);
-    console.log(`   Body:\n${payload.html}`);
-    console.log("────────────────────────────────────────");
+    // Dev fallback: log to structured logger when Mailjet keys are not configured
+    logger.info({ to: payload.to, subject: payload.subject }, "email: dev-mode (no Mailjet keys) — skipping send");
     return;
   }
 
@@ -51,7 +48,7 @@ async function sendEmail(payload: EmailPayload): Promise<void> {
       ],
     });
   } catch (error) {
-    console.error("Mailjet send failed:", error);
+    logger.error({ err: error }, "email: mailjet send failed");
   }
 }
 

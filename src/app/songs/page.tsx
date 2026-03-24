@@ -15,7 +15,7 @@ async function fetchSongs() {
       include: {
         songTags: { include: { tag: true }, orderBy: { tag: { name: "asc" } } },
         favorites: { where: { userId: session.user.id }, select: { id: true } },
-        _count: { select: { favorites: true } },
+        _count: { select: { favorites: true, variations: true } },
       },
     });
     return songs.map((s) => {
@@ -24,6 +24,7 @@ async function fetchSongs() {
         ...rest,
         isFavorite: favorites.length > 0,
         favoriteCount: _count.favorites,
+        variationCount: _count.variations,
       };
     });
   } catch {

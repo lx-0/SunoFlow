@@ -24,6 +24,19 @@ const nextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return {
+      // afterFiles: filesystem routes (e.g. /api/v1/openapi.json) match
+      // first; only then does this wildcard rewrite kick in so that every
+      // other /api/v1/* path is served by the matching /api/* handler.
+      // No code duplication — the /api/* route handlers remain the source
+      // of truth; v1 paths are a transparent alias.
+      afterFiles: [
+        { source: "/api/v1/:path*", destination: "/api/:path*" },
+      ],
+    };
+  },
+
   async headers() {
     const securityHeaders = [
       {
@@ -96,6 +109,17 @@ const nextConfig = {
         ],
       },
       {
+        // Audio proxy — authenticated endpoint, private browser cache only.
+        // Must not be cached by CDN/shared caches (would bypass auth checks).
+        source: "/api/audio/:songId",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, max-age=3600",
+          },
+        ],
+      },
+      {
         // Public song share pages — cacheable
         source: "/s/:slug",
         headers: [
@@ -113,7 +137,26 @@ let config = nextConfig;
 
 if (process.env.ANALYZE === "true") {
   const withBundleAnalyzer = (await import("@next/bundle-analyzer")).default;
-  config = withBundleAnalyzer({ enabled: true })(nextConfig);
+  config = withBundleAnalyzer({ enabled: true })(config);
+}
+
+// Wrap with Sentry only when a DSN is provided — zero overhead otherwise
+const sentryDsn = process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN;
+if (sentryDsn) {
+  const { withSentryConfig } = await import("@sentry/nextjs");
+  config = withSentryConfig(config, {
+    // Suppress noisy Sentry build output unless in CI
+    silent: !process.env.CI,
+    // Automatically tree-shake Sentry logger statements in production
+    disableLogger: true,
+    // Upload source maps to Sentry for readable stack traces
+    // Requires SENTRY_AUTH_TOKEN to be set
+    sourcemaps: {
+      disable: !process.env.SENTRY_AUTH_TOKEN,
+    },
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+  });
 }
 
 export default config;

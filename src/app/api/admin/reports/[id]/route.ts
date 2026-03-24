@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, logAdminAction } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 export async function PATCH(
   request: NextRequest,
@@ -47,7 +48,7 @@ export async function PATCH(
   } else if (action === "warn_user") {
     updates.status = "actioned";
     // Log the warning (actual notification system is a placeholder)
-    console.log(`[MODERATION] Warning issued to user ${report.song.userId} regarding song ${report.songId}`);
+    logger.info({ userId: report.song.userId, songId: report.songId, reportId: report.id }, "moderation: warning issued to user");
     await logAdminAction(admin!.id, "warn_user", report.song.userId, `Warned user via report ${report.id} for song ${report.songId}`);
   }
 

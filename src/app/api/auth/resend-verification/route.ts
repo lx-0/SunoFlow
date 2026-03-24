@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
@@ -45,7 +46,7 @@ export async function POST() {
 
     return NextResponse.json({ message: "Verification email sent" });
   } catch (err) {
-    console.error("Resend verification error:", err);
+    logger.error({ err }, "resend-verification: error");
     return NextResponse.json(
       { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }

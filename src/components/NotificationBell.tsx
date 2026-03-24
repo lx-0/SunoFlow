@@ -9,6 +9,7 @@ import {
   ExclamationCircleIcon,
   ClockIcon,
   MegaphoneIcon,
+  ArrowDownTrayIcon,
 } from "@heroicons/react/24/outline";
 import { BellAlertIcon } from "@heroicons/react/24/solid";
 import {
@@ -33,6 +34,8 @@ function relativeTime(iso: string): string {
 const typeIcons: Record<NotificationType, typeof CheckCircleIcon> = {
   generation_complete: CheckCircleIcon,
   generation_failed: ExclamationCircleIcon,
+  import_complete: ArrowDownTrayIcon,
+  error: ExclamationCircleIcon,
   rate_limit_reset: ClockIcon,
   announcement: MegaphoneIcon,
 };
@@ -40,6 +43,8 @@ const typeIcons: Record<NotificationType, typeof CheckCircleIcon> = {
 const typeColors: Record<NotificationType, string> = {
   generation_complete: "text-green-500",
   generation_failed: "text-red-500",
+  import_complete: "text-blue-500",
+  error: "text-red-500",
   rate_limit_reset: "text-amber-500",
   announcement: "text-violet-500",
 };

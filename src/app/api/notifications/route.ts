@@ -47,6 +47,8 @@ export async function GET(request: NextRequest) {
 const VALID_TYPES = [
   "generation_complete",
   "generation_failed",
+  "import_complete",
+  "error",
   "rate_limit_reset",
   "announcement",
 ];

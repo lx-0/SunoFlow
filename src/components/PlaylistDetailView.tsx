@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -90,9 +90,83 @@ export function PlaylistDetailView({
   const [showSharePanel, setShowSharePanel] = useState(false);
   const [isTogglingShare, setIsTogglingShare] = useState(false);
 
-  // Drag state
+  // Drag state (mouse/pointer)
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  // Touch drag refs (to avoid stale closures in document listeners)
+  const touchDragActive = useRef(false);
+  const touchDragFrom = useRef<number | null>(null);
+  const touchDragTo = useRef<number | null>(null);
+  const touchCurrentSongs = useRef(songs);
+  useEffect(() => {
+    touchCurrentSongs.current = songs;
+  }, [songs]);
+
+  // Document-level touch handlers for drag reorder
+  useEffect(() => {
+    function onTouchMove(e: TouchEvent) {
+      if (!touchDragActive.current) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      let target: Element | null = document.elementFromPoint(touch.clientX, touch.clientY);
+      while (target && !target.hasAttribute("data-drag-index")) {
+        target = target.parentElement;
+      }
+      if (target) {
+        const idx = parseInt(target.getAttribute("data-drag-index") ?? "-1", 10);
+        if (idx >= 0 && idx !== touchDragTo.current) {
+          touchDragTo.current = idx;
+          setDragOverIndex(idx);
+        }
+      }
+    }
+
+    function onTouchEnd() {
+      if (!touchDragActive.current) return;
+      touchDragActive.current = false;
+      const from = touchDragFrom.current;
+      const to = touchDragTo.current;
+      touchDragFrom.current = null;
+      touchDragTo.current = null;
+      setDragIndex(null);
+      setDragOverIndex(null);
+      if (from === null || to === null || from === to) return;
+      const prev = touchCurrentSongs.current;
+      const reordered = [...prev];
+      const [moved] = reordered.splice(from, 1);
+      reordered.splice(to, 0, moved);
+      setSongs(reordered);
+      fetch(`/api/playlists/${playlist.id}/reorder`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ songIds: reordered.map((ps) => ps.songId) }),
+      }).then((res) => {
+        if (!res.ok) {
+          setSongs(prev);
+          toast("Failed to reorder", "error");
+        }
+      }).catch(() => {
+        setSongs(prev);
+        toast("Failed to reorder", "error");
+      });
+    }
+
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+    document.addEventListener("touchend", onTouchEnd);
+    return () => {
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [playlist.id, toast]);
+
+  function handleDragHandleTouchStart(index: number) {
+    touchDragActive.current = true;
+    touchDragFrom.current = index;
+    touchDragTo.current = index;
+    setDragIndex(index);
+    setDragOverIndex(index);
+  }
 
   function buildPlaylistQueue(): QueueSong[] {
     return songs
@@ -507,6 +581,7 @@ export function PlaylistDetailView({
                 onSwipeRemove={() => handleRemoveSong(ps.songId)}
               >
                 <li
+                  data-drag-index={index}
                   draggable
                   onDragStart={() => handleDragStart(index)}
                   onDragOver={(e) => handleDragOver(e, index)}
@@ -524,7 +599,10 @@ export function PlaylistDetailView({
                   }`}
                 >
                   {/* Drag handle */}
-                  <div className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center">
+                  <div
+                    className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center touch-none"
+                    onTouchStart={() => handleDragHandleTouchStart(index)}
+                  >
                     <Bars3Icon className="w-5 h-5" />
                   </div>
 

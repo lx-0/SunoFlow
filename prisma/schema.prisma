@@ -84,7 +84,8 @@ model Song {
   title            String?
   prompt           String?
   tags             String?
-  audioUrl         String?
+  audioUrl             String?
+  audioUrlExpiresAt    DateTime?
   imageUrl         String?
   duration         Float?
   lyrics           String?

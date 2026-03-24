@@ -6,6 +6,16 @@ import { logServerError } from "@/lib/error-logger";
 import { CacheControl } from "@/lib/cache";
 import { internalError } from "@/lib/api-error";
 
+/**
+ * Convert a user search query into a websearch_to_tsquery-compatible expression.
+ * Returns null if the query is empty or too short for FTS.
+ */
+function buildTsQuery(q: string): string | null {
+  const trimmed = q.trim();
+  if (trimmed.length < 3) return null;
+  return trimmed;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { userId, error: authError } = await resolveUser(request);
@@ -25,6 +35,32 @@ export async function GET(request: NextRequest) {
     const includeVariations = params.get("includeVariations") === "true";
     const showArchived = params.get("archived") === "true";
 
+    // Pagination
+    const limitParam = parseInt(params.get("limit") || "", 10);
+    const limit = !isNaN(limitParam) && limitParam >= 1 && limitParam <= 100 ? limitParam : 20;
+    const cursor = params.get("cursor") || "";
+
+    // ── Full-text search path (q >= 3 chars) ──────────────────────────────────
+    const tsQuery = buildTsQuery(q);
+
+    // When FTS is active, get ranked song IDs from PostgreSQL first.
+    let ftsRankedIds: string[] | null = null;
+    if (tsQuery) {
+      try {
+        const rows = await prisma.$queryRaw<{ id: string }[]>`
+          SELECT id
+          FROM "Song"
+          WHERE "userId" = ${userId}
+            AND "searchVector" @@ websearch_to_tsquery('english', ${tsQuery})
+          ORDER BY ts_rank("searchVector", websearch_to_tsquery('english', ${tsQuery})) DESC
+        `;
+        ftsRankedIds = rows.map((r) => r.id);
+      } catch {
+        // FTS unavailable (e.g. migration not applied yet) — fall back to ILIKE
+        ftsRankedIds = null;
+      }
+    }
+
     // Build WHERE conditions — exclude child songs (alternates) by default
     const where: Prisma.SongWhereInput = {
       userId: userId,
@@ -33,8 +69,11 @@ export async function GET(request: NextRequest) {
       ...(showArchived ? { archivedAt: { not: null } } : { archivedAt: null }),
     };
 
-    // Full-text search: title, prompt, lyrics, tags (case-insensitive)
-    if (q) {
+    if (ftsRankedIds !== null) {
+      // FTS: filter to ranked IDs; other Prisma filters still apply
+      where.id = { in: ftsRankedIds };
+    } else if (q) {
+      // Short query or FTS unavailable — fall back to ILIKE
       where.OR = [
         { title: { contains: q, mode: "insensitive" } },
         { prompt: { contains: q, mode: "insensitive" } },
@@ -91,34 +130,34 @@ export async function GET(request: NextRequest) {
       where.favorites = { some: { userId: userId } };
     }
 
-    // Build ORDER BY
+    // Build ORDER BY — FTS results are re-sorted by rank after fetch
     let orderBy: Prisma.SongOrderByWithRelationInput;
-    switch (sortBy) {
-      case "oldest":
-        orderBy = { createdAt: "asc" };
-        break;
-      case "highest_rated":
-        orderBy = { rating: { sort: "desc", nulls: "last" } };
-        break;
-      case "most_played":
-        orderBy = { playCount: "desc" };
-        break;
-      case "recently_modified":
-        orderBy = { updatedAt: "desc" };
-        break;
-      case "title_az":
-        orderBy = { title: { sort: sortDir === "desc" ? "desc" : "asc", nulls: "last" } };
-        break;
-      case "newest":
-      default:
-        orderBy = { createdAt: "desc" };
-        break;
+    if (ftsRankedIds !== null) {
+      // Rank order is applied post-fetch; use createdAt as stable secondary sort
+      orderBy = { createdAt: "desc" };
+    } else {
+      switch (sortBy) {
+        case "oldest":
+          orderBy = { createdAt: "asc" };
+          break;
+        case "highest_rated":
+          orderBy = { rating: { sort: "desc", nulls: "last" } };
+          break;
+        case "most_played":
+          orderBy = { playCount: "desc" };
+          break;
+        case "recently_modified":
+          orderBy = { updatedAt: "desc" };
+          break;
+        case "title_az":
+          orderBy = { title: { sort: sortDir === "desc" ? "desc" : "asc", nulls: "last" } };
+          break;
+        case "newest":
+        default:
+          orderBy = { createdAt: "desc" };
+          break;
+      }
     }
-
-    // Pagination: cursor-based (default 20 items)
-    const limitParam = parseInt(params.get("limit") || "", 10);
-    const limit = !isNaN(limitParam) && limitParam >= 1 && limitParam <= 100 ? limitParam : 20;
-    const cursor = params.get("cursor") || "";
 
     const [songs, total] = await Promise.all([
       prisma.song.findMany({
@@ -148,6 +187,12 @@ export async function GET(request: NextRequest) {
         variationCount: _count.variations,
       };
     });
+
+    // Re-sort by FTS rank order when applicable
+    if (ftsRankedIds !== null && ftsRankedIds.length > 0) {
+      const rankOrder = new Map(ftsRankedIds.map((id, i) => [id, i]));
+      enriched.sort((a, b) => (rankOrder.get(a.id) ?? 9999) - (rankOrder.get(b.id) ?? 9999));
+    }
 
     return NextResponse.json({ songs: enriched, nextCursor, total }, {
       headers: { "Cache-Control": CacheControl.privateNoCache },

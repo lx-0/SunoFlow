@@ -7,8 +7,6 @@ import {
   PlayIcon,
   PauseIcon,
   MagnifyingGlassIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
 } from "@heroicons/react/24/solid";
 
 interface DiscoverSong {
@@ -62,30 +60,35 @@ export function DiscoverView() {
   const [sortBy, setSortBy] = useState("newest");
   const [tag, setTag] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [playingSongId, setPlayingSongId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const fetchSongs = useCallback(
-    async (page: number, sort: string, genre: string) => {
-      setLoading(true);
+    async (page: number, sort: string, genre: string, append = false) => {
+      if (append) setLoadingMore(true);
+      else setLoading(true);
       try {
         const params = new URLSearchParams({ page: String(page), sortBy: sort });
         if (genre) params.set("tag", genre);
         const res = await fetch(`/api/songs/discover?${params}`);
         if (!res.ok) return;
         const data = await res.json();
-        setSongs(data.songs);
+        setSongs((prev) => append ? [...prev, ...data.songs] : data.songs);
         setPagination(data.pagination);
       } catch {
         // keep existing state
       } finally {
-        setLoading(false);
+        if (append) setLoadingMore(false);
+        else setLoading(false);
       }
     },
     []
   );
 
   useEffect(() => {
+    setSongs([]);
     fetchSongs(1, sortBy, tag);
   }, [sortBy, tag, fetchSongs]);
 
@@ -98,10 +101,22 @@ export function DiscoverView() {
     };
   }, []);
 
-  const handlePageChange = (newPage: number) => {
-    fetchSongs(newPage, sortBy, tag);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  // Infinite scroll sentinel
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !pagination.hasMore || loadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          fetchSongs(pagination.page + 1, sortBy, tag, true);
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [pagination.hasMore, pagination.page, loadingMore, sortBy, tag, fetchSongs]);
 
   const handlePlayToggle = useCallback(
     (song: DiscoverSong) => {
@@ -241,28 +256,18 @@ export function DiscoverView() {
           </div>
         )}
 
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 pt-4">
-            <button
-              onClick={() => handlePageChange(pagination.page - 1)}
-              disabled={pagination.page <= 1}
-              className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
-              aria-label="Previous page"
-            >
-              <ChevronLeftIcon className="w-5 h-5" />
-            </button>
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              Page {pagination.page} of {pagination.totalPages}
-            </span>
-            <button
-              onClick={() => handlePageChange(pagination.page + 1)}
-              disabled={!pagination.hasMore}
-              className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
-              aria-label="Next page"
-            >
-              <ChevronRightIcon className="w-5 h-5" />
-            </button>
+        {/* Infinite scroll sentinel + loading indicator */}
+        {pagination.hasMore && (
+          <div ref={sentinelRef} className="flex items-center justify-center py-6" aria-live="polite">
+            {loadingMore && (
+              <span className="inline-flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Loading more…
+              </span>
+            )}
           </div>
         )}
       </main>

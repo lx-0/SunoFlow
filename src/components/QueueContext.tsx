@@ -9,6 +9,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { proxiedAudioUrl } from "@/lib/audio-cdn";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,6 +44,14 @@ interface QueueActions {
   playQueue: (songs: QueueSong[], startIndex?: number) => void;
   /** Toggle play/pause for a specific song. If not in queue, plays it solo. */
   togglePlay: (song?: QueueSong) => void;
+  /** Insert song immediately after the current track */
+  playNext: (song: QueueSong) => void;
+  /** Append song to the end of the queue */
+  addToQueue: (song: QueueSong) => void;
+  /** Remove a track at a given queue index */
+  removeFromQueue: (index: number) => void;
+  /** Move a track from one index to another */
+  reorderQueue: (fromIndex: number, toIndex: number) => void;
   skipNext: () => void;
   skipPrev: () => void;
   seek: (fraction: number) => void;
@@ -109,12 +118,24 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   const repeatRef = useRef(repeat);
   const shuffleRef = useRef(shuffle);
 
+  // Tracks songs that failed through the CDN proxy and fell back to direct URL
+  const cdnFallbackRef = useRef<Set<string>>(new Set());
+
   const trackPlayRef = useRef(trackPlay);
   queueRef.current = queue;
   currentIndexRef.current = currentIndex;
   repeatRef.current = repeat;
   shuffleRef.current = shuffle;
   trackPlayRef.current = trackPlay;
+
+  /**
+   * Returns the audio src for a song, using the CDN proxy by default.
+   * Falls back to the direct Suno URL after a proxy error.
+   */
+  function getAudioSrc(song: QueueSong): string {
+    if (cdnFallbackRef.current.has(song.id)) return song.audioUrl;
+    return proxiedAudioUrl(song.id);
+  }
 
   // ─── Init audio element ───────────────────────────────────────────────────
   useEffect(() => {
@@ -129,6 +150,21 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     const onPlaying = () => setIsBuffering(false);
     const onCanPlay = () => setIsBuffering(false);
     const onError = () => {
+      const q = queueRef.current;
+      const idx = currentIndexRef.current;
+      const currentSong = idx >= 0 ? q[idx] : null;
+
+      // If this was a CDN proxy request, fall back to the direct Suno URL
+      if (currentSong && !cdnFallbackRef.current.has(currentSong.id)) {
+        cdnFallbackRef.current.add(currentSong.id);
+        audio.src = currentSong.audioUrl;
+        audio.play().catch(() => {
+          setIsBuffering(false);
+          setIsPlaying(false);
+        });
+        return;
+      }
+
       setIsBuffering(false);
       setIsPlaying(false);
     };
@@ -147,7 +183,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
         // Advance to next
         const next = idx + 1;
         setCurrentIndex(next);
-        audio.src = q[next].audioUrl;
+        audio.src = getAudioSrc(q[next]);
         setCurrentTime(0);
         setDuration(q[next].duration ?? 0);
         audio.play().catch(console.error);
@@ -155,7 +191,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       } else if (rep === "repeat-all" && q.length > 0) {
         // Wrap to start
         setCurrentIndex(0);
-        audio.src = q[0].audioUrl;
+        audio.src = getAudioSrc(q[0]);
         setCurrentTime(0);
         setDuration(q[0].duration ?? 0);
         audio.play().catch(console.error);
@@ -218,7 +254,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       setCurrentTime(0);
       setDuration(playOrder[playIdx].duration ?? 0);
       audio.pause();
-      audio.src = playOrder[playIdx].audioUrl;
+      audio.src = getAudioSrc(playOrder[playIdx]);
       audio.play().catch(console.error);
       trackPlay(playOrder[playIdx].id);
     },
@@ -256,7 +292,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       if (idx >= 0) {
         setCurrentIndex(idx);
         audio.pause();
-        audio.src = queue[idx].audioUrl;
+        audio.src = getAudioSrc(queue[idx]);
         setCurrentTime(0);
         setDuration(queue[idx].duration ?? 0);
         audio.play().catch(console.error);
@@ -284,7 +320,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
 
     setCurrentIndex(next);
     audio.pause();
-    audio.src = queue[next].audioUrl;
+    audio.src = getAudioSrc(queue[next]);
     setCurrentTime(0);
     setDuration(queue[next].duration ?? 0);
     audio.play().catch(console.error);
@@ -313,7 +349,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
 
     setCurrentIndex(prev);
     audio.pause();
-    audio.src = queue[prev].audioUrl;
+    audio.src = getAudioSrc(queue[prev]);
     setCurrentTime(0);
     setDuration(queue[prev].duration ?? 0);
     audio.play().catch(console.error);
@@ -369,6 +405,58 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const playNext = useCallback((song: QueueSong) => {
+    setQueue((prev) => {
+      const idx = currentIndexRef.current;
+      const next = [...prev];
+      next.splice(idx + 1, 0, song);
+      return next;
+    });
+    originalQueueRef.current = [...originalQueueRef.current, song];
+  }, []);
+
+  const addToQueue = useCallback((song: QueueSong) => {
+    setQueue((prev) => [...prev, song]);
+    originalQueueRef.current = [...originalQueueRef.current, song];
+  }, []);
+
+  const removeFromQueue = useCallback((index: number) => {
+    const audio = audioRef.current;
+    setQueue((prev) => {
+      const next = [...prev];
+      next.splice(index, 1);
+      return next;
+    });
+    setCurrentIndex((prev) => {
+      if (index < prev) return prev - 1;
+      if (index === prev) {
+        // Removing the currently-playing song — stop playback
+        if (audio) { audio.pause(); audio.src = ""; }
+        setIsPlaying(false);
+        setCurrentTime(0);
+        setDuration(0);
+        return -1;
+      }
+      return prev;
+    });
+  }, []);
+
+  const reorderQueue = useCallback((fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+    setQueue((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
+    setCurrentIndex((prev) => {
+      if (fromIndex === prev) return toIndex;
+      if (fromIndex < prev && toIndex >= prev) return prev - 1;
+      if (fromIndex > prev && toIndex <= prev) return prev + 1;
+      return prev;
+    });
+  }, []);
+
   const clearQueue = useCallback(() => {
     const audio = audioRef.current;
     if (audio) {
@@ -415,6 +503,10 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     muted,
     playQueue,
     togglePlay,
+    playNext,
+    addToQueue,
+    removeFromQueue,
+    reorderQueue,
     skipNext,
     skipPrev,
     seek,

@@ -95,12 +95,15 @@ export async function GET(
 
     if (isComplete && taskResult.songs.length > 0) {
       const firstSong = taskResult.songs[0];
+      // Audio URLs expire in 15 days (generated); use 12 days as a conservative buffer.
+      const audioUrlExpiresAt = new Date(Date.now() + 12 * 24 * 60 * 60 * 1000);
       // Update the primary song record with the first result
       const updated = await prisma.song.update({
         where: { id },
         data: {
           generationStatus: "ready",
           audioUrl: firstSong.audioUrl || song.audioUrl,
+          audioUrlExpiresAt: firstSong.audioUrl ? audioUrlExpiresAt : song.audioUrlExpiresAt,
           imageUrl: firstSong.imageUrl || song.imageUrl,
           duration: firstSong.duration ?? song.duration,
           lyrics: firstSong.lyrics || song.lyrics,
@@ -122,6 +125,7 @@ export async function GET(
             prompt: song.prompt,
             tags: extra.tags || song.tags,
             audioUrl: extra.audioUrl || null,
+            audioUrlExpiresAt: extra.audioUrl ? audioUrlExpiresAt : null,
             imageUrl: extra.imageUrl || null,
             duration: extra.duration ?? null,
             lyrics: extra.lyrics || null,

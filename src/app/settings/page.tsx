@@ -1382,6 +1382,10 @@ function TagManagementSection() {
   );
 }
 
+type SunoStatus =
+  | { connected: false; error?: string }
+  | { connected: true; credits: { remaining: number }; validatedAt: string };
+
 function ApiKeySection() {
   const [apiKey, setApiKey] = useState("");
   const [maskedKey, setMaskedKey] = useState<string | null>(null);
@@ -1389,10 +1393,25 @@ function ApiKeySection() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [status, setStatus] = useState<SunoStatus | null>(null);
+  const [testing, setTesting] = useState(false);
 
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const checkStatus = async () => {
+    setTesting(true);
+    try {
+      const res = await fetch("/api/suno/status");
+      const data = await res.json();
+      setStatus(data as SunoStatus);
+    } catch {
+      setStatus({ connected: false, error: "Network error" });
+    } finally {
+      setTesting(false);
+    }
   };
 
   useEffect(() => {
@@ -1401,9 +1420,13 @@ function ApiKeySection() {
       .then((data) => {
         setHasKey(data.hasKey);
         setMaskedKey(data.maskedKey);
+        if (data.hasKey) {
+          checkStatus();
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSave = async () => {
@@ -1422,6 +1445,11 @@ function ApiKeySection() {
         setMaskedKey(data.maskedKey);
         setApiKey("");
         showToast(data.hasKey ? "API key saved" : "API key removed", "success");
+        if (data.hasKey) {
+          checkStatus();
+        } else {
+          setStatus(null);
+        }
       }
     } catch {
       showToast("Network error", "error");
@@ -1445,6 +1473,7 @@ function ApiKeySection() {
         setHasKey(false);
         setMaskedKey(null);
         setApiKey("");
+        setStatus(null);
         showToast("API key removed", "success");
       }
     } catch {
@@ -1482,6 +1511,48 @@ function ApiKeySection() {
                 </button>
               </div>
             )}
+
+            {hasKey && (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  {testing ? (
+                    <span className="inline-block w-2 h-2 rounded-full bg-gray-400 animate-pulse" />
+                  ) : status?.connected ? (
+                    <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+                  ) : (
+                    <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
+                  )}
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    {testing ? "Checking..." : status?.connected ? "Connected" : "Not connected"}
+                  </span>
+                </div>
+                {status?.connected && (
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    Credits remaining: {status.credits.remaining}
+                  </span>
+                )}
+                <button
+                  onClick={checkStatus}
+                  disabled={testing}
+                  className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-violet-600 dark:text-violet-400 border border-violet-300 dark:border-violet-700 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ArrowPathIcon className={`w-3.5 h-3.5 ${testing ? "animate-spin" : ""}`} />
+                  Test Connection
+                </button>
+              </div>
+            )}
+
+            {hasKey && status && !status.connected && (
+              <div className="flex items-center gap-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg px-3 py-2">
+                <ExclamationTriangleIcon className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                <span className="text-xs text-yellow-700 dark:text-yellow-300">
+                  {status.error === "Invalid API key"
+                    ? "Your API key appears to be invalid. Please update it."
+                    : (status.error ?? "Could not verify connection.")}
+                </span>
+              </div>
+            )}
+
             <div className="flex gap-2">
               <input
                 type="password"

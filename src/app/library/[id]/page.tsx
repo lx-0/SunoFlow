@@ -82,7 +82,7 @@ async function fetchDbMeta(songId: string) {
 async function fetchVariations(songId: string) {
   try {
     const session = await auth();
-    if (!session?.user?.id) return { variations: [], variationCount: 0, maxVariations: 5, parentSongId: null };
+    if (!session?.user?.id) return { variations: [], variationCount: 0, maxVariations: 5, parentSongId: null, parentSongTitle: null };
     const dbSong = await prisma.song.findFirst({
       where: { id: songId, userId: session.user.id },
       select: { parentSongId: true },
@@ -91,32 +91,41 @@ async function fetchVariations(songId: string) {
     // Find the root song ID
     const rootId = dbSong?.parentSongId ?? songId;
 
-    const variations = await prisma.song.findMany({
-      where: { parentSongId: rootId },
-      orderBy: { createdAt: "asc" },
-      select: {
-        id: true,
-        title: true,
-        prompt: true,
-        tags: true,
-        audioUrl: true,
-        imageUrl: true,
-        duration: true,
-        lyrics: true,
-        generationStatus: true,
-        isInstrumental: true,
-        createdAt: true,
-      },
-    });
+    const [variations, parentSong] = await Promise.all([
+      prisma.song.findMany({
+        where: { parentSongId: rootId },
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          title: true,
+          prompt: true,
+          tags: true,
+          audioUrl: true,
+          imageUrl: true,
+          duration: true,
+          lyrics: true,
+          generationStatus: true,
+          isInstrumental: true,
+          createdAt: true,
+        },
+      }),
+      dbSong?.parentSongId
+        ? prisma.song.findUnique({
+            where: { id: dbSong.parentSongId },
+            select: { title: true },
+          })
+        : Promise.resolve(null),
+    ]);
 
     return {
       variations,
       variationCount: variations.length,
       maxVariations: 5,
       parentSongId: dbSong?.parentSongId ?? null,
+      parentSongTitle: parentSong?.title ?? null,
     };
   } catch {
-    return { variations: [], variationCount: 0, maxVariations: 5, parentSongId: null };
+    return { variations: [], variationCount: 0, maxVariations: 5, parentSongId: null, parentSongTitle: null };
   }
 }
 
@@ -179,6 +188,7 @@ async function SongDetailContent({ id }: { id: string }) {
       variationCount={variationData.variationCount}
       maxVariations={variationData.maxVariations}
       parentSongId={variationData.parentSongId}
+      parentSongTitle={variationData.parentSongTitle}
     />
   );
 }
