@@ -26,6 +26,8 @@ import {
   ScissorsIcon,
   PaintBrushIcon,
   FilmIcon,
+  PlayIcon,
+  PauseIcon,
 } from "@heroicons/react/24/solid";
 import { HeartIcon as HeartOutlineIcon, QueueListIcon } from "@heroicons/react/24/outline";
 import type { SunoSong } from "@/lib/sunoapi";
@@ -33,7 +35,6 @@ import { getRating, type SongRating } from "@/lib/ratings";
 import { downloadSongFile } from "@/lib/download";
 import { useToast } from "./Toast";
 import { useQueue } from "./QueueContext";
-const WaveformPlayer = dynamic(() => import("./WaveformPlayer").then((m) => m.WaveformPlayer), { ssr: false });
 const ReportModal = dynamic(() => import("./ReportModal").then((m) => m.ReportModal), { ssr: false });
 import { TagInput } from "./TagInput";
 import { SectionEditor } from "./SectionEditor";
@@ -528,7 +529,9 @@ export function SongDetailView({
 }: SongDetailViewProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const { playNext, addToQueue } = useQueue();
+  const { playNext, addToQueue, togglePlay, isPlaying, currentIndex, queue } = useQueue();
+  const currentSong = currentIndex >= 0 ? queue[currentIndex] : null;
+  const isThisSongPlaying = isPlaying && currentSong?.id === song.id;
 
   const [isFavorite, setIsFavorite] = useState(initialFavorite);
   const [favoriteCount, setFavoriteCount] = useState(initialFavoriteCount);
@@ -1049,9 +1052,24 @@ export function SongDetailView({
         <TagInput songId={song.id} initialTags={initialSongTags} />
       </div>
 
-      {/* Waveform player */}
+      {/* Play / pause via global player */}
       {hasAudio ? (
-        <WaveformPlayer audioUrl={song.audioUrl} duration={song.duration} />
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center justify-center">
+          <button
+            onClick={() =>
+              togglePlay({ id: song.id, title: song.title, audioUrl: song.audioUrl!, imageUrl: song.imageUrl ?? null, duration: song.duration ?? null })
+            }
+            aria-label={isThisSongPlaying ? "Pause" : "Play"}
+            className="flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl bg-violet-600 hover:bg-violet-500 text-white shadow-sm transition-all duration-200 active:scale-95 min-h-[44px]"
+          >
+            {isThisSongPlaying ? (
+              <PauseIcon className="w-5 h-5" aria-hidden="true" />
+            ) : (
+              <PlayIcon className="w-5 h-5" aria-hidden="true" />
+            )}
+            {isThisSongPlaying ? "Pause" : "Play"}
+          </button>
+        </div>
       ) : (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 text-center text-sm text-gray-400 dark:text-gray-600">
           No audio available

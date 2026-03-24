@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveUser } from "@/lib/auth-resolver";
 import { prisma } from "@/lib/prisma";
-import { getSongById } from "@/lib/sunoapi/songs";
+import { getTaskStatus } from "@/lib/sunoapi/status";
 import { SunoApiError } from "@/lib/sunoapi";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 
@@ -31,9 +31,9 @@ export async function POST(
     }
 
     const userApiKey = await resolveUserApiKey(userId);
-    let fresh;
+    let taskResult;
     try {
-      fresh = await getSongById(song.sunoJobId, userApiKey);
+      taskResult = await getTaskStatus(song.sunoJobId, userApiKey);
     } catch (err) {
       if (err instanceof SunoApiError) {
         if (err.status === 404) {
@@ -49,9 +49,19 @@ export async function POST(
           );
         }
       }
+      const msg = err instanceof Error ? err.message : "Unknown error";
       return NextResponse.json(
-        { error: "Failed to refresh song from Suno API.", code: "REFRESH_FAILED" },
+        { error: `Failed to refresh song from Suno API: ${msg}`, code: "REFRESH_FAILED" },
         { status: 502 }
+      );
+    }
+
+    // Find the matching clip in the task results
+    const fresh = taskResult.songs.find((s) => s.audioUrl) ?? taskResult.songs[0];
+    if (!fresh) {
+      return NextResponse.json(
+        { error: "No audio data returned from Suno.", code: "NO_AUDIO" },
+        { status: 404 }
       );
     }
 

@@ -18,26 +18,8 @@ function generateCorrelationId(): string {
 // ---------------------------------------------------------------------------
 // API Versioning
 // ---------------------------------------------------------------------------
-/**
- * API routes that remain unversioned (auth callbacks, webhooks, internal).
- * These will NOT receive a 301 redirect to /api/v1/.
- */
-const UNVERSIONED_API_PREFIXES = [
-  "/api/v1/",
-  "/api/auth",
-  "/api/register",
-  "/api/health",
-  "/api/agent-skill",
-  "/api/admin",
-  "/api/error-report",
-  "/api/metrics",
-  "/api/rate-limit",
-  "/api/instagram",
-  "/api/suno",
-  "/api/analytics",
-  "/api/generation-queue",
-  "/api/docs",
-];
+// External consumers use /api/v1/* which is transparently rewritten to /api/*
+// by next.config.mjs (afterFiles rewrite). No middleware redirect needed.
 
 // ---------------------------------------------------------------------------
 // CORS allowed origins — configured via ALLOWED_ORIGINS env var.
@@ -216,20 +198,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // ── API versioning — redirect deprecated /api/* to /api/v1/* ─────────────
-  if (
-    pathname.startsWith("/api/") &&
-    !UNVERSIONED_API_PREFIXES.some((p) => pathname.startsWith(p))
-  ) {
-    const v1Pathname = `/api/v1/${pathname.slice("/api/".length)}`;
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = v1Pathname;
-    // Log for migration tracking (structured so it can be grep'd / aggregated)
-    console.warn(
-      JSON.stringify({ event: "deprecated_api_route", method, path: pathname, redirect: v1Pathname })
-    );
-    return NextResponse.redirect(redirectUrl, 301);
-  }
+  // ── API versioning ──────────────────────────────────────────────────────
+  // External consumers use /api/v1/* which is transparently rewritten to
+  // /api/* by next.config.mjs (afterFiles rewrite).  No redirect needed —
+  // internal app code calls /api/* directly.
 
   // ── IP rate limits (public/unauthenticated pages) ────────────────────────
 
