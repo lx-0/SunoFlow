@@ -1,14 +1,16 @@
 "use client";
 
 import { SessionProvider as NextAuthSessionProvider } from "next-auth/react";
+import dynamic from "next/dynamic";
 import { ThemeProvider } from "./ThemeProvider";
 import { ToastProvider } from "./Toast";
 import { GlobalErrorHandler } from "./GlobalErrorHandler";
 import { QueueProvider } from "./QueueContext";
 import { OnboardingProvider } from "./OnboardingTour";
 import { NotificationProvider, useNotifications } from "./NotificationContext";
-import { ApiKeyWizard } from "./ApiKeyWizard";
-import { Confetti } from "./Confetti";
+// Lazy-load heavy modals that are only shown on demand
+const ApiKeyWizard = dynamic(() => import("./ApiKeyWizard").then((m) => m.ApiKeyWizard), { ssr: false });
+const Confetti = dynamic(() => import("./Confetti").then((m) => m.Confetti), { ssr: false });
 
 function ConfettiBridge() {
   const { showConfetti, dismissConfetti } = useNotifications();

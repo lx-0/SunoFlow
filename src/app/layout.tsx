@@ -1,9 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import dynamic from "next/dynamic";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 import { SessionProvider } from "@/components/SessionProvider";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
-import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
+// Lazy-load the PWA install prompt — only shown when install conditions are met
+const PwaInstallPrompt = dynamic(
+  () => import("@/components/PwaInstallPrompt").then((m) => m.PwaInstallPrompt),
+  { ssr: false }
+);
 import "./globals.css";
 
 const geistSans = localFont({

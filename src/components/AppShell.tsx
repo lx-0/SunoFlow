@@ -31,7 +31,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useTheme } from "./ThemeProvider";
 import dynamic from "next/dynamic";
-import { GlobalPlayer } from "./GlobalPlayer";
+const GlobalPlayer = dynamic(() => import("./GlobalPlayer").then((m) => m.GlobalPlayer), { ssr: false });
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 const KeyboardShortcutsModal = dynamic(() => import("./KeyboardShortcutsModal").then((m) => m.KeyboardShortcutsModal), { ssr: false });
 import { NotificationBell } from "./NotificationBell";

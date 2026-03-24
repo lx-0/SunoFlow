@@ -37,10 +37,12 @@ import type { Song } from "@prisma/client";
 import type { SongRating } from "@/lib/ratings";
 import { downloadSongFile } from "@/lib/download";
 import { exportAsZip, exportAsM3U, type ExportableSong } from "@/lib/export";
+import dynamic from "next/dynamic";
 import { useToast } from "./Toast";
 import { useQueue, type QueueSong } from "./QueueContext";
 import { TagChip } from "./TagInput";
-import { SunoImportModal } from "./SunoImportModal";
+// Lazy-load the import modal — only rendered when user opens it
+const SunoImportModal = dynamic(() => import("./SunoImportModal").then((m) => m.SunoImportModal), { ssr: false });
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

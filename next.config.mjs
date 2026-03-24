@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  // Enable gzip/brotli compression for all responses
+  compress: true,
   experimental: {
     serverComponentsExternalPackages: ["@prisma/client", "bcryptjs"],
   },
