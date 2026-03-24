@@ -4,6 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 export const googleEnabled = Boolean(
   process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET
@@ -36,15 +37,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
+        const email = credentials.email as string;
+
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
+          where: { email },
         });
 
         if (!user || !user.passwordHash) {
+          logger.warn({ email }, "auth: credentials sign-in failed — user not found");
           return null;
         }
 
         if (user.isDisabled) {
+          logger.warn({ userId: user.id }, "auth: credentials sign-in rejected — account disabled");
           return null;
         }
 
@@ -54,6 +59,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         );
 
         if (!passwordMatch) {
+          logger.warn({ userId: user.id }, "auth: credentials sign-in failed — wrong password");
           return null;
         }
 
@@ -61,6 +67,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           where: { id: user.id },
           data: { lastLoginAt: new Date() },
         });
+
+        logger.info({ userId: user.id, provider: "credentials" }, "auth: sign-in success");
 
         return {
           id: user.id,
@@ -80,6 +88,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             where: { id: user.id as string },
             data: { lastLoginAt: new Date() },
           });
+          logger.info({ userId: user.id, provider: account?.provider ?? "oauth" }, "auth: sign-in success");
         }
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id as string },

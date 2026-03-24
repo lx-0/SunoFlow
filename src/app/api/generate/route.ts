@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { resolveUser } from "@/lib/auth-resolver";
 import { generateSong, SunoApiError } from "@/lib/sunoapi";
 import { mockSongs } from "@/lib/sunoapi/mock";
@@ -6,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { acquireRateLimitSlot } from "@/lib/rate-limit";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 import { logServerError } from "@/lib/error-logger";
+import { logger } from "@/lib/logger";
 import { invalidateByPrefix } from "@/lib/cache";
 import { SUNOAPI_KEY } from "@/lib/env";
 import { recordCreditUsage, shouldNotifyLowCredits, createLowCreditNotification, getMonthlyCreditUsage, CREDIT_COSTS } from "@/lib/credits";
@@ -113,17 +115,24 @@ export async function POST(request: Request) {
       try {
         const genStartMs = Date.now();
         recordGenerationStart();
-        const result = await generateSong(
-          generationParams.prompt,
-          {
-            title: generationParams.title,
-            style: generationParams.style,
-            instrumental: generationParams.instrumental,
-            personaId: personaId || undefined,
-          },
-          userApiKey
+        logger.info({ userId, title: generationParams.title, instrumental: generationParams.instrumental }, "generation: started");
+
+        const result = await Sentry.startSpan(
+          { name: "suno.generateSong", op: "http.client", attributes: { "generation.instrumental": generationParams.instrumental } },
+          () => generateSong(
+            generationParams.prompt,
+            {
+              title: generationParams.title,
+              style: generationParams.style,
+              instrumental: generationParams.instrumental,
+              personaId: personaId || undefined,
+            },
+            userApiKey
+          )
         );
-        recordGenerationEnd(Date.now() - genStartMs, true);
+        const genMs = Date.now() - genStartMs;
+        recordGenerationEnd(genMs, true);
+        logger.info({ userId, taskId: result.taskId, durationMs: genMs }, "generation: api call succeeded");
 
         const song = await prisma.song.create({
           data: {

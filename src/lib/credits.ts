@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 /** Estimated credit cost per action type */
 export const CREDIT_COSTS: Record<string, number> = {
@@ -25,7 +26,7 @@ export async function recordCreditUsage(
   opts?: { songId?: string; creditCost?: number; description?: string }
 ) {
   const cost = opts?.creditCost ?? CREDIT_COSTS[action] ?? 0;
-  return prisma.creditUsage.create({
+  const record = await prisma.creditUsage.create({
     data: {
       userId,
       action,
@@ -34,6 +35,11 @@ export async function recordCreditUsage(
       description: opts?.description,
     },
   });
+  logger.info(
+    { userId, action, creditCost: cost, songId: opts?.songId ?? null },
+    "credits: usage recorded"
+  );
+  return record;
 }
 
 /**
