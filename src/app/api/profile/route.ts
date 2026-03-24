@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { resolveUser } from "@/lib/auth-resolver";
 import { prisma } from "@/lib/prisma";
+import { stripHtml } from "@/lib/sanitize";
 
 export async function GET(request: Request) {
   const { userId, error: authError } = await resolveUser(request);
@@ -37,7 +38,7 @@ export async function PATCH(request: Request) {
     if (name.length > 100) {
       return NextResponse.json({ error: "Name must be 100 characters or less", code: "VALIDATION_ERROR" }, { status: 400 });
     }
-    data.name = name.trim();
+    data.name = stripHtml(name).trim();
   }
 
   if (bio !== undefined) {
@@ -47,7 +48,7 @@ export async function PATCH(request: Request) {
     if (typeof bio === "string" && bio.length > 500) {
       return NextResponse.json({ error: "Bio must be 500 characters or less", code: "VALIDATION_ERROR" }, { status: 400 });
     }
-    data.bio = bio ? bio.trim() : null;
+    data.bio = bio ? stripHtml(bio).trim() : null;
   }
 
   if (avatarUrl !== undefined) {

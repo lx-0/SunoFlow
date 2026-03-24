@@ -68,7 +68,13 @@ const MAX_BODY_BYTES = 1 * 1024 * 1024;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const ipHits = new Map<string, Map<string, number[]>>();
 
-function checkIpRateLimit(ip: string, bucket: string, max: number): boolean {
+interface IpRateLimitResult {
+  allowed: boolean;
+  remaining: number;
+  limit: number;
+}
+
+function checkIpRateLimit(ip: string, bucket: string, max: number): IpRateLimitResult {
   const now = Date.now();
   const windowStart = now - RATE_LIMIT_WINDOW_MS;
 
@@ -94,10 +100,11 @@ function checkIpRateLimit(ip: string, bucket: string, max: number): boolean {
     });
   }
 
-  return hits.length <= max;
+  const allowed = hits.length <= max;
+  return { allowed, remaining: Math.max(0, max - hits.length), limit: max };
 }
 
-function checkPublicRateLimit(ip: string): boolean {
+function checkPublicRateLimit(ip: string): IpRateLimitResult {
   return checkIpRateLimit(ip, "public", 30);
 }
 
@@ -126,6 +133,8 @@ interface UserRateLimitResult {
   allowed: boolean;
   /** Seconds to wait before the next request is allowed (only set when !allowed). */
   retryAfterSec: number;
+  remaining: number;
+  limit: number;
 }
 
 function checkUserRateLimit(
@@ -148,7 +157,7 @@ function checkUserRateLimit(
     // Retry after oldest hit rolls out of the window
     const oldestHit = hits[0];
     const retryAfterMs = oldestHit + USER_RATE_LIMIT_WINDOW_MS - now;
-    return { allowed: false, retryAfterSec: Math.max(1, Math.ceil(retryAfterMs / 1000)) };
+    return { allowed: false, retryAfterSec: Math.max(1, Math.ceil(retryAfterMs / 1000)), remaining: 0, limit: max };
   }
 
   hits.push(now);
@@ -166,7 +175,7 @@ function checkUserRateLimit(
     });
   }
 
-  return { allowed: true, retryAfterSec: 0 };
+  return { allowed: true, retryAfterSec: 0, remaining: max - hits.length, limit: max };
 }
 
 // ---------------------------------------------------------------------------
@@ -226,37 +235,61 @@ export async function middleware(request: NextRequest) {
 
   // Rate limit public share pages
   if (pathname.startsWith("/s/")) {
-    if (!checkPublicRateLimit(ip)) {
-      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    const { allowed, remaining, limit } = checkPublicRateLimit(ip);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429, headers: { "X-RateLimit-Limit": String(limit), "X-RateLimit-Remaining": "0" } }
+      );
     }
+    void remaining; // available for future header injection on success responses
   }
 
   // Rate limit public playlist pages: 100 req/min per IP
   if (pathname.startsWith("/p/")) {
-    if (!checkIpRateLimit(ip, "playlist", 100)) {
-      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    const { allowed, remaining, limit } = checkIpRateLimit(ip, "playlist", 100);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429, headers: { "X-RateLimit-Limit": String(limit), "X-RateLimit-Remaining": "0" } }
+      );
     }
+    void remaining;
   }
 
   // Rate limit embed player pages: 200 req/min per IP
   if (pathname.startsWith("/embed/")) {
-    if (!checkIpRateLimit(ip, "embed", 200)) {
-      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    const { allowed, remaining, limit } = checkIpRateLimit(ip, "embed", 200);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429, headers: { "X-RateLimit-Limit": String(limit), "X-RateLimit-Remaining": "0" } }
+      );
     }
+    void remaining;
   }
 
   // Rate limit auth endpoints: 5 requests per minute per IP (brute-force protection)
+  // Covers login (/api/auth/signin, /api/auth/callback/credentials), registration,
+  // and password-reset flows.
   if (
     pathname === "/api/register" ||
     pathname === "/api/auth/forgot-password" ||
-    pathname === "/api/auth/reset-password"
+    pathname === "/api/auth/reset-password" ||
+    pathname === "/api/auth/signin" ||
+    pathname === "/api/auth/callback/credentials"
   ) {
-    if (!checkIpRateLimit(ip, "auth", 5)) {
+    const { allowed, limit } = checkIpRateLimit(ip, "auth", 5);
+    if (!allowed) {
       return NextResponse.json(
         { error: "Too many requests. Please try again later.", code: "RATE_LIMITED" },
         {
           status: 429,
-          headers: { "Retry-After": "60" },
+          headers: {
+            "Retry-After": "60",
+            "X-RateLimit-Limit": String(limit),
+            "X-RateLimit-Remaining": "0",
+          },
         }
       );
     }
@@ -296,13 +329,21 @@ export async function middleware(request: NextRequest) {
   if (userId && pathname.startsWith("/api/")) {
     // Song generation: 10 req/min (expensive upstream operation)
     if (pathname === "/api/generate" && method === "POST") {
-      const { allowed, retryAfterSec } = checkUserRateLimit(userId, "generate", 10);
+      const { allowed, retryAfterSec, remaining, limit } = checkUserRateLimit(userId, "generate", 10);
       if (!allowed) {
         return NextResponse.json(
           { error: "Too many generation requests. Please wait before trying again.", code: "RATE_LIMITED" },
-          { status: 429, headers: { "Retry-After": String(retryAfterSec) } }
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(retryAfterSec),
+              "X-RateLimit-Limit": String(limit),
+              "X-RateLimit-Remaining": "0",
+            },
+          }
         );
       }
+      void remaining;
     }
 
     // Auth mutation endpoints: 5 req/min per user
@@ -311,23 +352,38 @@ export async function middleware(request: NextRequest) {
       pathname === "/api/auth/forgot-password" ||
       pathname === "/api/auth/reset-password"
     ) {
-      const { allowed, retryAfterSec } = checkUserRateLimit(userId, "auth_user", 5);
+      const { allowed, retryAfterSec, limit } = checkUserRateLimit(userId, "auth_user", 5);
       if (!allowed) {
         return NextResponse.json(
           { error: "Too many requests. Please wait before trying again.", code: "RATE_LIMITED" },
-          { status: 429, headers: { "Retry-After": String(retryAfterSec) } }
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(retryAfterSec),
+              "X-RateLimit-Limit": String(limit),
+              "X-RateLimit-Remaining": "0",
+            },
+          }
         );
       }
     }
 
     // General API: 100 req/min per user (catch-all, applied last)
-    const { allowed, retryAfterSec } = checkUserRateLimit(userId, "api", 100);
+    const { allowed, retryAfterSec, remaining, limit } = checkUserRateLimit(userId, "api", 100);
     if (!allowed) {
       return NextResponse.json(
         { error: "Too many requests. Please slow down.", code: "RATE_LIMITED" },
-        { status: 429, headers: { "Retry-After": String(retryAfterSec) } }
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(retryAfterSec),
+            "X-RateLimit-Limit": String(limit),
+            "X-RateLimit-Remaining": "0",
+          },
+        }
       );
     }
+    void remaining;
   }
 
   // ── CORS — OPTIONS preflight ─────────────────────────────────────────────

@@ -10,6 +10,7 @@ import { invalidateByPrefix } from "@/lib/cache";
 import { SUNOAPI_KEY } from "@/lib/env";
 import { recordCreditUsage, shouldNotifyLowCredits, createLowCreditNotification, getMonthlyCreditUsage, CREDIT_COSTS } from "@/lib/credits";
 import { badRequest, rateLimited, internalError, ErrorCode } from "@/lib/api-error";
+import { stripHtml } from "@/lib/sanitize";
 import { recordGenerationStart, recordGenerationEnd } from "@/lib/metrics";
 
 /** Map API errors to user-friendly messages */
@@ -70,9 +71,9 @@ export async function POST(request: Request) {
     }
 
     const generationParams = {
-      prompt: prompt.trim(),
-      title: title?.trim() || undefined,
-      style: tags?.trim() || undefined,
+      prompt: stripHtml(prompt).trim(),
+      title: title ? stripHtml(title).trim() || undefined : undefined,
+      style: tags ? stripHtml(tags).trim() || undefined : undefined,
       instrumental: Boolean(makeInstrumental),
     };
 
@@ -87,9 +88,9 @@ export async function POST(request: Request) {
       const song = await prisma.song.create({
         data: {
           userId,
-          title: mock.title || title?.trim() || null,
-          prompt: prompt.trim(),
-          tags: mock.tags || tags?.trim() || null,
+          title: mock.title || generationParams.title || null,
+          prompt: generationParams.prompt,
+          tags: mock.tags || generationParams.style || null,
           audioUrl: mock.audioUrl || null,
           imageUrl: mock.imageUrl || null,
           duration: mock.duration ?? null,
@@ -120,9 +121,9 @@ export async function POST(request: Request) {
           data: {
             userId,
             sunoJobId: result.taskId,
-            title: title?.trim() || null,
-            prompt: prompt.trim(),
-            tags: tags?.trim() || null,
+            title: generationParams.title || null,
+            prompt: generationParams.prompt,
+            tags: generationParams.style || null,
             isInstrumental: Boolean(makeInstrumental),
             generationStatus: "pending",
           },
@@ -142,9 +143,9 @@ export async function POST(request: Request) {
         const song = await prisma.song.create({
           data: {
             userId,
-            title: title?.trim() || null,
-            prompt: prompt.trim(),
-            tags: tags?.trim() || null,
+            title: generationParams.title || null,
+            prompt: generationParams.prompt,
+            tags: generationParams.style || null,
             isInstrumental: Boolean(makeInstrumental),
             generationStatus: "failed",
             errorMessage: errorMsg,
@@ -172,7 +173,7 @@ export async function POST(request: Request) {
     await recordCreditUsage(userId, "generate", {
       songId,
       creditCost: CREDIT_COSTS.generate,
-      description: `Song generation: ${title?.trim() || "Untitled"}`,
+      description: `Song generation: ${generationParams.title || "Untitled"}`,
     });
 
     // Check if user should be warned about low credits

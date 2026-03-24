@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { resolveUser } from "@/lib/auth-resolver";
 import { prisma } from "@/lib/prisma";
+import { stripHtml } from "@/lib/sanitize";
 import { CacheControl, invalidateByPrefix, cacheKey } from "@/lib/cache";
 
 const MAX_PLAYLISTS = 50;
@@ -71,8 +72,8 @@ export async function POST(request: Request) {
 
     const playlist = await prisma.playlist.create({
       data: {
-        name: name.trim(),
-        description: description?.trim() || null,
+        name: stripHtml(name).trim(),
+        description: description ? stripHtml(description).trim() || null : null,
         userId: userId,
       },
       include: { _count: { select: { songs: true } } },

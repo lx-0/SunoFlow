@@ -7,6 +7,19 @@ import { cached, cacheKey, CacheTTL } from "@/lib/cache";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sunoflow.app";
 
+/**
+ * Safely serialize data for use in a <script type="application/ld+json"> tag.
+ * JSON.stringify alone does not escape </script>, which allows an attacker to
+ * break out of the script tag via a crafted title or description.
+ * Replacing <, >, and & with their Unicode escapes is idiomatic JSON-LD practice.
+ */
+function safeJsonLd(data: unknown): string {
+  return JSON.stringify(data)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+}
+
 /** ISR: revalidate public playlist pages every 60 seconds */
 export const revalidate = 60;
 
@@ -133,7 +146,7 @@ export default async function PublicPlaylistPage({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
       />
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white flex items-center justify-center p-4">
         <PublicPlaylistView

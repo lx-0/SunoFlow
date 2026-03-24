@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendVerificationEmail } from "@/lib/email";
+import { stripHtml } from "@/lib/sanitize";
 
 export async function POST(request: Request) {
   try {
@@ -48,8 +49,9 @@ export async function POST(request: Request) {
     const passwordHash = await bcrypt.hash(password, 12);
     const verificationToken = crypto.randomUUID();
 
+    const sanitizedName = name ? stripHtml(name).trim() || null : null;
     const user = await prisma.user.create({
-      data: { name, email, passwordHash, verificationToken },
+      data: { name: sanitizedName, email, passwordHash, verificationToken },
     });
 
     await sendVerificationEmail(email, verificationToken);
