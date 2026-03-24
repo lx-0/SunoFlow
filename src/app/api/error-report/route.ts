@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 const MAX_MESSAGE_LENGTH = 500;
 const MAX_STACK_LENGTH = 2048;
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "url is required", code: "VALIDATION_ERROR" }, { status: 400 });
   }
   if (!source || typeof source !== "string" || !VALID_SOURCES.includes(source)) {
-    return NextResponse.json({ error: "source must be one of: ", code: "VALIDATION_ERROR" + VALID_SOURCES.join(", ") }, { status: 400 });
+    return NextResponse.json({ error: "source must be one of: " + VALID_SOURCES.join(", "), code: "VALIDATION_ERROR" }, { status: 400 });
   }
 
   try {
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ status: "ok" });
   } catch (err) {
-    console.error("[error-report] Failed to store error report:", err);
+    logger.error({ err }, "error-report: failed to store error report");
     return NextResponse.json({ error: "Failed to store report", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

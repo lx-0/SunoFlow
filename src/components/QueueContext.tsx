@@ -128,6 +128,10 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     const onWaiting = () => setIsBuffering(true);
     const onPlaying = () => setIsBuffering(false);
     const onCanPlay = () => setIsBuffering(false);
+    const onError = () => {
+      setIsBuffering(false);
+      setIsPlaying(false);
+    };
     const onEnded = () => {
       const q = queueRef.current;
       const idx = currentIndexRef.current;
@@ -170,6 +174,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     audio.addEventListener("waiting", onWaiting);
     audio.addEventListener("playing", onPlaying);
     audio.addEventListener("canplay", onCanPlay);
+    audio.addEventListener("error", onError);
 
     return () => {
       audio.removeEventListener("play", onPlay);
@@ -180,6 +185,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener("waiting", onWaiting);
       audio.removeEventListener("playing", onPlaying);
       audio.removeEventListener("canplay", onCanPlay);
+      audio.removeEventListener("error", onError);
       audio.pause();
     };
   }, []);
