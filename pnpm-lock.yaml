@@ -20,6 +20,9 @@ importers:
       '@sentry/nextjs':
         specifier: ^10.45.0
         version: 10.45.0(@opentelemetry/context-async-hooks@2.6.0(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.6.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(next@14.2.35(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(webpack@5.105.4)
+      '@stripe/stripe-js':
+        specifier: ^8.11.0
+        version: 8.11.0
       '@tanstack/react-virtual':
         specifier: ^3.13.23
         version: 3.13.23(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -62,6 +65,9 @@ importers:
       recharts:
         specifier: ^3.8.0
         version: 3.8.0(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react-is@16.13.1)(react@18.3.1)(redux@5.0.1)
+      stripe:
+        specifier: ^20.4.1
+        version: 20.4.1(@types/node@20.19.37)
       swagger-ui-react:
         specifier: ^5.32.1
         version: 5.32.1(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1354,6 +1360,10 @@ packages:
 
   '@standard-schema/utils@0.3.0':
     resolution: {integrity: sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==}
+
+  '@stripe/stripe-js@8.11.0':
+    resolution: {integrity: sha512-3fVF4z3efsgwgyj64nFK+6F4/vMw0mUXD2TBbOfftJtKVNx4JNv3CSfe1fY4DCtCk0JFp8/YPNcRkzgV0HJ8cg==}
+    engines: {node: '>=12.16'}
 
   '@swagger-api/apidom-ast@1.8.0':
     resolution: {integrity: sha512-cpYLFeXusH9kN1ekaTbb9rG8HYFYtqZeiAAB4WaA1YmMkzf5bHSKqsrMFVKwupwdKTxxkmmlsLqGjy1HOIxFlQ==}
@@ -4221,6 +4231,15 @@ packages:
   strip-literal@3.1.0:
     resolution: {integrity: sha512-8r3mkIM/2+PpjHoOtiAW8Rg3jJLHaV7xPwG+YRGrv6FP0wwk/toTpATxWYOW0BKdWwl82VT2tFYi5DlROa0Mxg==}
 
+  stripe@20.4.1:
+    resolution: {integrity: sha512-axCguHItc8Sxt0HC6aSkdVRPffjYPV7EQqZRb2GkIa8FzWDycE7nHJM19C6xAIynH1Qp1/BHiopSi96jGBxT0w==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      '@types/node': '>=16'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+
   styled-jsx@5.1.1:
     resolution: {integrity: sha512-pW7uC1l4mBZ8ugbiZrcIsiIvVx1UmTfw7UkC3Um2tmfUq9Bhk8IiyEIPl6F8agHgjzku6j0xQEZbfA5uSgSaCw==}
     engines: {node: '>= 12.0.0'}
@@ -5849,6 +5868,8 @@ snapshots:
   '@standard-schema/spec@1.1.0': {}
 
   '@standard-schema/utils@0.3.0': {}
+
+  '@stripe/stripe-js@8.11.0': {}
 
   '@swagger-api/apidom-ast@1.8.0':
     dependencies:
@@ -9264,6 +9285,10 @@ snapshots:
   strip-literal@3.1.0:
     dependencies:
       js-tokens: 9.0.1
+
+  stripe@20.4.1(@types/node@20.19.37):
+    optionalDependencies:
+      '@types/node': 20.19.37
 
   styled-jsx@5.1.1(@babel/core@7.29.0)(react@18.3.1):
     dependencies:

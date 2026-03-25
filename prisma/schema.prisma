@@ -81,6 +81,8 @@ model User {
   reactions            SongReaction[]
   generationFeedbacks  GenerationFeedback[]
   generationPresets    GenerationPreset[]
+  subscription         Subscription?
+  paymentEvents        PaymentEvent[]
 }
 
 model Song {
@@ -494,4 +496,71 @@ model GenerationPreset {
 
   @@index([userId])
   @@index([userId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Stripe billing models
+// ---------------------------------------------------------------------------
+
+enum SubscriptionTier {
+  free
+  starter
+  pro
+  studio
+}
+
+enum SubscriptionStatus {
+  active
+  trialing
+  past_due
+  canceled
+  unpaid
+  incomplete
+  incomplete_expired
+  paused
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  stripeCustomerId     String             @unique
+  stripeSubscriptionId String             @unique
+  stripePriceId        String
+  tier                 SubscriptionTier   @default(free)
+  status               SubscriptionStatus @default(active)
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  cancelAtPeriodEnd    Boolean            @default(false)
+  canceledAt           DateTime?
+  trialStart           DateTime?
+  trialEnd             DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+  @@index([status])
+}
+
+model PaymentEvent {
+  id               String   @id @default(cuid())
+  userId           String?
+  stripeEventId    String   @unique
+  type             String
+  amount           Int?     // in cents
+  currency         String?
+  status           String
+  stripeCustomerId String?
+  metadata         Json?
+  processedAt      DateTime @default(now())
+  createdAt        DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([stripeEventId])
+  @@index([type, processedAt])
+  @@index([stripeCustomerId])
 }
