@@ -33,6 +33,7 @@ import {
   HandThumbUpIcon,
   HandThumbDownIcon,
   CodeBracketIcon,
+  ArrowsRightLeftIcon,
 } from "@heroicons/react/24/solid";
 import { HeartIcon as HeartOutlineIcon, QueueListIcon, HandThumbUpIcon as HandThumbUpOutlineIcon, HandThumbDownIcon as HandThumbDownOutlineIcon } from "@heroicons/react/24/outline";
 import type { SunoSong } from "@/lib/sunoapi";
@@ -1593,16 +1594,26 @@ export function SongDetailView({
                   </div>
                 </Link>
                 {v.id !== song.id && v.generationStatus === "ready" && (
-                  <button
-                    onClick={() => setCompareVariation(compareVariation?.id === v.id ? null : v)}
-                    className={`flex-shrink-0 px-2 py-1 text-xs font-medium rounded-lg transition-colors ${
-                      compareVariation?.id === v.id
-                        ? "bg-violet-600 text-white"
-                        : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-violet-100 dark:hover:bg-violet-900/30"
-                    }`}
-                  >
-                    Compare
-                  </button>
+                  <div className="flex-shrink-0 flex flex-col gap-1">
+                    <Link
+                      href={`/compare?a=${song.id}&b=${v.id}`}
+                      className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors"
+                      title="Full compare page"
+                    >
+                      <ArrowsRightLeftIcon className="w-3 h-3" />
+                      Compare
+                    </Link>
+                    <button
+                      onClick={() => setCompareVariation(compareVariation?.id === v.id ? null : v)}
+                      className={`px-2 py-1 text-xs font-medium rounded-lg transition-colors ${
+                        compareVariation?.id === v.id
+                          ? "bg-indigo-600 text-white"
+                          : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                      }`}
+                    >
+                      {compareVariation?.id === v.id ? "Hide" : "Quick"}
+                    </button>
+                  </div>
                 )}
               </div>
             ))}

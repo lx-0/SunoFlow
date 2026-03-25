@@ -24,6 +24,7 @@ import {
   ArrowUturnLeftIcon,
   CloudArrowDownIcon,
   ForwardIcon,
+  ArrowsRightLeftIcon,
 } from "@heroicons/react/24/solid";
 import {
   HeartIcon as HeartOutlineIcon,
@@ -2525,6 +2526,21 @@ export function LibraryView({
                 : "Download"}
             </span>
           </button>
+
+          {/* Compare (only when exactly 2 songs selected) */}
+          {selectedSongIds.size === 2 && (() => {
+            const [idA, idB] = Array.from(selectedSongIds);
+            return (
+              <button
+                onClick={() => router.push(`/compare?a=${idA}&b=${idB}`)}
+                aria-label="Compare selected songs"
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 transition-colors min-h-[44px]"
+              >
+                <ArrowsRightLeftIcon className="w-4 h-4" />
+                <span className="hidden sm:inline">Compare</span>
+              </button>
+            );
+          })()}
 
           {isArchiveView ? (
             <>
