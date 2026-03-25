@@ -6,6 +6,7 @@ import { ThemeProvider } from "./ThemeProvider";
 import { ToastProvider } from "./Toast";
 import { GlobalErrorHandler } from "./GlobalErrorHandler";
 import { QueueProvider } from "./QueueContext";
+import { AudioEQProvider } from "./AudioEQContext";
 import { OnboardingProvider } from "./OnboardingTour";
 import { NotificationProvider, useNotifications } from "./NotificationContext";
 // Lazy-load heavy modals that are only shown on demand
@@ -24,6 +25,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       <ThemeProvider>
         <ToastProvider>
           <QueueProvider>
+            <AudioEQProvider>
             <NotificationProvider>
               <GlobalErrorHandler />
               <OnboardingProvider>
@@ -32,6 +34,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
                 <ConfettiBridge />
               </OnboardingProvider>
             </NotificationProvider>
+            </AudioEQProvider>
           </QueueProvider>
         </ToastProvider>
       </ThemeProvider>

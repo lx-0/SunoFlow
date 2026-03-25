@@ -19,11 +19,13 @@ import {
   DocumentTextIcon,
   HeartIcon as HeartOutlineIcon,
   FaceSmileIcon,
+  AdjustmentsHorizontalIcon,
 } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import { useQueue } from "./QueueContext";
 import { UpNextPanel } from "./UpNextPanel";
 import { LyricsPanel } from "./LyricsPanel";
+import { EqualizerPanel } from "./EqualizerPanel";
 import { PlayerWaveform } from "./PlayerWaveform";
 import { EmojiReactionPicker } from "./EmojiReactionPicker";
 import { ReactionTimeline, ReactionItem } from "./ReactionTimeline";
@@ -64,6 +66,7 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
 
   const [showUpNext, setShowUpNext] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
+  const [showEQ, setShowEQ] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [reactions, setReactions] = useState<ReactionItem[]>([]);
@@ -249,6 +252,13 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
       {showUpNext && (
         <div className="max-w-3xl mx-auto md:mx-0 mb-1">
           <UpNextPanel onClose={() => setShowUpNext(false)} />
+        </div>
+      )}
+
+      {/* Equalizer panel */}
+      {showEQ && (
+        <div className="max-w-3xl mx-auto md:mx-0 mb-1">
+          <EqualizerPanel onClose={() => setShowEQ(false)} />
         </div>
       )}
 
@@ -480,6 +490,20 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
                 <DocumentTextIcon className="w-5 h-5" />
               </button>
             )}
+
+            {/* EQ toggle */}
+            <button
+              onClick={() => setShowEQ((v) => !v)}
+              aria-label={showEQ ? "Hide equalizer" : "Show equalizer"}
+              aria-expanded={showEQ}
+              className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-colors ${
+                showEQ
+                  ? "text-violet-400"
+                  : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              <AdjustmentsHorizontalIcon className="w-5 h-5" />
+            </button>
 
             {/* Up Next toggle */}
             <button

@@ -64,6 +64,8 @@ interface QueueActions {
   clearQueue: () => void;
   setVolume: (volume: number) => void;
   toggleMute: () => void;
+  /** Returns the underlying HTMLAudioElement (for Web Audio API integration) */
+  getAudioElement: () => HTMLAudioElement | null;
 }
 
 type QueueContextValue = QueueState & QueueActions;
@@ -514,6 +516,8 @@ export function QueueProvider({ children }: { children: ReactNode }) {
 
   // ─── Current song helper ──────────────────────────────────────────────────
 
+  const getAudioElement = useCallback(() => audioRef.current, []);
+
   const value: QueueContextValue = {
     queue,
     currentIndex,
@@ -540,6 +544,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     clearQueue,
     setVolume,
     toggleMute,
+    getAudioElement,
   };
 
   return (
