@@ -109,6 +109,7 @@ model Song {
   generationStatus String   @default("pending")
   errorMessage     String?
   pollCount        Int      @default(0)
+  tempo            Int?
   isFavorite       Boolean  @default(false)
   isPublic         Boolean  @default(false)
   isHidden         Boolean  @default(false)
@@ -146,6 +147,7 @@ model Song {
   @@index([userId, generationStatus])
   @@index([userId, rating])
   @@index([userId, updatedAt])
+  @@index([userId, tempo])
   @@index([isPublic, generationStatus, isHidden])
   @@index([isPublic, createdAt])
   @@index([isPublic, playCount])

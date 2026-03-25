@@ -34,6 +34,11 @@ export async function GET(request: NextRequest) {
     const smartFilter = params.get("smartFilter") || "";
     const includeVariations = params.get("includeVariations") === "true";
     const showArchived = params.get("archived") === "true";
+    // Advanced filters: genre, mood (tag-based ILIKE), tempo range
+    const genreParam = params.get("genre") || "";
+    const moodParam = params.get("mood") || "";
+    const tempoMinParam = parseInt(params.get("tempoMin") || "", 10);
+    const tempoMaxParam = parseInt(params.get("tempoMax") || "", 10);
 
     // Mark stale pending songs as failed (fire-and-forget, don't block the response)
     // A song is stale if it's been pending for more than 15 minutes (well beyond 60 poll × 4s = 240s max)
@@ -130,6 +135,28 @@ export async function GET(request: NextRequest) {
     // Tag filter
     if (tagId) {
       where.songTags = { some: { tagId } };
+    }
+
+    // Genre filter (multi-value, ILIKE on tags field)
+    const genres = genreParam ? genreParam.split(",").map((g) => g.trim()).filter(Boolean) : [];
+    if (genres.length > 0) {
+      const genreConditions = genres.map((g) => ({ tags: { contains: g, mode: "insensitive" as const } }));
+      where.AND = [...((where.AND as Prisma.SongWhereInput[]) ?? []), { OR: genreConditions }];
+    }
+
+    // Mood filter (multi-value, ILIKE on tags field)
+    const moods = moodParam ? moodParam.split(",").map((m) => m.trim()).filter(Boolean) : [];
+    if (moods.length > 0) {
+      const moodConditions = moods.map((m) => ({ tags: { contains: m, mode: "insensitive" as const } }));
+      where.AND = [...((where.AND as Prisma.SongWhereInput[]) ?? []), { OR: moodConditions }];
+    }
+
+    // Tempo range filter
+    if (!isNaN(tempoMinParam) && tempoMinParam > 0 || !isNaN(tempoMaxParam) && tempoMaxParam > 0) {
+      const tempoFilter: Prisma.IntNullableFilter = {};
+      if (!isNaN(tempoMinParam) && tempoMinParam > 0) tempoFilter.gte = tempoMinParam;
+      if (!isNaN(tempoMaxParam) && tempoMaxParam > 0) tempoFilter.lte = tempoMaxParam;
+      where.tempo = tempoFilter;
     }
 
     // Smart filters

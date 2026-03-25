@@ -846,6 +846,21 @@ const RATING_OPTIONS = [
   { label: "5★", value: "5" },
 ] as const;
 
+const GENRE_OPTIONS = [
+  "Pop", "Rock", "Hip-Hop", "Electronic", "Jazz", "Classical", "Country",
+  "R&B", "Metal", "Folk", "Blues", "Reggae", "Indie", "Ambient", "EDM",
+  "Soul", "Funk", "Latin", "Punk", "Alternative",
+];
+
+const MOOD_OPTIONS = [
+  "Happy", "Sad", "Energetic", "Calm", "Romantic", "Dark", "Upbeat",
+  "Chill", "Melancholic", "Aggressive", "Dreamy", "Nostalgic", "Epic",
+  "Peaceful", "Intense",
+];
+
+const TEMPO_MIN = 60;
+const TEMPO_MAX = 200;
+
 // ─── useDebounce ─────────────────────────────────────────────────────────────
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -984,6 +999,17 @@ export function LibraryView({
   const [sortBy, setSortBy] = useState(searchParams.get("sortBy") ?? "newest");
   const [tagFilter, setTagFilter] = useState(searchParams.get("tagId") ?? "");
   const [smartFilter, setSmartFilter] = useState(searchParams.get("smartFilter") ?? "");
+  // Advanced filters
+  const [genreFilter, setGenreFilter] = useState<string[]>(() => {
+    const p = searchParams.get("genre");
+    return p ? p.split(",").filter(Boolean) : [];
+  });
+  const [moodFilter, setMoodFilter] = useState<string[]>(() => {
+    const p = searchParams.get("mood");
+    return p ? p.split(",").filter(Boolean) : [];
+  });
+  const [tempoMin, setTempoMin] = useState(searchParams.get("tempoMin") ?? "");
+  const [tempoMax, setTempoMax] = useState(searchParams.get("tempoMax") ?? "");
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">(() => {
     if (typeof window === "undefined") return "list";
@@ -1093,7 +1119,7 @@ export function LibraryView({
   }, []);
 
   // ─── Sync filters → URL params ───────────────────────────────────────────
-  const hasAnyFilter = !!(debouncedSearch || statusFilter || ratingFilter || dateFrom || dateTo || tagFilter || smartFilter || sortBy !== "newest");
+  const hasAnyFilter = !!(debouncedSearch || statusFilter || ratingFilter || dateFrom || dateTo || tagFilter || smartFilter || sortBy !== "newest" || genreFilter.length > 0 || moodFilter.length > 0 || tempoMin || tempoMax);
 
   useEffect(() => {
     if (!enableServerSearch) return;
@@ -1107,12 +1133,16 @@ export function LibraryView({
     if (sortBy && sortBy !== "newest") params.set("sortBy", sortBy);
     if (tagFilter) params.set("tagId", tagFilter);
     if (smartFilter) params.set("smartFilter", smartFilter);
+    if (genreFilter.length > 0) params.set("genre", genreFilter.join(","));
+    if (moodFilter.length > 0) params.set("mood", moodFilter.join(","));
+    if (tempoMin) params.set("tempoMin", tempoMin);
+    if (tempoMax) params.set("tempoMax", tempoMax);
 
     const qs = params.toString();
     const newUrl = qs ? `${pathname}?${qs}` : pathname;
     router.replace(newUrl, { scroll: false });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, smartFilter, enableServerSearch]);
+  }, [debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, smartFilter, genreFilter, moodFilter, tempoMin, tempoMax, enableServerSearch]);
 
   // ─── Build filter query string (shared by initial fetch and load-more) ───
   function buildFilterParams(): URLSearchParams {
@@ -1130,6 +1160,10 @@ export function LibraryView({
     } else if (smartFilter) {
       params.set("smartFilter", smartFilter);
     }
+    if (genreFilter.length > 0) params.set("genre", genreFilter.join(","));
+    if (moodFilter.length > 0) params.set("mood", moodFilter.join(","));
+    if (tempoMin) params.set("tempoMin", tempoMin);
+    if (tempoMax) params.set("tempoMax", tempoMax);
     return params;
   }
 
@@ -1159,7 +1193,7 @@ export function LibraryView({
 
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, smartFilter, enableServerSearch]);
+  }, [debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, smartFilter, genreFilter, moodFilter, tempoMin, tempoMax, enableServerSearch]);
 
   // ─── Load more (next page) ──────────────────────────────────────────────
   const handleLoadMore = useCallback(() => {
@@ -1182,7 +1216,7 @@ export function LibraryView({
       .catch(() => {})
       .finally(() => setLoadingMore(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nextCursor, loadingMore, debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, smartFilter]);
+  }, [nextCursor, loadingMore, debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, smartFilter, genreFilter, moodFilter, tempoMin, tempoMax]);
 
   // ─── Clear all filters ────────────────────────────────────────────────────
   function clearAllFilters() {
@@ -1194,6 +1228,10 @@ export function LibraryView({
     setSortBy("newest");
     setTagFilter("");
     setSmartFilter("");
+    setGenreFilter([]);
+    setMoodFilter([]);
+    setTempoMin("");
+    setTempoMax("");
   }
 
   // ─── Song callbacks ───────────────────────────────────────────────────────
@@ -1710,7 +1748,7 @@ export function LibraryView({
   }
 
   const hasPlayableSongs = songs.some((s) => s.audioUrl && s.generationStatus === "ready");
-  const hasActiveFilters = !!(statusFilter || ratingFilter || dateFrom || dateTo || tagFilter || smartFilter);
+  const hasActiveFilters = !!(statusFilter || ratingFilter || dateFrom || dateTo || tagFilter || smartFilter || genreFilter.length > 0 || moodFilter.length > 0 || tempoMin || tempoMax);
 
   // ─── Virtualizer for list view ───────────────────────────────────────────
   const listScrollMarginRef = useRef(0);
@@ -1906,6 +1944,7 @@ export function LibraryView({
           </div>
 
           {showFilters && (
+            <div className="space-y-3">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
               <select
                 value={statusFilter}
@@ -1958,6 +1997,150 @@ export function LibraryView({
                   <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
               </select>
+            </div>
+
+            {/* Genre multi-select */}
+            <div>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Genre</p>
+              <div className="flex flex-wrap gap-1.5">
+                {GENRE_OPTIONS.map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => setGenreFilter((prev) => prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g])}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                      genreFilter.includes(g)
+                        ? "bg-violet-600 text-white"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Mood multi-select */}
+            <div>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Mood</p>
+              <div className="flex flex-wrap gap-1.5">
+                {MOOD_OPTIONS.map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setMoodFilter((prev) => prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m])}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                      moodFilter.includes(m)
+                        ? "bg-violet-600 text-white"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tempo range */}
+            <div>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                Tempo (BPM){tempoMin || tempoMax ? `: ${tempoMin || TEMPO_MIN}–${tempoMax || TEMPO_MAX}` : ""}
+              </p>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-gray-400 w-8">{TEMPO_MIN}</span>
+                <div className="flex-1 flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={TEMPO_MIN}
+                    max={TEMPO_MAX}
+                    step={5}
+                    value={tempoMin || TEMPO_MIN}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      const max = parseInt(tempoMax || String(TEMPO_MAX), 10);
+                      if (parseInt(v, 10) <= max) setTempoMin(v === String(TEMPO_MIN) ? "" : v);
+                    }}
+                    aria-label="Minimum tempo"
+                    className="flex-1 accent-violet-600"
+                  />
+                  <input
+                    type="range"
+                    min={TEMPO_MIN}
+                    max={TEMPO_MAX}
+                    step={5}
+                    value={tempoMax || TEMPO_MAX}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      const min = parseInt(tempoMin || String(TEMPO_MIN), 10);
+                      if (parseInt(v, 10) >= min) setTempoMax(v === String(TEMPO_MAX) ? "" : v);
+                    }}
+                    aria-label="Maximum tempo"
+                    className="flex-1 accent-violet-600"
+                  />
+                </div>
+                <span className="text-xs text-gray-400 w-8 text-right">{TEMPO_MAX}</span>
+              </div>
+            </div>
+            </div>
+          )}
+
+          {/* Active filter chips */}
+          {hasActiveFilters && (
+            <div className="flex flex-wrap gap-1.5">
+              {genreFilter.map((g) => (
+                <span key={g} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300">
+                  {g}
+                  <button onClick={() => setGenreFilter((prev) => prev.filter((x) => x !== g))} aria-label={`Remove ${g} filter`} className="hover:text-violet-500">
+                    <XMarkIcon className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+              {moodFilter.map((m) => (
+                <span key={m} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+                  {m}
+                  <button onClick={() => setMoodFilter((prev) => prev.filter((x) => x !== m))} aria-label={`Remove ${m} filter`} className="hover:text-blue-500">
+                    <XMarkIcon className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+              {(tempoMin || tempoMax) && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
+                  {tempoMin || TEMPO_MIN}–{tempoMax || TEMPO_MAX} BPM
+                  <button onClick={() => { setTempoMin(""); setTempoMax(""); }} aria-label="Remove tempo filter" className="hover:text-green-500">
+                    <XMarkIcon className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {statusFilter && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                  {STATUS_OPTIONS.find((o) => o.value === statusFilter)?.label ?? statusFilter}
+                  <button onClick={() => setStatusFilter("")} aria-label="Remove status filter" className="hover:text-gray-500">
+                    <XMarkIcon className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {ratingFilter && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300">
+                  {RATING_OPTIONS.find((o) => o.value === ratingFilter)?.label ?? ratingFilter}
+                  <button onClick={() => setRatingFilter("")} aria-label="Remove rating filter" className="hover:text-yellow-500">
+                    <XMarkIcon className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {(dateFrom || dateTo) && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                  {dateFrom || "…"}–{dateTo || "…"}
+                  <button onClick={() => { setDateFrom(""); setDateTo(""); }} aria-label="Remove date filter" className="hover:text-gray-500">
+                    <XMarkIcon className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {tagFilter && availableTags.find((t) => t.id === tagFilter) && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                  #{availableTags.find((t) => t.id === tagFilter)?.name}
+                  <button onClick={() => setTagFilter("")} aria-label="Remove tag filter" className="hover:text-gray-500">
+                    <XMarkIcon className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
             </div>
           )}
 
