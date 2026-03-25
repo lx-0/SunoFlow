@@ -31,6 +31,7 @@ describe("GET /api/credits", () => {
     vi.mocked(resolveUser).mockResolvedValue({
       userId: null,
       isApiKey: false,
+      isAdmin: false,
       error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }) as never,
     });
 

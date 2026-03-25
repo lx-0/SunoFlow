@@ -68,6 +68,7 @@ describe("GET /api/playlists", () => {
     vi.mocked(resolveUser).mockResolvedValue({
       userId: null,
       isApiKey: false,
+      isAdmin: false,
       error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }) as never,
     });
 
@@ -99,6 +100,7 @@ describe("POST /api/playlists", () => {
     vi.mocked(resolveUser).mockResolvedValue({
       userId: null,
       isApiKey: false,
+      isAdmin: false,
       error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }) as never,
     });
 
