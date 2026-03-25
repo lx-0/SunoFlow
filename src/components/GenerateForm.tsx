@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { SparklesIcon, BookmarkIcon, TrashIcon } from "@heroicons/react/24/solid";
-import { BookmarkIcon as BookmarkOutline, ClockIcon, BoltIcon, UserCircleIcon, PencilSquareIcon, ChevronDownIcon, ExclamationTriangleIcon, QueueListIcon } from "@heroicons/react/24/outline";
+import { BookmarkIcon as BookmarkOutline, ClockIcon, BoltIcon, UserCircleIcon, PencilSquareIcon, ChevronDownIcon, ExclamationTriangleIcon, QueueListIcon, AdjustmentsHorizontalIcon } from "@heroicons/react/24/outline";
 import { useToast } from "./Toast";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { useGenerationQueue } from "@/hooks/useGenerationQueue";
@@ -35,6 +35,17 @@ interface PromptTemplate {
   category: string | null;
   isInstrumental: boolean;
   isBuiltIn: boolean;
+}
+
+interface GenerationPreset {
+  id: string;
+  name: string;
+  title: string | null;
+  stylePrompt: string | null;
+  lyricsPrompt: string | null;
+  isInstrumental: boolean;
+  customMode: boolean;
+  createdAt: string;
 }
 
 export function GenerateForm() {
@@ -70,6 +81,13 @@ export function GenerateForm() {
   const [templateName, setTemplateName] = useState("");
   const [templateCategory, setTemplateCategory] = useState("");
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+
+  // Preset state
+  const [presets, setPresets] = useState<GenerationPreset[]>([]);
+  const [showPresetPicker, setShowPresetPicker] = useState(false);
+  const [showPresetSaveDialog, setShowPresetSaveDialog] = useState(false);
+  const [presetName, setPresetName] = useState("");
+  const [isSavingPreset, setIsSavingPreset] = useState(false);
 
   // Persona state
   const [personas, setPersonas] = useState<PersonaOption[]>([]);
@@ -199,12 +217,25 @@ export function GenerateForm() {
     }
   }, []);
 
+  const fetchPresets = useCallback(async () => {
+    try {
+      const res = await fetch("/api/presets");
+      if (res.ok) {
+        const data = await res.json();
+        setPresets(data.presets);
+      }
+    } catch {
+      // Non-critical
+    }
+  }, []);
+
   useEffect(() => {
     fetchRateLimit();
     fetchTemplates();
     fetchPersonas();
     fetchCredits();
-  }, [fetchRateLimit, fetchTemplates, fetchPersonas, fetchCredits]);
+    fetchPresets();
+  }, [fetchRateLimit, fetchTemplates, fetchPersonas, fetchCredits, fetchPresets]);
 
   async function handleBoostStyle() {
     if (isBoosting || !stylePrompt.trim()) return;
@@ -354,6 +385,71 @@ export function GenerateForm() {
       toast("Failed to save template", "error");
     } finally {
       setIsSavingTemplate(false);
+    }
+  }
+
+  function applyPreset(preset: GenerationPreset) {
+    if (preset.title !== null) setTitle(preset.title ?? "");
+    if (preset.stylePrompt !== null) setStylePrompt(preset.stylePrompt ?? "");
+    if (preset.lyricsPrompt !== null) setLyrics(preset.lyricsPrompt ?? "");
+    setInstrumental(preset.isInstrumental);
+    setCustomMode(preset.customMode);
+    setShowPresetPicker(false);
+    toast(`Loaded "${preset.name}" preset`, "success");
+  }
+
+  async function deletePreset(presetId: string) {
+    try {
+      const res = await fetch(`/api/presets/${presetId}`, { method: "DELETE" });
+      if (res.ok) {
+        setPresets((prev) => prev.filter((p) => p.id !== presetId));
+        toast("Preset deleted", "success");
+      } else {
+        const data = await res.json();
+        toast(data.error ?? "Failed to delete preset", "error");
+      }
+    } catch {
+      toast("Failed to delete preset", "error");
+    }
+  }
+
+  async function saveAsPreset() {
+    if (!presetName.trim()) {
+      toast("Please enter a preset name", "error");
+      return;
+    }
+    if (!stylePrompt.trim() && !lyrics.trim()) {
+      toast("Fill in style or lyrics before saving", "error");
+      return;
+    }
+
+    setIsSavingPreset(true);
+    try {
+      const res = await fetch("/api/presets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: presetName.trim(),
+          title: title.trim() || null,
+          stylePrompt: stylePrompt.trim() || null,
+          lyricsPrompt: customMode ? lyrics.trim() || null : null,
+          isInstrumental: instrumental,
+          customMode,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPresets((prev) => [data.preset, ...prev]);
+        setShowPresetSaveDialog(false);
+        setPresetName("");
+        toast(`Preset "${data.preset.name}" saved!`, "success");
+      } else {
+        toast(data.error ?? "Failed to save preset", "error");
+      }
+    } catch {
+      toast("Failed to save preset", "error");
+    } finally {
+      setIsSavingPreset(false);
     }
   }
 
@@ -574,6 +670,26 @@ export function GenerateForm() {
         </button>
       </div>
 
+      {/* Preset Picker Buttons */}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setShowPresetPicker(!showPresetPicker)}
+          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-xl hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors"
+        >
+          <AdjustmentsHorizontalIcon className="h-4 w-4" />
+          Presets{presets.length > 0 ? ` (${presets.length})` : ""}
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowPresetSaveDialog(!showPresetSaveDialog)}
+          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+        >
+          <BookmarkIcon className="h-4 w-4" />
+          Save as preset
+        </button>
+      </div>
+
       {/* Template Picker Panel */}
       {showTemplatePicker && (
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
@@ -728,6 +844,89 @@ export function GenerateForm() {
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400">
             {userTemplates.length} / 20 templates used
+          </p>
+        </div>
+      )}
+
+      {/* Preset Picker Panel */}
+      {showPresetPicker && (
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">My Presets</p>
+          {presets.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+              No presets yet — save your current form state as a preset.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {presets.map((p) => (
+                <div key={p.id} className="relative group">
+                  <button
+                    type="button"
+                    onClick={() => applyPreset(p)}
+                    className="w-full text-left p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-teal-400 dark:hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/10 transition-colors"
+                  >
+                    <span className="text-sm font-medium text-gray-900 dark:text-white block pr-6">{p.name}</span>
+                    {p.stylePrompt && (
+                      <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{p.stylePrompt}</span>
+                    )}
+                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                      {p.isInstrumental && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">Instrumental</span>
+                      )}
+                      {p.customMode && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400">Custom lyrics</span>
+                      )}
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deletePreset(p.id)}
+                    className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                    aria-label="Delete preset"
+                    title="Delete preset"
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Save Preset Dialog */}
+      {showPresetSaveDialog && (
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
+          <p className="text-sm font-medium text-gray-900 dark:text-white">Save current settings as preset</p>
+          <input
+            type="text"
+            value={presetName}
+            onChange={(e) => setPresetName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveAsPreset(); } }}
+            placeholder="Preset name"
+            aria-label="Preset name"
+            maxLength={100}
+            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={saveAsPreset}
+              disabled={isSavingPreset}
+              className="flex-1 px-3 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-500 disabled:opacity-50 rounded-xl transition-colors"
+            >
+              {isSavingPreset ? "Saving…" : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowPresetSaveDialog(false); setPresetName(""); }}
+              className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {presets.length} / 20 presets used
           </p>
         </div>
       )}

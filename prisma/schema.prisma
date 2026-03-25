@@ -80,6 +80,7 @@ model User {
   following        Follow[]  @relation("Follower")
   reactions            SongReaction[]
   generationFeedbacks  GenerationFeedback[]
+  generationPresets    GenerationPreset[]
 }
 
 model Song {
@@ -476,4 +477,21 @@ model SongReaction {
   @@index([songId])
   @@index([userId])
   @@unique([songId, userId, emoji, timestamp])
+}
+
+model GenerationPreset {
+  id             String   @id @default(cuid())
+  userId         String
+  name           String
+  title          String?
+  stylePrompt    String?
+  lyricsPrompt   String?
+  isInstrumental Boolean  @default(false)
+  customMode     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, createdAt])
 }
