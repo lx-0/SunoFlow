@@ -135,6 +135,18 @@ input[type="range"]:focus-visible {
   outline-offset: 4px;
 }
 
+/* ─── Emoji popup float animation ─────────────────────────────────────────── */
+
+@keyframes emoji-float {
+  0%   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  60%  { opacity: 1; transform: translateX(-50%) translateY(-48px) scale(1.2); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-72px) scale(0.8); }
+}
+
+.animate-emoji-float {
+  animation: emoji-float 2s ease-out forwards;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

@@ -67,6 +67,12 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
   const [isFavorite, setIsFavorite] = useState(false);
   const [reactions, setReactions] = useState<ReactionItem[]>([]);
   const reactionSongIdRef = useRef<string | null>(null);
+
+  // Emoji popup state — floats up from the waveform when currentTime passes a reaction
+  interface EmojiPopup { id: string; emoji: string; key: number; leftPct: number; }
+  const [activePopups, setActivePopups] = useState<EmojiPopup[]>([]);
+  const shownReactionIdsRef = useRef<Set<string>>(new Set());
+  const popupKeyRef = useRef(0);
   const pathname = usePathname();
   const { data: session } = useSession();
   const { toast } = useToast();
@@ -174,6 +180,36 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
     }
   }
 
+  // Reset popup tracking when the song changes
+  useEffect(() => {
+    shownReactionIdsRef.current = new Set();
+    setActivePopups([]);
+  }, [currentSong?.id]);
+
+  // Trigger emoji popups as currentTime passes reaction timestamps
+  useEffect(() => {
+    if (!isPlaying || reactions.length === 0 || duration <= 0) return;
+    const newlyTriggered = reactions.filter(
+      (r) => r.timestamp <= currentTime && !shownReactionIdsRef.current.has(r.id)
+    );
+    if (newlyTriggered.length === 0) return;
+    for (const r of newlyTriggered) {
+      shownReactionIdsRef.current.add(r.id);
+    }
+    const newPopups: EmojiPopup[] = newlyTriggered.map((r) => {
+      const key = ++popupKeyRef.current;
+      const leftPct = Math.min(98, Math.max(2, (r.timestamp / duration) * 100));
+      return { id: r.id, emoji: r.emoji, key, leftPct };
+    });
+    setActivePopups((prev) => [...prev, ...newPopups]);
+    const ids = newPopups.map((p) => p.key);
+    const timer = setTimeout(() => {
+      setActivePopups((prev) => prev.filter((p) => !ids.includes(p.key)));
+    }, 2000);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTime, isPlaying]);
+
   // Close reaction picker when playback stops
   useEffect(() => {
     if (!isPlaying) setShowReactions(false);
@@ -215,7 +251,25 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
         </div>
       )}
 
-      <div className="bg-gray-900 dark:bg-gray-800 rounded-2xl md:rounded-none md:rounded-t-2xl shadow-2xl border border-gray-700 dark:border-gray-600 overflow-hidden max-w-3xl mx-auto md:mx-0">
+      {/* Wrapper gives us a relative origin for popups that escape overflow-hidden */}
+      <div className="relative max-w-3xl mx-auto md:mx-0">
+        {/* Floating emoji popups — rendered outside overflow-hidden so they can float up */}
+        {activePopups.length > 0 && (
+          <div className="pointer-events-none absolute inset-x-2 bottom-14 h-0">
+            {activePopups.map((popup) => (
+              <span
+                key={popup.key}
+                className="absolute text-2xl leading-none animate-emoji-float"
+                style={{ left: `${popup.leftPct}%` }}
+                aria-hidden="true"
+              >
+                {popup.emoji}
+              </span>
+            ))}
+          </div>
+        )}
+
+      <div className="bg-gray-900 dark:bg-gray-800 rounded-2xl md:rounded-none md:rounded-t-2xl shadow-2xl border border-gray-700 dark:border-gray-600 overflow-hidden">
         {/* Waveform seek bar + reaction timeline overlay */}
         <div className="relative h-10 px-2 pt-1 pb-0.5 bg-gray-900 dark:bg-gray-800">
           <PlayerWaveform
@@ -224,6 +278,7 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
             duration={duration}
             isBuffering={isBuffering}
             onSeek={seek}
+            reactionTimestamps={reactions.map((r) => r.timestamp)}
           />
           {reactions.length > 0 && duration > 0 && (
             <div className="absolute inset-x-2 top-0 bottom-0 pointer-events-none">
@@ -443,6 +498,7 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
             </button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

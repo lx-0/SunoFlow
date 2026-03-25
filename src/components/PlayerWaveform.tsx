@@ -67,6 +67,7 @@ export interface PlayerWaveformProps {
   duration: number;
   isBuffering: boolean;
   onSeek: (fraction: number) => void;
+  reactionTimestamps?: number[];
 }
 
 export function PlayerWaveform({
@@ -75,6 +76,7 @@ export function PlayerWaveform({
   duration,
   isBuffering,
   onSeek,
+  reactionTimestamps,
 }: PlayerWaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dragging = useRef(false);
@@ -86,9 +88,11 @@ export function PlayerWaveform({
   const ctRef = useRef(currentTime);
   const durRef = useRef(duration);
   const bufRef = useRef(isBuffering);
+  const reactionsRef = useRef<number[]>([]);
   ctRef.current = currentTime;
   durRef.current = duration;
   bufRef.current = isBuffering;
+  reactionsRef.current = reactionTimestamps ?? [];
 
   const [peaks, setPeaks] = useState<Float32Array | null>(
     () => peaksCache.get(songId) ?? null
@@ -184,6 +188,22 @@ export function PlayerWaveform({
       if (bufRef.current && progress > 0) {
         ctx.fillStyle = "rgba(124, 58, 237, 0.25)";
         ctx.fillRect(0, 0, progress * w, h);
+      }
+
+      // Reaction timestamp markers — amber pip at the bottom of each marked bar
+      const reactionTs = reactionsRef.current;
+      if (reactionTs.length > 0 && durRef.current > 0) {
+        ctx.fillStyle = "#f59e0b"; // amber-500
+        for (const ts of reactionTs) {
+          const barIdx = Math.min(
+            NUM_BARS - 1,
+            Math.max(0, Math.floor((ts / durRef.current) * NUM_BARS))
+          );
+          const x = barIdx * step + barW / 2;
+          ctx.beginPath();
+          ctx.arc(x, h - 2, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
 
       ctx.restore();
