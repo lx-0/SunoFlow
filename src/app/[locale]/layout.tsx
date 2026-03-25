@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
@@ -10,7 +10,7 @@ import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { PostHogProvider } from "@/components/PostHogProvider";
 import { routing } from "@/i18n/routing";
 // Lazy-load the PWA install prompt — only shown when install conditions are met
-const PwaInstallPrompt = dynamic(
+const PwaInstallPrompt = nextDynamic(
   () => import("@/components/PwaInstallPrompt").then((m) => m.PwaInstallPrompt),
   { ssr: false }
 );
@@ -71,6 +71,12 @@ export const viewport: Viewport = {
   maximumScale: 1,
   themeColor: "#7c3aed",
 };
+
+// Force dynamic rendering — SSG causes hydration mismatches because
+// usePathname() returns "/en" during build but "/" at runtime with
+// localePrefix: "as-needed". Dynamic rendering ensures server and
+// client agree on the pathname.
+export const dynamic = "force-dynamic";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
