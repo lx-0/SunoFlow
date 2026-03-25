@@ -206,7 +206,9 @@ export async function middleware(request: NextRequest) {
   const pathnameWithoutLocale = stripLocalePrefix(pathname);
 
   const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email", "/api/auth", "/api/register", "/api/health", "/api/agent-skill", "/s/", "/p/", "/embed/"];
-  const isPublic = publicPaths.some((p) => pathnameWithoutLocale.startsWith(p) || pathname.startsWith(p));
+  const isPublic =
+    pathnameWithoutLocale === "/" ||
+    publicPaths.some((p) => pathnameWithoutLocale.startsWith(p) || pathname.startsWith(p));
 
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? request.ip ?? "unknown";
 

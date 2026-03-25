@@ -1,20 +1,27 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { AppShell } from "@/components/AppShell";
-import { DashboardView } from "@/components/DashboardView";
+import { LandingPage } from "@/components/LandingPage";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sunoflow.app";
 
 export const metadata: Metadata = {
-  title: "SunoFlow — Personal Music Manager",
+  title: "SunoFlow — Your Personal AI Music Studio",
   description:
-    "Manage your Suno music, discover inspiration, and automate your creative workflow.",
+    "Generate, manage, and share AI-crafted music. SunoFlow brings your library, inspiration feeds, and creative tools into one seamless workspace.",
   openGraph: {
-    title: "SunoFlow — Personal Music Manager",
+    title: "SunoFlow — Your Personal AI Music Studio",
     description:
-      "Manage your Suno music, discover inspiration, and automate your creative workflow.",
+      "Generate, manage, and share AI-crafted music. SunoFlow brings your library, inspiration feeds, and creative tools into one seamless workspace.",
     url: siteUrl,
     type: "website",
+    images: [{ url: `${siteUrl}/icons/icon-512.png`, width: 512, height: 512, alt: "SunoFlow" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SunoFlow — Your Personal AI Music Studio",
+    description:
+      "Generate, manage, and share AI-crafted music. SunoFlow brings your library, inspiration feeds, and creative tools into one seamless workspace.",
   },
 };
 
@@ -31,11 +38,16 @@ const websiteJsonLd = {
   name: "SunoFlow",
   url: siteUrl,
   description:
-    "Manage your Suno music, discover inspiration, and automate your creative workflow.",
+    "Generate, manage, and share AI-crafted music. SunoFlow brings your library, inspiration feeds, and creative tools into one seamless workspace.",
 };
 
 export default async function HomePage() {
   const session = await auth();
+
+  // Authenticated users go straight to their library
+  if (session?.user) {
+    redirect("/library");
+  }
 
   return (
     <>
@@ -43,9 +55,7 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteJsonLd) }}
       />
-      <AppShell>
-        <DashboardView userName={session?.user?.name} />
-      </AppShell>
+      <LandingPage />
     </>
   );
 }
