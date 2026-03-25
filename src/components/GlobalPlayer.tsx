@@ -336,7 +336,7 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
                 <FaceSmileIcon className="w-5 h-5" />
               </button>
               {showReactions && (
-                <div className="absolute bottom-10 right-0 z-30">
+                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30">
                   <EmojiReactionPicker
                     isPlaying={isPlaying}
                     isAuthenticated={!!session?.user}
