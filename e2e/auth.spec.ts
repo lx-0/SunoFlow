@@ -12,7 +12,7 @@ test.describe("Register", () => {
   }) => {
     const uniqueEmail = `e2e-reg-${Date.now()}@test.local`;
 
-    await page.goto("/en/register");
+    await page.goto("/register");
 
     await expect(page.locator("h1")).toContainText("SunoFlow");
     await expect(page.getByText("Create your account")).toBeVisible();
@@ -44,7 +44,7 @@ test.describe("Register", () => {
     expect(res.status).toBe(201);
 
     // Try to register with the same email
-    await page.goto("/en/register");
+    await page.goto("/register");
     await page.getByLabel("Name").fill("Duplicate User");
     await page.getByLabel("Email").fill(email);
     await page.getByLabel("Password").fill("AnotherPass1!");
@@ -62,7 +62,7 @@ test.describe("Register", () => {
   test("validation — submit with empty email shows browser validation", async ({
     page,
   }) => {
-    await page.goto("/en/register");
+    await page.goto("/register");
 
     // Fill only password, leave email empty
     await page.getByLabel("Password").fill("ValidPass123!");
@@ -75,7 +75,7 @@ test.describe("Register", () => {
   test("validation — short password prevented by minLength", async ({
     page,
   }) => {
-    await page.goto("/en/register");
+    await page.goto("/register");
 
     await page.getByLabel("Email").fill(`e2e-short-${Date.now()}@test.local`);
     await page.getByLabel("Password").fill("short");
@@ -106,7 +106,7 @@ test.describe("Login", () => {
   });
 
   test("happy path — login with valid credentials", async ({ page }) => {
-    await page.goto("/en/login");
+    await page.goto("/login");
 
     await expect(page.locator("h1")).toContainText("SunoFlow");
     await expect(page.getByText("Sign in to your music manager")).toBeVisible();
@@ -121,7 +121,7 @@ test.describe("Login", () => {
   });
 
   test("invalid credentials — shows error message", async ({ page }) => {
-    await page.goto("/en/login");
+    await page.goto("/login");
 
     await page.getByLabel("Email").fill(seededEmail);
     await page.getByLabel("Password").fill("WrongPassword99!");
@@ -166,7 +166,7 @@ test.describe("Logout", () => {
     await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
 
     // Trying to access a protected page should redirect back to login
-    await page.goto("/en/library");
+    await page.goto("/library");
     await expect(page).toHaveURL(/\/login/, { timeout: 5000 });
   });
 });
@@ -177,7 +177,7 @@ test.describe("Password Reset", () => {
   test("forgot password page renders and accepts email submission", async ({
     page,
   }) => {
-    await page.goto("/en/forgot-password");
+    await page.goto("/forgot-password");
 
     // Should show the reset form
     await expect(page.getByText("Enter your email to receive a password reset link")).toBeVisible();
@@ -197,7 +197,7 @@ test.describe("Password Reset", () => {
       password: DEFAULT_PASSWORD,
     });
 
-    await page.goto("/en/forgot-password");
+    await page.goto("/forgot-password");
 
     await page.getByLabel("Email").fill(email);
     await page.getByRole("button", { name: "Send reset link" }).click();
@@ -212,7 +212,7 @@ test.describe("Password Reset", () => {
   });
 
   test("login page has forgot password link", async ({ page }) => {
-    await page.goto("/en/login");
+    await page.goto("/login");
 
     const forgotLink = page.getByRole("link", { name: /Forgot password/i });
     await expect(forgotLink).toBeVisible();
