@@ -78,6 +78,7 @@ model User {
   comments         Comment[]
   followers        Follow[]  @relation("Following")
   following        Follow[]  @relation("Follower")
+  reactions        SongReaction[]
 }
 
 model Song {
@@ -120,6 +121,7 @@ model Song {
   ratings       Rating[]
   queueItems    GenerationQueueItem[]
   comments      Comment[]
+  reactions     SongReaction[]
 
   @@index([userId, title])
   @@index([userId, prompt])
@@ -436,4 +438,20 @@ model Follow {
   @@unique([followerId, followingId])
   @@index([followerId])
   @@index([followingId])
+}
+
+model SongReaction {
+  id        String   @id @default(cuid())
+  songId    String
+  userId    String
+  emoji     String   // single emoji character
+  timestamp Float    // seconds into the song
+  createdAt DateTime @default(now())
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([songId])
+  @@index([userId])
+  @@unique([songId, userId, emoji, timestamp])
 }
