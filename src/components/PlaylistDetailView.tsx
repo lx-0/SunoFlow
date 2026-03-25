@@ -18,8 +18,11 @@ import {
   LockClosedIcon,
   QueueListIcon,
   ForwardIcon,
+  ArrowDownTrayIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { PlayIcon as PlaySolidIcon } from "@heroicons/react/24/solid";
+import { PlayIcon as PlaySolidIcon, CheckIcon } from "@heroicons/react/24/solid";
+import { exportAsZip } from "@/lib/export";
 import type { Song } from "@prisma/client";
 import { useToast } from "./Toast";
 import { useQueue, type QueueSong } from "./QueueContext";
@@ -62,6 +65,178 @@ interface PlaylistData {
   _count: { songs: number };
 }
 
+interface SongListItemProps {
+  ps: PlaylistSongItem;
+  index: number;
+  isActive: boolean;
+  hasAudio: boolean;
+  isDragOver: boolean;
+  dragIndex: number | null;
+  isSelected: boolean;
+  selectionMode: boolean;
+  isPlaying: boolean;
+  onDragStart: () => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+  onDragEnd: () => void;
+  onDragHandleTouchStart: () => void;
+  onTogglePlay: () => void;
+  onPlayNext: () => void;
+  onAddToQueue: () => void;
+  onRemove: () => void;
+  onToggleSelect: () => void;
+  onLongPress: () => void;
+}
+
+function SongListItem({
+  ps, index, isActive, hasAudio, isDragOver, dragIndex, isSelected, selectionMode, isPlaying,
+  onDragStart, onDragOver, onDrop, onDragEnd, onDragHandleTouchStart,
+  onTogglePlay, onPlayNext, onAddToQueue, onRemove, onToggleSelect, onLongPress,
+}: SongListItemProps) {
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+
+  function handleTouchStart(e: React.TouchEvent) {
+    // Don't trigger long-press from drag handle touches
+    const target = e.target as HTMLElement;
+    if (target.closest("[data-drag-handle]")) return;
+    const t = e.touches[0];
+    touchStartPos.current = { x: t.clientX, y: t.clientY };
+    longPressTimer.current = setTimeout(() => { onLongPress(); }, 500);
+  }
+  function handleTouchMove(e: React.TouchEvent) {
+    if (!touchStartPos.current || !longPressTimer.current) return;
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - touchStartPos.current.x) > 10 || Math.abs(t.clientY - touchStartPos.current.y) > 10) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
+  function handleTouchEnd() {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+    touchStartPos.current = null;
+  }
+
+  return (
+    <li
+      data-drag-index={index}
+      draggable={!selectionMode}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+      className={`flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2.5 rounded-xl transition-colors ${
+        isSelected
+          ? "border border-violet-500 bg-violet-50 dark:bg-violet-950/30"
+          : isActive
+            ? "bg-violet-50 dark:bg-violet-900/20 border border-violet-300 dark:border-violet-700"
+            : "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
+      } ${isDragOver && !selectionMode ? "border-violet-400 dark:border-violet-500" : ""} ${
+        dragIndex === index ? "opacity-50" : ""
+      }`}
+    >
+      {/* Selection checkbox (selection mode) or drag handle (normal mode) */}
+      {selectionMode ? (
+        <button
+          onClick={onToggleSelect}
+          aria-label={isSelected ? "Deselect song" : "Select song"}
+          className={`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
+            isSelected ? "bg-violet-600 border-violet-600 text-white" : "border-gray-300 dark:border-gray-600 hover:border-violet-400"
+          }`}
+        >
+          {isSelected && <CheckIcon className="w-4 h-4" />}
+        </button>
+      ) : (
+        <div
+          data-drag-handle
+          className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center touch-none"
+          onTouchStart={onDragHandleTouchStart}
+        >
+          <Bars3Icon className="w-5 h-5" />
+        </div>
+      )}
+
+      {/* Position number — hidden on very narrow screens */}
+      <span className="flex-shrink-0 w-6 text-xs text-gray-400 dark:text-gray-500 text-center hidden sm:block">
+        {index + 1}
+      </span>
+
+      {/* Cover art */}
+      <div className="relative flex-shrink-0 w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center">
+        {ps.song.imageUrl ? (
+          <Image src={ps.song.imageUrl} alt={ps.song.title ?? "Song"} fill className="object-cover" sizes="40px" loading="lazy" />
+        ) : (
+          <MusicalNoteIcon className="w-5 h-5 text-gray-400 dark:text-gray-600" />
+        )}
+      </div>
+
+      {/* Title + duration */}
+      <div className="flex-1 min-w-0">
+        <Link
+          href={`/library/${ps.songId}`}
+          className="block text-sm font-medium text-gray-900 dark:text-white truncate hover:text-violet-400 transition-colors"
+        >
+          {ps.song.title ?? "Untitled"}
+        </Link>
+        {ps.song.duration && (
+          <span className="text-xs text-gray-400 dark:text-gray-500">{formatTime(ps.song.duration)}</span>
+        )}
+      </div>
+
+      {/* Play button */}
+      <button
+        onClick={onTogglePlay}
+        disabled={!hasAudio}
+        aria-label={isActive && isPlaying ? "Pause" : "Play"}
+        className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+          hasAudio
+            ? "bg-violet-600 hover:bg-violet-500 text-white"
+            : "bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
+        }`}
+      >
+        {isActive && isPlaying ? <PauseIcon className="w-5 h-5" /> : <PlayIcon className="w-5 h-5 ml-0.5" />}
+      </button>
+
+      {/* Play Next / Add to Queue — hidden on mobile, hidden in selection mode */}
+      {hasAudio && !selectionMode && (
+        <div className="hidden sm:flex items-center gap-0.5">
+          <button
+            onClick={onPlayNext}
+            aria-label={`Play ${ps.song.title ?? "song"} next`}
+            title="Play Next"
+            className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-violet-400 transition-colors"
+          >
+            <ForwardIcon className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onAddToQueue}
+            aria-label={`Add ${ps.song.title ?? "song"} to queue`}
+            title="Add to Queue"
+            className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-violet-400 transition-colors"
+          >
+            <QueueListIcon className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Remove button — hidden on mobile, hidden in selection mode */}
+      {!selectionMode && (
+        <button
+          onClick={onRemove}
+          aria-label="Remove from playlist"
+          className="flex-shrink-0 w-11 h-11 rounded-full hidden sm:flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-red-500 transition-colors"
+        >
+          <TrashIcon className="w-4 h-4" />
+        </button>
+      )}
+    </li>
+  );
+}
+
 export function PlaylistDetailView({
   playlist: initialPlaylist,
 }: {
@@ -94,6 +269,75 @@ export function PlaylistDetailView({
   const [slug, setSlug] = useState(initialPlaylist.slug);
   const [showSharePanel, setShowSharePanel] = useState(false);
   const [isTogglingShare, setIsTogglingShare] = useState(false);
+
+  // Batch selection state
+  const [selectedSongIds, setSelectedSongIds] = useState<Set<string>>(new Set());
+  const selectionMode = selectedSongIds.size > 0;
+  const [batchLoading, setBatchLoading] = useState(false);
+  const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
+  const [batchDownloading, setBatchDownloading] = useState(false);
+  const [batchDownloadProgress, setBatchDownloadProgress] = useState<{ completed: number; total: number } | null>(null);
+
+  function handleToggleSelect(songId: string) {
+    setSelectedSongIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(songId)) next.delete(songId); else next.add(songId);
+      return next;
+    });
+  }
+  function handleSelectAll() {
+    if (selectedSongIds.size === songs.length) {
+      setSelectedSongIds(new Set());
+    } else {
+      setSelectedSongIds(new Set(songs.map((ps) => ps.songId)));
+    }
+  }
+
+  async function handleBatchRemoveFromPlaylist() {
+    if (batchLoading || selectedSongIds.size === 0) return;
+    setBatchLoading(true);
+    const idsToRemove = Array.from(selectedSongIds);
+    // Optimistic update
+    setSongs((prev) => prev.filter((ps) => !selectedSongIds.has(ps.songId)));
+    setSelectedSongIds(new Set());
+    setShowBatchDeleteConfirm(false);
+    try {
+      await Promise.all(
+        idsToRemove.map((songId) =>
+          fetch(`/api/playlists/${playlist.id}/songs/${songId}`, { method: "DELETE" })
+        )
+      );
+      toast(`Removed ${idsToRemove.length} song${idsToRemove.length !== 1 ? "s" : ""} from playlist`, "success");
+    } catch {
+      toast("Failed to remove some songs", "error");
+    } finally {
+      setBatchLoading(false);
+    }
+  }
+
+  async function handleBatchDownload() {
+    if (batchDownloading || selectedSongIds.size === 0) return;
+    const selectedSongs = songs
+      .filter((ps) => selectedSongIds.has(ps.songId) && ps.song.audioUrl)
+      .map((ps) => ({ ...ps.song, audioUrl: ps.song.audioUrl! }));
+    if (selectedSongs.length === 0) {
+      toast("No downloadable songs selected", "error");
+      return;
+    }
+    setBatchDownloading(true);
+    setBatchDownloadProgress({ completed: 0, total: selectedSongs.length });
+    try {
+      await exportAsZip(selectedSongs, (completed, total) => {
+        setBatchDownloadProgress({ completed, total });
+      });
+      toast(`Downloaded ${selectedSongs.length} song${selectedSongs.length !== 1 ? "s" : ""} as ZIP`, "success");
+    } catch {
+      toast("Download failed", "error");
+    } finally {
+      setBatchDownloading(false);
+      setBatchDownloadProgress(null);
+    }
+  }
 
   // Drag state (mouse/pointer)
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -422,6 +666,14 @@ export function PlaylistDetailView({
               {songs.length} song{songs.length !== 1 ? "s" : ""}
               {totalDuration > 0 && ` · ${formatTime(totalDuration)}`}
             </p>
+            {songs.length > 0 && (
+              <button
+                onClick={handleSelectAll}
+                className="mt-1 text-xs font-medium text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
+              >
+                {selectedSongIds.size === songs.length ? "Deselect all" : "Select all"}
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -586,140 +838,118 @@ export function PlaylistDetailView({
           </Link>
         </div>
       ) : (
-        <ul className="space-y-1">
+        <ul className={`space-y-1 ${selectionMode ? "pb-20" : ""}`}>
           {songs.map((ps, index) => {
             const isActive = currentSongId === ps.songId;
             const hasAudio = Boolean(ps.song.audioUrl);
             const isDragOver = dragOverIndex === index;
+            const isSelected = selectedSongIds.has(ps.songId);
 
             return (
               <SwipeablePlaylistItem
                 key={ps.id}
-                onSwipeRemove={() => handleRemoveSong(ps.songId)}
+                onSwipeRemove={selectionMode ? () => {} : () => handleRemoveSong(ps.songId)}
               >
-                <li
-                  data-drag-index={index}
-                  draggable
+                <SongListItem
+                  ps={ps}
+                  index={index}
+                  isActive={isActive}
+                  hasAudio={hasAudio}
+                  isDragOver={isDragOver}
+                  dragIndex={dragIndex}
+                  isSelected={isSelected}
+                  selectionMode={selectionMode}
+                  isPlaying={isPlaying}
                   onDragStart={() => handleDragStart(index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDrop={(e) => handleDrop(e, index)}
-                  onDragEnd={() => {
-                    setDragIndex(null);
-                    setDragOverIndex(null);
-                  }}
-                  className={`flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2.5 rounded-xl transition-colors ${
-                    isActive
-                      ? "bg-violet-50 dark:bg-violet-900/20 border border-violet-300 dark:border-violet-700"
-                      : "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
-                  } ${isDragOver ? "border-violet-400 dark:border-violet-500" : ""} ${
-                    dragIndex === index ? "opacity-50" : ""
-                  }`}
-                >
-                  {/* Drag handle */}
-                  <div
-                    className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center touch-none"
-                    onTouchStart={() => handleDragHandleTouchStart(index)}
-                  >
-                    <Bars3Icon className="w-5 h-5" />
-                  </div>
-
-                  {/* Position number — hidden on very narrow screens */}
-                  <span className="flex-shrink-0 w-6 text-xs text-gray-400 dark:text-gray-500 text-center hidden sm:block">
-                    {index + 1}
-                  </span>
-
-                  {/* Cover art */}
-                  <div className="relative flex-shrink-0 w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center">
-                    {ps.song.imageUrl ? (
-                      <Image
-                        src={ps.song.imageUrl}
-                        alt={ps.song.title ?? "Song"}
-                        fill
-                        className="object-cover"
-                        sizes="40px"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <MusicalNoteIcon className="w-5 h-5 text-gray-400 dark:text-gray-600" />
-                    )}
-                  </div>
-
-                  {/* Title + duration */}
-                  <div className="flex-1 min-w-0">
-                    <Link
-                      href={`/library/${ps.songId}`}
-                      className="block text-sm font-medium text-gray-900 dark:text-white truncate hover:text-violet-400 transition-colors"
-                    >
-                      {ps.song.title ?? "Untitled"}
-                    </Link>
-                    {ps.song.duration && (
-                      <span className="text-xs text-gray-400 dark:text-gray-500">
-                        {formatTime(ps.song.duration)}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Play button — larger touch target */}
-                  <button
-                    onClick={() => handleTogglePlay(ps.song)}
-                    disabled={!hasAudio}
-                    aria-label={
-                      isActive && isPlaying ? "Pause" : "Play"
-                    }
-                    className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
-                      hasAudio
-                        ? "bg-violet-600 hover:bg-violet-500 text-white"
-                        : "bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
-                    }`}
-                  >
-                    {isActive && isPlaying ? (
-                      <PauseIcon className="w-5 h-5" />
-                    ) : (
-                      <PlayIcon className="w-5 h-5 ml-0.5" />
-                    )}
-                  </button>
-
-                  {/* Play Next / Add to Queue — hidden on mobile */}
-                  {hasAudio && (
-                    <div className="hidden sm:flex items-center gap-0.5">
-                      <button
-                        onClick={() => {
-                          const qs = songToQueueSong(ps.song);
-                          if (qs) playNext(qs);
-                        }}
-                        aria-label={`Play ${ps.song.title ?? "song"} next`}
-                        title="Play Next"
-                        className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-violet-400 transition-colors"
-                      >
-                        <ForwardIcon className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          const qs = songToQueueSong(ps.song);
-                          if (qs) addToQueue(qs);
-                        }}
-                        aria-label={`Add ${ps.song.title ?? "song"} to queue`}
-                        title="Add to Queue"
-                        className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-violet-400 transition-colors"
-                      >
-                        <QueueListIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Remove button — hidden on mobile (use swipe instead) */}
-                  <button
-                    onClick={() => handleRemoveSong(ps.songId)}
-                    aria-label="Remove from playlist"
-                    className="flex-shrink-0 w-11 h-11 rounded-full hidden sm:flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-red-500 transition-colors"
-                  >
-                    <TrashIcon className="w-4 h-4" />
-                  </button>
-                </li>
+                  onDragOver={(e: React.DragEvent) => handleDragOver(e, index)}
+                  onDrop={(e: React.DragEvent) => handleDrop(e, index)}
+                  onDragEnd={() => { setDragIndex(null); setDragOverIndex(null); }}
+                  onDragHandleTouchStart={() => handleDragHandleTouchStart(index)}
+                  onTogglePlay={() => handleTogglePlay(ps.song)}
+                  onPlayNext={() => { const qs = songToQueueSong(ps.song); if (qs) playNext(qs); }}
+                  onAddToQueue={() => { const qs = songToQueueSong(ps.song); if (qs) addToQueue(qs); }}
+                  onRemove={() => handleRemoveSong(ps.songId)}
+                  onToggleSelect={() => handleToggleSelect(ps.songId)}
+                  onLongPress={() => setSelectedSongIds(new Set([ps.songId]))}
+                />
               </SwipeablePlaylistItem>
             );
           })}
         </ul>
+      )}
+
+      {/* Batch toolbar */}
+      {selectionMode && (
+        <div className="fixed bottom-20 md:bottom-4 left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-40 flex items-center gap-2 px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white rounded-2xl shadow-2xl border border-gray-700 animate-slide-in">
+          <span className="text-sm font-medium mr-1 flex-shrink-0">
+            {selectedSongIds.size} selected
+          </span>
+          <button
+            onClick={handleBatchDownload}
+            disabled={batchDownloading}
+            aria-label="Download selected songs as ZIP"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gray-700 hover:bg-gray-600 disabled:opacity-50 transition-colors min-h-[44px]"
+          >
+            <ArrowDownTrayIcon className="w-4 h-4" />
+            <span className="hidden sm:inline">
+              {batchDownloading && batchDownloadProgress
+                ? `${batchDownloadProgress.completed}/${batchDownloadProgress.total}`
+                : "Download"}
+            </span>
+          </button>
+          <button
+            onClick={() => setShowBatchDeleteConfirm(true)}
+            disabled={batchLoading}
+            aria-label="Remove selected from playlist"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-500 disabled:opacity-50 transition-colors min-h-[44px]"
+          >
+            <TrashIcon className="w-4 h-4" />
+            <span className="hidden sm:inline">Remove</span>
+          </button>
+          <button
+            onClick={() => setSelectedSongIds(new Set())}
+            aria-label="Clear selection"
+            className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+          >
+            <XMarkIcon className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Batch delete confirmation */}
+      {showBatchDeleteConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="batch-remove-dialog-title"
+          onKeyDown={(e) => { if (e.key === "Escape") setShowBatchDeleteConfirm(false); }}
+        >
+          <div className="bg-white dark:bg-gray-900 w-full sm:rounded-2xl rounded-t-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 sm:mx-4 sm:max-w-sm">
+            <h3 id="batch-remove-dialog-title" className="text-lg font-semibold text-gray-900 dark:text-white">
+              Remove {selectedSongIds.size} song{selectedSongIds.size !== 1 ? "s" : ""} from playlist?
+            </h3>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              The songs will remain in your library.
+            </p>
+            <div className="mt-4 flex gap-3 justify-end">
+              <button
+                onClick={() => setShowBatchDeleteConfirm(false)}
+                disabled={batchLoading}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors min-h-[44px]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBatchRemoveFromPlaylist}
+                disabled={batchLoading}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-500 disabled:opacity-50 transition-colors min-h-[44px]"
+              >
+                {batchLoading ? "Removing…" : "Remove"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

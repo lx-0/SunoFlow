@@ -495,6 +495,7 @@ interface SongRowProps {
   onUpdate: (updated: Song) => void;
   onToggleFavorite: (song: Song) => void;
   onToggleSelect: (songId: string, shiftKey: boolean) => void;
+  onLongPress: (songId: string) => void;
   onRetry: (song: Song) => void;
   retryingId: string | null;
   isArchiveView: boolean;
@@ -521,6 +522,7 @@ function SongRow({
   onUpdate,
   onToggleFavorite,
   onToggleSelect,
+  onLongPress,
   onRetry,
   retryingId,
   isArchiveView,
@@ -532,6 +534,34 @@ function SongRow({
   const [song, setSong] = useState(initialSong);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+
+  // Long-press to enter selection mode on mobile
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+  function handleTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0];
+    touchStartPos.current = { x: t.clientX, y: t.clientY };
+    longPressTimer.current = setTimeout(() => {
+      onLongPress(song.id);
+    }, 500);
+  }
+  function handleTouchMove(e: React.TouchEvent) {
+    if (!touchStartPos.current || !longPressTimer.current) return;
+    const t = e.touches[0];
+    const dx = t.clientX - touchStartPos.current.x;
+    const dy = t.clientY - touchStartPos.current.y;
+    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
+  function handleTouchEnd() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    touchStartPos.current = null;
+  }
 
   useEffect(() => { setSong(initialSong); }, [initialSong]);
 
@@ -594,6 +624,10 @@ function SongRow({
       tabIndex={0}
       aria-selected={isActive}
       aria-label={songAriaLabel}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
       className={`group bg-white dark:bg-gray-900 border rounded-xl transition-colors ${
         isSelected
           ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30"
@@ -889,14 +923,59 @@ interface SongGridCardProps {
   song: Song;
   isActive: boolean;
   isPlaying: boolean;
+  isSelected: boolean;
+  selectionMode: boolean;
   searchQuery?: string;
   onTogglePlay: (song: Song) => void;
   onToggleFavorite: (song: Song) => void;
+  onToggleSelect: (songId: string) => void;
+  onLongPress: (songId: string) => void;
 }
 
-function SongGridCard({ song, isActive, isPlaying, searchQuery = "", onTogglePlay, onToggleFavorite }: SongGridCardProps) {
+function SongGridCard({ song, isActive, isPlaying, isSelected, selectionMode, searchQuery = "", onTogglePlay, onToggleFavorite, onToggleSelect, onLongPress }: SongGridCardProps) {
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+  function handleTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0];
+    touchStartPos.current = { x: t.clientX, y: t.clientY };
+    longPressTimer.current = setTimeout(() => { onLongPress(song.id); }, 500);
+  }
+  function handleTouchMove(e: React.TouchEvent) {
+    if (!touchStartPos.current || !longPressTimer.current) return;
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - touchStartPos.current.x) > 10 || Math.abs(t.clientY - touchStartPos.current.y) > 10) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
+  function handleTouchEnd() {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+    touchStartPos.current = null;
+  }
+
   return (
-    <li className="group relative bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden hover:border-violet-300 dark:hover:border-violet-700 transition-colors">
+    <li
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+      className={`group relative bg-white dark:bg-gray-900 rounded-xl border overflow-hidden transition-colors ${
+        isSelected
+          ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30"
+          : "border-gray-200 dark:border-gray-800 hover:border-violet-300 dark:hover:border-violet-700"
+      }`}
+    >
+      {/* Selection checkbox overlay */}
+      <button
+        onClick={() => onToggleSelect(song.id)}
+        aria-label={isSelected ? "Deselect song" : "Select song"}
+        className={`absolute top-2 left-2 z-10 w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
+          selectionMode ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        } ${isSelected ? "bg-violet-600 border-violet-600 text-white" : "border-white bg-black/20 hover:border-violet-400"}`}
+      >
+        {isSelected && <CheckIcon className="w-4 h-4" />}
+      </button>
+
       {/* Cover image */}
       <div className="relative aspect-square bg-gray-100 dark:bg-gray-800">
         {song.imageUrl ? (
@@ -2230,9 +2309,13 @@ export function LibraryView({
               song={song}
               isActive={currentSongId === song.id}
               isPlaying={isPlaying}
+              isSelected={selectedSongIds.has(song.id)}
+              selectionMode={selectionMode}
               searchQuery={debouncedSearch}
               onTogglePlay={handleTogglePlay}
               onToggleFavorite={handleToggleFavorite}
+              onToggleSelect={(songId) => handleToggleSelect(songId, false)}
+              onLongPress={(songId) => setSelectedSongIds(new Set([songId]))}
             />
           ))}
         </ul>
@@ -2281,6 +2364,7 @@ export function LibraryView({
                   onUpdate={handleSongUpdate}
                   onToggleFavorite={handleToggleFavorite}
                   onToggleSelect={handleToggleSelect}
+                  onLongPress={(songId) => setSelectedSongIds(new Set([songId]))}
                   onRetry={handleRetry}
                   retryingId={retryingId}
                   isArchiveView={isArchiveView}
