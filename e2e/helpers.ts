@@ -30,7 +30,9 @@ export async function loginViaUI(
   email: string,
   password: string
 ) {
-  await page.goto("/login");
+  await page.goto("/en/login");
+  // Wait for the login form to be hydrated before interacting
+  await expect(page.getByLabel("Email")).toBeVisible({ timeout: 15000 });
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();

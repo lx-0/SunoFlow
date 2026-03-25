@@ -10,7 +10,11 @@ export default defineConfig({
   use: {
     baseURL: process.env.BASE_URL ?? "http://localhost:3200",
     trace: "on-first-retry",
+    // Force English locale so next-intl never redirects to a locale-prefixed URL
+    locale: "en-US",
   },
+  // Increase default assertion timeout: first-time page compilation in dev can take >5s
+  expect: { timeout: 15000 },
   projects: [
     {
       name: "chromium",
@@ -21,5 +25,7 @@ export default defineConfig({
     command: "NODE_ENV=development npm run dev -- --port 3200",
     url: process.env.BASE_URL ?? "http://localhost:3200",
     reuseExistingServer: !process.env.CI,
+    // Allow 2 minutes for initial server startup + prisma migrations
+    timeout: 120 * 1000,
   },
 });
