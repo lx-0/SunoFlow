@@ -10,12 +10,14 @@ import {
   FlagIcon,
   ExclamationTriangleIcon,
   ArrowLeftIcon,
+  MusicalNoteIcon,
 } from "@heroicons/react/24/outline";
 
 const adminNav = [
   { label: "Dashboard", href: "/admin", icon: ChartBarIcon },
   { label: "Analytics", href: "/admin/analytics", icon: ChartPieIcon },
   { label: "Users", href: "/admin/users", icon: UsersIcon },
+  { label: "Content", href: "/admin/content", icon: MusicalNoteIcon },
   { label: "Reports", href: "/admin/reports", icon: FlagIcon },
   { label: "Errors", href: "/admin/errors", icon: ExclamationTriangleIcon },
   { label: "Audit Log", href: "/admin/logs", icon: ClipboardDocumentListIcon },

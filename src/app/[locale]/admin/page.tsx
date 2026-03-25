@@ -8,13 +8,22 @@ import {
   UserGroupIcon,
   FlagIcon,
   ExclamationTriangleIcon,
+  CreditCardIcon,
+  CurrencyDollarIcon,
+  CalendarDaysIcon,
+  CalendarIcon,
 } from "@heroicons/react/24/outline";
 
 interface Stats {
   totalUsers: number;
+  payingUsers: number;
+  mrrCents: number;
   totalGenerations: number;
   generationsToday: number;
-  activeUsers: number;
+  generationsWeek: number;
+  generationsMonth: number;
+  activeUsers7d: number;
+  activeUsers30d: number;
   pendingReports: number;
   recentErrors: number;
   dailyGenerations: Array<{ date: string; count: number }>;
@@ -24,10 +33,12 @@ function StatCard({
   label,
   value,
   icon: Icon,
+  sub,
 }: {
   label: string;
   value: number | string;
   icon: React.ComponentType<{ className?: string }>;
+  sub?: string;
 }) {
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
@@ -36,6 +47,7 @@ function StatCard({
         <Icon className="w-5 h-5 text-gray-500" />
       </div>
       <div className="text-2xl font-bold">{value}</div>
+      {sub && <div className="text-xs text-gray-500 mt-1">{sub}</div>}
     </div>
   );
 }
@@ -68,6 +80,11 @@ function MiniChart({ data }: { data: Array<{ date: string; count: number }> }) {
   );
 }
 
+function formatMrr(cents: number): string {
+  if (cents === 0) return "$0";
+  return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -96,13 +113,44 @@ export default function AdminDashboardPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Admin Dashboard</h1>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <StatCard label="Total Users" value={stats.totalUsers} icon={UsersIcon} />
-        <StatCard label="Total Generations" value={stats.totalGenerations} icon={MusicalNoteIcon} />
-        <StatCard label="Today" value={stats.generationsToday} icon={BoltIcon} />
-        <StatCard label="Active (7d)" value={stats.activeUsers} icon={UserGroupIcon} />
-        <StatCard label="Pending Reports" value={stats.pendingReports} icon={FlagIcon} />
-        <StatCard label="Errors Today" value={stats.recentErrors} icon={ExclamationTriangleIcon} />
+      <div>
+        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Users</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard label="Total Users" value={stats.totalUsers} icon={UsersIcon} />
+          <StatCard label="Paying Users" value={stats.payingUsers} icon={CreditCardIcon} />
+          <StatCard label="Active (7d)" value={stats.activeUsers7d} icon={UserGroupIcon} />
+          <StatCard label="Active (30d)" value={stats.activeUsers30d} icon={UserGroupIcon} />
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Revenue</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard
+            label="Est. MRR"
+            value={formatMrr(stats.mrrCents)}
+            icon={CurrencyDollarIcon}
+            sub="approximate"
+          />
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Generations</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard label="All Time" value={stats.totalGenerations} icon={MusicalNoteIcon} />
+          <StatCard label="Today" value={stats.generationsToday} icon={BoltIcon} />
+          <StatCard label="This Week" value={stats.generationsWeek} icon={CalendarDaysIcon} />
+          <StatCard label="This Month" value={stats.generationsMonth} icon={CalendarIcon} />
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">System</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard label="Pending Reports" value={stats.pendingReports} icon={FlagIcon} />
+          <StatCard label="Errors Today" value={stats.recentErrors} icon={ExclamationTriangleIcon} />
+        </div>
       </div>
 
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">

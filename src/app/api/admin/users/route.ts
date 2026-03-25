@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
 import type { NextRequest } from "next/server";
+import { TIER_LIMITS } from "@/lib/billing";
 
 export async function GET(request: NextRequest) {
   const { error } = await requireAdmin();
@@ -32,6 +33,9 @@ export async function GET(request: NextRequest) {
     orderBy.createdAt = order;
   }
 
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
   const [users, total] = await Promise.all([
     prisma.user.findMany({
       where,
@@ -44,6 +48,13 @@ export async function GET(request: NextRequest) {
         createdAt: true,
         lastLoginAt: true,
         _count: { select: { songs: true } },
+        subscription: {
+          select: { tier: true, status: true },
+        },
+        creditUsages: {
+          where: { createdAt: { gte: monthStart } },
+          select: { creditCost: true },
+        },
       },
       orderBy: Object.keys(orderBy).length > 0 ? orderBy : undefined,
       skip: (page - 1) * limit,
@@ -52,16 +63,27 @@ export async function GET(request: NextRequest) {
     prisma.user.count({ where }),
   ]);
 
-  const result = users.map((u) => ({
-    id: u.id,
-    name: u.name,
-    email: u.email,
-    isAdmin: u.isAdmin,
-    isDisabled: u.isDisabled,
-    createdAt: u.createdAt,
-    lastLoginAt: u.lastLoginAt,
-    generationCount: u._count.songs,
-  }));
+  const result = users.map((u) => {
+    const tier = u.subscription?.tier ?? "free";
+    const creditsUsed = u.creditUsages.reduce((sum, c) => sum + c.creditCost, 0);
+    const creditBudget = TIER_LIMITS[tier]?.creditsPerMonth ?? TIER_LIMITS.free.creditsPerMonth;
+    const creditBalance = Math.max(0, creditBudget - creditsUsed);
+
+    return {
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      isAdmin: u.isAdmin,
+      isDisabled: u.isDisabled,
+      createdAt: u.createdAt,
+      lastLoginAt: u.lastLoginAt,
+      generationCount: u._count.songs,
+      planTier: tier,
+      subscriptionStatus: u.subscription?.status ?? null,
+      creditBalance,
+      creditBudget,
+    };
+  });
 
   if (sortBy === "generationCount") {
     result.sort((a, b) =>

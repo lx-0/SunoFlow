@@ -16,6 +16,10 @@ interface UserDetail {
   songCount: number;
   playlistCount: number;
   favoriteCount: number;
+  planTier: string;
+  subscriptionStatus: string | null;
+  creditBalance: number;
+  creditBudget: number;
 }
 
 interface Song {
@@ -28,6 +32,15 @@ interface Song {
   createdAt: string;
 }
 
+const TIER_OPTIONS = ["free", "starter", "pro", "studio"] as const;
+
+const TIER_COLORS: Record<string, string> = {
+  free: "bg-gray-800 text-gray-400",
+  starter: "bg-blue-900/30 text-blue-400",
+  pro: "bg-violet-900/30 text-violet-400",
+  studio: "bg-amber-900/30 text-amber-400",
+};
+
 export default function AdminUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [user, setUser] = useState<UserDetail | null>(null);
@@ -37,9 +50,24 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
   const [totalPages, setTotalPages] = useState(1);
   const [toggling, setToggling] = useState(false);
 
+  // Credit adjustment state
+  const [creditAmount, setCreditAmount] = useState("");
+  const [creditReason, setCreditReason] = useState("");
+  const [adjustingCredits, setAdjustingCredits] = useState(false);
+  const [creditMessage, setCreditMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  // Plan change state
+  const [selectedTier, setSelectedTier] = useState<string>("");
+  const [changingPlan, setChangingPlan] = useState(false);
+  const [planMessage, setPlanMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
   const fetchUser = useCallback(async () => {
     const res = await fetch(`/api/admin/users/${id}`);
-    if (res.ok) setUser(await res.json());
+    if (res.ok) {
+      const data = await res.json();
+      setUser(data);
+      setSelectedTier(data.planTier ?? "free");
+    }
   }, [id]);
 
   const fetchHistory = useCallback(async () => {
@@ -60,6 +88,50 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
     await fetch(`/api/admin/users/${id}/toggle`, { method: "POST" });
     await fetchUser();
     setToggling(false);
+  };
+
+  const handleAdjustCredits = async () => {
+    const amount = parseInt(creditAmount, 10);
+    if (isNaN(amount) || amount === 0) {
+      setCreditMessage({ type: "err", text: "Enter a non-zero integer amount." });
+      return;
+    }
+    setAdjustingCredits(true);
+    setCreditMessage(null);
+    const res = await fetch(`/api/admin/users/${id}/credits`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount, reason: creditReason || "Admin adjustment" }),
+    });
+    if (res.ok) {
+      setCreditMessage({ type: "ok", text: `Credits adjusted by ${amount > 0 ? "+" : ""}${amount}.` });
+      setCreditAmount("");
+      setCreditReason("");
+      await fetchUser();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      setCreditMessage({ type: "err", text: err.error ?? "Failed to adjust credits." });
+    }
+    setAdjustingCredits(false);
+  };
+
+  const handleChangePlan = async () => {
+    if (!selectedTier) return;
+    setChangingPlan(true);
+    setPlanMessage(null);
+    const res = await fetch(`/api/admin/users/${id}/plan`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tier: selectedTier }),
+    });
+    if (res.ok) {
+      setPlanMessage({ type: "ok", text: `Plan updated to ${selectedTier}.` });
+      await fetchUser();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      setPlanMessage({ type: "err", text: err.error ?? "Failed to change plan." });
+    }
+    setChangingPlan(false);
   };
 
   if (loading) {
@@ -114,12 +186,27 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5">
           <div>
             <span className="text-xs text-gray-500">Status</span>
-            <p
-              className={`font-medium ${
-                user.isDisabled ? "text-red-400" : "text-green-400"
-              }`}
-            >
+            <p className={`font-medium ${user.isDisabled ? "text-red-400" : "text-green-400"}`}>
               {user.isDisabled ? "Disabled" : "Active"}
+            </p>
+          </div>
+          <div>
+            <span className="text-xs text-gray-500">Plan</span>
+            <p>
+              <span
+                className={`text-xs px-2 py-1 rounded-full capitalize ${
+                  TIER_COLORS[user.planTier ?? "free"] ?? "bg-gray-800 text-gray-400"
+                }`}
+              >
+                {user.planTier ?? "free"}
+              </span>
+            </p>
+          </div>
+          <div>
+            <span className="text-xs text-gray-500">Credits Remaining</span>
+            <p className="font-medium tabular-nums">
+              {user.creditBalance}
+              <span className="text-gray-500 text-xs">/{user.creditBudget}</span>
             </p>
           </div>
           <div>
@@ -129,9 +216,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
           <div>
             <span className="text-xs text-gray-500">Last Login</span>
             <p>
-              {user.lastLoginAt
-                ? new Date(user.lastLoginAt).toLocaleDateString()
-                : "Never"}
+              {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : "Never"}
             </p>
           </div>
           <div>
@@ -155,6 +240,77 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
           </div>
         </div>
       </div>
+
+      {!user.isAdmin && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Credit Adjustment */}
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
+            <h2 className="text-base font-semibold">Adjust Credits</h2>
+            <p className="text-xs text-gray-500">
+              Positive values add credits, negative values deduct credits.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                placeholder="Amount (e.g. 100 or -50)"
+                value={creditAmount}
+                onChange={(e) => setCreditAmount(e.target.value)}
+                className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              />
+            </div>
+            <input
+              type="text"
+              placeholder="Reason (optional)"
+              value={creditReason}
+              onChange={(e) => setCreditReason(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
+            {creditMessage && (
+              <p className={`text-xs ${creditMessage.type === "ok" ? "text-green-400" : "text-red-400"}`}>
+                {creditMessage.text}
+              </p>
+            )}
+            <button
+              onClick={handleAdjustCredits}
+              disabled={adjustingCredits}
+              className="px-4 py-2 bg-violet-700 hover:bg-violet-600 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+            >
+              {adjustingCredits ? "Saving..." : "Apply Adjustment"}
+            </button>
+          </div>
+
+          {/* Plan Change */}
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
+            <h2 className="text-base font-semibold">Change Plan</h2>
+            <p className="text-xs text-gray-500">
+              Override the user&apos;s subscription tier. This does not affect Stripe billing.
+            </p>
+            <select
+              value={selectedTier}
+              onChange={(e) => setSelectedTier(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+            >
+              {TIER_OPTIONS.map((t) => (
+                <option key={t} value={t}>
+                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                </option>
+              ))}
+            </select>
+            {planMessage && (
+              <p className={`text-xs ${planMessage.type === "ok" ? "text-green-400" : "text-red-400"}`}>
+                {planMessage.text}
+              </p>
+            )}
+            <button
+              onClick={handleChangePlan}
+              disabled={changingPlan || selectedTier === (user.planTier ?? "free")}
+              className="px-4 py-2 bg-violet-700 hover:bg-violet-600 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+            >
+              {changingPlan ? "Saving..." : "Update Plan"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-800">
@@ -184,9 +340,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                     key={song.id}
                     className="border-b border-gray-800/50 hover:bg-gray-800/30"
                   >
-                    <td className="px-4 py-3 font-medium">
-                      {song.title || "Untitled"}
-                    </td>
+                    <td className="px-4 py-3 font-medium">{song.title || "Untitled"}</td>
                     <td className="px-4 py-3 hidden sm:table-cell text-gray-400 max-w-xs truncate">
                       {song.prompt || "-"}
                     </td>

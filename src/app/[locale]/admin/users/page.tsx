@@ -17,9 +17,20 @@ interface User {
   createdAt: string;
   lastLoginAt: string | null;
   generationCount: number;
+  planTier: string;
+  subscriptionStatus: string | null;
+  creditBalance: number;
+  creditBudget: number;
 }
 
 type SortField = "createdAt" | "name" | "generationCount";
+
+const TIER_COLORS: Record<string, string> = {
+  free: "bg-gray-800 text-gray-400",
+  starter: "bg-blue-900/30 text-blue-400",
+  pro: "bg-violet-900/30 text-violet-400",
+  studio: "bg-amber-900/30 text-amber-400",
+};
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -107,6 +118,8 @@ export default function AdminUsersPage() {
                   User <SortIcon field="name" />
                 </th>
                 <th className="text-left px-4 py-3 hidden sm:table-cell">Status</th>
+                <th className="text-left px-4 py-3 hidden md:table-cell">Plan</th>
+                <th className="text-left px-4 py-3 hidden lg:table-cell">Credits</th>
                 <th
                   className="text-left px-4 py-3 cursor-pointer hover:text-white"
                   onClick={() => handleSort("generationCount")}
@@ -125,13 +138,13 @@ export default function AdminUsersPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-8 text-gray-500">
+                  <td colSpan={7} className="text-center py-8 text-gray-500">
                     Loading...
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-8 text-gray-500">
+                  <td colSpan={7} className="text-center py-8 text-gray-500">
                     No users found
                   </td>
                 </tr>
@@ -166,6 +179,21 @@ export default function AdminUsersPage() {
                         }`}
                       >
                         {user.isDisabled ? "Disabled" : "Active"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full capitalize ${
+                          TIER_COLORS[user.planTier] ?? "bg-gray-800 text-gray-400"
+                        }`}
+                      >
+                        {user.planTier}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 hidden lg:table-cell text-gray-300">
+                      <span className="tabular-nums">
+                        {user.creditBalance}
+                        <span className="text-gray-600">/{user.creditBudget}</span>
                       </span>
                     </td>
                     <td className="px-4 py-3">{user.generationCount}</td>
