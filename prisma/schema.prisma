@@ -78,7 +78,8 @@ model User {
   comments         Comment[]
   followers        Follow[]  @relation("Following")
   following        Follow[]  @relation("Follower")
-  reactions        SongReaction[]
+  reactions            SongReaction[]
+  generationFeedbacks  GenerationFeedback[]
 }
 
 model Song {
@@ -121,7 +122,8 @@ model Song {
   ratings       Rating[]
   queueItems    GenerationQueueItem[]
   comments      Comment[]
-  reactions     SongReaction[]
+  reactions            SongReaction[]
+  generationFeedbacks  GenerationFeedback[]
 
   @@index([userId, title])
   @@index([userId, prompt])
@@ -333,6 +335,26 @@ model Rating {
   song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
 
   @@unique([userId, songId])
+  @@index([songId])
+  @@index([userId])
+}
+
+enum GenerationFeedbackRating {
+  thumbs_up
+  thumbs_down
+}
+
+model GenerationFeedback {
+  id        String                   @id @default(cuid())
+  songId    String
+  userId    String
+  rating    GenerationFeedbackRating
+  createdAt DateTime                 @default(now())
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([songId, userId])
   @@index([songId])
   @@index([userId])
 }

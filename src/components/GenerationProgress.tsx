@@ -1,11 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   MusicalNoteIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
+  HandThumbUpIcon,
+  HandThumbDownIcon,
 } from "@heroicons/react/24/solid";
+import {
+  HandThumbUpIcon as HandThumbUpOutlineIcon,
+  HandThumbDownIcon as HandThumbDownOutlineIcon,
+} from "@heroicons/react/24/outline";
 import type { GenerationState } from "@/hooks/useGenerationPoller";
 
 const STATUS_CONFIG = {
@@ -44,6 +51,78 @@ function StatusIcon({ status }: { status: GenerationState["status"] }) {
         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
       />
     </svg>
+  );
+}
+
+type ThumbsRating = "thumbs_up" | "thumbs_down" | null;
+
+function ThumbsFeedback({ songId }: { songId: string }) {
+  const [rating, setRating] = useState<ThumbsRating>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function handleClick(value: "thumbs_up" | "thumbs_down") {
+    if (saving) return;
+    const next = rating === value ? null : value;
+    setSaving(true);
+    try {
+      if (next === null) {
+        // No delete endpoint — just update to the other value or do nothing visually
+        setRating(null);
+      } else {
+        await fetch(`/api/songs/${songId}/feedback`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rating: next }),
+        });
+        setRating(next);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-gray-500 dark:text-gray-400">Rate this:</span>
+      <button
+        type="button"
+        onClick={() => handleClick("thumbs_up")}
+        disabled={saving}
+        aria-label="Thumbs up"
+        aria-pressed={rating === "thumbs_up"}
+        className={`p-1.5 rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center ${
+          rating === "thumbs_up"
+            ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+            : "text-gray-400 dark:text-gray-500 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20"
+        }`}
+      >
+        {rating === "thumbs_up" ? (
+          <HandThumbUpIcon className="h-4 w-4" />
+        ) : (
+          <HandThumbUpOutlineIcon className="h-4 w-4" />
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={() => handleClick("thumbs_down")}
+        disabled={saving}
+        aria-label="Thumbs down"
+        aria-pressed={rating === "thumbs_down"}
+        className={`p-1.5 rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center ${
+          rating === "thumbs_down"
+            ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+            : "text-gray-400 dark:text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+        }`}
+      >
+        {rating === "thumbs_down" ? (
+          <HandThumbDownIcon className="h-4 w-4" />
+        ) : (
+          <HandThumbDownOutlineIcon className="h-4 w-4" />
+        )}
+      </button>
+    </div>
   );
 }
 
@@ -118,15 +197,18 @@ function SongProgress({ song }: { song: GenerationState }) {
         </p>
       )}
 
-      {/* Action button */}
+      {/* Action button + feedback */}
       {song.status === "ready" && (
-        <button
-          type="button"
-          onClick={() => router.push(`/library/${song.songId}`)}
-          className="w-full text-center text-sm font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl py-2 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
-        >
-          View in library
-        </button>
+        <div className="space-y-2">
+          <ThumbsFeedback songId={song.songId} />
+          <button
+            type="button"
+            onClick={() => router.push(`/library/${song.songId}`)}
+            className="w-full text-center text-sm font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl py-2 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
+          >
+            View in library
+          </button>
+        </div>
       )}
     </div>
   );
