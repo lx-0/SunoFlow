@@ -48,7 +48,7 @@ async function fetchSong(id: string) {
 async function fetchDbMeta(songId: string) {
   try {
     const session = await auth();
-    if (!session?.user?.id) return { isFavorite: false, favoriteCount: 0, sunoJobId: null, isPublic: false, publicSlug: null, isHidden: false, isInstrumental: false };
+    if (!session?.user?.id) return { isFavorite: false, favoriteCount: 0, sunoJobId: null, isPublic: false, publicSlug: null, isHidden: false, isInstrumental: false, lyricsEdited: null };
     const dbSong = await prisma.song.findFirst({
       where: { id: songId, userId: session.user.id },
       select: {
@@ -59,6 +59,7 @@ async function fetchDbMeta(songId: string) {
         publicSlug: true,
         rating: true,
         ratingNote: true,
+        lyricsEdited: true,
         _count: { select: { favorites: true } },
         favorites: { where: { userId: session.user.id }, select: { id: true } },
       },
@@ -71,11 +72,12 @@ async function fetchDbMeta(songId: string) {
       publicSlug: dbSong?.publicSlug ?? null,
       isHidden: dbSong?.isHidden ?? false,
       isInstrumental: dbSong?.isInstrumental ?? false,
+      lyricsEdited: dbSong?.lyricsEdited ?? null,
       rating: dbSong?.rating ?? null,
       ratingNote: dbSong?.ratingNote ?? null,
     };
   } catch {
-    return { isFavorite: false, favoriteCount: 0, sunoJobId: null, isPublic: false, publicSlug: null, isHidden: false, isInstrumental: false, rating: null, ratingNote: null };
+    return { isFavorite: false, favoriteCount: 0, sunoJobId: null, isPublic: false, publicSlug: null, isHidden: false, isInstrumental: false, lyricsEdited: null, rating: null, ratingNote: null };
   }
 }
 
@@ -183,6 +185,7 @@ async function SongDetailContent({ id }: { id: string }) {
       isInstrumental={dbMeta.isInstrumental}
       initialRating={dbMeta.rating}
       initialRatingNote={dbMeta.ratingNote}
+      lyricsEdited={dbMeta.lyricsEdited}
       songTags={songTags}
       variations={variationData.variations}
       variationCount={variationData.variationCount}

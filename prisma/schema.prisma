@@ -124,6 +124,7 @@ model Song {
   imageUrl         String?
   duration         Float?
   lyrics           String?
+  lyricsEdited     String?  @db.Text
   sunoModel        String?
   isInstrumental   Boolean  @default(false)
   generationStatus String   @default("pending")
@@ -157,6 +158,8 @@ model Song {
   generationFeedbacks  GenerationFeedback[]
   playHistory          PlayHistory[]
   activities           Activity[]
+  lyricTimestamps      LyricTimestamp[]
+  lyricAnnotations     LyricAnnotation[]
 
   @@index([userId, title])
   @@index([userId, prompt])
@@ -673,5 +676,33 @@ model PlayHistory {
   song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
 
   @@index([userId, playedAt(sort: Desc)])
+  @@index([songId])
+}
+
+model LyricTimestamp {
+  id        String   @id @default(cuid())
+  songId    String
+  lineIndex Int      // 0-based index into lyric lines
+  startTime Float    // seconds from start of audio
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([songId, lineIndex])
+  @@index([songId])
+}
+
+model LyricAnnotation {
+  id        String   @id @default(cuid())
+  songId    String
+  lineIndex Int      // 0-based index into lyric lines
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([songId, lineIndex])
   @@index([songId])
 }

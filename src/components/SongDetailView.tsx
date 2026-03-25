@@ -44,6 +44,7 @@ import { useQueue } from "./QueueContext";
 const ReportModal = dynamic(() => import("./ReportModal").then((m) => m.ReportModal), { ssr: false });
 import { TagInput } from "./TagInput";
 import { SectionEditor } from "./SectionEditor";
+import { LyricsEditor } from "./LyricsEditor";
 // Lazy-load below-fold recommendations to reduce initial bundle
 const RecommendationSection = dynamic(() => import("./SongRecommendations").then((m) => m.RecommendationSection), { ssr: false });
 
@@ -614,6 +615,7 @@ interface SongDetailViewProps {
   maxVariations?: number;
   parentSongId?: string | null;
   parentSongTitle?: string | null;
+  lyricsEdited?: string | null;
 }
 
 // ─── Main SongDetailView ──────────────────────────────────────────────────────
@@ -636,6 +638,7 @@ export function SongDetailView({
   maxVariations = 5,
   parentSongId = null,
   parentSongTitle = null,
+  lyricsEdited = null,
 }: SongDetailViewProps) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -1683,13 +1686,13 @@ export function SongDetailView({
       />
 
       {/* Lyrics */}
-      {song.lyrics && (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 transition-shadow duration-200 hover:shadow-md">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide mb-2">Lyrics</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 whitespace-pre-line leading-relaxed">
-            {song.lyrics}
-          </p>
-        </div>
+      {(song.lyrics || lyricsEdited) && (
+        <LyricsEditor
+          songId={song.id}
+          originalLyrics={song.lyrics ?? null}
+          editedLyrics={lyricsEdited}
+          isCurrentSong={currentSong?.id === song.id}
+        />
       )}
 
       {/* Prompt */}
