@@ -21,6 +21,8 @@ function formatTime(seconds: number): string {
 interface PublicSongViewProps {
   songId: string;
   slug: string;
+  /** Optional override for the returnUrl used in the signup CTA. Defaults to /s/{slug}. */
+  returnUrl?: string;
   title: string;
   imageUrl: string | null;
   audioUrl: string | null;
@@ -34,6 +36,7 @@ interface PublicSongViewProps {
 export function PublicSongView({
   songId,
   slug,
+  returnUrl,
   title,
   imageUrl,
   audioUrl,
@@ -43,6 +46,7 @@ export function PublicSongView({
   prompt,
   createdAt,
 }: PublicSongViewProps) {
+  const signupReturnUrl = returnUrl ?? `/s/${slug}`;
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -309,7 +313,7 @@ export function PublicSongView({
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Generate something like it — free to try.</p>
           </div>
           <Link
-            href={`/register?returnUrl=${encodeURIComponent(`/s/${slug}`)}`}
+            href={`/register?returnUrl=${encodeURIComponent(signupReturnUrl)}`}
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-lg transition-colors"
           >
             <SparklesIcon className="w-4 h-4" aria-hidden="true" />
