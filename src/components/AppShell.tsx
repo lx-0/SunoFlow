@@ -481,6 +481,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <button
               onClick={() => { setSidebarOpen(false); setFeedbackOpen(true); }}
+              aria-label="Send feedback"
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors min-h-[44px]"
             >
               <ChatBubbleLeftEllipsisIcon className="w-5 h-5" aria-hidden="true" />
@@ -488,6 +489,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
+              aria-label={tCommon("logout")}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors min-h-[44px]"
             >
               {tCommon("logout")}
@@ -549,6 +551,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
               <button
                 onClick={() => signOut({ callbackUrl: "/login" })}
+                aria-label={tCommon("logout")}
                 className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors min-h-[44px] px-2 hidden md:block"
               >
                 {tCommon("logout")}

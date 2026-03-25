@@ -93,7 +93,7 @@ function ToastItem({
       role="alert"
       className={`flex items-start gap-2 border rounded-xl px-4 py-3 shadow-lg backdrop-blur-sm animate-slide-in ${variantStyles[toast.variant]}`}
     >
-      <Icon className="w-5 h-5 flex-shrink-0 mt-0.5" />
+      <Icon className="w-5 h-5 flex-shrink-0 mt-0.5" aria-hidden="true" />
       <div className="flex-1 min-w-0">
         <p className="text-sm">{toast.message}</p>
         {toast.action && (

@@ -226,10 +226,21 @@ export function PlayerWaveform({
 
   return (
     <div className="relative w-full h-full select-none">
+      {/* Visually hidden range input for keyboard/screen reader seek access */}
+      <input
+        type="range"
+        min={0}
+        max={1000}
+        step={1}
+        value={duration > 0 ? Math.round((currentTime / duration) * 1000) : 0}
+        onChange={(e) => onSeek(Number(e.target.value) / 1000)}
+        aria-label={`Seek. ${fmtTime(currentTime)} of ${fmtTime(duration)}`}
+        className="sr-only"
+      />
       <canvas
         ref={canvasRef}
         className="block w-full h-full cursor-pointer"
-        aria-label="Audio waveform — click or drag to seek"
+        aria-hidden="true"
         onMouseDown={(e) => {
           dragging.current = true;
           onSeek(getFrac(e));

@@ -156,15 +156,20 @@ function SongProgress({ song }: { song: GenerationState }) {
       </div>
 
       {/* Step progress bar */}
-      <div className="flex items-center gap-1">
+      <div
+        className="flex items-center gap-1"
+        role="list"
+        aria-label="Generation steps"
+      >
         {STEPS.map((step, i) => {
           const isCurrent = i === config.step && !isTerminal;
           const isDone =
             i < config.step || (isTerminal && song.status === "ready");
           const isFailed = isTerminal && song.status === "failed" && i === config.step;
+          const stepState = isFailed ? "failed" : isDone ? "complete" : isCurrent ? "in progress" : "pending";
 
           return (
-            <div key={step} className="flex-1 flex flex-col items-center gap-1">
+            <div key={step} className="flex-1 flex flex-col items-center gap-1" role="listitem" aria-label={`${step}: ${stepState}`}>
               <div
                 className={`h-1.5 w-full rounded-full transition-colors duration-300 ${
                   isFailed
