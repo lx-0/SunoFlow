@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 
-const PRESET_EMOJIS = ["🔥", "❤️", "😂", "😮", "👏", "🎵", "💯", "✨"];
+const PRESET_EMOJIS = ["🔥", "🤯", "😭", "🥵", "💀", "🫶", "👑", "🎸", "😤", "🚀", "💥", "✨"];
 
 interface EmojiReactionPickerProps {
   isPlaying: boolean;
