@@ -1102,6 +1102,7 @@ export function LibraryView({
   // ─── Build filter query string (shared by initial fetch and load-more) ───
   function buildFilterParams(): URLSearchParams {
     const params = new URLSearchParams();
+    params.set("limit", "100");
     if (debouncedSearch) params.set("q", debouncedSearch);
     if (statusFilter) params.set("status", statusFilter);
     if (ratingFilter) params.set("minRating", ratingFilter);
@@ -1184,6 +1185,29 @@ export function LibraryView({
   const handleSongUpdate = useCallback((updated: Song) => {
     setSongs((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
   }, []);
+
+  // ─── Auto-refresh list when pending songs exist ─────────────────────────
+  // Re-fetches every 30s while any song is pending so newly completed songs
+  // appear without a manual page reload.
+  const hasPending = songs.some((s) => s.generationStatus === "pending");
+  useEffect(() => {
+    if (!enableServerSearch || !hasPending) return;
+    const interval = setInterval(() => {
+      const params = buildFilterParams();
+      fetch(`/api/songs?${params.toString()}`)
+        .then((res) => res.ok ? res.json() : null)
+        .then((data) => {
+          if (data?.songs) {
+            setSongs(data.songs);
+            setNextCursor(data.nextCursor ?? null);
+            setTotalSongs(data.total ?? data.songs.length);
+          }
+        })
+        .catch(() => {});
+    }, 30_000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasPending, enableServerSearch]);
 
   async function handleTogglePlay(song: Song) {
     // If the song is already active, just toggle without re-loading

@@ -37,8 +37,24 @@ function stripCDATA(text: string): string {
   return text.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1");
 }
 
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(Number(dec)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)));
+}
+
 function stripTags(text: string): string {
-  return text.replace(/<[^>]+>/g, "").trim();
+  // Strip tags, collapse whitespace, then decode HTML entities
+  return decodeHtmlEntities(
+    text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+  );
 }
 
 function extractAtomLink(itemXml: string): string {
@@ -133,7 +149,7 @@ export async function fetchFeed(url: string): Promise<FeedResult> {
         const rawContent =
           extractTagContent(entry, "content") ||
           extractTagContent(entry, "summary");
-        const description = stripTags(rawContent).slice(0, 500).trim();
+        const description = stripTags(rawContent);
         const link = extractAtomLink(entry) || extractTagContent(entry, "id");
         return { title, description, link, source: feedTitle };
       });
@@ -162,7 +178,7 @@ export async function fetchFeed(url: string): Promise<FeedResult> {
           extractTagContent(item, "encoded");
         const rawDescription = contentEncoded ||
           stripCDATA(extractTagContent(item, "description"));
-        const description = stripTags(rawDescription).slice(0, 500).trim();
+        const description = stripTags(rawDescription);
         const link = extractTagContent(item, "link");
         const pubDate = extractTagContent(item, "pubDate");
         return { title, description, link, source: feedTitle, pubDate };
