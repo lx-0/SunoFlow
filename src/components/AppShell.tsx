@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
+import { TIER_LABELS, TIER_BADGE_COLORS, type SubscriptionTier } from "@/lib/feature-gates";
 
 import {
   HomeIcon,
@@ -281,6 +282,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Bottom section — profile/settings/signout */}
         {session?.user && (
           <div className="border-t border-gray-200 dark:border-gray-800 p-2 space-y-1">
+            {/* Tier badge — visible when sidebar is expanded and user is on paid tier */}
+            {!sidebarCollapsed && (() => {
+              const tier = ((session.user as unknown as Record<string, unknown>).subscriptionTier as SubscriptionTier) ?? "free";
+              if (tier === "free") return null;
+              return (
+                <Link href="/settings/billing" className="flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Plan</span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide ${TIER_BADGE_COLORS[tier]}`}>
+                    {TIER_LABELS[tier]}
+                  </span>
+                </Link>
+              );
+            })()}
             {!!(session.user as unknown as Record<string, unknown>).isAdmin && (
               <Link
                 href="/admin"
@@ -400,6 +414,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Bottom section */}
         {session?.user && (
           <div className="border-t border-gray-200 dark:border-gray-800 p-2 space-y-1">
+            {/* Tier badge for mobile drawer */}
+            {(() => {
+              const tier = ((session.user as unknown as Record<string, unknown>).subscriptionTier as SubscriptionTier) ?? "free";
+              if (tier === "free") return null;
+              return (
+                <Link
+                  href="/settings/billing"
+                  onClick={() => setSidebarOpen(false)}
+                  className="flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Plan</span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide ${TIER_BADGE_COLORS[tier]}`}>
+                    {TIER_LABELS[tier]}
+                  </span>
+                </Link>
+              );
+            })()}
             <Link
               href="/profile"
               onClick={() => setSidebarOpen(false)}

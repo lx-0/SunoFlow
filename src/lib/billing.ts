@@ -3,7 +3,7 @@
  * Server-side only; never import from client components.
  */
 
-import { SubscriptionTier, SubscriptionStatus } from "@prisma/client";
+import { SubscriptionTier } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 

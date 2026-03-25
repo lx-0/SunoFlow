@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import Image from "next/image";
 import { AppShell } from "@/components/AppShell";
 import { useTheme } from "@/components/ThemeProvider";
-import { PlusIcon, TrashIcon, SunIcon, MoonIcon, ComputerDesktopIcon, PencilIcon, CheckIcon, XMarkIcon, ArrowPathIcon, KeyIcon, ArrowDownTrayIcon, UserCircleIcon, Cog6ToothIcon, ShieldCheckIcon, BellIcon, SpeakerWaveIcon, ChartBarIcon, ExclamationTriangleIcon, CommandLineIcon, ClipboardDocumentIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, TrashIcon, SunIcon, MoonIcon, ComputerDesktopIcon, PencilIcon, CheckIcon, XMarkIcon, ArrowPathIcon, KeyIcon, ArrowDownTrayIcon, UserCircleIcon, Cog6ToothIcon, ShieldCheckIcon, BellIcon, SpeakerWaveIcon, ChartBarIcon, ExclamationTriangleIcon, CommandLineIcon, ClipboardDocumentIcon, LockClosedIcon } from "@heroicons/react/24/outline";
 import { useOnboarding } from "@/components/OnboardingTour";
+import { canUseFeature, type SubscriptionTier } from "@/lib/feature-gates";
 
 // RSS feeds are now stored in the database via /api/rss/feeds
 
@@ -480,6 +482,38 @@ function PreferencesTab() {
 
 // ─── Account Tab ───
 
+function PersonalApiKeysSectionGated() {
+  const { data: session } = useSession();
+  const tier = ((session?.user as unknown as Record<string, unknown>)?.subscriptionTier as SubscriptionTier) ?? "free";
+  const allowed = canUseFeature("apiKeys", tier);
+
+  if (!allowed) {
+    return (
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <LockClosedIcon className="w-4 h-4 text-violet-500" />
+          Personal API Keys
+          <span className="ml-1 px-1.5 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Studio</span>
+        </h3>
+        <div className="flex flex-col gap-3 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-sm">
+          <p className="text-gray-600 dark:text-gray-400">
+            Generate API keys to integrate SunoFlow into your own applications.
+            Available on the <span className="font-semibold text-gray-900 dark:text-white">Studio</span> plan.
+          </p>
+          <Link
+            href="/pricing"
+            className="inline-flex items-center gap-1.5 self-start px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-600 hover:bg-violet-700 text-white transition-colors"
+          >
+            Upgrade to Studio
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return <PersonalApiKeysSection />;
+}
+
 function AccountTab() {
   return (
     <div className="space-y-6">
@@ -487,7 +521,7 @@ function AccountTab() {
       <div className="border-t border-gray-200 dark:border-gray-800" />
       <ApiKeySection />
       <div className="border-t border-gray-200 dark:border-gray-800" />
-      <PersonalApiKeysSection />
+      <PersonalApiKeysSectionGated />
       <div className="border-t border-gray-200 dark:border-gray-800" />
       <AgentSkillSection />
       <div className="border-t border-gray-200 dark:border-gray-800" />

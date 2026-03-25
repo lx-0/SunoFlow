@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import { AppShell } from "@/components/AppShell";
 import {
@@ -11,6 +13,8 @@ import {
   CheckCircleIcon,
   ChartBarIcon,
   ExclamationTriangleIcon,
+  SparklesIcon,
+  ArrowRightIcon,
 } from "@heroicons/react/24/outline";
 
 const GenerationsBarChart = dynamic(
@@ -83,9 +87,11 @@ function StatCard({
 }
 
 export default function AnalyticsPage() {
+  const { data: session } = useSession();
   const [data, setData] = useState<UserAnalytics | null>(null);
   const [creditData, setCreditData] = useState<CreditUsageData | null>(null);
   const [loading, setLoading] = useState(true);
+  const currentTier = (session?.user as unknown as Record<string, unknown>)?.subscriptionTier as string ?? "free";
 
   const fetchData = useCallback(async () => {
     try {
@@ -210,6 +216,30 @@ export default function AnalyticsPage() {
                 <p className="text-xs text-gray-500 dark:text-gray-400">All-time credits</p>
               </div>
             </div>
+
+            {/* Upgrade CTA — shown when credits are low and user is on free tier */}
+            {creditData.isLow && currentTier === "free" && (
+              <div className="flex items-start justify-between gap-4 p-4 rounded-xl bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border border-violet-200 dark:border-violet-800">
+                <div className="flex items-start gap-3">
+                  <SparklesIcon className="w-5 h-5 text-violet-600 dark:text-violet-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-violet-900 dark:text-violet-200">
+                      Running low on credits
+                    </p>
+                    <p className="text-xs text-violet-700 dark:text-violet-400 mt-0.5">
+                      Upgrade to get up to 15,000 credits/month plus higher generation speeds.
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href="/pricing"
+                  className="inline-flex items-center gap-1 flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-600 hover:bg-violet-700 text-white transition-colors"
+                >
+                  Upgrade
+                  <ArrowRightIcon className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            )}
 
             {/* Daily credit chart */}
             <div>

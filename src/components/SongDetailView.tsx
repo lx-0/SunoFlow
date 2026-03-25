@@ -5,6 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { canUseFeature, type SubscriptionTier } from "@/lib/feature-gates";
 import {
   ArrowLeftIcon,
   MusicalNoteIcon,
@@ -531,6 +533,9 @@ export function SongDetailView({
   parentSongTitle = null,
 }: SongDetailViewProps) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const userTier = ((session?.user as unknown as Record<string, unknown>)?.subscriptionTier as SubscriptionTier) ?? "free";
+  const canSeparateVocals = canUseFeature("vocalSeparation", userTier);
   const { toast } = useToast();
   const { playNext, addToQueue, togglePlay, isPlaying, currentIndex, queue } = useQueue();
   const currentSong = currentIndex >= 0 ? queue[currentIndex] : null;
@@ -1352,14 +1357,25 @@ export function SongDetailView({
               Add Instrumental
             </button>
           )}
-          <button
-            onClick={() => setSeparateModalOpen(true)}
-            disabled={!hasAudio}
-            className="flex items-center justify-center gap-2 px-3 py-2.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
-          >
-            <ScissorsIcon className="w-4 h-4" aria-hidden="true" />
-            Separate Vocals
-          </button>
+          {canSeparateVocals ? (
+            <button
+              onClick={() => setSeparateModalOpen(true)}
+              disabled={!hasAudio}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
+            >
+              <ScissorsIcon className="w-4 h-4" aria-hidden="true" />
+              Separate Vocals
+            </button>
+          ) : (
+            <Link
+              href="/pricing"
+              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium rounded-xl transition-colors min-h-[44px] hover:bg-violet-100 dark:hover:bg-violet-900/20 hover:text-violet-700 dark:hover:text-violet-400"
+              title="Vocal Separation requires Pro or higher"
+            >
+              <ScissorsIcon className="w-4 h-4" aria-hidden="true" />
+              Separate Vocals <span className="text-xs font-bold">(Pro+)</span>
+            </Link>
+          )}
           <button
             onClick={() => setSectionEditorOpen(true)}
             disabled={!hasAudio || !song.duration || initialVariationCount >= maxVariations}
