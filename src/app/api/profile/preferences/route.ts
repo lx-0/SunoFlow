@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 
 const VALID_STYLES = ["pop", "rock", "electronic", "hip-hop", "jazz", "classical", "r&b", "country", "folk", "ambient", "metal", "latin", "instrumental", "lo-fi", "cinematic"];
 
+function sanitizeGenre(genre: string): string {
+  return genre.trim().toLowerCase().slice(0, 50);
+}
+
 export async function GET(request: Request) {
   const { userId, error: authError } = await resolveUser(request);
 
@@ -48,11 +52,10 @@ export async function PATCH(request: Request) {
     if (preferredGenres.length > 10) {
       return NextResponse.json({ error: "Maximum 10 preferred genres", code: "VALIDATION_ERROR" }, { status: 400 });
     }
-    const invalid = preferredGenres.filter((g: unknown) => typeof g !== "string" || !VALID_STYLES.includes((g as string).toLowerCase()));
-    if (invalid.length > 0) {
-      return NextResponse.json({ error: `Invalid genres: ${invalid.join(", ")}`, code: "VALIDATION_ERROR" }, { status: 400 });
+    if (preferredGenres.some((g: unknown) => typeof g !== "string" || !g.trim())) {
+      return NextResponse.json({ error: "Each genre must be a non-empty string", code: "VALIDATION_ERROR" }, { status: 400 });
     }
-    data.preferredGenres = preferredGenres.map((g: string) => g.toLowerCase());
+    data.preferredGenres = preferredGenres.map((g: string) => sanitizeGenre(g)).filter(Boolean);
   }
 
   if (Object.keys(data).length === 0) {
