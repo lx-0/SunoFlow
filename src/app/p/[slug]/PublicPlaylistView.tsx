@@ -2,13 +2,20 @@
 
 import { useRef, useState, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   PlayIcon,
   PauseIcon,
   ForwardIcon,
   BackwardIcon,
 } from "@heroicons/react/24/solid";
-import { MusicalNoteIcon } from "@heroicons/react/24/outline";
+import {
+  MusicalNoteIcon,
+  ShareIcon,
+  BookmarkIcon,
+} from "@heroicons/react/24/outline";
+import { useSession } from "next-auth/react";
+import { useToast } from "@/components/Toast";
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
@@ -27,6 +34,8 @@ interface PlaylistSong {
 }
 
 interface PublicPlaylistViewProps {
+  playlistId: string;
+  slug: string;
   name: string;
   description: string | null;
   creatorName: string;
@@ -36,6 +45,8 @@ interface PublicPlaylistViewProps {
 }
 
 export function PublicPlaylistView({
+  playlistId,
+  slug,
   name,
   description,
   creatorName,
@@ -43,11 +54,14 @@ export function PublicPlaylistView({
   totalDuration,
   createdAt,
 }: PublicPlaylistViewProps) {
+  const { data: session } = useSession();
+  const { toast } = useToast();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [currentTime, setCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
+  const [isCopying, setIsCopying] = useState(false);
 
   const playableSongs = songs.filter((s) => s.audioUrl);
   const currentSong = currentIndex >= 0 ? playableSongs[currentIndex] : null;
@@ -127,6 +141,43 @@ export function PublicPlaylistView({
 
   const pct = audioDuration > 0 ? (currentTime / audioDuration) * 100 : 0;
 
+  async function handleShare() {
+    const url = `${window.location.origin}/p/${slug}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: name, text: `Listen to "${name}" on SunoFlow`, url });
+      } catch {
+        // User cancelled or share failed — fall through to clipboard
+      }
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast("Link copied!", "success");
+    }
+  }
+
+  async function handleAddToLibrary() {
+    if (isCopying) return;
+    setIsCopying(true);
+    try {
+      const res = await fetch(`/api/playlists/${playlistId}/copy`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        toast(`"${data.playlist.name}" added to your library`, "success");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        if (data.code === "LIMIT_REACHED") {
+          toast("Playlist limit reached (50)", "error");
+        } else {
+          toast("Failed to add to library", "error");
+        }
+      }
+    } catch {
+      toast("Failed to add to library", "error");
+    } finally {
+      setIsCopying(false);
+    }
+  }
+
   return (
     <div className="w-full max-w-md">
       {/* Header */}
@@ -150,6 +201,36 @@ export function PublicPlaylistView({
             day: "numeric",
           })}
         </p>
+
+        {/* Action buttons */}
+        <div className="flex items-center justify-center gap-2 pt-1">
+          <button
+            onClick={handleShare}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          >
+            <ShareIcon className="w-4 h-4" />
+            Share
+          </button>
+
+          {session ? (
+            <button
+              onClick={handleAddToLibrary}
+              disabled={isCopying}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors disabled:opacity-50"
+            >
+              <BookmarkIcon className="w-4 h-4" />
+              {isCopying ? "Adding…" : "Add to library"}
+            </button>
+          ) : (
+            <Link
+              href={`/auth/signin?callbackUrl=/p/${slug}`}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors"
+            >
+              <BookmarkIcon className="w-4 h-4" />
+              Add to library
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Player controls */}
