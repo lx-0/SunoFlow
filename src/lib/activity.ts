@@ -14,7 +14,7 @@ export async function recordActivity(params: {
         type: params.type,
         songId: params.songId ?? null,
         playlistId: params.playlistId ?? null,
-        metadata: params.metadata ?? undefined,
+        metadata: params.metadata ? JSON.parse(JSON.stringify(params.metadata)) : undefined,
       },
     });
   } catch {
