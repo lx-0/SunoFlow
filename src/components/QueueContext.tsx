@@ -97,11 +97,23 @@ export function QueueProvider({ children }: { children: ReactNode }) {
 
   // Track play counts — fire-and-forget POST to avoid double-counting on pause/resume
   const lastTrackedSongRef = useRef<string | null>(null);
+  // History timer — log to play history after 5 seconds of a song starting
+  const historyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const trackPlay = useCallback((songId: string) => {
     if (lastTrackedSongRef.current === songId) return;
     lastTrackedSongRef.current = songId;
     fetch(`/api/songs/${songId}/play`, { method: "POST" }).catch(() => {});
     track("song_played");
+    // Cancel any pending history log for a previous song
+    if (historyTimerRef.current) clearTimeout(historyTimerRef.current);
+    // Schedule history log after 5 seconds
+    historyTimerRef.current = setTimeout(() => {
+      fetch("/api/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ songId }),
+      }).catch(() => {});
+    }, 5_000);
   }, []);
 
   const [queue, setQueue] = useState<QueueSong[]>([]);
@@ -465,6 +477,10 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     if (audio) {
       audio.pause();
       audio.src = "";
+    }
+    if (historyTimerRef.current) {
+      clearTimeout(historyTimerRef.current);
+      historyTimerRef.current = null;
     }
     setQueue([]);
     setCurrentIndex(-1);

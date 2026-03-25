@@ -43,6 +43,7 @@ import { useQueue, type QueueSong } from "./QueueContext";
 import { TagChip } from "./TagInput";
 // Lazy-load the import modal — only rendered when user opens it
 const SunoImportModal = dynamic(() => import("./SunoImportModal").then((m) => m.SunoImportModal), { ssr: false });
+import { RecentlyPlayed } from "./RecentlyPlayed";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1835,6 +1836,11 @@ export function LibraryView({
           <PlayOutlineIcon className="w-4 h-4" />
           Play All
         </button>
+      )}
+
+      {/* Recently Played — only show on default (non-filtered, non-search) library view */}
+      {enableServerSearch && !searchText && !statusFilter && !ratingFilter && !tagFilter && !smartFilter && (
+        <RecentlyPlayed />
       )}
 
       {/* Search bar + filters */}
