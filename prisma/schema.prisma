@@ -53,10 +53,13 @@ model User {
   avatarUrl            String?
   defaultStyle         String?
   preferredGenres      String[]  @default([])
-  onboardingCompleted  Boolean   @default(false)
-  lastLoginAt          DateTime?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  onboardingCompleted      Boolean   @default(false)
+  emailGenerationComplete  Boolean   @default(false)
+  emailWeeklyHighlights    Boolean   @default(false)
+  unsubscribeToken         String?   @unique
+  lastLoginAt              DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   accounts         Account[]
   sessions         Session[]

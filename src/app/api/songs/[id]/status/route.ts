@@ -6,6 +6,9 @@ import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 import { logServerError } from "@/lib/error-logger";
 import { invalidateByPrefix } from "@/lib/cache";
 import { broadcast } from "@/lib/event-bus";
+import { sendGenerationCompleteEmail } from "@/lib/email";
+import { logger } from "@/lib/logger";
+import crypto from "crypto";
 
 const MAX_POLL_ATTEMPTS = 60;
 
@@ -162,6 +165,22 @@ export async function GET(
       });
       // Signal client to process next item
       broadcast(song.userId, { type: "queue_item_complete", data: { songId: id } });
+
+      // Send generation complete email if user has opted in
+      const userPrefs = await prisma.user.findUnique({
+        where: { id: song.userId },
+        select: { email: true, emailGenerationComplete: true, unsubscribeToken: true },
+      });
+      if (userPrefs?.email && userPrefs.emailGenerationComplete) {
+        let unsubToken = userPrefs.unsubscribeToken;
+        if (!unsubToken) {
+          unsubToken = crypto.randomUUID();
+          await prisma.user.update({ where: { id: song.userId }, data: { unsubscribeToken: unsubToken } });
+        }
+        sendGenerationCompleteEmail(userPrefs.email, { id, title: updated.title }, unsubToken).catch((err) =>
+          logger.error({ userId: song.userId, songId: id, err }, "status: failed to send generation complete email")
+        );
+      }
 
       return NextResponse.json({ song: updated });
     }

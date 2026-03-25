@@ -3,7 +3,7 @@ import { logger } from "@/lib/logger";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
-import { sendVerificationEmail } from "@/lib/email";
+import { sendVerificationEmail, sendWelcomeEmail } from "@/lib/email";
 import { stripHtml } from "@/lib/sanitize";
 import { ensureFreeSubscription } from "@/lib/billing";
 
@@ -56,6 +56,9 @@ export async function POST(request: Request) {
     });
 
     await sendVerificationEmail(email, verificationToken);
+    await sendWelcomeEmail(email, sanitizedName).catch((err) =>
+      logger.error({ userId: user.id, err }, "register: failed to send welcome email")
+    );
 
     // Auto-provision FREE subscription for new credential-based users
     await ensureFreeSubscription(user.id).catch((err) =>

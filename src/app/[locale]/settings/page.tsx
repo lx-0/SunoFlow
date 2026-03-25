@@ -466,6 +466,10 @@ function PreferencesTab() {
 
         <div className="border-t border-gray-200 dark:border-gray-800" />
 
+        <EmailNotificationsSection />
+
+        <div className="border-t border-gray-200 dark:border-gray-800" />
+
         <PlaybackDefaultsSection />
 
         <div className="border-t border-gray-200 dark:border-gray-800" />
@@ -926,6 +930,91 @@ function InstagramPostsSection() {
         </ul>
       )}
     </section>
+  );
+}
+
+const EMAIL_NOTIF_TYPES = [
+  { key: "emailGenerationComplete", label: "Generation complete", description: "Email me when a song finishes generating (opt-in)" },
+  { key: "emailWeeklyHighlights", label: "Weekly highlights", description: "A weekly digest of your top songs and activity" },
+];
+
+function EmailNotificationsSection() {
+  const [prefs, setPrefs] = useState<Record<string, boolean>>({});
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  useEffect(() => {
+    fetch("/api/profile/email-preferences")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.error) setPrefs(data);
+      })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, []);
+
+  const toggle = async (key: string) => {
+    const updated = { ...prefs, [key]: !prefs[key] };
+    setPrefs(updated);
+    setSaving(true);
+    try {
+      const res = await fetch("/api/profile/email-preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [key]: updated[key] }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        showToast(data.error ?? "Failed to update preference", "error");
+        setPrefs(prefs); // revert
+      }
+    } catch {
+      showToast("Network error", "error");
+      setPrefs(prefs); // revert
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!loaded) return null;
+
+  return (
+    <>
+      {toast && <Toast message={toast.message} type={toast.type} />}
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Email Notifications</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Choose which emails you want to receive. All emails include a one-click unsubscribe link.</p>
+        </div>
+        <div className="space-y-2">
+          {EMAIL_NOTIF_TYPES.map(({ key, label, description }) => (
+            <label
+              key={key}
+              className="flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-3 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              <input
+                type="checkbox"
+                checked={prefs[key] === true}
+                onChange={() => !saving && toggle(key)}
+                disabled={saving}
+                className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-violet-600 focus:ring-violet-500 dark:bg-gray-800"
+              />
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{label}</span>
+                <span className="block text-xs text-gray-500 dark:text-gray-400">{description}</span>
+              </div>
+              <BellIcon className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+            </label>
+          ))}
+        </div>
+      </section>
+    </>
   );
 }
 
