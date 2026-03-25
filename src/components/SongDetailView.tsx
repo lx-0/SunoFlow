@@ -36,9 +36,8 @@ import {
 import { HeartIcon as HeartOutlineIcon, QueueListIcon, HandThumbUpIcon as HandThumbUpOutlineIcon, HandThumbDownIcon as HandThumbDownOutlineIcon } from "@heroicons/react/24/outline";
 import type { SunoSong } from "@/lib/sunoapi";
 import { getRating, type SongRating } from "@/lib/ratings";
-import { downloadSongFile } from "@/lib/download";
+import { DownloadButton } from "./DownloadButton";
 import { useToast } from "./Toast";
-import { track } from "@/lib/analytics";
 import { useQueue } from "./QueueContext";
 const ReportModal = dynamic(() => import("./ReportModal").then((m) => m.ReportModal), { ssr: false });
 import { TagInput } from "./TagInput";
@@ -565,8 +564,7 @@ export function SongDetailView({
   const [thumbsRating, setThumbsRating] = useState<ThumbsRating>(null);
   const [savingThumbs, setSavingThumbs] = useState(false);
 
-  const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
+  // Download state is now managed inside DownloadButton
 
   // Playlist dropdown
   const [playlistOpen, setPlaylistOpen] = useState(false);
@@ -661,20 +659,6 @@ export function SongDetailView({
     setSaved(false);
   }
 
-  async function handleDownload() {
-    if (!hasAudio || downloadProgress !== null) return;
-    setDownloadError(null);
-    try {
-      track("song_downloaded");
-      await downloadSongFile(song, setDownloadProgress);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Download failed";
-      setDownloadError(msg);
-      toast(msg, "error");
-    } finally {
-      setTimeout(() => setDownloadProgress(null), 1500);
-    }
-  }
 
   async function handleSaveRating() {
     if (rating.stars === 0 || savingRating) return;
@@ -1124,23 +1108,9 @@ export function SongDetailView({
       {/* Action buttons row — primary | secondary groups */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Primary actions */}
-        <button
-          onClick={handleDownload}
-          disabled={!hasAudio || downloadProgress !== null}
-          aria-label="Download song"
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 active:scale-95 min-h-[44px] ${
-            hasAudio && downloadProgress === null
-              ? "bg-violet-600 hover:bg-violet-500 text-white shadow-sm"
-              : "bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed"
-          }`}
-        >
-          <ArrowDownTrayIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-          {downloadProgress === null
-            ? "Download"
-            : downloadProgress === 100
-            ? "Done"
-            : `${downloadProgress}%`}
-        </button>
+        {hasAudio && (
+          <DownloadButton song={song} />
+        )}
 
         {/* Divider dot */}
         <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700 hidden sm:block" aria-hidden="true" />
@@ -1261,16 +1231,6 @@ export function SongDetailView({
         />
       )}
 
-      {/* Download progress/error */}
-      {downloadProgress !== null && downloadProgress < 100 && (
-        <div className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-violet-500 rounded-full transition-all duration-300"
-            style={{ width: `${downloadProgress}%` }}
-          />
-        </div>
-      )}
-      {downloadError && <p className="text-xs text-red-400">{downloadError}</p>}
 
       {/* Export / Format Conversion */}
       {hasAudio && (

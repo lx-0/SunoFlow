@@ -2,21 +2,26 @@ import { NextResponse } from "next/server";
 import { resolveUser } from "@/lib/auth-resolver";
 import { prisma } from "@/lib/prisma";
 import { acquireRateLimitSlot } from "@/lib/rate-limit";
+import { embedId3Tags, embedWavMetadata } from "@/lib/audio-metadata";
+import type { SongMetadata } from "@/lib/audio-metadata";
 
 const DOWNLOAD_RATE_LIMIT = 50; // per hour
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId, error: authError } = await resolveUser(request);
 
     if (authError) return authError;
 
-    const song = await prisma.song.findFirst({
-      where: { id: params.id, userId: userId },
-    });
+    const { id: songId } = await params;
+
+    const [song, user] = await Promise.all([
+      prisma.song.findFirst({ where: { id: songId, userId: userId! } }),
+      prisma.user.findUnique({ where: { id: userId! }, select: { name: true } }),
+    ]);
 
     if (!song) {
       return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
@@ -30,14 +35,12 @@ export async function GET(
     }
 
     // Rate limit: 50 downloads per hour per user
-    const { acquired, status } = await acquireRateLimitSlot(
-      userId,
-      "download"
-    );
+    const { acquired, status } = await acquireRateLimitSlot(userId!, "download");
     if (!acquired) {
       return NextResponse.json(
         {
-          error: "Download rate limit exceeded. Try again later.", code: "RATE_LIMIT",
+          error: "Download rate limit exceeded. Try again later.",
+          code: "RATE_LIMIT",
           resetAt: status.resetAt,
         },
         {
@@ -54,7 +57,7 @@ export async function GET(
       );
     }
 
-    // Proxy the audio from the external URL
+    // Proxy the audio from the external URL (buffer for metadata embedding)
     const upstream = await fetch(song.audioUrl);
     if (!upstream.ok) {
       return NextResponse.json(
@@ -63,45 +66,56 @@ export async function GET(
       );
     }
 
-    // Increment download count
-    await prisma.song.update({
+    // Increment download count (fire and forget)
+    prisma.song.update({
       where: { id: song.id },
       data: { downloadCount: { increment: 1 } },
-    });
+    }).catch(() => {});
+
+    const ext = song.audioUrl.toLowerCase().includes(".wav") ? "wav" : "mp3";
+    const contentType = ext === "wav" ? "audio/wav" : "audio/mpeg";
 
     // Build safe filename
-    const title = (song.title ?? "song")
+    const titleSlug = (song.title ?? "song")
       .replace(/[^a-zA-Z0-9\s-]/g, "")
       .trim()
       .replace(/\s+/g, "-")
       .toLowerCase() || "song";
-    const ext = song.audioUrl.toLowerCase().includes(".wav") ? "wav" : "mp3";
-    const contentType = ext === "wav" ? "audio/wav" : "audio/mpeg";
-    const filename = `${title}.${ext}`;
+    const filename = `${titleSlug}.${ext}`;
+
+    // Check if metadata embedding is requested (default: true)
+    const url = new URL(request.url);
+    const embedMetadata = url.searchParams.get("metadata") !== "false";
+
+    let audioBuffer = await upstream.arrayBuffer();
+
+    if (embedMetadata) {
+      const meta: SongMetadata = {
+        title: song.title ?? undefined,
+        artist: user?.name ?? "SunoFlow User",
+        album: "SunoFlow",
+        year: new Date(song.createdAt).getFullYear(),
+        genre: song.tags ?? undefined,
+        comment: song.prompt ?? undefined,
+      };
+
+      const audioBytes = new Uint8Array(audioBuffer);
+      const tagged =
+        ext === "wav"
+          ? embedWavMetadata(audioBytes, meta)
+          : embedId3Tags(audioBytes, meta);
+      audioBuffer = tagged.buffer as ArrayBuffer;
+    }
 
     const headers = new Headers();
     headers.set("Content-Type", contentType);
-    headers.set(
-      "Content-Disposition",
-      `attachment; filename="${filename}"`
-    );
-    headers.set(
-      "X-RateLimit-Limit",
-      DOWNLOAD_RATE_LIMIT.toString()
-    );
-    headers.set(
-      "X-RateLimit-Remaining",
-      status.remaining.toString()
-    );
+    headers.set("Content-Disposition", `attachment; filename="${filename}"`);
+    headers.set("Content-Length", String(audioBuffer.byteLength));
+    headers.set("X-RateLimit-Limit", DOWNLOAD_RATE_LIMIT.toString());
+    headers.set("X-RateLimit-Remaining", status.remaining.toString());
     headers.set("X-RateLimit-Reset", status.resetAt);
 
-    // Forward content-length if available
-    const contentLength = upstream.headers.get("content-length");
-    if (contentLength) {
-      headers.set("Content-Length", contentLength);
-    }
-
-    return new Response(upstream.body, { status: 200, headers });
+    return new Response(audioBuffer, { status: 200, headers });
   } catch {
     return NextResponse.json(
       { error: "Internal server error", code: "INTERNAL_ERROR" },

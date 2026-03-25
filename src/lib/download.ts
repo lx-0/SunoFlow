@@ -1,29 +1,46 @@
 /**
- * Client-side song download utility with progress tracking.
+ * Client-side song download utility with progress tracking and format selection.
  */
 
 export interface DownloadableSong {
   id: string;
   title: string | null | undefined;
   audioUrl: string;
+  duration?: number | null;
   createdAt?: Date | string;
 }
 
 /**
+ * Detect the native format of a song based on its audio URL.
+ */
+export function detectFormat(audioUrl: string): "mp3" | "wav" {
+  return audioUrl.toLowerCase().includes(".wav") ? "wav" : "mp3";
+}
+
+/**
  * Download a song via the server-side proxy endpoint.
- * The proxy handles auth, ownership, rate limiting, and hides external URLs.
- * `onProgress` is called with 0–100 (percent). When content-length is unknown,
- * it is called once with 50 while fetching and 100 when done.
+ * The proxy handles auth, ownership, rate limiting, and metadata embedding.
+ *
+ * @param song       Song to download.
+ * @param onProgress Called with 0–100 (percent). Unknown total → pulses at 50.
+ * @param options    Optional overrides (metadata embedding toggle).
  */
 export async function downloadSongFile(
   song: DownloadableSong,
-  onProgress: (pct: number) => void
+  onProgress: (pct: number) => void,
+  options: { metadata?: boolean } = {}
 ): Promise<void> {
   if (!song.audioUrl) throw new Error("No audio URL available");
 
   onProgress(0);
 
-  const res = await fetch(`/api/songs/${song.id}/download`);
+  const qs = new URLSearchParams();
+  if (options.metadata === false) qs.set("metadata", "false");
+
+  const res = await fetch(
+    `/api/songs/${song.id}/download${qs.toString() ? `?${qs}` : ""}`
+  );
+
   if (res.status === 429) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error ?? "Download rate limit exceeded. Try again later.");
@@ -86,7 +103,7 @@ function buildFallbackFilename(song: DownloadableSong): string {
   const date = song.createdAt
     ? new Date(song.createdAt).toISOString().slice(0, 10)
     : new Date().toISOString().slice(0, 10);
-  const ext = song.audioUrl.toLowerCase().includes(".wav") ? "wav" : "mp3";
+  const ext = detectFormat(song.audioUrl);
   return `${title}-${date}.${ext}`;
 }
 
