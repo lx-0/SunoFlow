@@ -36,22 +36,33 @@ function userFriendlyError(error: unknown): { message: string; code: string } {
 
 export async function POST(request: Request) {
   try {
-    const { userId, error: authError } = await resolveUser(request);
+    const { userId, isAdmin, error: authError } = await resolveUser(request);
 
     if (authError) return authError;
 
-    // Atomically check and claim a rate limit slot
-    const { acquired, status: rateLimitStatus } = await acquireRateLimitSlot(userId);
-    if (!acquired) {
-      const retryAfterSec = Math.max(
-        1,
-        Math.ceil((new Date(rateLimitStatus.resetAt).getTime() - Date.now()) / 1000)
-      );
-      return rateLimited(
-        `Rate limit exceeded. You can generate up to ${rateLimitStatus.limit} songs per hour.`,
-        { resetAt: rateLimitStatus.resetAt, rateLimit: rateLimitStatus },
-        { "Retry-After": String(retryAfterSec) }
-      );
+    // Atomically check and claim a rate limit slot (admins are exempt)
+    let rateLimitStatus;
+    if (!isAdmin) {
+      const { acquired, status } = await acquireRateLimitSlot(userId);
+      if (!acquired) {
+        const retryAfterSec = Math.max(
+          1,
+          Math.ceil((new Date(status.resetAt).getTime() - Date.now()) / 1000)
+        );
+        logger.warn({ userId, action: "generate", limit: status.limit, resetAt: status.resetAt }, "rate-limit: generation limit exceeded");
+        Sentry.addBreadcrumb({
+          category: "rate-limit",
+          message: "Generation rate limit exceeded",
+          level: "warning",
+          data: { userId, action: "generate", limit: status.limit, resetAt: status.resetAt },
+        });
+        return rateLimited(
+          `Rate limit exceeded. You can generate up to ${status.limit} songs per hour.`,
+          { resetAt: status.resetAt, rateLimit: status },
+          { "Retry-After": String(retryAfterSec) }
+        );
+      }
+      rateLimitStatus = status;
     }
 
     const { prompt, title, tags, makeInstrumental, personaId } = await request.json();

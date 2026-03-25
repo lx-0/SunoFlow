@@ -41,12 +41,12 @@ const USER_ID = "user-123";
 describe("GET /api/ratings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockResolveUser.mockResolvedValue({ userId: USER_ID, isApiKey: false, error: null });
+    mockResolveUser.mockResolvedValue({ userId: USER_ID, isApiKey: false, isAdmin: false, error: null });
   });
 
   it("returns 401 when not authenticated", async () => {
     const errorResponse = new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-    mockResolveUser.mockResolvedValue({ userId: null, isApiKey: false, error: errorResponse });
+    mockResolveUser.mockResolvedValue({ userId: null, isApiKey: false, isAdmin: false, error: errorResponse });
 
     const res = await GET(makeRequest("http://localhost/api/ratings"));
     expect(res.status).toBe(401);
@@ -85,12 +85,12 @@ describe("GET /api/ratings", () => {
 describe("POST /api/ratings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockResolveUser.mockResolvedValue({ userId: USER_ID, isApiKey: false, error: null });
+    mockResolveUser.mockResolvedValue({ userId: USER_ID, isApiKey: false, isAdmin: false, error: null });
   });
 
   it("returns 401 when not authenticated", async () => {
     const errorResponse = new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-    mockResolveUser.mockResolvedValue({ userId: null, isApiKey: false, error: errorResponse });
+    mockResolveUser.mockResolvedValue({ userId: null, isApiKey: false, isAdmin: false, error: errorResponse });
 
     const res = await POST(makeRequest("http://localhost/api/ratings", {
       method: "POST",

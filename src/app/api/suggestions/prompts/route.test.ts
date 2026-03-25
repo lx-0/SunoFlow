@@ -31,7 +31,7 @@ const USER_ID = "user-123";
 describe("GET /api/suggestions/prompts", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockResolveUser.mockResolvedValue({ userId: USER_ID, isApiKey: false, error: null });
+    mockResolveUser.mockResolvedValue({ userId: USER_ID, isApiKey: false, isAdmin: false, error: null });
     // Default: no songs from either query
     mockSongFindMany.mockResolvedValue([]);
   });
@@ -40,7 +40,7 @@ describe("GET /api/suggestions/prompts", () => {
     const errorResponse = new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
     });
-    mockResolveUser.mockResolvedValue({ userId: null, isApiKey: false, error: errorResponse });
+    mockResolveUser.mockResolvedValue({ userId: null, isApiKey: false, isAdmin: false, error: errorResponse });
 
     const res = await GET(makeRequest("http://localhost/api/suggestions/prompts"));
     expect(res.status).toBe(401);

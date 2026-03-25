@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { resolveUser } from "@/lib/auth-resolver";
 import { prisma } from "@/lib/prisma";
 import { generateText } from "@/lib/llm";
 import { acquireRateLimitSlot } from "@/lib/rate-limit";
 import { logServerError } from "@/lib/error-logger";
+import { logger } from "@/lib/logger";
 
 const MAX_REFERENCE_SONGS = 3;
 
@@ -19,7 +21,7 @@ Consider the user's musical taste if reference songs are provided. Be creative a
 
 export async function POST(request: Request) {
   try {
-    const { userId, error: authError } = await resolveUser(request);
+    const { userId, isAdmin, error: authError } = await resolveUser(request);
     if (authError) return authError;
 
     const body = await request.json();
@@ -39,17 +41,27 @@ export async function POST(request: Request) {
       );
     }
 
-    const { acquired, status: rateLimitStatus } = await acquireRateLimitSlot(
-      userId,
-      "lyrics_generate"
-    );
-    if (!acquired) {
-      const resetAt = new Date(rateLimitStatus.resetAt);
-      const retryAfterSec = Math.ceil((resetAt.getTime() - Date.now()) / 1000);
-      return NextResponse.json(
-        { error: "Rate limit exceeded. Please try again later.", code: "RATE_LIMIT", resetAt: rateLimitStatus.resetAt },
-        { status: 429, headers: { "Retry-After": String(Math.max(1, retryAfterSec)) } }
+    // Admins are exempt from rate limits
+    if (!isAdmin) {
+      const { acquired, status: rateLimitStatus } = await acquireRateLimitSlot(
+        userId,
+        "lyrics_generate"
       );
+      if (!acquired) {
+        const resetAt = new Date(rateLimitStatus.resetAt);
+        const retryAfterSec = Math.ceil((resetAt.getTime() - Date.now()) / 1000);
+        logger.warn({ userId, action: "lyrics_generate", limit: rateLimitStatus.limit, resetAt: rateLimitStatus.resetAt }, "rate-limit: lyrics_generate limit exceeded");
+        Sentry.addBreadcrumb({
+          category: "rate-limit",
+          message: "Lyrics generate rate limit exceeded",
+          level: "warning",
+          data: { userId, action: "lyrics_generate", limit: rateLimitStatus.limit, resetAt: rateLimitStatus.resetAt },
+        });
+        return NextResponse.json(
+          { error: "Rate limit exceeded. Please try again later.", code: "RATE_LIMIT", resetAt: rateLimitStatus.resetAt },
+          { status: 429, headers: { "Retry-After": String(Math.max(1, retryAfterSec)) } }
+        );
+      }
     }
 
     // Fetch reference songs for personalization

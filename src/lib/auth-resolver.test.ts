@@ -39,6 +39,17 @@ describe("resolveUser", () => {
 
     expect(result.userId).toBe("session-user");
     expect(result.isApiKey).toBe(false);
+    expect(result.isAdmin).toBe(false);
+    expect(result.error).toBeNull();
+  });
+
+  it("returns isAdmin=true when session user is admin", async () => {
+    vi.mocked(auth).mockResolvedValue({ user: { id: "admin-user", isAdmin: true } } as never);
+
+    const result = await resolveUser(makeRequest());
+
+    expect(result.userId).toBe("admin-user");
+    expect(result.isAdmin).toBe(true);
     expect(result.error).toBeNull();
   });
 
@@ -50,6 +61,7 @@ describe("resolveUser", () => {
 
     expect(result.userId).toBe("api-key-user");
     expect(result.isApiKey).toBe(true);
+    expect(result.isAdmin).toBe(false);
     expect(result.error).toBeNull();
   });
 
@@ -61,6 +73,7 @@ describe("resolveUser", () => {
 
     expect(result.userId).toBeNull();
     expect(result.isApiKey).toBe(false);
+    expect(result.isAdmin).toBe(false);
     expect(result.error).toBeDefined();
     // The error should be a 401 response
     expect(result.error?.status).toBe(401);

@@ -120,7 +120,7 @@ const DEFAULT_CREDIT_USAGE = {
 };
 
 beforeEach(() => {
-  vi.mocked(resolveUser).mockResolvedValue({ userId: "user-1", isApiKey: false, error: null });
+  vi.mocked(resolveUser).mockResolvedValue({ userId: "user-1", isApiKey: false, isAdmin: false, error: null });
   vi.mocked(acquireRateLimitSlot).mockResolvedValue({
     acquired: true,
     status: { remaining: 5, limit: 10, resetAt: new Date().toISOString() },
@@ -147,6 +147,7 @@ describe("POST /api/generate", () => {
     vi.mocked(resolveUser).mockResolvedValue({
       userId: null,
       isApiKey: false,
+      isAdmin: false,
       error: NextResponse.json({ error: "Unauthorized", code: "UNAUTHORIZED" }, { status: 401 }),
     });
     const res = await POST(makeRequest(DEFAULT_BODY));

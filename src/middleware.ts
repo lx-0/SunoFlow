@@ -269,7 +269,7 @@ export async function middleware(request: NextRequest) {
     void remaining;
   }
 
-  // Rate limit auth endpoints: 5 requests per minute per IP (brute-force protection)
+  // Rate limit auth endpoints: 10 requests per minute per IP (brute-force protection)
   // Covers login (/api/auth/signin, /api/auth/callback/credentials), registration,
   // and password-reset flows. Disabled in CI to allow E2E test user registration.
   if (
@@ -280,8 +280,9 @@ export async function middleware(request: NextRequest) {
       pathname === "/api/auth/signin" ||
       pathname === "/api/auth/callback/credentials")
   ) {
-    const { allowed, limit } = checkIpRateLimit(ip, "auth", 5);
+    const { allowed, limit } = checkIpRateLimit(ip, "auth", 10);
     if (!allowed) {
+      console.warn(`[rate-limit] auth IP limit exceeded ip=${ip} path=${pathname}`);
       return NextResponse.json(
         { error: "Too many requests. Please try again later.", code: "RATE_LIMITED" },
         {
@@ -325,13 +326,16 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── Per-user rate limits (authenticated API routes) ──────────────────────
+  // Admin users are exempt from all per-user rate limits.
   const userId = token?.id as string | undefined;
+  const isAdmin = Boolean(token?.isAdmin);
 
-  if (userId && pathname.startsWith("/api/")) {
+  if (userId && !isAdmin && pathname.startsWith("/api/")) {
     // Song generation: 10 req/min (expensive upstream operation)
     if (pathname === "/api/generate" && method === "POST") {
       const { allowed, retryAfterSec, remaining, limit } = checkUserRateLimit(userId, "generate", 10);
       if (!allowed) {
+        console.warn(`[rate-limit] generate user limit exceeded userId=${userId}`);
         return NextResponse.json(
           { error: "Too many generation requests. Please wait before trying again.", code: "RATE_LIMITED" },
           {
@@ -355,6 +359,7 @@ export async function middleware(request: NextRequest) {
     ) {
       const { allowed, retryAfterSec, limit } = checkUserRateLimit(userId, "auth_user", 5);
       if (!allowed) {
+        console.warn(`[rate-limit] auth_user limit exceeded userId=${userId} path=${pathname}`);
         return NextResponse.json(
           { error: "Too many requests. Please wait before trying again.", code: "RATE_LIMITED" },
           {
@@ -372,6 +377,7 @@ export async function middleware(request: NextRequest) {
     // General API: 100 req/min per user (catch-all, applied last)
     const { allowed, retryAfterSec, remaining, limit } = checkUserRateLimit(userId, "api", 100);
     if (!allowed) {
+      console.warn(`[rate-limit] api user limit exceeded userId=${userId} path=${pathname}`);
       return NextResponse.json(
         { error: "Too many requests. Please slow down.", code: "RATE_LIMITED" },
         {

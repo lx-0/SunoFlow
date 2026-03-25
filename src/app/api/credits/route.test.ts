@@ -23,7 +23,7 @@ import { resolveUser } from "@/lib/auth-resolver";
 import { getMonthlyCreditUsage } from "@/lib/credits";
 
 beforeEach(() => {
-  vi.mocked(resolveUser).mockResolvedValue({ userId: "user-1", isApiKey: false, error: null });
+  vi.mocked(resolveUser).mockResolvedValue({ userId: "user-1", isApiKey: false, isAdmin: false, error: null });
 });
 
 describe("GET /api/credits", () => {

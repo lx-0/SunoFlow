@@ -59,7 +59,7 @@ vi.mock("@/lib/cache", () => ({
 }));
 
 vi.mock("@/lib/auth-resolver", () => ({
-  resolveUser: vi.fn().mockResolvedValue({ userId: "user-1", isApiKey: false, error: null }),
+  resolveUser: vi.fn().mockResolvedValue({ userId: "user-1", isApiKey: false, isAdmin: false, error: null }),
 }));
 
 import { auth } from "@/lib/auth";
@@ -101,7 +101,7 @@ const baseSong = {
 
 beforeEach(() => {
   vi.mocked(auth).mockResolvedValue({ user: { id: "user-1" } } as ReturnType<typeof auth> extends Promise<infer T> ? T : never);
-  vi.mocked(resolveUser).mockResolvedValue({ userId: "user-1", isApiKey: false, error: null });
+  vi.mocked(resolveUser).mockResolvedValue({ userId: "user-1", isApiKey: false, isAdmin: false, error: null });
   vi.mocked(resolveUserApiKey).mockResolvedValue(undefined);
   vi.mocked(prisma.generationQueueItem.updateMany).mockResolvedValue({ count: 0 });
 });

@@ -4,8 +4,8 @@ import { NextResponse } from "next/server";
 import { unauthorized } from "@/lib/api-error";
 
 export type AuthResult =
-  | { userId: string; isApiKey: boolean; error: null }
-  | { userId: null; isApiKey: false; error: NextResponse };
+  | { userId: string; isApiKey: boolean; isAdmin: boolean; error: null }
+  | { userId: null; isApiKey: false; isAdmin: false; error: NextResponse };
 
 /**
  * Resolve the authenticated user from session or API key.
@@ -17,18 +17,24 @@ export async function resolveUser(request: Request): Promise<AuthResult> {
   // 1. Try session auth
   const session = await auth();
   if (session?.user?.id) {
-    return { userId: session.user.id, isApiKey: false, error: null };
+    return {
+      userId: session.user.id,
+      isApiKey: false,
+      isAdmin: Boolean((session.user as Record<string, unknown>).isAdmin),
+      error: null,
+    };
   }
 
   // 2. Try API key auth
   const userId = await resolveApiKeyUser(request);
   if (userId) {
-    return { userId, isApiKey: true, error: null };
+    return { userId, isApiKey: true, isAdmin: false, error: null };
   }
 
   return {
     userId: null,
     isApiKey: false,
+    isAdmin: false,
     error: unauthorized(),
   };
 }

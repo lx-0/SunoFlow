@@ -58,7 +58,7 @@ function makeRequest(body?: Record<string, unknown>): Request {
 }
 
 beforeEach(() => {
-  vi.mocked(resolveUser).mockResolvedValue({ userId: "user-1", isApiKey: false, error: null });
+  vi.mocked(resolveUser).mockResolvedValue({ userId: "user-1", isApiKey: false, isAdmin: false, error: null });
   vi.mocked(prisma.playlist.findMany).mockResolvedValue([]);
   vi.mocked(prisma.playlist.count).mockResolvedValue(0);
 });
