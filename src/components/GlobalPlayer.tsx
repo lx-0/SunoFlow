@@ -18,6 +18,7 @@ import {
   QueueListIcon,
   DocumentTextIcon,
   HeartIcon as HeartOutlineIcon,
+  FaceSmileIcon,
 } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import { useQueue } from "./QueueContext";
@@ -62,6 +63,7 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
 
   const [showUpNext, setShowUpNext] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
+  const [showReactions, setShowReactions] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [reactions, setReactions] = useState<ReactionItem[]>([]);
   const reactionSongIdRef = useRef<string | null>(null);
@@ -172,6 +174,11 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
     }
   }
 
+  // Close reaction picker when playback stops
+  useEffect(() => {
+    if (!isPlaying) setShowReactions(false);
+  }, [isPlaying]);
+
   // Close lyrics when navigating to song detail page
   useEffect(() => {
     if (pathname?.includes("/library/")) {
@@ -258,12 +265,32 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
             </div>
           </div>
 
-          {/* Emoji reaction picker — only when playing and authenticated */}
-          <EmojiReactionPicker
-            isPlaying={isPlaying}
-            isAuthenticated={!!session?.user}
-            onReact={handleReact}
-          />
+          {/* Emoji reaction toggle — only when playing and authenticated */}
+          {isPlaying && !!session?.user && (
+            <div className="relative flex-shrink-0">
+              <button
+                onClick={() => setShowReactions((v) => !v)}
+                aria-label={showReactions ? "Hide reactions" : "React with emoji"}
+                aria-expanded={showReactions}
+                className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${
+                  showReactions
+                    ? "text-violet-400 bg-white/10"
+                    : "text-gray-400 hover:text-gray-200"
+                }`}
+              >
+                <FaceSmileIcon className="w-5 h-5" />
+              </button>
+              {showReactions && (
+                <div className="absolute bottom-10 right-0 z-30">
+                  <EmojiReactionPicker
+                    isPlaying={isPlaying}
+                    isAuthenticated={!!session?.user}
+                    onReact={handleReact}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Favorite button — only shown when authenticated */}
           {session?.user && (
