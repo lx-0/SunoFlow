@@ -12,6 +12,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  Legend,
 } from "recharts";
 
 const PIE_COLORS = [
@@ -85,6 +86,51 @@ export function DailyActiveUsersChart({
           stroke="#7c3aed"
           strokeWidth={2}
           dot={{ fill: "#7c3aed", r: 3 }}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+export function QualityTrendChart({
+  data,
+}: {
+  data: Array<{ week: string; likes: number; dislikes: number; score: number }>;
+}) {
+  if (data.length === 0) {
+    return <p className="text-gray-500 text-sm">No data for this period</p>;
+  }
+  return (
+    <ResponsiveContainer width="100%" height={220}>
+      <LineChart data={data}>
+        <XAxis
+          dataKey="week"
+          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tickFormatter={(v: string) => v.slice(5)}
+          interval="preserveStartEnd"
+        />
+        <YAxis
+          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          domain={[0, 100]}
+          tickFormatter={(v: number) => `${v}%`}
+          width={42}
+        />
+        <Tooltip
+          contentStyle={TOOLTIP_STYLE}
+          formatter={(value: number) => [`${value}%`, "Quality Score"]}
+          labelFormatter={(label: string) => `Week of ${label}`}
+        />
+        <Legend
+          wrapperStyle={{ fontSize: "11px", color: "#9ca3af" }}
+        />
+        <Line
+          type="monotone"
+          dataKey="score"
+          name="Quality Score (%)"
+          stroke="#7c3aed"
+          strokeWidth={2}
+          dot={{ fill: "#7c3aed", r: 3 }}
+          activeDot={{ r: 5 }}
         />
       </LineChart>
     </ResponsiveContainer>

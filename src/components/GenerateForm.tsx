@@ -101,6 +101,11 @@ export function GenerateForm() {
   // Suggestions state
   const [suggestions, setSuggestions] = useState<PromptSuggestion[]>([]);
 
+  // Trending combos state
+  const [trendingCombos, setTrendingCombos] = useState<
+    Array<{ id: string; combo: string; label: string; stylePrompt: string; displayScore: string }>
+  >([]);
+
   // Persona state
   const [personas, setPersonas] = useState<PersonaOption[]>([]);
   const [selectedPersonaId, setSelectedPersonaId] = useState("");
@@ -253,6 +258,18 @@ export function GenerateForm() {
     }
   }, []);
 
+  const fetchTrendingCombos = useCallback(async () => {
+    try {
+      const res = await fetch("/api/suggestions/trending");
+      if (res.ok) {
+        const data = await res.json();
+        setTrendingCombos(data.trending ?? []);
+      }
+    } catch {
+      // Non-critical
+    }
+  }, []);
+
   useEffect(() => {
     fetchRateLimit();
     fetchTemplates();
@@ -260,7 +277,8 @@ export function GenerateForm() {
     fetchCredits();
     fetchPresets();
     fetchSuggestions();
-  }, [fetchRateLimit, fetchTemplates, fetchPersonas, fetchCredits, fetchPresets, fetchSuggestions]);
+    fetchTrendingCombos();
+  }, [fetchRateLimit, fetchTemplates, fetchPersonas, fetchCredits, fetchPresets, fetchSuggestions, fetchTrendingCombos]);
 
   async function handleBoostStyle() {
     if (isBoosting || !stylePrompt.trim()) return;
@@ -989,6 +1007,32 @@ export function GenerateForm() {
                     Instr
                   </span>
                 )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Trending combos */}
+      {trendingCombos.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            Trending Combos
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {trendingCombos.map((combo) => (
+              <button
+                key={combo.id}
+                type="button"
+                onClick={() => setStylePrompt(combo.stylePrompt)}
+                title={`${combo.combo} — rated ${combo.displayScore}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800 rounded-full hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
+              >
+                <span aria-hidden="true">🔥</span>
+                {combo.label}
+                <span className="text-[10px] font-semibold text-violet-500 dark:text-violet-400 ml-0.5">
+                  {combo.displayScore}
+                </span>
               </button>
             ))}
           </div>
