@@ -36,6 +36,7 @@ import type { SunoSong } from "@/lib/sunoapi";
 import { getRating, type SongRating } from "@/lib/ratings";
 import { downloadSongFile } from "@/lib/download";
 import { useToast } from "./Toast";
+import { track } from "@/lib/analytics";
 import { useQueue } from "./QueueContext";
 const ReportModal = dynamic(() => import("./ReportModal").then((m) => m.ReportModal), { ssr: false });
 import { TagInput } from "./TagInput";
@@ -658,6 +659,7 @@ export function SongDetailView({
     if (!hasAudio || downloadProgress !== null) return;
     setDownloadError(null);
     try {
+      track("song_downloaded");
       await downloadSongFile(song, setDownloadProgress);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Download failed";

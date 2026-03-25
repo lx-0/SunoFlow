@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { proxiedAudioUrl } from "@/lib/audio-cdn";
+import { track } from "@/lib/analytics";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -100,6 +101,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     if (lastTrackedSongRef.current === songId) return;
     lastTrackedSongRef.current = songId;
     fetch(`/api/songs/${songId}/play`, { method: "POST" }).catch(() => {});
+    track("song_played");
   }, []);
 
   const [queue, setQueue] = useState<QueueSong[]>([]);

@@ -7,6 +7,7 @@ import { getMessages, getTranslations } from "next-intl/server";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 import { SessionProvider } from "@/components/SessionProvider";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { PostHogProvider } from "@/components/PostHogProvider";
 import { routing } from "@/i18n/routing";
 // Lazy-load the PWA install prompt — only shown when install conditions are met
 const PwaInstallPrompt = dynamic(
@@ -107,12 +108,14 @@ export default async function LocaleLayout({
       </head>
       <body className={`${geistSans.variable} antialiased bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white min-h-screen`}>
         <NextIntlClientProvider messages={messages}>
-          <ServiceWorkerRegistrar />
-          <OfflineIndicator />
-          <PwaInstallPrompt />
-          <SessionProvider>
-            {children}
-          </SessionProvider>
+          <PostHogProvider>
+            <ServiceWorkerRegistrar />
+            <OfflineIndicator />
+            <PwaInstallPrompt />
+            <SessionProvider>
+              {children}
+            </SessionProvider>
+          </PostHogProvider>
         </NextIntlClientProvider>
       </body>
     </html>

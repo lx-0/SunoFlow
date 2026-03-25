@@ -30,14 +30,15 @@
     "lru-cache": "^11.2.7",
     "next": "14.2.35",
     "next-auth": "^5.0.0-beta.30",
+    "next-intl": "^4.8.3",
     "node-mailjet": "^6.0.11",
     "openai": "^6.32.0",
     "pino": "^10.3.1",
+    "posthog-js": "^1.363.4",
     "react": "^18",
     "react-dom": "^18",
     "recharts": "^3.8.0",
     "swagger-ui-react": "^5.32.1",
-    "next-intl": "^4.8.3",
     "wavesurfer.js": "^7.12.4"
   },
   "devDependencies": {

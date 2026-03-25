@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { track } from "@/lib/analytics";
 
 export type GenerationStatus = "pending" | "processing" | "ready" | "failed";
 
@@ -72,7 +73,10 @@ export function useGenerationPoller() {
         )
       );
 
-      if (status === "ready" || status === "failed") {
+      if (status === "ready") {
+        track("song_generation_completed");
+        stopTracking(songId);
+      } else if (status === "failed") {
         stopTracking(songId);
       }
     },

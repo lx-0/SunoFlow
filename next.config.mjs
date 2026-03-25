@@ -54,7 +54,7 @@ const nextConfig = {
           "img-src 'self' data: blob: https:",
           "media-src 'self' blob: https://*.sunoapi.org https://*.aiquickdraw.com",
           "font-src 'self' data:",
-          "connect-src 'self' https://*.sunoapi.org https://*.aiquickdraw.com",
+          "connect-src 'self' https://*.sunoapi.org https://*.aiquickdraw.com https://*.posthog.com https://us.i.posthog.com https://eu.i.posthog.com",
           "frame-ancestors 'none'",
           "base-uri 'self'",
           "form-action 'self'",

@@ -7,6 +7,7 @@ import { BookmarkIcon as BookmarkOutline, ClockIcon, BoltIcon, UserCircleIcon, P
 import { useToast } from "./Toast";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { useGenerationQueue } from "@/hooks/useGenerationQueue";
+import { track } from "@/lib/analytics";
 import { fetchWithTimeout, clientFetchErrorMessage } from "@/lib/fetch-client";
 import { GenerationProgress } from "./GenerationProgress";
 import { GenerationQueue } from "./GenerationQueue";
@@ -532,6 +533,7 @@ export function GenerateForm() {
       }
 
       toast("Song generation started!", "success");
+      track("song_generation_requested", { mode: customMode ? "custom" : "style", instrumental });
       trackSong(songId, songTitle);
       fetchCredits();
     } catch {
@@ -566,6 +568,7 @@ export function GenerateForm() {
     }
 
     toast("Added to generation queue!", "success");
+    track("song_generation_requested", { mode: customMode ? "custom" : "style", instrumental, via: "queue" });
 
     // If nothing is processing, start processing immediately
     if (!queueIsProcessing && item) {

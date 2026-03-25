@@ -9,6 +9,7 @@ import {
   QueueListIcon,
 } from "@heroicons/react/24/outline";
 import { useToast } from "./Toast";
+import { track } from "@/lib/analytics";
 
 interface PlaylistItem {
   id: string;
@@ -59,6 +60,7 @@ export function PlaylistsView({
       setNewName("");
       setNewDesc("");
       setShowCreate(false);
+      track("playlist_created");
       toast("Playlist created", "success");
     } catch {
       toast("Failed to create playlist", "error");
