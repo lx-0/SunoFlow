@@ -57,6 +57,8 @@ const VALID_TYPES = [
   "error",
   "rate_limit_reset",
   "announcement",
+  "credit_update",
+  "payment_failed",
 ];
 
 // POST /api/notifications — create a notification for current user

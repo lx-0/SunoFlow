@@ -10,6 +10,8 @@ import {
   ClockIcon,
   MegaphoneIcon,
   ArrowDownTrayIcon,
+  CurrencyDollarIcon,
+  CreditCardIcon,
 } from "@heroicons/react/24/outline";
 import { BellAlertIcon } from "@heroicons/react/24/solid";
 import {
@@ -38,6 +40,8 @@ const typeIcons: Record<NotificationType, typeof CheckCircleIcon> = {
   error: ExclamationCircleIcon,
   rate_limit_reset: ClockIcon,
   announcement: MegaphoneIcon,
+  credit_update: CurrencyDollarIcon,
+  payment_failed: CreditCardIcon,
 };
 
 const typeColors: Record<NotificationType, string> = {
@@ -47,6 +51,8 @@ const typeColors: Record<NotificationType, string> = {
   error: "text-red-500",
   rate_limit_reset: "text-amber-500",
   announcement: "text-violet-500",
+  credit_update: "text-emerald-500",
+  payment_failed: "text-red-500",
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────

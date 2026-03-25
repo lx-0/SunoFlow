@@ -9,6 +9,8 @@ import {
   MegaphoneIcon,
   BellIcon,
   ArrowDownTrayIcon,
+  CurrencyDollarIcon,
+  CreditCardIcon,
 } from "@heroicons/react/24/outline";
 import {
   useNotifications,
@@ -36,6 +38,8 @@ const typeIcons: Record<NotificationType, typeof CheckCircleIcon> = {
   error: ExclamationCircleIcon,
   rate_limit_reset: ClockIcon,
   announcement: MegaphoneIcon,
+  credit_update: CurrencyDollarIcon,
+  payment_failed: CreditCardIcon,
 };
 
 const typeColors: Record<NotificationType, string> = {
@@ -45,6 +49,8 @@ const typeColors: Record<NotificationType, string> = {
   error: "text-red-500",
   rate_limit_reset: "text-amber-500",
   announcement: "text-violet-500",
+  credit_update: "text-emerald-500",
+  payment_failed: "text-red-500",
 };
 
 const typeLabels: Record<NotificationType, string> = {
@@ -54,6 +60,8 @@ const typeLabels: Record<NotificationType, string> = {
   error: "Error",
   rate_limit_reset: "Rate limit",
   announcement: "Announcement",
+  credit_update: "Credits",
+  payment_failed: "Payment",
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────

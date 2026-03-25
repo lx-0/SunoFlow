@@ -19,7 +19,9 @@ export type NotificationType =
   | "import_complete"
   | "error"
   | "rate_limit_reset"
-  | "announcement";
+  | "announcement"
+  | "credit_update"
+  | "payment_failed";
 
 export interface Notification {
   id: string;
@@ -306,6 +308,36 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       clearInterval(interval);
     };
   }, [session?.user, addNotification, fetchNotifications]);
+
+  // ─── SSE subscription for real-time notification delivery ───────────────
+  useEffect(() => {
+    if (!session?.user) return;
+
+    let es: EventSource | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function connect() {
+      es = new EventSource("/api/events");
+
+      es.addEventListener("notification", () => {
+        // A new notification was pushed server-side — refresh from DB
+        fetchNotifications();
+      });
+
+      es.onerror = () => {
+        es?.close();
+        // Reconnect after 5s on error
+        reconnectTimer = setTimeout(connect, 5_000);
+      };
+    }
+
+    connect();
+
+    return () => {
+      es?.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+    };
+  }, [session?.user, fetchNotifications]);
 
   const dismissConfetti = useCallback(() => setShowConfetti(false), []);
 

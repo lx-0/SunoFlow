@@ -231,6 +231,28 @@ async function handleInvoicePaymentSucceeded(event: Stripe.Event) {
     },
   });
 
+  // Notify user of credit refresh on subscription renewal
+  if (userId && subscriptionId) {
+    const sub = await prisma.subscription.findFirst({
+      where: { stripeSubscriptionId: subscriptionId },
+      select: { tier: true },
+    });
+    if (sub && sub.tier !== "free") {
+      const credits = TIER_LIMITS[sub.tier]?.creditsPerMonth;
+      if (credits) {
+        await prisma.notification.create({
+          data: {
+            userId,
+            type: "credit_update",
+            title: "Credits refreshed",
+            message: `Your monthly ${credits.toLocaleString()} credits are ready to use.`,
+            href: "/settings/billing",
+          },
+        });
+      }
+    }
+  }
+
   logger.info(
     { eventId: event.id, userId, amount: invoice.amount_paid },
     "billing-webhook: invoice payment succeeded"
