@@ -39,11 +39,13 @@ interface QueueState {
   repeat: RepeatMode;
   volume: number;
   muted: boolean;
+  /** Source label shown in player, e.g. playlist or library name */
+  playlistSource: string | null;
 }
 
 interface QueueActions {
   /** Replace queue with songs and start playing from given index */
-  playQueue: (songs: QueueSong[], startIndex?: number) => void;
+  playQueue: (songs: QueueSong[], startIndex?: number, source?: string) => void;
   /** Toggle play/pause for a specific song. If not in queue, plays it solo. */
   togglePlay: (song?: QueueSong) => void;
   /** Insert song immediately after the current track */
@@ -126,6 +128,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   const [repeat, setRepeat] = useState<RepeatMode>("off");
   const [volume, setVolumeState] = useState(1);
   const [muted, setMuted] = useState(false);
+  const [playlistSource, setPlaylistSource] = useState<string | null>(null);
 
   // Refs for event handlers (avoid stale closures)
   const queueRef = useRef(queue);
@@ -244,10 +247,11 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   // ─── Actions ──────────────────────────────────────────────────────────────
 
   const playQueue = useCallback(
-    (songs: QueueSong[], startIndex = 0) => {
+    (songs: QueueSong[], startIndex = 0, source?: string) => {
       const audio = audioRef.current;
       if (!audio || songs.length === 0) return;
 
+      setPlaylistSource(source ?? null);
       originalQueueRef.current = songs;
 
       let playOrder: QueueSong[];
@@ -487,6 +491,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     setIsPlaying(false);
     setCurrentTime(0);
     setDuration(0);
+    setPlaylistSource(null);
     originalQueueRef.current = [];
   }, []);
 
@@ -520,6 +525,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     repeat,
     volume,
     muted,
+    playlistSource,
     playQueue,
     togglePlay,
     playNext,

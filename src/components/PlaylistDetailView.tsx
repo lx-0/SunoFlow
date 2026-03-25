@@ -16,6 +16,8 @@ import {
   ClipboardDocumentIcon,
   GlobeAltIcon,
   LockClosedIcon,
+  QueueListIcon,
+  ForwardIcon,
 } from "@heroicons/react/24/outline";
 import { PlayIcon as PlaySolidIcon } from "@heroicons/react/24/solid";
 import type { Song } from "@prisma/client";
@@ -73,6 +75,8 @@ export function PlaylistDetailView({
     isPlaying,
     togglePlay,
     playQueue,
+    playNext,
+    addToQueue,
   } = useQueue();
 
   const currentSongId = currentIndex >= 0 ? queue[currentIndex]?.id ?? null : null;
@@ -187,13 +191,13 @@ export function PlaylistDetailView({
     // Build queue from playlist songs and start at clicked song
     const queueSongs = buildPlaylistQueue();
     const idx = queueSongs.findIndex((s) => s.id === song.id);
-    playQueue(queueSongs, idx >= 0 ? idx : 0);
+    playQueue(queueSongs, idx >= 0 ? idx : 0, playlist.name);
   }
 
   function handlePlayAll() {
     const queueSongs = buildPlaylistQueue();
     if (queueSongs.length > 0) {
-      playQueue(queueSongs, 0);
+      playQueue(queueSongs, 0, playlist.name);
     }
   }
 
@@ -674,6 +678,34 @@ export function PlaylistDetailView({
                       <PlayIcon className="w-5 h-5 ml-0.5" />
                     )}
                   </button>
+
+                  {/* Play Next / Add to Queue — hidden on mobile */}
+                  {hasAudio && (
+                    <div className="hidden sm:flex items-center gap-0.5">
+                      <button
+                        onClick={() => {
+                          const qs = songToQueueSong(ps.song);
+                          if (qs) playNext(qs);
+                        }}
+                        aria-label={`Play ${ps.song.title ?? "song"} next`}
+                        title="Play Next"
+                        className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-violet-400 transition-colors"
+                      >
+                        <ForwardIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          const qs = songToQueueSong(ps.song);
+                          if (qs) addToQueue(qs);
+                        }}
+                        aria-label={`Add ${ps.song.title ?? "song"} to queue`}
+                        title="Add to Queue"
+                        className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-violet-400 transition-colors"
+                      >
+                        <QueueListIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
 
                   {/* Remove button — hidden on mobile (use swipe instead) */}
                   <button

@@ -50,6 +50,7 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
     repeat,
     volume,
     muted,
+    playlistSource,
     togglePlay,
     skipNext,
     skipPrev,
@@ -314,9 +315,15 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
               <span>{formatTime(currentTime)}</span>
               <span>/</span>
               <span>{formatTime(duration)}</span>
-              <span className="ml-auto hidden sm:inline">
-                {currentIndex + 1} of {queue.length}
-              </span>
+              {playlistSource ? (
+                <span className="ml-auto hidden sm:inline truncate max-w-[120px]" title={`Playing from: ${playlistSource}`}>
+                  Playing from: {playlistSource}
+                </span>
+              ) : (
+                <span className="ml-auto hidden sm:inline">
+                  {currentIndex + 1} of {queue.length}
+                </span>
+              )}
             </div>
           </div>
 
@@ -479,13 +486,18 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
               onClick={() => setShowUpNext((v) => !v)}
               aria-label={showUpNext ? "Hide Up Next" : "Show Up Next"}
               aria-expanded={showUpNext}
-              className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-colors ${
+              className={`relative w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-colors ${
                 showUpNext
                   ? "text-violet-400"
                   : "text-gray-500 hover:text-gray-300"
               }`}
             >
               <QueueListIcon className="w-5 h-5" />
+              {queue.length - (currentIndex + 1) > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-0.5 bg-violet-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
+                  {queue.length - (currentIndex + 1)}
+                </span>
+              )}
             </button>
 
             {/* Close */}
