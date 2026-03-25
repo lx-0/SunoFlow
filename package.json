@@ -43,6 +43,24 @@
     "swagger-ui-react": "^5.32.1",
     "wavesurfer.js": "^7.12.4"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "@prisma/client",
+      "@prisma/engines",
+      "@scarf/scarf",
+      "@sentry/cli",
+      "@swc/core",
+      "core-js",
+      "core-js-pure",
+      "esbuild",
+      "prisma",
+      "protobufjs",
+      "tree-sitter",
+      "tree-sitter-json",
+      "unrs-resolver"
+    ]
+  },
   "devDependencies": {
     "@next/bundle-analyzer": "^14.2.35",
     "@playwright/test": "^1.58.2",
