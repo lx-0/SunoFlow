@@ -9,7 +9,7 @@ export async function GET(request: Request) {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { emailGenerationComplete: true, emailWeeklyHighlights: true },
+    select: { emailWelcome: true, emailGenerationComplete: true, emailWeeklyHighlights: true },
   });
 
   if (!user) {
@@ -17,6 +17,7 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({
+    emailWelcome: user.emailWelcome,
     emailGenerationComplete: user.emailGenerationComplete,
     emailWeeklyHighlights: user.emailWeeklyHighlights,
   });
@@ -27,9 +28,16 @@ export async function PATCH(request: Request) {
   if (authError) return authError;
 
   const body = await request.json();
-  const { emailGenerationComplete, emailWeeklyHighlights } = body;
+  const { emailWelcome, emailGenerationComplete, emailWeeklyHighlights } = body;
 
   const data: Record<string, unknown> = {};
+
+  if (emailWelcome !== undefined) {
+    if (typeof emailWelcome !== "boolean") {
+      return NextResponse.json({ error: "emailWelcome must be a boolean", code: "VALIDATION_ERROR" }, { status: 400 });
+    }
+    data.emailWelcome = emailWelcome;
+  }
 
   if (emailGenerationComplete !== undefined) {
     if (typeof emailGenerationComplete !== "boolean") {
@@ -61,10 +69,11 @@ export async function PATCH(request: Request) {
   const user = await prisma.user.update({
     where: { id: userId },
     data,
-    select: { emailGenerationComplete: true, emailWeeklyHighlights: true },
+    select: { emailWelcome: true, emailGenerationComplete: true, emailWeeklyHighlights: true },
   });
 
   return NextResponse.json({
+    emailWelcome: user.emailWelcome,
     emailGenerationComplete: user.emailGenerationComplete,
     emailWeeklyHighlights: user.emailWeeklyHighlights,
   });

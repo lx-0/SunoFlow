@@ -213,6 +213,14 @@ function ProfileTab() {
         >
           {saving ? "Saving..." : "Save Profile"}
         </button>
+
+        <div className="border-t border-gray-200 dark:border-gray-800" />
+
+        <ConnectedAccountsSection />
+
+        <div className="border-t border-gray-200 dark:border-gray-800" />
+
+        <SubscriptionSummarySection />
       </div>
     </>
   );
@@ -978,6 +986,7 @@ function InstagramPostsSection() {
 }
 
 const EMAIL_NOTIF_TYPES = [
+  { key: "emailWelcome", label: "Welcome & tips", description: "Onboarding emails and feature announcements" },
   { key: "emailGenerationComplete", label: "Generation complete", description: "Email me when a song finishes generating (opt-in)" },
   { key: "emailWeeklyHighlights", label: "Weekly highlights", description: "A weekly digest of your top songs and activity" },
 ];
@@ -2181,6 +2190,139 @@ function ExportDataSection() {
         </div>
       </section>
     </>
+  );
+}
+
+// ─── Connected Accounts Section ───
+
+const PROVIDER_LABELS: Record<string, string> = {
+  google: "Google",
+  github: "GitHub",
+  credentials: "Email & Password",
+};
+
+function ConnectedAccountsSection() {
+  const [providers, setProviders] = useState<string[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data.connectedProviders)) {
+          setProviders(data.connectedProviders.filter((p: string) => p !== "credentials"));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, []);
+
+  if (!loaded) return null;
+
+  return (
+    <section className="space-y-3">
+      <div>
+        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Connected Accounts</h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Auth providers linked to your account.</p>
+      </div>
+      {providers.length === 0 ? (
+        <p className="text-sm text-gray-500 dark:text-gray-400">No OAuth providers connected.</p>
+      ) : (
+        <ul className="space-y-2">
+          {providers.map((provider) => (
+            <li
+              key={provider}
+              className="flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-4 py-3"
+            >
+              <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+              <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">
+                {PROVIDER_LABELS[provider] ?? provider.charAt(0).toUpperCase() + provider.slice(1)}
+              </span>
+              <span className="text-xs text-green-600 dark:text-green-400 font-medium">Connected</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+// ─── Subscription Summary Section ───
+
+interface SubscriptionInfo {
+  tier: string;
+  status: string;
+  creditsRemaining: number;
+  budget: number;
+}
+
+function SubscriptionSummarySection() {
+  const [info, setInfo] = useState<SubscriptionInfo | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/billing/subscription").then((r) => r.json()),
+      fetch("/api/credits").then((r) => r.json()),
+    ])
+      .then(([sub, credits]) => {
+        setInfo({
+          tier: sub.tier ?? "free",
+          status: sub.status ?? "active",
+          creditsRemaining: credits.creditsRemaining ?? 0,
+          budget: credits.budget ?? 0,
+        });
+      })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, []);
+
+  if (!loaded) {
+    return (
+      <section className="space-y-3">
+        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Subscription</h3>
+        <div className="h-20 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />
+      </section>
+    );
+  }
+
+  if (!info) return null;
+
+  const tierLabel = info.tier.charAt(0).toUpperCase() + info.tier.slice(1);
+
+  return (
+    <section className="space-y-3">
+      <div>
+        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Subscription</h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Your current plan and credit balance.</p>
+      </div>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Plan</span>
+          <span className="text-sm font-semibold text-gray-900 dark:text-white">{tierLabel}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Credits remaining</span>
+          <span className="text-sm font-semibold text-gray-900 dark:text-white">
+            {info.creditsRemaining} / {info.budget}
+          </span>
+        </div>
+        {info.budget > 0 && (
+          <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-violet-500 rounded-full"
+              style={{ width: `${Math.min(100, (info.creditsRemaining / info.budget) * 100)}%` }}
+            />
+          </div>
+        )}
+      </div>
+      <Link
+        href="/settings/billing"
+        className="inline-flex items-center gap-1.5 text-sm text-violet-600 dark:text-violet-400 hover:underline"
+      >
+        Manage billing &amp; subscription
+      </Link>
+    </section>
   );
 }
 

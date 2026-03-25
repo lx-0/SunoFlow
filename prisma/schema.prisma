@@ -54,6 +54,7 @@ model User {
   defaultStyle         String?
   preferredGenres      String[]  @default([])
   onboardingCompleted      Boolean   @default(false)
+  emailWelcome             Boolean   @default(true)
   emailGenerationComplete  Boolean   @default(false)
   emailWeeklyHighlights    Boolean   @default(false)
   unsubscribeToken         String?   @unique
