@@ -8,6 +8,7 @@ import {
   PauseIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/solid";
+import { FollowButton } from "@/components/FollowButton";
 
 interface DiscoverSong {
   id: string;
@@ -20,7 +21,7 @@ interface DiscoverSong {
   playCount: number;
   publicSlug: string | null;
   createdAt: string;
-  user: { name: string | null };
+  user: { id: string; name: string | null };
 }
 
 interface Pagination {
@@ -376,9 +377,12 @@ function DiscoverCard({
             {song.title || "Untitled"}
           </h3>
         </Link>
-        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-          {song.user.name || "Unknown Artist"}
-        </p>
+        <div className="flex items-center justify-between mt-0.5">
+          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+            {song.user.name || "Unknown Artist"}
+          </p>
+          <FollowButton userId={song.user.id} />
+        </div>
         <div className="flex items-center justify-between mt-2">
           <span className="text-xs text-gray-400 dark:text-gray-500 truncate">
             {song.tags || "No genre"}

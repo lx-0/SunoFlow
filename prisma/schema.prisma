@@ -75,6 +75,9 @@ model User {
   ratings          Rating[]
   creditUsages     CreditUsage[]
   generationQueue  GenerationQueueItem[]
+  comments         Comment[]
+  followers        Follow[]  @relation("Following")
+  following        Follow[]  @relation("Follower")
 }
 
 model Song {
@@ -116,6 +119,7 @@ model Song {
   reports       Report[]
   ratings       Rating[]
   queueItems    GenerationQueueItem[]
+  comments      Comment[]
 
   @@index([userId, title])
   @@index([userId, prompt])
@@ -404,4 +408,32 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  songId    String
+  userId    String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([songId, createdAt])
+  @@index([userId])
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
 }

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import { PlayIcon, PauseIcon, MusicalNoteIcon, FlagIcon } from "@heroicons/react/24/solid";
 import { ReportModal } from "@/components/ReportModal";
+import { CommentsSection } from "@/components/CommentsSection";
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
@@ -184,6 +185,11 @@ export function PublicSongView({
           onClose={() => setReportOpen(false)}
         />
       )}
+
+      {/* Comments */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+        <CommentsSection songId={songId} />
+      </div>
 
       {/* Branding */}
       <p className="text-center text-xs text-gray-500 dark:text-gray-400">
