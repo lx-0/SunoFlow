@@ -35,6 +35,21 @@ export async function GET(request: NextRequest) {
     const includeVariations = params.get("includeVariations") === "true";
     const showArchived = params.get("archived") === "true";
 
+    // Mark stale pending songs as failed (fire-and-forget, don't block the response)
+    // A song is stale if it's been pending for more than 15 minutes (well beyond 60 poll × 4s = 240s max)
+    const staleThreshold = new Date(Date.now() - 15 * 60 * 1000);
+    prisma.song.updateMany({
+      where: {
+        userId,
+        generationStatus: "pending",
+        updatedAt: { lt: staleThreshold },
+      },
+      data: {
+        generationStatus: "failed",
+        errorMessage: "Generation timed out",
+      },
+    }).catch(() => {});
+
     // Pagination
     const limitParam = parseInt(params.get("limit") || "", 10);
     const limit = !isNaN(limitParam) && limitParam >= 1 && limitParam <= 100 ? limitParam : 20;

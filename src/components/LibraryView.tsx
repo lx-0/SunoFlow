@@ -169,16 +169,15 @@ function FailedBadge({ message }: { message?: string | null }) {
 // ─── Polling hook ─────────────────────────────────────────────────────────────
 
 const POLL_INTERVAL_MS = 4000;
-const MAX_POLL_ATTEMPTS = 20;
+// Must match MAX_POLL_ATTEMPTS in /api/songs/[id]/status/route.ts
+const MAX_POLL_ATTEMPTS = 60;
 
 function usePollSong(song: Song, onUpdate: (updated: Song) => void) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeRef = useRef(true);
-  const attemptsRef = useRef(song.pollCount);
 
   useEffect(() => {
     activeRef.current = true;
-    attemptsRef.current = song.pollCount;
 
     if (song.generationStatus !== "pending") return;
 
@@ -190,8 +189,8 @@ function usePollSong(song: Song, onUpdate: (updated: Song) => void) {
         const data = (await res.json()) as { song: Song };
         if (!activeRef.current) return;
         onUpdate(data.song);
-        if (data.song.generationStatus === "pending" && attemptsRef.current < MAX_POLL_ATTEMPTS) {
-          attemptsRef.current++;
+        // Use server-reported pollCount so client and server stay in sync
+        if (data.song.generationStatus === "pending" && data.song.pollCount < MAX_POLL_ATTEMPTS) {
           timerRef.current = setTimeout(poll, POLL_INTERVAL_MS);
         }
       } catch {
