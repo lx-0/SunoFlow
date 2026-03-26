@@ -49,8 +49,11 @@ model User {
   resetTokenExpiry     DateTime?
   isAdmin              Boolean   @default(false)
   isDisabled           Boolean   @default(false)
+  username             String?   @unique
   bio                  String?
   avatarUrl            String?
+  bannerUrl            String?
+  featuredSongId       String?
   defaultStyle         String?
   preferredGenres      String[]  @default([])
   onboardingCompleted      Boolean   @default(false)

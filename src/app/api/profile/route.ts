@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, name: true, bio: true, avatarUrl: true, defaultStyle: true, preferredGenres: true },
+    select: { id: true, email: true, name: true, bio: true, avatarUrl: true, username: true, bannerUrl: true, featuredSongId: true, defaultStyle: true, preferredGenres: true },
   });
 
   if (!user) {
@@ -27,7 +27,7 @@ export async function PATCH(request: Request) {
   if (authError) return authError;
 
   const body = await request.json();
-  const { name, bio, avatarUrl } = body;
+  const { name, bio, avatarUrl, username, bannerUrl, featuredSongId } = body;
 
   const data: Record<string, unknown> = {};
 
@@ -68,6 +68,68 @@ export async function PATCH(request: Request) {
     data.avatarUrl = avatarUrl ? avatarUrl.trim() : null;
   }
 
+  if (username !== undefined) {
+    if (username !== null && typeof username !== "string") {
+      return NextResponse.json({ error: "Username must be a string", code: "VALIDATION_ERROR" }, { status: 400 });
+    }
+    if (typeof username === "string") {
+      const trimmed = username.trim().toLowerCase();
+      if (trimmed.length > 30) {
+        return NextResponse.json({ error: "Username must be 30 characters or less", code: "VALIDATION_ERROR" }, { status: 400 });
+      }
+      if (trimmed && !/^[a-z0-9_]+$/.test(trimmed)) {
+        return NextResponse.json({ error: "Username may only contain letters, numbers, and underscores", code: "VALIDATION_ERROR" }, { status: 400 });
+      }
+      if (trimmed) {
+        const existing = await prisma.user.findUnique({
+          where: { username: trimmed },
+          select: { id: true },
+        });
+        if (existing && existing.id !== userId) {
+          return NextResponse.json({ error: "Username is already taken", code: "CONFLICT" }, { status: 409 });
+        }
+        data.username = trimmed;
+      } else {
+        data.username = null;
+      }
+    } else {
+      data.username = null;
+    }
+  }
+
+  if (bannerUrl !== undefined) {
+    if (bannerUrl !== null && typeof bannerUrl !== "string") {
+      return NextResponse.json({ error: "Banner URL must be a string", code: "VALIDATION_ERROR" }, { status: 400 });
+    }
+    if (typeof bannerUrl === "string" && bannerUrl.length > 2048) {
+      return NextResponse.json({ error: "Banner URL too long", code: "VALIDATION_ERROR" }, { status: 400 });
+    }
+    if (typeof bannerUrl === "string" && bannerUrl) {
+      try {
+        new URL(bannerUrl);
+      } catch {
+        return NextResponse.json({ error: "Invalid banner URL", code: "VALIDATION_ERROR" }, { status: 400 });
+      }
+    }
+    data.bannerUrl = bannerUrl ? bannerUrl.trim() : null;
+  }
+
+  if (featuredSongId !== undefined) {
+    if (featuredSongId !== null && typeof featuredSongId !== "string") {
+      return NextResponse.json({ error: "Featured song ID must be a string", code: "VALIDATION_ERROR" }, { status: 400 });
+    }
+    if (featuredSongId) {
+      const song = await prisma.song.findFirst({
+        where: { id: featuredSongId, userId },
+        select: { id: true },
+      });
+      if (!song) {
+        return NextResponse.json({ error: "Song not found", code: "NOT_FOUND" }, { status: 404 });
+      }
+    }
+    data.featuredSongId = featuredSongId ?? null;
+  }
+
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: "No fields to update", code: "VALIDATION_ERROR" }, { status: 400 });
   }
@@ -75,7 +137,7 @@ export async function PATCH(request: Request) {
   const user = await prisma.user.update({
     where: { id: userId },
     data,
-    select: { id: true, email: true, name: true, bio: true, avatarUrl: true },
+    select: { id: true, email: true, name: true, bio: true, avatarUrl: true, username: true, bannerUrl: true, featuredSongId: true },
   });
 
   return NextResponse.json(user);
