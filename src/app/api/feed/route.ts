@@ -4,6 +4,32 @@ import { prisma } from "@/lib/prisma";
 
 const PAGE_SIZE = 20;
 
+const VALID_TYPES = ["song_created", "song_favorited", "song_commented", "new_follower", "playlist_created"] as const;
+type ActivityType = (typeof VALID_TYPES)[number];
+
+function filterActivity(a: {
+  type: string;
+  song?: { isPublic: boolean; isHidden: boolean; archivedAt: Date | null; generationStatus: string } | null;
+  playlist?: { isPublic: boolean } | null;
+}) {
+  if (a.type === "song_created" || a.type === "song_favorited" || a.type === "song_commented") {
+    return (
+      a.song &&
+      a.song.isPublic &&
+      !a.song.isHidden &&
+      !a.song.archivedAt &&
+      a.song.generationStatus === "ready"
+    );
+  }
+  if (a.type === "playlist_created") {
+    return a.playlist && a.playlist.isPublic;
+  }
+  if (a.type === "new_follower") {
+    return true;
+  }
+  return false;
+}
+
 export async function GET(request: Request) {
   try {
     const session = await auth();
@@ -18,6 +44,12 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
     const skip = (page - 1) * PAGE_SIZE;
+    const mode = searchParams.get("mode") === "discover" ? "discover" : "following";
+    const typeParam = searchParams.get("type") ?? "all";
+    const typeFilter: ActivityType[] =
+      typeParam !== "all" && VALID_TYPES.includes(typeParam as ActivityType)
+        ? [typeParam as ActivityType]
+        : [...VALID_TYPES];
 
     // Get the list of users this person follows
     const following = await prisma.follow.findMany({
@@ -25,18 +57,27 @@ export async function GET(request: Request) {
       select: { followingId: true },
     });
 
-    if (following.length === 0) {
+    const followingIds = following.map((f) => f.followingId);
+
+    if (mode === "following" && followingIds.length === 0) {
       return NextResponse.json({
         items: [],
         pagination: { page, totalPages: 0, total: 0, hasMore: false },
       });
     }
 
-    const followingIds = following.map((f) => f.followingId);
+    const where =
+      mode === "following"
+        ? { userId: { in: followingIds }, type: { in: typeFilter } }
+        : {
+            // Discover: exclude the current user and followed users
+            userId: { notIn: [userId, ...followingIds] },
+            type: { in: typeFilter },
+          };
 
     const [activities, total] = await Promise.all([
       prisma.activity.findMany({
-        where: { userId: { in: followingIds } },
+        where,
         orderBy: { createdAt: "desc" },
         skip,
         take: PAGE_SIZE,
@@ -44,6 +85,7 @@ export async function GET(request: Request) {
           id: true,
           type: true,
           createdAt: true,
+          metadata: true,
           user: { select: { id: true, name: true, image: true } },
           song: {
             select: {
@@ -70,27 +112,27 @@ export async function GET(request: Request) {
           },
         },
       }),
-      prisma.activity.count({
-        where: { userId: { in: followingIds } },
-      }),
+      prisma.activity.count({ where }),
     ]);
 
+    // For new_follower events, fetch the followed user info from metadata
+    const newFollowerActivities = activities.filter(
+      (a) => a.type === "new_follower" && a.metadata && typeof a.metadata === "object" && "followingId" in (a.metadata as Record<string, unknown>)
+    );
+    const followingUserIds = newFollowerActivities.map(
+      (a) => (a.metadata as Record<string, unknown>).followingId as string
+    );
+    const followedUsers =
+      followingUserIds.length > 0
+        ? await prisma.user.findMany({
+            where: { id: { in: followingUserIds } },
+            select: { id: true, name: true, image: true, username: true },
+          })
+        : [];
+    const followedUserMap = Object.fromEntries(followedUsers.map((u) => [u.id, u]));
+
     const items = activities
-      .filter((a) => {
-        if (a.type === "song_created" || a.type === "song_favorited") {
-          return (
-            a.song &&
-            a.song.isPublic &&
-            !a.song.isHidden &&
-            !a.song.archivedAt &&
-            a.song.generationStatus === "ready"
-          );
-        }
-        if (a.type === "playlist_created") {
-          return a.playlist && a.playlist.isPublic;
-        }
-        return false;
-      })
+      .filter(filterActivity)
       .map((a) => ({
         id: a.id,
         type: a.type,
@@ -114,6 +156,10 @@ export async function GET(request: Request) {
               songCount: a.playlist._count.songs,
             }
           : null,
+        followedUser:
+          a.type === "new_follower" && a.metadata && typeof a.metadata === "object" && "followingId" in (a.metadata as Record<string, unknown>)
+            ? (followedUserMap[(a.metadata as Record<string, unknown>).followingId as string] ?? null)
+            : null,
       }));
 
     return NextResponse.json({

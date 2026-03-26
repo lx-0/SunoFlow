@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { broadcast } from "@/lib/event-bus";
+import { recordActivity } from "@/lib/activity";
 
 export async function POST(
   _request: Request,
@@ -73,6 +74,11 @@ export async function POST(
       } catch {
         // Non-critical
       }
+    }
+
+    // Record activity so the follower's followers can see who they're following
+    if (created) {
+      recordActivity({ userId: followerId, type: "new_follower", metadata: { followingId } });
     }
 
     return NextResponse.json({ following: true });

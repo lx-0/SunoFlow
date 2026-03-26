@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { broadcast } from "@/lib/event-bus";
+import { recordActivity } from "@/lib/activity";
 
 const COMMENT_RATE_LIMIT = 10;
 const COMMENT_WINDOW_MS = 60 * 1000; // 1 minute
@@ -153,6 +154,9 @@ export async function POST(
         // Non-critical — don't fail the comment creation
       }
     }
+
+    // Record activity for followers to see
+    recordActivity({ userId, type: "song_commented", songId: params.id });
 
     return NextResponse.json(comment, { status: 201 });
   } catch {
