@@ -51,10 +51,11 @@ function decodeHtmlEntities(text: string): string {
 }
 
 function stripTags(text: string): string {
-  // Strip tags, collapse whitespace, then decode HTML entities
-  return decodeHtmlEntities(
-    text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
-  );
+  // Decode entities first so entity-encoded tags like &lt;p&gt; become real tags,
+  // then strip them. Repeat once more to handle double-encoded HTML.
+  const strip = (s: string) =>
+    decodeHtmlEntities(s).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  return strip(strip(text));
 }
 
 function extractAtomLink(itemXml: string): string {
