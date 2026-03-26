@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AppShell } from "@/components/AppShell";
 import { GenerationHistoryView } from "@/components/GenerationHistoryView";
+import { HistorySkeleton } from "@/components/Skeleton";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -58,7 +59,7 @@ export default async function GenerationsPage() {
 
   return (
     <AppShell>
-      <Suspense>
+      <Suspense fallback={<HistorySkeleton />}>
         <GenerationHistoryView
           songs={songs.map((s) => ({ ...s, createdAt: s.createdAt.toISOString(), updatedAt: s.updatedAt.toISOString() }))}
           initialNextCursor={nextCursor}
