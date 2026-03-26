@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { broadcast } from "@/lib/event-bus";
 
 const COMMENT_RATE_LIMIT = 10;
 const COMMENT_WINDOW_MS = 60 * 1000; // 1 minute
@@ -69,7 +70,7 @@ export async function POST(
     // Verify song exists and is public
     const song = await prisma.song.findUnique({
       where: { id: params.id },
-      select: { id: true, isPublic: true, isHidden: true },
+      select: { id: true, title: true, isPublic: true, isHidden: true, userId: true },
     });
 
     if (!song || !song.isPublic || song.isHidden) {
@@ -128,6 +129,30 @@ export async function POST(
       }),
       prisma.rateLimitEntry.create({ data: { userId, action: "comment" } }),
     ]);
+
+    // Notify song owner (skip if commenter is the owner)
+    if (song.userId && song.userId !== userId) {
+      try {
+        const commenterName = comment.user.name ?? "Someone";
+        const songTitle = song.title ?? "your song";
+        const notification = await prisma.notification.create({
+          data: {
+            userId: song.userId,
+            type: "song_comment",
+            title: "New comment",
+            message: `${commenterName} commented on "${songTitle}"`,
+            href: `/songs/${song.id}`,
+            songId: song.id,
+          },
+        });
+        broadcast(song.userId, {
+          type: "notification",
+          data: { id: notification.id, type: "song_comment" },
+        });
+      } catch {
+        // Non-critical — don't fail the comment creation
+      }
+    }
 
     return NextResponse.json(comment, { status: 201 });
   } catch {

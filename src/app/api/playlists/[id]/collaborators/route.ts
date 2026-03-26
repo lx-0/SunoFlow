@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { resolveUser } from "@/lib/auth-resolver";
 import { prisma } from "@/lib/prisma";
+import { broadcast } from "@/lib/event-bus";
 import crypto from "crypto";
 
 const INVITE_TTL_DAYS = 7;
@@ -128,6 +129,30 @@ export async function POST(
           user: { select: { id: true, name: true, image: true, avatarUrl: true, username: true } },
         },
       });
+
+      // Notify the invitee
+      try {
+        const inviterUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { name: true },
+        });
+        const inviterName = inviterUser?.name ?? "Someone";
+        const notification = await prisma.notification.create({
+          data: {
+            userId: targetUser.id,
+            type: "playlist_invite",
+            title: "Playlist invite",
+            message: `${inviterName} invited you to collaborate on "${playlist.name}"`,
+            href: `/playlists/${playlist.id}`,
+          },
+        });
+        broadcast(targetUser.id, {
+          type: "notification",
+          data: { id: notification.id, type: "playlist_invite" },
+        });
+      } catch {
+        // Non-critical
+      }
 
       return NextResponse.json({ collaborator }, { status: 201 });
     }

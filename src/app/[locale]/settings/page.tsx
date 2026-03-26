@@ -1309,6 +1309,9 @@ const NOTIF_PREFS_KEY = "sunoflow_notif_prefs";
 const NOTIFICATION_TYPES = [
   { key: "generation_complete", label: "Generation complete", description: "When a song finishes generating" },
   { key: "generation_failed", label: "Generation failed", description: "When a generation encounters an error" },
+  { key: "song_comment", label: "Song comments", description: "When someone comments on your song" },
+  { key: "new_follower", label: "New followers", description: "When someone follows you" },
+  { key: "playlist_invite", label: "Playlist invites", description: "When you're invited to collaborate on a playlist" },
   { key: "rate_limit_reset", label: "Rate limit reset", description: "When your rate limit resets" },
   { key: "announcement", label: "Announcements", description: "Product updates and news" },
 ];

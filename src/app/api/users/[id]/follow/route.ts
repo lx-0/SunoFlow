@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { broadcast } from "@/lib/event-bus";
 
 export async function POST(
   _request: Request,
@@ -27,7 +28,7 @@ export async function POST(
     // Verify target user exists
     const target = await prisma.user.findUnique({
       where: { id: followingId },
-      select: { id: true },
+      select: { id: true, name: true, username: true },
     });
     if (!target) {
       return NextResponse.json(
@@ -36,11 +37,43 @@ export async function POST(
       );
     }
 
-    await prisma.follow.upsert({
-      where: { followerId_followingId: { followerId, followingId } },
-      create: { followerId, followingId },
-      update: {},
+    const { created } = await prisma.$transaction(async (tx) => {
+      const existing = await tx.follow.findUnique({
+        where: { followerId_followingId: { followerId, followingId } },
+      });
+      if (!existing) {
+        await tx.follow.create({ data: { followerId, followingId } });
+        return { created: true };
+      }
+      return { created: false };
     });
+
+    // Notify the followed user (only on new follows, not re-follows)
+    if (created) {
+      try {
+        const follower = await prisma.user.findUnique({
+          where: { id: followerId },
+          select: { name: true, username: true },
+        });
+        const followerName = follower?.name ?? follower?.username ?? "Someone";
+        const profileHref = follower?.username ? `/u/${follower.username}` : undefined;
+        const notification = await prisma.notification.create({
+          data: {
+            userId: followingId,
+            type: "new_follower",
+            title: "New follower",
+            message: `${followerName} started following you`,
+            href: profileHref ?? null,
+          },
+        });
+        broadcast(followingId, {
+          type: "notification",
+          data: { id: notification.id, type: "new_follower" },
+        });
+      } catch {
+        // Non-critical
+      }
+    }
 
     return NextResponse.json({ following: true });
   } catch {

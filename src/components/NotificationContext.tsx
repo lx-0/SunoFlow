@@ -21,7 +21,10 @@ export type NotificationType =
   | "rate_limit_reset"
   | "announcement"
   | "credit_update"
-  | "payment_failed";
+  | "payment_failed"
+  | "song_comment"
+  | "new_follower"
+  | "playlist_invite";
 
 export interface Notification {
   id: string;

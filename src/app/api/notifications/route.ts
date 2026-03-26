@@ -59,6 +59,9 @@ const VALID_TYPES = [
   "announcement",
   "credit_update",
   "payment_failed",
+  "song_comment",
+  "new_follower",
+  "playlist_invite",
 ];
 
 // POST /api/notifications — create a notification for current user

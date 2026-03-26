@@ -11,6 +11,9 @@ import {
   ArrowDownTrayIcon,
   CurrencyDollarIcon,
   CreditCardIcon,
+  ChatBubbleLeftIcon,
+  UserPlusIcon,
+  MusicalNoteIcon,
 } from "@heroicons/react/24/outline";
 import {
   useNotifications,
@@ -40,6 +43,9 @@ const typeIcons: Record<NotificationType, typeof CheckCircleIcon> = {
   announcement: MegaphoneIcon,
   credit_update: CurrencyDollarIcon,
   payment_failed: CreditCardIcon,
+  song_comment: ChatBubbleLeftIcon,
+  new_follower: UserPlusIcon,
+  playlist_invite: MusicalNoteIcon,
 };
 
 const typeColors: Record<NotificationType, string> = {
@@ -51,6 +57,9 @@ const typeColors: Record<NotificationType, string> = {
   announcement: "text-violet-500",
   credit_update: "text-emerald-500",
   payment_failed: "text-red-500",
+  song_comment: "text-sky-500",
+  new_follower: "text-pink-500",
+  playlist_invite: "text-indigo-500",
 };
 
 const typeLabels: Record<NotificationType, string> = {
@@ -62,6 +71,9 @@ const typeLabels: Record<NotificationType, string> = {
   announcement: "Announcement",
   credit_update: "Credits",
   payment_failed: "Payment",
+  song_comment: "Comment",
+  new_follower: "New follower",
+  playlist_invite: "Playlist invite",
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
