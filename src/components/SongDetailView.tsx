@@ -14,8 +14,6 @@ import {
   ArrowPathIcon,
   ShareIcon,
   ClipboardDocumentIcon,
-  PlusIcon,
-  ChevronDownIcon,
   CalendarIcon,
   ClockIcon,
   TagIcon,
@@ -48,6 +46,7 @@ import { SectionEditor } from "./SectionEditor";
 import { LyricsEditor } from "./LyricsEditor";
 import { CoverArtImage } from "./CoverArtImage";
 import { CoverArtModal } from "./CoverArtModal";
+import { AddToPlaylistButton } from "./AddToPlaylistButton";
 // Lazy-load below-fold recommendations to reduce initial bundle
 const RecommendationSection = dynamic(() => import("./SongRecommendations").then((m) => m.RecommendationSection), { ssr: false });
 
@@ -936,12 +935,6 @@ function StemsPlayer({ stems, onDownload, onDownloadAll, downloadingAll }: Stems
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface PlaylistOption {
-  id: string;
-  name: string;
-  _count: { songs: number };
-}
-
 interface SongTag {
   id: string;
   name: string;
@@ -967,7 +960,6 @@ interface SongDetailViewProps {
   isFavorite?: boolean;
   favoriteCount?: number;
   sunoJobId?: string | null;
-  playlists?: PlaylistOption[];
   isPublic?: boolean;
   publicSlug?: string | null;
   isHidden?: boolean;
@@ -990,7 +982,6 @@ export function SongDetailView({
   isFavorite: initialFavorite = false,
   favoriteCount: initialFavoriteCount = 0,
   sunoJobId,
-  playlists: initialPlaylists = [],
   isPublic: initialIsPublic = false,
   publicSlug: initialPublicSlug = null,
   isHidden = false,
@@ -1041,11 +1032,6 @@ export function SongDetailView({
   const [savingThumbs, setSavingThumbs] = useState(false);
 
   // Download state is now managed inside DownloadButton
-
-  // Playlist dropdown
-  const [playlistOpen, setPlaylistOpen] = useState(false);
-  const [addingToPlaylist, setAddingToPlaylist] = useState<string | null>(null);
-  const playlistRef = useRef<HTMLDivElement>(null);
 
   // Share state
   const [isPublic, setIsPublic] = useState(initialIsPublic);
@@ -1127,19 +1113,6 @@ export function SongDetailView({
     }
   }
 
-  // Close playlist dropdown on outside click
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (playlistRef.current && !playlistRef.current.contains(e.target as Node)) {
-        setPlaylistOpen(false);
-      }
-    }
-    if (playlistOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [playlistOpen]);
-
   function handleStarChange(stars: number) {
     setRatingState((r) => ({ ...r, stars }));
     setSaved(false);
@@ -1189,28 +1162,6 @@ export function SongDetailView({
       setIsFavorite(prev);
       setFavoriteCount(prevCount);
       toast("Failed to update favorite", "error");
-    }
-  }
-
-  async function handleAddToPlaylist(playlistId: string) {
-    setAddingToPlaylist(playlistId);
-    try {
-      const res = await fetch(`/api/playlists/${playlistId}/songs`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songId: song.id }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        toast(data.error ?? "Failed to add to playlist", "error");
-      } else {
-        toast("Added to playlist", "success");
-        setPlaylistOpen(false);
-      }
-    } catch {
-      toast("Failed to add to playlist", "error");
-    } finally {
-      setAddingToPlaylist(null);
     }
   }
 
@@ -1770,44 +1721,8 @@ export function SongDetailView({
           </>
         )}
 
-        {/* Add to playlist dropdown */}
-        <div className="relative" ref={playlistRef}>
-          <button
-            onClick={() => setPlaylistOpen(!playlistOpen)}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200 active:scale-95 min-h-[44px]"
-          >
-            <PlusIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-            Add to playlist
-            <ChevronDownIcon className="w-3 h-3" aria-hidden="true" />
-          </button>
-
-          {playlistOpen && (
-            <div className="absolute top-full left-0 mt-1 w-56 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-20 py-1 max-h-60 overflow-y-auto">
-              {initialPlaylists.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-gray-400 dark:text-gray-500">
-                  No playlists yet.{" "}
-                  <Link href="/playlists" className="text-violet-400 hover:text-violet-300">
-                    Create one
-                  </Link>
-                </div>
-              ) : (
-                initialPlaylists.map((pl) => (
-                  <button
-                    key={pl.id}
-                    onClick={() => handleAddToPlaylist(pl.id)}
-                    disabled={addingToPlaylist === pl.id}
-                    className="w-full text-left px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-between"
-                  >
-                    <span className="truncate">{pl.name}</span>
-                    <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0 ml-2">
-                      {pl._count.songs} songs
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
-          )}
-        </div>
+        {/* Add to playlist */}
+        <AddToPlaylistButton songId={song.id} songTitle={song.title} variant="button" />
 
         {/* Report button */}
         <button

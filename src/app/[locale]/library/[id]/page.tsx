@@ -146,26 +146,10 @@ async function fetchSongTags(songId: string) {
   }
 }
 
-async function fetchPlaylists() {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) return [];
-    const playlists = await prisma.playlist.findMany({
-      where: { userId: session.user.id },
-      include: { _count: { select: { songs: true } } },
-      orderBy: { updatedAt: "desc" },
-    });
-    return playlists.map((p) => ({ id: p.id, name: p.name, _count: p._count }));
-  } catch {
-    return [];
-  }
-}
-
 async function SongDetailContent({ id }: { id: string }) {
-  const [song, dbMeta, playlists, songTags, variationData] = await Promise.all([
+  const [song, dbMeta, songTags, variationData] = await Promise.all([
     fetchSong(id),
     fetchDbMeta(id),
-    fetchPlaylists(),
     fetchSongTags(id),
     fetchVariations(id),
   ]);
@@ -178,7 +162,6 @@ async function SongDetailContent({ id }: { id: string }) {
       isFavorite={dbMeta.isFavorite}
       favoriteCount={dbMeta.favoriteCount}
       sunoJobId={dbMeta.sunoJobId}
-      playlists={playlists}
       isPublic={dbMeta.isPublic}
       publicSlug={dbMeta.publicSlug}
       isHidden={dbMeta.isHidden}
