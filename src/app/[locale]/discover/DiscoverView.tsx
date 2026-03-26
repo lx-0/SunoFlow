@@ -9,6 +9,9 @@ import {
   PauseIcon,
   MagnifyingGlassIcon,
   MusicalNoteIcon,
+  FireIcon,
+  TrophyIcon,
+  GlobeAltIcon,
 } from "@heroicons/react/24/solid";
 import { FollowButton } from "@/components/FollowButton";
 import { AddToPlaylistButton } from "@/components/AddToPlaylistButton";
@@ -27,12 +30,35 @@ interface DiscoverSong {
   user: { id: string; name: string | null };
 }
 
-interface Pagination {
+interface TrendingSong {
+  id: string;
+  title: string | null;
+  genre: string | null;
+  albumArtUrl: string | null;
+  audioUrl: string | null;
+  duration: number | null;
+  playCount: number;
+  publicSlug: string | null;
+  createdAt: string;
+  score: number;
+  creatorDisplayName: string;
+}
+
+interface DiscoverPagination {
   page: number;
   totalPages: number;
   total: number;
   hasMore: boolean;
 }
+
+interface TrendingPagination {
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+}
+
+type Tab = "browse" | "trending" | "popular";
 
 const SORT_OPTIONS = [
   { value: "newest", label: "Newest" },
@@ -87,12 +113,25 @@ function FilterPill({
   );
 }
 
+const TABS: { value: Tab; label: string; icon: React.ElementType }[] = [
+  { value: "browse", label: "Browse", icon: GlobeAltIcon },
+  { value: "trending", label: "Trending", icon: FireIcon },
+  { value: "popular", label: "Popular", icon: TrophyIcon },
+];
+
 export function DiscoverView({ basePath = "/discover" }: { basePath?: string } = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Tab state
+  const [tab, setTab] = useState<Tab>(() => {
+    const t = searchParams.get("tab");
+    return (t === "trending" || t === "popular" || t === "browse") ? t : "browse";
+  });
+
+  // Browse tab state
   const [songs, setSongs] = useState<DiscoverSong[]>([]);
-  const [pagination, setPagination] = useState<Pagination>({
+  const [pagination, setPagination] = useState<DiscoverPagination>({
     page: 1,
     totalPages: 1,
     total: 0,
@@ -104,6 +143,20 @@ export function DiscoverView({ basePath = "/discover" }: { basePath?: string } =
   const [tempoPreset, setTempoPreset] = useState<string>(
     searchParams.get("tempo") || ""
   );
+
+  // Trending/Popular tab state
+  const [trendingSongs, setTrendingSongs] = useState<TrendingSong[]>([]);
+  const [trendingPagination, setTrendingPagination] = useState<TrendingPagination>({
+    total: 0,
+    limit: 20,
+    offset: 0,
+    hasMore: false,
+  });
+  const [trendingOffset, setTrendingOffset] = useState(0);
+  const [trendingGenre, setTrendingGenre] = useState("");
+  const [trendingMood, setTrendingMood] = useState("");
+
+  // Shared state
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [playingSongId, setPlayingSongId] = useState<string | null>(null);
@@ -113,19 +166,23 @@ export function DiscoverView({ basePath = "/discover" }: { basePath?: string } =
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // Sync active filters to URL
+  // Sync tab/filters to URL
   useEffect(() => {
     const params = new URLSearchParams();
-    if (sortBy !== "newest") params.set("sortBy", sortBy);
-    if (tag) params.set("tag", tag);
-    if (mood) params.set("mood", mood);
-    if (tempoPreset) params.set("tempo", tempoPreset);
+    if (tab !== "browse") params.set("tab", tab);
+    if (tab === "browse") {
+      if (sortBy !== "newest") params.set("sortBy", sortBy);
+      if (tag) params.set("tag", tag);
+      if (mood) params.set("mood", mood);
+      if (tempoPreset) params.set("tempo", tempoPreset);
+    }
     const qs = params.toString();
     router.replace(qs ? `${basePath}?${qs}` : basePath, { scroll: false });
-  }, [sortBy, tag, mood, tempoPreset, router]);
+  }, [tab, sortBy, tag, mood, tempoPreset, router, basePath]);
 
   const tempoRange = TEMPO_PRESETS.find((p) => p.label === tempoPreset);
 
+  // Fetch browse songs
   const fetchSongs = useCallback(
     async (
       page: number,
@@ -159,7 +216,39 @@ export function DiscoverView({ basePath = "/discover" }: { basePath?: string } =
     []
   );
 
+  // Fetch trending/popular songs
+  const fetchTrending = useCallback(
+    async (
+      sort: "trending" | "popular",
+      genre: string,
+      moodVal: string,
+      offset: number,
+      append = false
+    ) => {
+      if (append) setLoadingMore(true);
+      else setLoading(true);
+      try {
+        const params = new URLSearchParams({ sort, limit: "20", offset: String(offset) });
+        if (genre) params.set("genre", genre);
+        if (moodVal) params.set("mood", moodVal);
+        const res = await fetch(`/api/songs/trending?${params}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setTrendingSongs((prev) => (append ? [...prev, ...data.songs] : data.songs));
+        setTrendingPagination(data.pagination);
+      } catch {
+        // keep existing state
+      } finally {
+        if (append) setLoadingMore(false);
+        else setLoading(false);
+      }
+    },
+    []
+  );
+
+  // Fetch on browse tab changes
   useEffect(() => {
+    if (tab !== "browse") return;
     setSongs([]);
     fetchSongs(
       1,
@@ -169,7 +258,15 @@ export function DiscoverView({ basePath = "/discover" }: { basePath?: string } =
       tempoRange?.min ?? null,
       tempoRange?.max ?? null
     );
-  }, [sortBy, tag, mood, tempoRange, fetchSongs]);
+  }, [tab, sortBy, tag, mood, tempoRange, fetchSongs]);
+
+  // Fetch on trending/popular tab changes
+  useEffect(() => {
+    if (tab !== "trending" && tab !== "popular") return;
+    setTrendingSongs([]);
+    setTrendingOffset(0);
+    fetchTrending(tab, trendingGenre, trendingMood, 0);
+  }, [tab, trendingGenre, trendingMood, fetchTrending]);
 
   // Load genre and mood tag lists
   useEffect(() => {
@@ -208,8 +305,9 @@ export function DiscoverView({ basePath = "/discover" }: { basePath?: string } =
     };
   }, []);
 
-  // Infinite scroll
+  // Infinite scroll for browse tab
   useEffect(() => {
+    if (tab !== "browse") return;
     const sentinel = sentinelRef.current;
     if (!sentinel || !pagination.hasMore || loadingMore) return;
     const observer = new IntersectionObserver(
@@ -231,6 +329,7 @@ export function DiscoverView({ basePath = "/discover" }: { basePath?: string } =
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [
+    tab,
     pagination.hasMore,
     pagination.page,
     loadingMore,
@@ -241,9 +340,44 @@ export function DiscoverView({ basePath = "/discover" }: { basePath?: string } =
     fetchSongs,
   ]);
 
+  // Infinite scroll for trending/popular tabs
+  useEffect(() => {
+    if (tab !== "trending" && tab !== "popular") return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !trendingPagination.hasMore || loadingMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          const nextOffset = trendingOffset + 20;
+          setTrendingOffset(nextOffset);
+          fetchTrending(tab, trendingGenre, trendingMood, nextOffset, true);
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [
+    tab,
+    trendingPagination.hasMore,
+    trendingOffset,
+    loadingMore,
+    trendingGenre,
+    trendingMood,
+    fetchTrending,
+  ]);
+
+  const stopPlayback = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setPlayingSongId(null);
+  }, []);
+
   const handlePlayToggle = useCallback(
-    (song: DiscoverSong) => {
-      if (playingSongId === song.id) {
+    (id: string, audioUrl: string | null) => {
+      if (playingSongId === id) {
         audioRef.current?.pause();
         setPlayingSongId(null);
         return;
@@ -251,25 +385,46 @@ export function DiscoverView({ basePath = "/discover" }: { basePath?: string } =
       if (audioRef.current) {
         audioRef.current.pause();
       }
-      if (!song.audioUrl) return;
-      const audio = new Audio(song.audioUrl);
+      if (!audioUrl) return;
+      const audio = new Audio(audioUrl);
       audio.volume = 0.7;
       audio.play().catch(() => {});
       audio.onended = () => setPlayingSongId(null);
       audioRef.current = audio;
-      setPlayingSongId(song.id);
+      setPlayingSongId(id);
     },
     [playingSongId]
   );
 
-  const clearFilters = useCallback(() => {
+  const clearBrowseFilters = useCallback(() => {
     setTag("");
     setMood("");
     setTempoPreset("");
   }, []);
 
-  const activeFilterCount =
+  const clearTrendingFilters = useCallback(() => {
+    setTrendingGenre("");
+    setTrendingMood("");
+  }, []);
+
+  // Stop playback when switching tabs
+  const handleTabChange = useCallback(
+    (newTab: Tab) => {
+      stopPlayback();
+      setTab(newTab);
+    },
+    [stopPlayback]
+  );
+
+  const browseFilterCount =
     (tag ? 1 : 0) + (mood ? 1 : 0) + (tempoPreset ? 1 : 0);
+  const trendingFilterCount =
+    (trendingGenre ? 1 : 0) + (trendingMood ? 1 : 0);
+
+  const totalCount =
+    tab === "browse"
+      ? pagination.total
+      : trendingPagination.total;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white">
@@ -286,7 +441,7 @@ export function DiscoverView({ basePath = "/discover" }: { basePath?: string } =
               </Link>
               <h1 className="text-xl font-bold mt-1">Discover</h1>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Explore {pagination.total} publicly shared songs
+                Explore {totalCount} publicly shared songs
               </p>
             </div>
             <Link
@@ -296,211 +451,402 @@ export function DiscoverView({ basePath = "/discover" }: { basePath?: string } =
               Sign in
             </Link>
           </div>
+
+          {/* Tab navigation */}
+          <div className="flex gap-1 mt-3">
+            {TABS.map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                onClick={() => handleTabChange(value)}
+                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors min-h-[36px] ${
+                  tab === value
+                    ? "bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-5">
-        {/* Sort + clear */}
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="flex items-center gap-2">
-            <MagnifyingGlassIcon className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              Sort:
-            </span>
-            <div className="flex gap-1">
-              {SORT_OPTIONS.map((opt) => (
-                <FilterPill
-                  key={opt.value}
-                  label={opt.label}
-                  active={sortBy === opt.value}
-                  onClick={() => setSortBy(opt.value)}
-                />
-              ))}
-            </div>
-          </div>
-          {activeFilterCount > 0 && (
-            <button
-              onClick={clearFilters}
-              className="text-xs text-violet-600 dark:text-violet-400 hover:underline shrink-0"
-            >
-              Clear {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}
-            </button>
-          )}
-        </div>
-
-        {/* Genre filter */}
-        <section>
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-            Genre
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <FilterPill
-              label="All Genres"
-              active={tag === ""}
-              onClick={() => setTag("")}
-            />
-            {loadingFilters
-              ? Array.from({ length: 8 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-[44px] w-16 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse"
-                  />
-                ))
-              : genreTags.map((g) => (
-                  <FilterPill
-                    key={g}
-                    label={g}
-                    active={tag === g}
-                    onClick={() => setTag(tag === g ? "" : g)}
-                  />
-                ))}
-          </div>
-        </section>
-
-        {/* Mood filter */}
-        <section>
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-            Mood
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <FilterPill
-              label="Any Mood"
-              active={mood === ""}
-              onClick={() => setMood("")}
-            />
-            {loadingFilters
-              ? Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-[44px] w-16 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse"
-                  />
-                ))
-              : moodTags.map((m) => (
-                  <FilterPill
-                    key={m}
-                    label={m}
-                    active={mood === m}
-                    onClick={() => setMood(mood === m ? "" : m)}
-                  />
-                ))}
-          </div>
-        </section>
-
-        {/* Tempo filter */}
-        <section>
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-            Tempo
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <FilterPill
-              label="Any Tempo"
-              active={tempoPreset === ""}
-              onClick={() => setTempoPreset("")}
-            />
-            {TEMPO_PRESETS.map((preset) => (
-              <FilterPill
-                key={preset.label}
-                label={`${preset.label} (${
-                  preset.label === "Slow"
-                    ? "\u226480 BPM"
-                    : preset.label === "Medium"
-                    ? "81\u2013120 BPM"
-                    : "121+ BPM"
-                })`}
-                active={tempoPreset === preset.label}
-                onClick={() =>
-                  setTempoPreset(tempoPreset === preset.label ? "" : preset.label)
-                }
-              />
-            ))}
-          </div>
-        </section>
-
-        {/* Song grid */}
-        {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {Array.from({ length: 20 }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden animate-pulse"
-              >
-                <div className="aspect-square bg-gray-200 dark:bg-gray-800" />
-                <div className="p-3 space-y-2">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4" />
-                  <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-1/2" />
+        {tab === "browse" && (
+          <>
+            {/* Sort + clear */}
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MagnifyingGlassIcon className="w-4 h-4 text-gray-400" />
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  Sort:
+                </span>
+                <div className="flex gap-1">
+                  {SORT_OPTIONS.map((opt) => (
+                    <FilterPill
+                      key={opt.value}
+                      label={opt.label}
+                      active={sortBy === opt.value}
+                      onClick={() => setSortBy(opt.value)}
+                    />
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
-        ) : songs.length === 0 ? (
-          <div className="text-center py-16">
-            <MusicalNoteIcon className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              No songs found. Try a different filter.
-            </p>
-            {activeFilterCount > 0 && (
-              <button
-                onClick={clearFilters}
-                className="mt-3 text-sm text-violet-600 dark:text-violet-400 hover:underline"
-              >
-                Clear all filters
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {songs.map((song) => (
-              <DiscoverCard
-                key={song.id}
-                song={song}
-                isPlaying={playingSongId === song.id}
-                onPlayToggle={() => handlePlayToggle(song)}
-                onTagClick={(t) => setTag(t)}
-                onMoodClick={(m) => setMood(m)}
+              {browseFilterCount > 0 && (
+                <button
+                  onClick={clearBrowseFilters}
+                  className="text-xs text-violet-600 dark:text-violet-400 hover:underline shrink-0"
+                >
+                  Clear {browseFilterCount} filter{browseFilterCount > 1 ? "s" : ""}
+                </button>
+              )}
+            </div>
+
+            {/* Genre filter */}
+            <section>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                Genre
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <FilterPill
+                  label="All Genres"
+                  active={tag === ""}
+                  onClick={() => setTag("")}
+                />
+                {loadingFilters
+                  ? Array.from({ length: 8 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="h-[44px] w-16 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse"
+                      />
+                    ))
+                  : genreTags.map((g) => (
+                      <FilterPill
+                        key={g}
+                        label={g}
+                        active={tag === g}
+                        onClick={() => setTag(tag === g ? "" : g)}
+                      />
+                    ))}
+              </div>
+            </section>
+
+            {/* Mood filter */}
+            <section>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                Mood
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <FilterPill
+                  label="Any Mood"
+                  active={mood === ""}
+                  onClick={() => setMood("")}
+                />
+                {loadingFilters
+                  ? Array.from({ length: 5 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="h-[44px] w-16 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse"
+                      />
+                    ))
+                  : moodTags.map((m) => (
+                      <FilterPill
+                        key={m}
+                        label={m}
+                        active={mood === m}
+                        onClick={() => setMood(mood === m ? "" : m)}
+                      />
+                    ))}
+              </div>
+            </section>
+
+            {/* Tempo filter */}
+            <section>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                Tempo
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <FilterPill
+                  label="Any Tempo"
+                  active={tempoPreset === ""}
+                  onClick={() => setTempoPreset("")}
+                />
+                {TEMPO_PRESETS.map((preset) => (
+                  <FilterPill
+                    key={preset.label}
+                    label={`${preset.label} (${
+                      preset.label === "Slow"
+                        ? "\u226480 BPM"
+                        : preset.label === "Medium"
+                        ? "81\u2013120 BPM"
+                        : "121+ BPM"
+                    })`}
+                    active={tempoPreset === preset.label}
+                    onClick={() =>
+                      setTempoPreset(tempoPreset === preset.label ? "" : preset.label)
+                    }
+                  />
+                ))}
+              </div>
+            </section>
+
+            {/* Browse song grid */}
+            {loading ? (
+              <SongGridSkeleton />
+            ) : songs.length === 0 ? (
+              <EmptyState
+                hasFilters={browseFilterCount > 0}
+                onClear={clearBrowseFilters}
               />
-            ))}
-          </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                {songs.map((song) => (
+                  <DiscoverCard
+                    key={song.id}
+                    song={song}
+                    isPlaying={playingSongId === song.id}
+                    onPlayToggle={() =>
+                      handlePlayToggle(song.id, song.audioUrl)
+                    }
+                    onTagClick={(t) => setTag(t)}
+                    onMoodClick={(m) => setMood(m)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Infinite scroll sentinel */}
+            {pagination.hasMore && (
+              <ScrollSentinel ref={sentinelRef} loading={loadingMore} />
+            )}
+          </>
         )}
 
-        {/* Infinite scroll sentinel */}
-        {pagination.hasMore && (
-          <div
-            ref={sentinelRef}
-            className="flex items-center justify-center py-6"
-            aria-live="polite"
-          >
-            {loadingMore && (
-              <span className="inline-flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                <svg
-                  className="animate-spin h-4 w-4"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
+        {(tab === "trending" || tab === "popular") && (
+          <>
+            {/* Tab description */}
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {tab === "trending"
+                  ? "Songs gaining momentum over the last 30 days, ranked by plays and recency."
+                  : "All-time most-played public songs."}
+              </p>
+              {trendingFilterCount > 0 && (
+                <button
+                  onClick={clearTrendingFilters}
+                  className="text-xs text-violet-600 dark:text-violet-400 hover:underline shrink-0"
                 >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
+                  Clear {trendingFilterCount} filter{trendingFilterCount > 1 ? "s" : ""}
+                </button>
+              )}
+            </div>
+
+            {/* Genre filter for trending/popular */}
+            <section>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                Genre
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <FilterPill
+                  label="All Genres"
+                  active={trendingGenre === ""}
+                  onClick={() => setTrendingGenre("")}
+                />
+                {loadingFilters
+                  ? Array.from({ length: 8 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="h-[44px] w-16 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse"
+                      />
+                    ))
+                  : genreTags.map((g) => (
+                      <FilterPill
+                        key={g}
+                        label={g}
+                        active={trendingGenre === g}
+                        onClick={() =>
+                          setTrendingGenre(trendingGenre === g ? "" : g)
+                        }
+                      />
+                    ))}
+              </div>
+            </section>
+
+            {/* Mood filter for trending/popular */}
+            <section>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                Mood
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <FilterPill
+                  label="Any Mood"
+                  active={trendingMood === ""}
+                  onClick={() => setTrendingMood("")}
+                />
+                {loadingFilters
+                  ? Array.from({ length: 5 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="h-[44px] w-16 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse"
+                      />
+                    ))
+                  : moodTags.map((m) => (
+                      <FilterPill
+                        key={m}
+                        label={m}
+                        active={trendingMood === m}
+                        onClick={() =>
+                          setTrendingMood(trendingMood === m ? "" : m)
+                        }
+                      />
+                    ))}
+              </div>
+            </section>
+
+            {/* Trending song list */}
+            {loading ? (
+              <TrendingListSkeleton />
+            ) : trendingSongs.length === 0 ? (
+              <EmptyState
+                hasFilters={trendingFilterCount > 0}
+                onClear={clearTrendingFilters}
+              />
+            ) : (
+              <div className="space-y-2">
+                {trendingSongs.map((song, index) => (
+                  <TrendingRow
+                    key={song.id}
+                    song={song}
+                    rank={trendingOffset + index + 1}
+                    isPlaying={playingSongId === song.id}
+                    onPlayToggle={() =>
+                      handlePlayToggle(song.id, song.audioUrl)
+                    }
+                    isTrending={tab === "trending"}
                   />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
-                Loading more...
-              </span>
+                ))}
+              </div>
             )}
-          </div>
+
+            {/* Infinite scroll sentinel for trending */}
+            {trendingPagination.hasMore && (
+              <ScrollSentinel ref={sentinelRef} loading={loadingMore} />
+            )}
+          </>
         )}
       </main>
     </div>
   );
 }
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function SongGridSkeleton() {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+      {Array.from({ length: 20 }).map((_, i) => (
+        <div
+          key={i}
+          className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden animate-pulse"
+        >
+          <div className="aspect-square bg-gray-200 dark:bg-gray-800" />
+          <div className="p-3 space-y-2">
+            <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4" />
+            <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TrendingListSkeleton() {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: 10 }).map((_, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-4 p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl animate-pulse"
+        >
+          <div className="w-8 h-6 bg-gray-200 dark:bg-gray-800 rounded shrink-0" />
+          <div className="w-12 h-12 bg-gray-200 dark:bg-gray-800 rounded-lg shrink-0" />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/2" />
+            <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-1/3" />
+          </div>
+          <div className="w-16 h-4 bg-gray-200 dark:bg-gray-800 rounded shrink-0" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyState({
+  hasFilters,
+  onClear,
+}: {
+  hasFilters: boolean;
+  onClear: () => void;
+}) {
+  return (
+    <div className="text-center py-16">
+      <MusicalNoteIcon className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
+      <p className="text-gray-500 dark:text-gray-400 text-sm">
+        No songs found. Try a different filter.
+      </p>
+      {hasFilters && (
+        <button
+          onClick={onClear}
+          className="mt-3 text-sm text-violet-600 dark:text-violet-400 hover:underline"
+        >
+          Clear all filters
+        </button>
+      )}
+    </div>
+  );
+}
+
+import { forwardRef } from "react";
+
+const ScrollSentinel = forwardRef<HTMLDivElement, { loading: boolean }>(
+  function ScrollSentinel({ loading }, ref) {
+    return (
+      <div
+        ref={ref}
+        className="flex items-center justify-center py-6"
+        aria-live="polite"
+      >
+        {loading && (
+          <span className="inline-flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <svg
+              className="animate-spin h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
+            </svg>
+            Loading more...
+          </span>
+        )}
+      </div>
+    );
+  }
+);
 
 // Mood keywords for client-side tag parsing
 const MOOD_KEYWORDS_CLIENT = new Set([
@@ -645,6 +991,126 @@ function DiscoverCard({
           )}
           {song.playCount > 0 && <span>{song.playCount} plays</span>}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function TrendingRow({
+  song,
+  rank,
+  isPlaying,
+  onPlayToggle,
+  isTrending,
+}: {
+  song: TrendingSong;
+  rank: number;
+  isPlaying: boolean;
+  onPlayToggle: () => void;
+  isTrending: boolean;
+}) {
+  const coverUrl = song.albumArtUrl || "/default-cover.png";
+  const href = song.publicSlug ? `/s/${song.publicSlug}` : "#";
+  const { genres } = parseSongTags(song.genre);
+
+  return (
+    <div className="group flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl transition-shadow hover:shadow-md hover:shadow-violet-500/10">
+      {/* Rank */}
+      <span
+        className={`w-7 text-center text-sm font-bold shrink-0 ${
+          rank <= 3
+            ? rank === 1
+              ? "text-yellow-500"
+              : rank === 2
+              ? "text-gray-400"
+              : "text-amber-600"
+            : "text-gray-400 dark:text-gray-500"
+        }`}
+      >
+        {rank <= 3 ? ["🥇", "🥈", "🥉"][rank - 1] : rank}
+      </span>
+
+      {/* Cover + play */}
+      <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0">
+        <Link href={href}>
+          <Image
+            src={coverUrl}
+            alt={song.title || "Song cover"}
+            fill
+            sizes="48px"
+            className="object-cover"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+            {song.audioUrl && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onPlayToggle();
+                }}
+                className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 rounded-full bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center shadow min-h-[32px] min-w-[32px]"
+                aria-label={isPlaying ? "Pause" : "Play preview"}
+              >
+                {isPlaying ? (
+                  <PauseIcon className="w-4 h-4" />
+                ) : (
+                  <PlayIcon className="w-4 h-4 ml-0.5" />
+                )}
+              </button>
+            )}
+          </div>
+        </Link>
+        {isPlaying && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="flex gap-0.5">
+              <span className="w-0.5 h-3 bg-violet-400 rounded-full animate-pulse" />
+              <span className="w-0.5 h-2 bg-violet-400 rounded-full animate-pulse [animation-delay:150ms]" />
+              <span className="w-0.5 h-3.5 bg-violet-400 rounded-full animate-pulse [animation-delay:300ms]" />
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <Link href={href}>
+          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+            {song.title || "Untitled"}
+          </p>
+        </Link>
+        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+          {song.creatorDisplayName}
+        </p>
+        {genres.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {genres.slice(0, 2).map((g) => (
+              <span
+                key={g}
+                className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300"
+              >
+                {g}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Stats */}
+      <div className="text-right shrink-0 space-y-0.5">
+        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+          {song.playCount.toLocaleString()} plays
+        </p>
+        {isTrending && (
+          <p className="text-[10px] text-violet-500 dark:text-violet-400 font-medium">
+            score {song.score.toFixed(1)}
+          </p>
+        )}
+        {song.duration && (
+          <p className="text-[10px] text-gray-400 dark:text-gray-500">
+            {formatDuration(song.duration)}
+          </p>
+        )}
       </div>
     </div>
   );
