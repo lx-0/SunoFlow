@@ -58,6 +58,7 @@ vi.mock("@/lib/sunoapi/mock", () => ({
 
 vi.mock("@/lib/rate-limit", () => ({
   acquireRateLimitSlot: vi.fn(),
+  releaseRateLimitSlot: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock("@/lib/sunoapi/resolve-key", () => ({

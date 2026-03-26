@@ -71,14 +71,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Build tag-matching filter helper
-    function buildTagFilter(m: string, g: string): Prisma.SongWhereInput {
+    const buildTagFilter = (m: string, g: string): Prisma.SongWhereInput => {
       const conditions: Prisma.SongWhereInput[] = [];
       if (m) conditions.push({ tags: { contains: m, mode: "insensitive" } });
       if (g) conditions.push({ tags: { contains: g, mode: "insensitive" } });
       if (conditions.length === 0) return {};
       if (conditions.length === 1) return conditions[0];
       return { AND: conditions };
-    }
+    };
 
     // Build tempo filter
     const tempoFilter: Prisma.IntNullableFilter | undefined =

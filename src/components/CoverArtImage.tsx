@@ -7,6 +7,8 @@ interface CoverArtImageProps {
   alt: string;
   fill?: boolean;
   sizes?: string;
+  width?: number;
+  height?: number;
   className?: string;
   priority?: boolean;
   loading?: "lazy" | "eager";
@@ -24,6 +26,8 @@ export function CoverArtImage({
   alt,
   fill = false,
   sizes,
+  width,
+  height,
   className = "",
   priority = false,
   loading,
@@ -36,6 +40,8 @@ export function CoverArtImage({
       <img
         src={src}
         alt={alt}
+        width={width}
+        height={height}
         className={fill ? `absolute inset-0 w-full h-full ${className}` : className}
         loading={priority ? "eager" : (loading ?? "lazy")}
         style={fill ? { objectFit: "cover" } : undefined}
@@ -49,6 +55,8 @@ export function CoverArtImage({
       alt={alt}
       fill={fill}
       sizes={sizes}
+      width={!fill ? width : undefined}
+      height={!fill ? height : undefined}
       className={className}
       priority={priority}
       loading={loading}

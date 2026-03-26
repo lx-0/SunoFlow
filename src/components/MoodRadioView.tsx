@@ -134,7 +134,7 @@ export function MoodRadioView() {
             <div className="flex gap-4 items-center">
               <div className="relative shrink-0">
                 <CoverArtImage
-                  src={currentSong.imageUrl}
+                  src={currentSong.imageUrl ?? ""}
                   alt={currentSong.title ?? "Song"}
                   width={80}
                   height={80}
@@ -215,7 +215,7 @@ export function MoodRadioView() {
                   className="flex items-center gap-3 p-3 rounded-xl bg-gray-800/40 hover:bg-gray-800/70 transition-colors"
                 >
                   <CoverArtImage
-                    src={song.imageUrl}
+                    src={song.imageUrl ?? ""}
                     alt={song.title ?? "Song"}
                     width={40}
                     height={40}
