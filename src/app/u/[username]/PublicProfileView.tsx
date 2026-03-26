@@ -443,24 +443,104 @@ function PlaylistsTab({ username }: { username: string }) {
   );
 }
 
+// ─── Liked Songs Tab ───────────────────────────────────────────────────────────
+
+function LikedSongsTab({ username }: { username: string }) {
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const fetchSongs = useCallback(
+    async (p: number, append = false) => {
+      if (append) setLoadingMore(true);
+      else setLoading(true);
+      try {
+        const res = await fetch(`/api/u/${username}/liked-songs?page=${p}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setSongs((prev) => (append ? [...prev, ...data.songs] : data.songs));
+        setHasMore(data.pagination.hasMore);
+        setPage(p);
+      } catch {
+        // ignore
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [username]
+  );
+
+  useEffect(() => {
+    fetchSongs(1);
+  }, [fetchSongs]);
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-2 gap-3">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-gray-100 dark:bg-gray-800 rounded-xl aspect-square animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (songs.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-10 text-center">
+        <MusicalNoteIcon className="w-10 h-10 text-gray-300 dark:text-gray-700" />
+        <p className="text-sm text-gray-500 dark:text-gray-400">No liked songs yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        {songs.map((song) => (
+          <SongCard key={song.id} song={song} />
+        ))}
+      </div>
+      {hasMore && (
+        <div className="text-center">
+          <button
+            onClick={() => fetchSongs(page + 1, true)}
+            disabled={loadingMore}
+            className="text-sm text-violet-500 hover:text-violet-400 disabled:opacity-50"
+          >
+            {loadingMore ? "Loading…" : "Load more"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Tabs ──────────────────────────────────────────────────────────────────────
 
-type Tab = "songs" | "playlists";
+type Tab = "songs" | "playlists" | "liked";
 
 function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
+  const tabs: { key: Tab; label: string }[] = [
+    { key: "songs", label: "Songs" },
+    { key: "playlists", label: "Playlists" },
+    { key: "liked", label: "Liked" },
+  ];
   return (
     <div className="flex border-b border-gray-200 dark:border-gray-800">
-      {(["songs", "playlists"] as Tab[]).map((tab) => (
+      {tabs.map(({ key, label }) => (
         <button
-          key={tab}
-          onClick={() => onChange(tab)}
-          className={`flex-1 py-2.5 text-sm font-medium capitalize transition-colors ${
-            active === tab
+          key={key}
+          onClick={() => onChange(key)}
+          className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
+            active === key
               ? "border-b-2 border-violet-500 text-violet-600 dark:text-violet-400"
               : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
           }`}
         >
-          {tab}
+          {label}
         </button>
       ))}
     </div>
@@ -591,6 +671,7 @@ export function PublicProfileView({ profile: initialProfile }: { profile: Public
         <div className="py-4">
           {activeTab === "songs" && <SongsTab username={profile.username} />}
           {activeTab === "playlists" && <PlaylistsTab username={profile.username} />}
+          {activeTab === "liked" && <LikedSongsTab username={profile.username} />}
         </div>
       </div>
     </div>
