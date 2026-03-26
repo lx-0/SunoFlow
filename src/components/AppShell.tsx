@@ -32,6 +32,7 @@ import {
   ComputerDesktopIcon,
   RssIcon,
   ChatBubbleLeftEllipsisIcon,
+  MusicalNoteIcon,
 } from "@heroicons/react/24/outline";
 import { useTheme } from "./ThemeProvider";
 import dynamic from "next/dynamic";
@@ -60,6 +61,7 @@ const NAV_ITEM_DEFS = [
   { key: "personas" as const, href: "/personas", icon: UserGroupIcon, dataTour: undefined as string | undefined, prefetch: false },
   { key: "mashup" as const, href: "/mashup", icon: SparklesIcon, dataTour: undefined as string | undefined, prefetch: false },
   { key: "feed" as const, href: "/feed", icon: RssIcon, dataTour: undefined as string | undefined, prefetch: false },
+  { key: "radio" as const, href: "/radio", icon: MusicalNoteIcon, dataTour: undefined as string | undefined, prefetch: false },
   { key: "discover" as const, href: "/discover", icon: GlobeAltIcon, dataTour: undefined as string | undefined, prefetch: false },
   { key: "playlists" as const, href: "/playlists", icon: QueueListIcon, dataTour: "explore" as string | undefined, prefetch: false },
   { key: "favorites" as const, href: "/favorites", icon: HeartIcon, dataTour: "nav-favorites" as string | undefined, prefetch: false },

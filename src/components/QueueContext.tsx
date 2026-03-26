@@ -42,6 +42,14 @@ export interface QueueSong {
 
 export type RepeatMode = "off" | "repeat-all" | "repeat-one";
 
+export interface RadioParams {
+  mood: string | null;
+  genre: string | null;
+  tempoMin?: number | null;
+  tempoMax?: number | null;
+  seedSongId?: string | null;
+}
+
 interface QueueState {
   /** Songs in play order (shuffled if shuffle is on) */
   queue: QueueSong[];
@@ -58,6 +66,10 @@ interface QueueState {
   muted: boolean;
   /** Source label shown in player, e.g. playlist or library name */
   playlistSource: string | null;
+  /** Active radio session params, or null when not in radio mode */
+  radioState: RadioParams | null;
+  /** True while radio is fetching more songs */
+  isRadioLoading: boolean;
 }
 
 interface QueueActions {
@@ -83,6 +95,12 @@ interface QueueActions {
   toggleMute: () => void;
   /** Returns the underlying HTMLAudioElement (for Web Audio API integration) */
   getAudioElement: () => HTMLAudioElement | null;
+  /** Start a mood-based radio session */
+  startRadio: (params: RadioParams) => Promise<void>;
+  /** Stop the radio session and return to normal mode */
+  stopRadio: () => void;
+  /** Mark a song as disliked — excludes it from future radio fetches */
+  radioThumbsDown: (songId: string) => void;
 }
 
 type QueueContextValue = QueueState & QueueActions;
@@ -156,6 +174,16 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   const [volume, setVolumeState] = useState(1);
   const [muted, setMuted] = useState(false);
   const [playlistSource, setPlaylistSource] = useState<string | null>(null);
+  const [radioState, setRadioState] = useState<RadioParams | null>(null);
+  const [isRadioLoading, setIsRadioLoading] = useState(false);
+
+  // Ref versions for use in callbacks without stale closures
+  const radioStateRef = useRef<RadioParams | null>(null);
+  const radioExcludedIds = useRef<Set<string>>(new Set());
+  radioStateRef.current = radioState;
+
+  // Ref to the radio refill function — set after actions are defined
+  const radioRefillRef = useRef<(() => void) | null>(null);
 
   // Refs for event handlers (avoid stale closures)
   const queueRef = useRef(queue);
@@ -255,6 +283,14 @@ export function QueueProvider({ children }: { children: ReactNode }) {
         setDuration(q[next].duration ?? 0);
         audio.play().catch(console.error);
         trackPlayRef.current(q[next].id);
+
+        // Radio auto-refill: when fewer than 3 songs remain, fetch more
+        if (radioStateRef.current && q.length - next <= 3) {
+          radioRefillRef.current?.();
+        }
+      } else if (radioStateRef.current) {
+        // Radio mode — fetch a new batch when queue is exhausted
+        radioRefillRef.current?.();
       } else if (rep === "repeat-all" && q.length > 0) {
         // Wrap to start
         setCurrentIndex(0);
@@ -552,8 +588,105 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     setCurrentTime(0);
     setDuration(0);
     setPlaylistSource(null);
+    setRadioState(null);
+    radioExcludedIds.current = new Set();
     originalQueueRef.current = [];
   }, []);
+
+  // ─── Radio actions ─────────────────────────────────────────────────────────
+
+  const fetchRadioSongs = useCallback(
+    async (params: RadioParams, excludeIds: string[]): Promise<QueueSong[]> => {
+      const url = new URL("/api/radio", window.location.origin);
+      if (params.mood) url.searchParams.set("mood", params.mood);
+      if (params.genre) url.searchParams.set("genre", params.genre);
+      if (params.tempoMin != null) url.searchParams.set("tempoMin", String(params.tempoMin));
+      if (params.tempoMax != null) url.searchParams.set("tempoMax", String(params.tempoMax));
+      if (params.seedSongId) url.searchParams.set("seedSongId", params.seedSongId);
+      if (excludeIds.length > 0) url.searchParams.set("excludeIds", excludeIds.join(","));
+      url.searchParams.set("limit", "20");
+
+      const res = await fetch(url.toString());
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data.songs ?? []) as QueueSong[];
+    },
+    []
+  );
+
+  const startRadio = useCallback(
+    async (params: RadioParams) => {
+      setIsRadioLoading(true);
+      radioExcludedIds.current = new Set();
+      try {
+        const songs = await fetchRadioSongs(params, []);
+        if (songs.length === 0) {
+          setIsRadioLoading(false);
+          return;
+        }
+        setRadioState(params);
+        // Mark all fetched IDs as known so we don't repeat them
+        songs.forEach((s) => radioExcludedIds.current.add(s.id));
+        playQueue(songs, 0, params.mood ? `Radio: ${params.mood}` : "Radio");
+      } finally {
+        setIsRadioLoading(false);
+      }
+    },
+    [fetchRadioSongs, playQueue]
+  );
+
+  const stopRadio = useCallback(() => {
+    setRadioState(null);
+    radioExcludedIds.current = new Set();
+    setPlaylistSource(null);
+  }, []);
+
+  const radioThumbsDown = useCallback((songId: string) => {
+    radioExcludedIds.current.add(songId);
+    // Remove the song from the queue if it hasn't been played yet
+    setQueue((prev) => {
+      const idx = currentIndexRef.current;
+      const songIdx = prev.findIndex((s, i) => s.id === songId && i > idx);
+      if (songIdx < 0) return prev;
+      const next = [...prev];
+      next.splice(songIdx, 1);
+      return next;
+    });
+    // If it's the current song, skip to next
+    const q = queueRef.current;
+    const idx = currentIndexRef.current;
+    if (idx >= 0 && q[idx]?.id === songId) {
+      skipNext();
+    }
+  }, [skipNext]);
+
+  // Wire up the refill callback used inside the audio onEnded handler
+  const radioRefill = useCallback(() => {
+    const params = radioStateRef.current;
+    if (!params) return;
+    const excludeIds = Array.from(radioExcludedIds.current);
+    fetchRadioSongs(params, excludeIds).then((songs) => {
+      if (songs.length === 0) return;
+      songs.forEach((s) => radioExcludedIds.current.add(s.id));
+      const audio = audioRef.current;
+      setQueue((prev) => {
+        const merged = [...prev, ...songs];
+        // If nothing is playing, start from first new song
+        if (currentIndexRef.current < 0 && merged.length > 0 && audio) {
+          const firstNew = prev.length;
+          setCurrentIndex(firstNew);
+          audio.src = getAudioSrc(merged[firstNew]);
+          setCurrentTime(0);
+          setDuration(merged[firstNew].duration ?? 0);
+          audio.play().catch(console.error);
+          trackPlayRef.current(merged[firstNew].id);
+        }
+        return merged;
+      });
+    });
+  }, [fetchRadioSongs]);
+
+  radioRefillRef.current = radioRefill;
 
   // ─── Volume ─────────────────────────────────────────────────────────────
 
@@ -588,6 +721,8 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     volume,
     muted,
     playlistSource,
+    radioState,
+    isRadioLoading,
     playQueue,
     togglePlay,
     playNext,
@@ -603,6 +738,9 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     setVolume,
     toggleMute,
     getAudioElement,
+    startRadio,
+    stopRadio,
+    radioThumbsDown,
   };
 
   return (

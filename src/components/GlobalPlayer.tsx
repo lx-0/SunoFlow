@@ -53,6 +53,7 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
     volume,
     muted,
     playlistSource,
+    radioState,
     togglePlay,
     skipNext,
     skipPrev,
@@ -325,7 +326,12 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
               <span>{formatTime(currentTime)}</span>
               <span>/</span>
               <span>{formatTime(duration)}</span>
-              {playlistSource ? (
+              {radioState ? (
+                <span className="ml-auto hidden sm:inline-flex items-center gap-1 text-purple-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse inline-block" />
+                  Radio{radioState.mood ? `: ${radioState.mood}` : ""}
+                </span>
+              ) : playlistSource ? (
                 <span className="ml-auto hidden sm:inline truncate max-w-[120px]" title={`Playing from: ${playlistSource}`}>
                   Playing from: {playlistSource}
                 </span>
