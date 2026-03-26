@@ -3,7 +3,7 @@ import { resolveUser } from "@/lib/auth-resolver";
 import { prisma } from "@/lib/prisma";
 import { generateSong, SunoApiError } from "@/lib/sunoapi";
 import { mockSongs } from "@/lib/sunoapi/mock";
-import { acquireRateLimitSlot } from "@/lib/rate-limit";
+import { acquireRateLimitSlot, releaseRateLimitSlot } from "@/lib/rate-limit";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 import { logServerError } from "@/lib/error-logger";
 import { recordCreditUsage, getMonthlyCreditUsage, CREDIT_COSTS, shouldNotifyLowCredits, createLowCreditNotification } from "@/lib/credits";
@@ -203,6 +203,9 @@ export async function POST(
         });
       } catch (apiError) {
         logServerError("variation-api", apiError, { userId, route: `/api/songs/${parentId}/variations` });
+
+        // Release the rate limit slot so the failed attempt doesn't count
+        await releaseRateLimitSlot(userId).catch(() => {});
 
         const errorMsg = userFriendlyError(apiError);
         savedSong = await prisma.song.create({

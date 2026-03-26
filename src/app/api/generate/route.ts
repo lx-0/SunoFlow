@@ -4,7 +4,7 @@ import { resolveUser } from "@/lib/auth-resolver";
 import { generateSong, SunoApiError } from "@/lib/sunoapi";
 import { mockSongs } from "@/lib/sunoapi/mock";
 import { prisma } from "@/lib/prisma";
-import { acquireRateLimitSlot } from "@/lib/rate-limit";
+import { acquireRateLimitSlot, releaseRateLimitSlot } from "@/lib/rate-limit";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 import { logServerError } from "@/lib/error-logger";
 import { logger } from "@/lib/logger";
@@ -166,6 +166,11 @@ export async function POST(request: Request) {
           params: generationParams,
         });
 
+        // Release the rate limit slot so the failed attempt doesn't count
+        if (!isAdmin) {
+          await releaseRateLimitSlot(userId).catch(() => {});
+        }
+
         // Save a failed record so the user can see it in history and retry
         const { message: errorMsg, code: errorCode } = userFriendlyError(apiError);
         const song = await prisma.song.create({
@@ -182,7 +187,6 @@ export async function POST(request: Request) {
 
         savedSongs = [song];
 
-        // Rate limit slot already claimed above — just return current status
         return NextResponse.json(
           {
             songs: savedSongs,

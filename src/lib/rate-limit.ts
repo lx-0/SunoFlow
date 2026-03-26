@@ -80,6 +80,28 @@ export async function recordRateLimitHit(
 }
 
 /**
+ * Release the most recently acquired rate limit slot for a user/action.
+ * Call this in catch blocks so a failed generation doesn't consume one of
+ * the user's hourly slots.
+ */
+export async function releaseRateLimitSlot(
+  userId: string,
+  action = "generate"
+): Promise<void> {
+  const windowStart = new Date(Date.now() - WINDOW_MS);
+
+  const entry = await prisma.rateLimitEntry.findFirst({
+    where: { userId, action, createdAt: { gte: windowStart } },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
+
+  if (entry) {
+    await prisma.rateLimitEntry.delete({ where: { id: entry.id } });
+  }
+}
+
+/**
  * Atomically check-and-increment the rate limit in a single transaction.
  * Returns { acquired: true, status } if a slot was claimed, or
  * { acquired: false, status } if the limit was already reached.
