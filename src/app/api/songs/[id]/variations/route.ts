@@ -150,7 +150,11 @@ export async function POST(
     // Parse body — allow overrides for prompt, tags, title
     const body = await request.json();
     const prompt = (body.prompt?.trim() || parentSong.prompt || "").trim();
-    const tags = (body.tags?.trim() || parentSong.tags || "").trim() || null;
+    const rawTags = (body.tags?.trim() || parentSong.tags || "").trim();
+    // Variations always inherit parent tags plus a "remix" label
+    const tags = rawTags
+      ? rawTags.toLowerCase().includes("remix") ? rawTags : `${rawTags}, remix`
+      : "remix";
     const title = body.title?.trim() || (parentSong.title ? `${parentSong.title} (variation)` : null);
     const makeInstrumental = body.makeInstrumental ?? parentSong.isInstrumental;
 

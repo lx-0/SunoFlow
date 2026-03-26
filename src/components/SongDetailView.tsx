@@ -214,16 +214,45 @@ interface CreateVariationModalProps {
   submitting: boolean;
 }
 
+const TEMPO_OPTIONS = [
+  { value: "", label: "Original tempo" },
+  { value: "faster tempo", label: "Faster" },
+  { value: "slower tempo", label: "Slower" },
+  { value: "uptempo", label: "Uptempo" },
+  { value: "downtempo", label: "Downtempo" },
+];
+
+const MOOD_OPTIONS = [
+  { value: "", label: "Original mood" },
+  { value: "happy", label: "Happy" },
+  { value: "melancholic", label: "Melancholic" },
+  { value: "dark", label: "Dark" },
+  { value: "energetic", label: "Energetic" },
+  { value: "chill", label: "Chill" },
+  { value: "romantic", label: "Romantic" },
+  { value: "epic", label: "Epic" },
+];
+
 function CreateVariationModal({ sourceSong, onClose, onSubmit, submitting }: CreateVariationModalProps) {
   const [prompt, setPrompt] = useState(sourceSong.prompt ?? "");
   const [tags, setTags] = useState(sourceSong.tags ?? "");
   const [lyrics, setLyrics] = useState(sourceSong.lyrics ?? "");
   const [title, setTitle] = useState(sourceSong.title ? `${sourceSong.title} (variation)` : "");
   const [makeInstrumental, setMakeInstrumental] = useState(sourceSong.isInstrumental ?? false);
+  const [tempoShift, setTempoShift] = useState("");
+  const [moodModifier, setMoodModifier] = useState("");
+  const [instrumentSwap, setInstrumentSwap] = useState("");
+
+  function buildEnrichedTags(): string {
+    const modifiers = [tempoShift, moodModifier, instrumentSwap.trim()].filter(Boolean);
+    const base = tags.trim();
+    if (!modifiers.length) return base;
+    return base ? `${base}, ${modifiers.join(", ")}` : modifiers.join(", ");
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    onSubmit({ prompt, tags, lyrics, title, makeInstrumental });
+    onSubmit({ prompt, tags: buildEnrichedTags(), lyrics, title, makeInstrumental });
   }
 
   return (
@@ -261,6 +290,50 @@ function CreateVariationModal({ sourceSong, onClose, onSubmit, submitting }: Cre
               placeholder="e.g. pop, rock, electronic"
               className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
             />
+          </div>
+
+          {/* Variation parameters */}
+          <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Variation parameters</p>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tempo shift</label>
+                <select
+                  value={tempoShift}
+                  onChange={(e) => setTempoShift(e.target.value)}
+                  className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-violet-500 transition-colors"
+                >
+                  {TEMPO_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Mood</label>
+                <select
+                  value={moodModifier}
+                  onChange={(e) => setMoodModifier(e.target.value)}
+                  className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-violet-500 transition-colors"
+                >
+                  {MOOD_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Instrument swap (optional)</label>
+              <input
+                type="text"
+                value={instrumentSwap}
+                onChange={(e) => setInstrumentSwap(e.target.value)}
+                placeholder="e.g. piano, guitar, strings, synthesizer"
+                className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
+              />
+            </div>
           </div>
 
           <div>
