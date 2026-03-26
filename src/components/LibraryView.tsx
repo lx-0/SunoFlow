@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from "react";
+import { track } from "@/lib/analytics";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -525,6 +526,7 @@ function SongRow({
         setShareCopied(true);
         setTimeout(() => setShareCopied(false), 2000);
         toast("Share link copied to clipboard!", "success");
+        track("song_shared", { songId: song.id, source: "library_card" });
       } else if (!data.isPublic) {
         toast("Song is now private", "info");
       }

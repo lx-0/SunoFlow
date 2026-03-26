@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 import { useToast } from "@/components/Toast";
 import { useSession } from "next-auth/react";
 import type { ReactionItem } from "@/components/ReactionTimeline";
+import { track } from "@/lib/analytics";
 
 // Lazy-load below-fold and conditional components to reduce initial bundle
 const ReportModal = dynamic(() => import("@/components/ReportModal").then((m) => m.ReportModal), { ssr: false });
@@ -65,20 +66,28 @@ export function PublicSongView({
     try {
       if (navigator.share) {
         await navigator.share({ title, url });
+        track("song_shared", { songId, source: "public_page", method: "native_share" });
       } else {
         await navigator.clipboard.writeText(url);
         toast("Link copied to clipboard!", "success");
+        track("song_shared", { songId, source: "public_page", method: "clipboard" });
       }
     } catch {
       // Fallback: manual copy
       try {
         await navigator.clipboard.writeText(url);
         toast("Link copied to clipboard!", "success");
+        track("song_shared", { songId, source: "public_page", method: "clipboard" });
       } catch {
         toast("Could not copy link. Please copy the URL manually.", "error");
       }
     }
-  }, [title, toast]);
+  }, [title, toast, songId]);
+
+  // Track public song page view on mount
+  useEffect(() => {
+    track("public_song_viewed", { songId, slug });
+  }, [songId, slug]);
 
   // Fetch all reactions on mount (no auth needed for public songs)
   useEffect(() => {

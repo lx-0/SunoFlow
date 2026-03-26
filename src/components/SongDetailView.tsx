@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { canUseFeature, type SubscriptionTier } from "@/lib/feature-gates";
+import { track } from "@/lib/analytics";
 import {
   ArrowLeftIcon,
   MusicalNoteIcon,
@@ -1181,6 +1182,7 @@ export function SongDetailView({
         const url = `${window.location.origin}/s/${data.publicSlug}`;
         await navigator.clipboard.writeText(url);
         toast("Public link copied to clipboard", "success");
+        track("song_shared", { songId: song.id, source: "song_detail" });
       } else {
         toast("Song is now private", "success");
       }
@@ -1196,6 +1198,7 @@ export function SongDetailView({
     const url = `${window.location.origin}/s/${publicSlug}`;
     await navigator.clipboard.writeText(url);
     toast("Link copied to clipboard", "success");
+    track("song_link_copied", { songId: song.id, source: "song_detail" });
   }
 
   // Fetch child stem tracks for a completed split_stem song and merge them in
