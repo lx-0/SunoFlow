@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from "react";
-import { track } from "@/lib/analytics";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -10,7 +9,6 @@ import {
   PauseIcon,
   MusicalNoteIcon,
   ArrowDownTrayIcon,
-  ShareIcon,
   HeartIcon,
   ArrowUpOnSquareStackIcon,
   MagnifyingGlassIcon,
@@ -51,6 +49,7 @@ import { TagChip } from "./TagInput";
 const SunoImportModal = dynamic(() => import("./SunoImportModal").then((m) => m.SunoImportModal), { ssr: false });
 import { RecentlyPlayed } from "./RecentlyPlayed";
 import { AddToPlaylistButton } from "./AddToPlaylistButton";
+import { ShareButton } from "./ShareButton";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -247,7 +246,7 @@ interface SongRowMenuProps {
   isArchiveView: boolean;
   hasAudio: boolean;
   onToggleFavorite: (song: Song) => void;
-  onShare: () => void;
+  onSongUpdate: (updated: Partial<Song>) => void;
   onDownload: (song: Song) => void;
   onSingleArchive: (song: Song) => void;
   onSingleRestore: (song: Song) => void;
@@ -259,7 +258,7 @@ function SongRowMenu({
   isArchiveView,
   hasAudio,
   onToggleFavorite,
-  onShare,
+  onSongUpdate,
   onDownload,
   onSingleArchive,
   onSingleRestore,
@@ -336,13 +335,16 @@ function SongRowMenu({
             </button>
           )}
           {hasAudio && (
-            <button
-              onClick={() => { setOpen(false); onShare(); }}
+            <ShareButton
+              song={song}
+              onUpdate={(updated) => {
+              setOpen(false);
+              onSongUpdate({ ...updated, isPublic: updated.isPublic ?? false });
+            }}
+              compact={false}
+              source="library_card_menu"
               className={itemClass}
-            >
-              <ShareIcon className="w-4 h-4 flex-shrink-0" />
-              Share
-            </button>
+            />
           )}
           {hasAudio && (
             <button
@@ -453,8 +455,6 @@ function SongRow({
 }: SongRowProps) {
   const { toast } = useToast();
   const [song, setSong] = useState(initialSong);
-  const [shareLoading, setShareLoading] = useState(false);
-  const [shareCopied, setShareCopied] = useState(false);
 
   // Long-press to enter selection mode on mobile
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -515,30 +515,6 @@ function SongRow({
   const statusText = isPending ? ", generating" : isFailed ? ", failed" : "";
   const ratingText = rating ? `, ${rating.stars} of 5 stars` : "";
   const songAriaLabel = `${songTitle}${statusText}${ratingText}`;
-
-  async function handleShare() {
-    setShareLoading(true);
-    try {
-      const res = await fetch(`/api/songs/${song.id}/share`, { method: "PATCH" });
-      if (!res.ok) return;
-      const data = await res.json();
-      const updated = { ...song, isPublic: data.isPublic, publicSlug: data.publicSlug };
-      setSong(updated);
-      onUpdate(updated);
-      if (data.isPublic && data.publicSlug) {
-        const url = `${window.location.origin}/s/${data.publicSlug}`;
-        await navigator.clipboard.writeText(url);
-        setShareCopied(true);
-        setTimeout(() => setShareCopied(false), 2000);
-        toast("Share link copied to clipboard!", "success");
-        track("song_shared", { songId: song.id, source: "library_card" });
-      } else if (!data.isPublic) {
-        toast("Song is now private", "info");
-      }
-    } finally {
-      setShareLoading(false);
-    }
-  }
 
   return (
     <div
@@ -695,23 +671,22 @@ function SongRow({
           )}
         </button>
 
-        <button
-          onClick={handleShare}
-          disabled={!hasAudio || shareLoading}
-          aria-label={shareCopied ? "Link copied!" : song.isPublic ? "Make private" : "Share"}
-          title={shareCopied ? "Link copied!" : song.isPublic ? "Make private" : "Share song"}
-          className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
-            shareCopied
-              ? "bg-green-700 text-white"
-              : song.isPublic
+        {hasAudio && (
+          <ShareButton
+            song={song}
+            onUpdate={(updated) => {
+              const next = { ...song, ...updated, isPublic: updated.isPublic ?? song.isPublic };
+              setSong(next);
+              onUpdate(next);
+            }}
+            source="library_card"
+            className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+              song.isPublic
                 ? "bg-violet-100 dark:bg-violet-800 hover:bg-violet-200 dark:hover:bg-violet-700 text-violet-700 dark:text-violet-300"
-                : hasAudio
-                  ? "bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
-                  : "bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed"
-          }`}
-        >
-          <ShareIcon className="w-5 h-5" aria-hidden="true" />
-        </button>
+                : "bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+            }`}
+          />
+        )}
 
         <button
           onClick={() => onDownload(song)}
@@ -733,7 +708,11 @@ function SongRow({
           isArchiveView={isArchiveView}
           hasAudio={hasAudio}
           onToggleFavorite={onToggleFavorite}
-          onShare={handleShare}
+          onSongUpdate={(updated) => {
+            const next = { ...song, ...updated, isPublic: updated.isPublic ?? song.isPublic };
+            setSong(next);
+            onUpdate(next);
+          }}
           onDownload={onDownload}
           onSingleArchive={onSingleArchive}
           onSingleRestore={onSingleRestore}
@@ -952,17 +931,24 @@ function SongGridCard({ song, isActive, isPlaying, isSelected, selectionMode, se
         <Link href={`/library/${song.id}`} className="text-sm font-medium text-gray-900 dark:text-white truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors min-w-0">
           <Highlight text={song.title ?? "Untitled"} query={searchQuery} />
         </Link>
-        <button
-          onClick={() => onToggleFavorite(song)}
-          aria-label={(song as Song & { isFavorite?: boolean }).isFavorite ? "Remove from favorites" : "Add to favorites"}
-          className="flex-shrink-0 text-gray-400 hover:text-red-500 transition-colors"
-        >
-          {(song as Song & { isFavorite?: boolean }).isFavorite ? (
-            <HeartIcon className="w-4 h-4 text-red-500" />
-          ) : (
-            <HeartOutlineIcon className="w-4 h-4" />
-          )}
-        </button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <ShareButton
+            song={song}
+            source="library_grid"
+            className="text-gray-400 hover:text-violet-500 transition-colors"
+          />
+          <button
+            onClick={() => onToggleFavorite(song)}
+            aria-label={(song as Song & { isFavorite?: boolean }).isFavorite ? "Remove from favorites" : "Add to favorites"}
+            className="flex-shrink-0 text-gray-400 hover:text-red-500 transition-colors"
+          >
+            {(song as Song & { isFavorite?: boolean }).isFavorite ? (
+              <HeartIcon className="w-4 h-4 text-red-500" />
+            ) : (
+              <HeartOutlineIcon className="w-4 h-4" />
+            )}
+          </button>
+        </div>
       </div>
     </li>
   );

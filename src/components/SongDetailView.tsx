@@ -14,7 +14,6 @@ import {
   HeartIcon,
   ArrowPathIcon,
   ShareIcon,
-  ClipboardDocumentIcon,
   CalendarIcon,
   ClockIcon,
   TagIcon,
@@ -1210,8 +1209,23 @@ export function SongDetailView({
   async function handleCopyLink() {
     if (!publicSlug) return;
     const url = `${window.location.origin}/s/${publicSlug}`;
+
+    // Mobile: use native Web Share API if available
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: song.title ?? "Check out this song", url });
+        track("song_shared", { songId: song.id, source: "song_detail", method: "web_share_api" });
+        return;
+      } catch (err) {
+        // User cancelled — do not fall through
+        if (err instanceof Error && err.name === "AbortError") return;
+        // Other errors fall through to clipboard
+      }
+    }
+
+    // Desktop / fallback: clipboard copy
     await navigator.clipboard.writeText(url);
-    toast("Link copied to clipboard", "success");
+    toast("Link copied!", "success");
     track("song_link_copied", { songId: song.id, source: "song_detail" });
   }
 
@@ -1699,8 +1713,8 @@ export function SongDetailView({
             onClick={handleCopyLink}
             className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200 active:scale-95 min-h-[44px]"
           >
-            <ClipboardDocumentIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-            Copy link
+            <ShareIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+            Share
           </button>
         )}
 
