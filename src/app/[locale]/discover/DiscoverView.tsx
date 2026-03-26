@@ -11,6 +11,7 @@ import {
   MusicalNoteIcon,
 } from "@heroicons/react/24/solid";
 import { FollowButton } from "@/components/FollowButton";
+import { AddToPlaylistButton } from "@/components/AddToPlaylistButton";
 
 interface DiscoverSong {
   id: string;
@@ -604,7 +605,10 @@ function DiscoverCard({
           <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
             {song.user.name || "Unknown Artist"}
           </p>
-          <FollowButton userId={song.user.id} />
+          <div className="flex items-center flex-shrink-0">
+            <AddToPlaylistButton songId={song.id} variant="icon" />
+            <FollowButton userId={song.user.id} />
+          </div>
         </div>
 
         {(genres.length > 0 || moods.length > 0) && (
