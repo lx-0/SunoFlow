@@ -101,7 +101,7 @@ export async function GET(request: Request) {
     // Build song lookup map
     const songMap = new Map(userSongs.map((s) => [s.id, s]));
 
-    function enrichSongs(rows: Array<{ songId: string; _count: { songId: number } }>) {
+    const enrichSongs = (rows: Array<{ songId: string; _count: { songId: number } }>) => {
       return rows.map((r) => {
         const s = songMap.get(r.songId);
         return {

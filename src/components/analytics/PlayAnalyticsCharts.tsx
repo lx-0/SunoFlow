@@ -135,7 +135,7 @@ export function RetentionCurveChart({
         />
         <Tooltip
           contentStyle={TOOLTIP_STYLE}
-          formatter={(v: number) => [`${Math.round(v)}%`, "Retention"]}
+          formatter={(v) => [`${Math.round(Number(v))}%`, "Retention"]}
         />
         <Line
           type="monotone"
