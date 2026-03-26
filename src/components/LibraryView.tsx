@@ -590,7 +590,7 @@ function SongRow({
             {!isPending && !isFailed && (song as SongWithTags).songTags?.length > 0 && (
               <div className="flex gap-1 flex-wrap">
                 {(song as SongWithTags).songTags.slice(0, 3).map((st) => (
-                  <TagChip key={st.tag.id} tag={st.tag} size="xs" />
+                  <TagChip key={st.tag.id} tag={st.tag} size="xs" onClick={() => setTagFilter((prev) => prev.includes(st.tag.id) ? prev : [...prev, st.tag.id])} />
                 ))}
                 {(song as SongWithTags).songTags.length > 3 && (
                   <span className="text-[10px] text-gray-500 dark:text-gray-400">+{(song as SongWithTags).songTags.length - 3}</span>
@@ -993,7 +993,10 @@ export function LibraryView({
   const [dateFrom, setDateFrom] = useState(searchParams.get("dateFrom") ?? "");
   const [dateTo, setDateTo] = useState(searchParams.get("dateTo") ?? "");
   const [sortBy, setSortBy] = useState(searchParams.get("sortBy") ?? "newest");
-  const [tagFilter, setTagFilter] = useState(searchParams.get("tagId") ?? "");
+  const [tagFilter, setTagFilter] = useState<string[]>(() => {
+    const p = searchParams.get("tagIds") ?? searchParams.get("tagId") ?? "";
+    return p ? p.split(",").filter(Boolean) : [];
+  });
   const [smartFilter, setSmartFilter] = useState(searchParams.get("smartFilter") ?? "");
   // Advanced filters
   const [genreFilter, setGenreFilter] = useState<string[]>(() => {
@@ -1012,7 +1015,7 @@ export function LibraryView({
     if (typeof window === "undefined") return "list";
     return (localStorage.getItem("library-view-mode") as "list" | "grid") ?? "list";
   });
-  const [availableTags, setAvailableTags] = useState<{ id: string; name: string; color: string }[]>([]);
+  const [availableTags, setAvailableTags] = useState<{ id: string; name: string; color: string; _count?: { songTags: number } }[]>([]);
 
   const debouncedSearch = useDebounce(searchText, 300);
 
@@ -1116,7 +1119,7 @@ export function LibraryView({
   }, []);
 
   // ─── Sync filters → URL params ───────────────────────────────────────────
-  const hasAnyFilter = !!(debouncedSearch || statusFilter || ratingFilter || dateFrom || dateTo || tagFilter || smartFilter || sortBy !== "newest" || genreFilter.length > 0 || moodFilter.length > 0 || tempoMin || tempoMax || includeVariations);
+  const hasAnyFilter = !!(debouncedSearch || statusFilter || ratingFilter || dateFrom || dateTo || tagFilter.length > 0 || smartFilter || sortBy !== "newest" || genreFilter.length > 0 || moodFilter.length > 0 || tempoMin || tempoMax || includeVariations);
 
   useEffect(() => {
     if (!enableServerSearch) return;
@@ -1128,7 +1131,7 @@ export function LibraryView({
     if (dateFrom) params.set("dateFrom", dateFrom);
     if (dateTo) params.set("dateTo", dateTo);
     if (sortBy && sortBy !== "newest") params.set("sortBy", sortBy);
-    if (tagFilter) params.set("tagId", tagFilter);
+    if (tagFilter.length > 0) params.set("tagIds", tagFilter.join(","));
     if (smartFilter) params.set("smartFilter", smartFilter);
     if (genreFilter.length > 0) params.set("genre", genreFilter.join(","));
     if (moodFilter.length > 0) params.set("mood", moodFilter.join(","));
@@ -1152,7 +1155,7 @@ export function LibraryView({
     if (dateFrom) params.set("dateFrom", dateFrom);
     if (dateTo) params.set("dateTo", dateTo);
     if (sortBy) params.set("sortBy", sortBy);
-    if (tagFilter) params.set("tagId", tagFilter);
+    if (tagFilter.length > 0) params.set("tagIds", tagFilter.join(","));
     if (smartFilter === "archived") {
       params.set("archived", "true");
     } else if (smartFilter) {
@@ -1225,7 +1228,7 @@ export function LibraryView({
     setDateFrom("");
     setDateTo("");
     setSortBy("newest");
-    setTagFilter("");
+    setTagFilter([]);
     setSmartFilter("");
     setGenreFilter([]);
     setMoodFilter([]);
@@ -1748,7 +1751,7 @@ export function LibraryView({
   }
 
   const hasPlayableSongs = songs.some((s) => s.audioUrl && s.generationStatus === "ready");
-  const hasActiveFilters = !!(statusFilter || ratingFilter || dateFrom || dateTo || tagFilter || smartFilter || genreFilter.length > 0 || moodFilter.length > 0 || tempoMin || tempoMax || includeVariations);
+  const hasActiveFilters = !!(statusFilter || ratingFilter || dateFrom || dateTo || tagFilter.length > 0 || smartFilter || genreFilter.length > 0 || moodFilter.length > 0 || tempoMin || tempoMax || includeVariations);
 
   // ─── Virtualizer for list view ───────────────────────────────────────────
   const listScrollMarginRef = useRef(0);
@@ -1877,7 +1880,7 @@ export function LibraryView({
       )}
 
       {/* Recently Played — only show on default (non-filtered, non-search) library view */}
-      {enableServerSearch && !searchText && !statusFilter && !ratingFilter && !tagFilter && !smartFilter && (
+      {enableServerSearch && !searchText && !statusFilter && !ratingFilter && tagFilter.length === 0 && !smartFilter && (
         <RecentlyPlayed />
       )}
 
@@ -1986,18 +1989,35 @@ export function LibraryView({
                 className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-base sm:text-sm text-gray-900 dark:text-white min-h-[44px]"
               />
 
-              <select
-                value={tagFilter}
-                onChange={(e) => setTagFilter(e.target.value)}
-                aria-label="Filter by tag"
-                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-base sm:text-sm text-gray-900 dark:text-white min-h-[44px]"
-              >
-                <option value="">All tags</option>
-                {availableTags.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
             </div>
+
+            {/* Tag multi-select */}
+            {availableTags.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Tags</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {availableTags.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => setTagFilter((prev) => prev.includes(t.id) ? prev.filter((x) => x !== t.id) : [...prev, t.id])}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                        tagFilter.includes(t.id)
+                          ? "text-white"
+                          : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                      }`}
+                      style={tagFilter.includes(t.id) ? { backgroundColor: t.color } : undefined}
+                    >
+                      {t.name}
+                      {t._count?.songTags != null && (
+                        <span className={`ml-1 ${tagFilter.includes(t.id) ? "opacity-75" : "text-gray-400 dark:text-gray-500"}`}>
+                          {t._count.songTags}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Genre multi-select */}
             <div>
@@ -2133,14 +2153,18 @@ export function LibraryView({
                   </button>
                 </span>
               )}
-              {tagFilter && availableTags.find((t) => t.id === tagFilter) && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
-                  #{availableTags.find((t) => t.id === tagFilter)?.name}
-                  <button onClick={() => setTagFilter("")} aria-label="Remove tag filter" className="hover:text-gray-500">
-                    <XMarkIcon className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
+              {tagFilter.map((tid) => {
+                const t = availableTags.find((x) => x.id === tid);
+                if (!t) return null;
+                return (
+                  <span key={tid} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: t.color }}>
+                    #{t.name}
+                    <button onClick={() => setTagFilter((prev) => prev.filter((x) => x !== tid))} aria-label={`Remove ${t.name} tag filter`} className="hover:opacity-70">
+                      <XMarkIcon className="w-3 h-3" />
+                    </button>
+                  </span>
+                );
+              })}
             </div>
           )}
 

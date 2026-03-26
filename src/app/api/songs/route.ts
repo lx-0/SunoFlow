@@ -31,6 +31,9 @@ export async function GET(request: NextRequest) {
     const dateFrom = params.get("dateFrom") || "";
     const dateTo = params.get("dateTo") || "";
     const tagId = params.get("tagId") || "";
+    // Multi-tag filter: tagIds=id1,id2 (AND logic — song must have ALL tags)
+    const tagIdsParam = params.get("tagIds") || "";
+    const tagIds = tagIdsParam ? tagIdsParam.split(",").map((t) => t.trim()).filter(Boolean) : tagId ? [tagId] : [];
     const smartFilter = params.get("smartFilter") || "";
     const includeVariations = params.get("includeVariations") === "true";
     const showArchived = params.get("archived") === "true";
@@ -132,9 +135,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Tag filter
-    if (tagId) {
-      where.songTags = { some: { tagId } };
+    // Tag filter (AND logic: song must have ALL selected tags)
+    if (tagIds.length === 1) {
+      where.songTags = { some: { tagId: tagIds[0] } };
+    } else if (tagIds.length > 1) {
+      where.AND = [
+        ...((where.AND as Prisma.SongWhereInput[]) ?? []),
+        ...tagIds.map((tid) => ({ songTags: { some: { tagId: tid } } })),
+      ];
     }
 
     // Genre filter (multi-value, ILIKE on tags field)

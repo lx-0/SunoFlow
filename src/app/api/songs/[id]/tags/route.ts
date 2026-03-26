@@ -3,7 +3,7 @@ import { resolveUser } from "@/lib/auth-resolver";
 import { prisma } from "@/lib/prisma";
 
 const MAX_TAGS_PER_SONG = 10;
-const MAX_TAGS_PER_USER = 30;
+const MAX_TAGS_PER_USER = 50;
 
 export async function GET(
   request: Request,
