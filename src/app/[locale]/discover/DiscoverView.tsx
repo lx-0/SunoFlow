@@ -87,7 +87,7 @@ function FilterPill({
   );
 }
 
-export function DiscoverView() {
+export function DiscoverView({ basePath = "/discover" }: { basePath?: string } = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -121,7 +121,7 @@ export function DiscoverView() {
     if (mood) params.set("mood", mood);
     if (tempoPreset) params.set("tempo", tempoPreset);
     const qs = params.toString();
-    router.replace(qs ? `/discover?${qs}` : "/discover", { scroll: false });
+    router.replace(qs ? `${basePath}?${qs}` : basePath, { scroll: false });
   }, [sortBy, tag, mood, tempoPreset, router]);
 
   const tempoRange = TEMPO_PRESETS.find((p) => p.label === tempoPreset);
