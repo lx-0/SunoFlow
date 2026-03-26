@@ -1,5 +1,4 @@
 import { cache } from "react";
-import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { EmbedSongPlayer } from "./EmbedSongPlayer";
 import { cached, cacheKey, CacheTTL } from "@/lib/cache";
@@ -30,11 +29,31 @@ export default async function EmbedSongPage({
 }) {
   const song = await getSong(params.songId);
 
-  if (!song || !song.isPublic || song.isHidden || song.archivedAt) {
-    notFound();
-  }
-
   const theme = searchParams.theme === "light" ? "light" : "dark";
+
+  if (!song || !song.isPublic || song.isHidden || song.archivedAt) {
+    const isDark = theme === "dark";
+    return (
+      <html lang="en">
+        <head>
+          <meta charSet="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <meta name="robots" content="noindex" />
+          <title>Song Unavailable — SunoFlow</title>
+        </head>
+        <body
+          style={{ margin: 0, padding: "8px", boxSizing: "border-box" }}
+          className={isDark ? "bg-gray-950" : "bg-white"}
+        >
+          <div
+            className={`flex items-center gap-3 w-full h-[80px] px-4 rounded-xl border ${isDark ? "bg-gray-900 border-gray-800 text-gray-400" : "bg-gray-50 border-gray-200 text-gray-400"}`}
+          >
+            <span className="text-sm">This song is no longer available.</span>
+          </div>
+        </body>
+      </html>
+    );
+  }
   const autoplay = searchParams.autoplay === "1";
 
   const title = song.title ?? "Untitled";
