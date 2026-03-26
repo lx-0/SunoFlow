@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       rateLimitStatus = status;
     }
 
-    const { prompt, title, tags, makeInstrumental, personaId } = await request.json();
+    const { prompt, title, tags, makeInstrumental, personaId, parentSongId } = await request.json();
 
     if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
       return badRequest("A style/genre prompt is required");
@@ -122,6 +122,7 @@ export async function POST(request: Request) {
           sunoModel: mock.model || null,
           isInstrumental: Boolean(makeInstrumental),
           generationStatus: "ready",
+          parentSongId: typeof parentSongId === "string" && parentSongId ? parentSongId : null,
         },
       });
       savedSongs = [song];
@@ -157,6 +158,7 @@ export async function POST(request: Request) {
             tags: generationParams.style || null,
             isInstrumental: Boolean(makeInstrumental),
             generationStatus: "pending",
+            parentSongId: typeof parentSongId === "string" && parentSongId ? parentSongId : null,
           },
         });
 
@@ -185,6 +187,7 @@ export async function POST(request: Request) {
             isInstrumental: Boolean(makeInstrumental),
             generationStatus: "failed",
             errorMessage: errorMsg,
+            parentSongId: typeof parentSongId === "string" && parentSongId ? parentSongId : null,
           },
         });
 

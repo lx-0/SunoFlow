@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { SparklesIcon, BookmarkIcon, TrashIcon } from "@heroicons/react/24/solid";
-import { BookmarkIcon as BookmarkOutline, ClockIcon, BoltIcon, UserCircleIcon, PencilSquareIcon, ChevronDownIcon, ExclamationTriangleIcon, QueueListIcon, AdjustmentsHorizontalIcon } from "@heroicons/react/24/outline";
+import { BookmarkIcon as BookmarkOutline, ClockIcon, BoltIcon, UserCircleIcon, PencilSquareIcon, ChevronDownIcon, ExclamationTriangleIcon, QueueListIcon, AdjustmentsHorizontalIcon, DocumentDuplicateIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useToast } from "./Toast";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { useGenerationQueue } from "@/hooks/useGenerationQueue";
@@ -72,11 +73,14 @@ export function GenerateForm() {
     isProcessing: queueIsProcessing,
   } = useGenerationQueue();
 
+  const sourceSongId = searchParams.get("sourceSongId") ?? null;
+  const sourceSongTitle = searchParams.get("sourceSongTitle") ?? null;
+
   const [title, setTitle] = useState(searchParams.get("title") ?? "");
   const [stylePrompt, setStylePrompt] = useState(searchParams.get("tags") ?? "");
   const [customMode, setCustomMode] = useState(Boolean(searchParams.get("prompt") && !searchParams.get("tags")));
   const [lyrics, setLyrics] = useState(searchParams.get("prompt") ?? "");
-  const [instrumental, setInstrumental] = useState(false);
+  const [instrumental, setInstrumental] = useState(searchParams.get("instrumental") === "1");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rateLimit, setRateLimit] = useState<RateLimitStatus | null>(null);
   const [promptError, setPromptError] = useState<string | null>(null);
@@ -529,6 +533,7 @@ export function GenerateForm() {
         tags: stylePrompt || undefined,
         makeInstrumental: instrumental,
         personaId: selectedPersona?.personaId || undefined,
+        parentSongId: sourceSongId || undefined,
       };
 
       let res: Response;
@@ -688,6 +693,32 @@ export function GenerateForm() {
               Check your <a href="/analytics" className="underline font-medium hover:text-amber-900 dark:hover:text-amber-200">usage dashboard</a> for details.
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Source song banner (pre-filled from duplication) */}
+      {sourceSongId && (
+        <div className="flex items-center gap-3 p-3 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl">
+          <DocumentDuplicateIcon className="w-5 h-5 text-violet-600 dark:text-violet-400 flex-shrink-0" />
+          <div className="flex-1 min-w-0 text-sm text-violet-800 dark:text-violet-300">
+            Based on{" "}
+            <Link href={`/library/${sourceSongId}`} className="font-medium underline hover:text-violet-900 dark:hover:text-violet-200">
+              {sourceSongTitle ?? "original song"}
+            </Link>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setTitle("");
+              setStylePrompt("");
+              setLyrics("");
+              setInstrumental(false);
+            }}
+            className="text-violet-500 hover:text-violet-700 dark:hover:text-violet-300 transition-colors flex-shrink-0"
+            title="Reset to defaults"
+          >
+            <XMarkIcon className="w-4 h-4" />
+          </button>
         </div>
       )}
 

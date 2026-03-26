@@ -34,7 +34,7 @@ import {
   CodeBracketIcon,
   ArrowsRightLeftIcon,
 } from "@heroicons/react/24/solid";
-import { HeartIcon as HeartOutlineIcon, QueueListIcon, HandThumbUpIcon as HandThumbUpOutlineIcon, HandThumbDownIcon as HandThumbDownOutlineIcon, CloudArrowDownIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
+import { HeartIcon as HeartOutlineIcon, QueueListIcon, HandThumbUpIcon as HandThumbUpOutlineIcon, HandThumbDownIcon as HandThumbDownOutlineIcon, CloudArrowDownIcon, CheckCircleIcon, DocumentDuplicateIcon } from "@heroicons/react/24/outline";
 import { useOfflineCache } from "@/hooks/useOfflineCache";
 import type { SunoSong } from "@/lib/sunoapi";
 import { getRating, type SongRating } from "@/lib/ratings";
@@ -1900,6 +1900,22 @@ export function SongDetailView({
           >
             <PaintBrushIcon className="w-4 h-4" aria-hidden="true" />
             Replace Section
+          </button>
+          <button
+            onClick={() => {
+              const params = new URLSearchParams();
+              if (song.title) params.set("title", song.title);
+              if (song.tags) params.set("tags", song.tags);
+              if (song.prompt) params.set("prompt", song.prompt);
+              if (isInstrumental) params.set("instrumental", "1");
+              params.set("sourceSongId", song.id);
+              if (song.title) params.set("sourceSongTitle", song.title);
+              router.push(`/generate?${params.toString()}`);
+            }}
+            className="flex items-center justify-center gap-2 px-3 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-xl transition-colors min-h-[44px] col-span-2"
+          >
+            <DocumentDuplicateIcon className="w-4 h-4" aria-hidden="true" />
+            Use as Template
           </button>
         </div>
       </div>
