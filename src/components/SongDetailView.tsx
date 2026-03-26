@@ -1034,10 +1034,11 @@ export function SongDetailView({
 
   // Download state is now managed inside DownloadButton
 
-  // Share state
+  // Share / visibility state
   const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [publicSlug, setPublicSlug] = useState(initialPublicSlug);
   const [sharing, setSharing] = useState(false);
+  const [confirmPublicOpen, setConfirmPublicOpen] = useState(false);
 
   // Report modal
   const [reportOpen, setReportOpen] = useState(false);
@@ -1166,12 +1167,16 @@ export function SongDetailView({
     }
   }
 
-  async function handleShare() {
+  async function setVisibility(visibility: "public" | "private") {
     setSharing(true);
     try {
-      const res = await fetch(`/api/songs/${song.id}/share`, { method: "PATCH" });
+      const res = await fetch(`/api/songs/${song.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visibility }),
+      });
       if (!res.ok) {
-        toast("Failed to update sharing", "error");
+        toast("Failed to update visibility", "error");
         return;
       }
       const data = await res.json();
@@ -1187,9 +1192,18 @@ export function SongDetailView({
         toast("Song is now private", "success");
       }
     } catch {
-      toast("Failed to update sharing", "error");
+      toast("Failed to update visibility", "error");
     } finally {
       setSharing(false);
+    }
+  }
+
+  function handleVisibilityToggle() {
+    if (!isPublic) {
+      // Going public — show confirmation first
+      setConfirmPublicOpen(true);
+    } else {
+      setVisibility("private");
     }
   }
 
@@ -1657,33 +1671,36 @@ export function SongDetailView({
         <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700 hidden sm:block" aria-hidden="true" />
 
         {/* Secondary actions */}
-        {/* Share button */}
-        {isPublic ? (
-          <>
-            <button
-              onClick={handleCopyLink}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200 active:scale-95 min-h-[44px]"
-            >
-              <ClipboardDocumentIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-              Copy link
-            </button>
-            <button
-              onClick={handleShare}
-              disabled={sharing}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-all duration-200 active:scale-95 min-h-[44px]"
-            >
-              <ShareIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-              {sharing ? "Updating..." : "Make private"}
-            </button>
-          </>
-        ) : (
+        {/* Visibility toggle */}
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 min-h-[44px]">
+          <ShareIcon className="w-4 h-4 flex-shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+          <span className="text-sm font-medium text-gray-900 dark:text-white">
+            {isPublic ? "Public" : "Private"}
+          </span>
           <button
-            onClick={handleShare}
+            role="switch"
+            aria-checked={isPublic}
+            aria-label={isPublic ? "Make song private" : "Make song public"}
             disabled={sharing}
+            onClick={handleVisibilityToggle}
+            className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 disabled:opacity-50 ${
+              isPublic ? "bg-violet-600" : "bg-gray-300 dark:bg-gray-600"
+            }`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+                isPublic ? "translate-x-4" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+        {isPublic && (
+          <button
+            onClick={handleCopyLink}
             className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200 active:scale-95 min-h-[44px]"
           >
-            <ShareIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-            {sharing ? "Sharing..." : "Share"}
+            <ClipboardDocumentIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+            Copy link
           </button>
         )}
 
@@ -1737,6 +1754,32 @@ export function SongDetailView({
           Report
         </button>
       </div>
+
+      {/* Make public confirmation dialog */}
+      {confirmPublicOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-public-title">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4">
+            <h2 id="confirm-public-title" className="text-lg font-semibold text-gray-900 dark:text-white">Make song public?</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              This song will be visible to anyone with the link.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmPublicOpen(false)}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { setConfirmPublicOpen(false); setVisibility("public"); }}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors"
+              >
+                Make public
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Report modal */}
       {reportOpen && (

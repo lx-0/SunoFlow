@@ -26,6 +26,8 @@ import {
   CloudArrowDownIcon,
   ForwardIcon,
   ArrowsRightLeftIcon,
+  LockClosedIcon,
+  GlobeAltIcon,
 } from "@heroicons/react/24/solid";
 import {
   HeartIcon as HeartOutlineIcon,
@@ -1445,7 +1447,7 @@ export function LibraryView({
     setLastSelectedIndex(null);
   }
 
-  type BatchActionType = "favorite" | "unfavorite" | "delete" | "restore" | "permanent_delete";
+  type BatchActionType = "favorite" | "unfavorite" | "delete" | "restore" | "permanent_delete" | "make_public" | "make_private";
 
   async function handleBatchAction(action: BatchActionType) {
     if (selectedSongIds.size === 0) return;
@@ -1497,6 +1499,16 @@ export function LibraryView({
       } else if (action === "permanent_delete") {
         setSongs((prev) => prev.filter((s) => !selectedSongIds.has(s.id)));
         toast(`${count} song${count !== 1 ? "s" : ""} permanently deleted`, "success");
+      } else if (action === "make_public") {
+        setSongs((prev) =>
+          prev.map((s) => (selectedSongIds.has(s.id) ? { ...s, isPublic: true } : s))
+        );
+        toast(`${count} song${count !== 1 ? "s" : ""} made public`, "success");
+      } else if (action === "make_private") {
+        setSongs((prev) =>
+          prev.map((s) => (selectedSongIds.has(s.id) ? { ...s, isPublic: false } : s))
+        );
+        toast(`${count} song${count !== 1 ? "s" : ""} made private`, "success");
       }
 
       clearSelection();
@@ -2424,6 +2436,28 @@ export function LibraryView({
           >
             <HeartOutlineIcon className="w-4 h-4" />
             <span className="hidden sm:inline">Unfavorite</span>
+          </button>
+
+          {/* Batch Make Public */}
+          <button
+            onClick={() => handleBatchAction("make_public")}
+            disabled={batchLoading}
+            aria-label="Make selected songs public"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 disabled:opacity-50 transition-colors min-h-[44px]"
+          >
+            <GlobeAltIcon className="w-4 h-4" />
+            <span className="hidden sm:inline">Make Public</span>
+          </button>
+
+          {/* Batch Make Private */}
+          <button
+            onClick={() => handleBatchAction("make_private")}
+            disabled={batchLoading}
+            aria-label="Make selected songs private"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gray-700 hover:bg-gray-600 disabled:opacity-50 transition-colors min-h-[44px]"
+          >
+            <LockClosedIcon className="w-4 h-4" />
+            <span className="hidden sm:inline">Make Private</span>
           </button>
 
           {/* Batch Tag */}

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 import { resolveUser } from "@/lib/auth-resolver";
 import { prisma } from "@/lib/prisma";
 
 const MAX_BATCH_SIZE = 50;
-const VALID_ACTIONS = ["favorite", "unfavorite", "delete", "restore", "permanent_delete", "tag", "add_to_playlist"] as const;
+const VALID_ACTIONS = ["favorite", "unfavorite", "delete", "restore", "permanent_delete", "tag", "add_to_playlist", "make_public", "make_private"] as const;
 type BatchAction = (typeof VALID_ACTIONS)[number];
 
 export async function POST(request: Request) {
@@ -179,6 +180,34 @@ export async function POST(request: Request) {
           });
         }
         affected = newPlaylistSongIds.length;
+        break;
+      }
+      case "make_public": {
+        // Fetch songs that don't have a publicSlug yet
+        const songsNeedingSlug = await prisma.song.findMany({
+          where: { id: { in: validIds }, userId, publicSlug: null },
+          select: { id: true },
+        });
+        // Assign slugs for those songs first
+        for (const s of songsNeedingSlug) {
+          await prisma.song.update({
+            where: { id: s.id },
+            data: { publicSlug: randomBytes(6).toString("hex") },
+          });
+        }
+        const result = await prisma.song.updateMany({
+          where: { id: { in: validIds }, userId },
+          data: { isPublic: true },
+        });
+        affected = result.count;
+        break;
+      }
+      case "make_private": {
+        const result = await prisma.song.updateMany({
+          where: { id: { in: validIds }, userId },
+          data: { isPublic: false },
+        });
+        affected = result.count;
         break;
       }
     }
