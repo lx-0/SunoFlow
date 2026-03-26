@@ -85,6 +85,16 @@ export function SearchBar() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  // "/" shortcut via custom event dispatched from useKeyboardShortcuts
+  useEffect(() => {
+    function handleFocusSearch() {
+      inputRef.current?.focus();
+      setOpen(true);
+    }
+    document.addEventListener("sunoflow:focus-search", handleFocusSearch);
+    return () => document.removeEventListener("sunoflow:focus-search", handleFocusSearch);
+  }, []);
+
   // Close on click outside
   useEffect(() => {
     function handleClick(e: MouseEvent) {

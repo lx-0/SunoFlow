@@ -13,18 +13,21 @@ export interface Shortcut {
 }
 
 export const SHORTCUTS: Shortcut[] = [
+  { keys: ["g", "h"], label: "Go to Home", category: "navigation" },
   { keys: ["g", "l"], label: "Go to Library", category: "navigation" },
   { keys: ["g", "g"], label: "Go to Generate", category: "navigation" },
   { keys: ["g", "i"], label: "Go to Inspire", category: "navigation" },
   { keys: ["g", "s"], label: "Go to Settings", category: "navigation" },
+  { keys: ["/"], label: "Focus search", category: "navigation" },
   { keys: [" "], label: "Play / Pause", category: "playback" },
-  { keys: ["←"], label: "Seek back 10s", category: "playback" },
-  { keys: ["→"], label: "Seek forward 10s", category: "playback" },
+  { keys: ["←"], label: "Seek back 5s", category: "playback" },
+  { keys: ["→"], label: "Seek forward 5s", category: "playback" },
   { keys: ["↑"], label: "Volume +10%", category: "playback" },
   { keys: ["↓"], label: "Volume −10%", category: "playback" },
   { keys: ["m"], label: "Mute / Unmute", category: "playback" },
   { keys: ["n"], label: "Next track", category: "playback" },
   { keys: ["p"], label: "Previous track", category: "playback" },
+  { keys: ["l"], label: "Toggle loop", category: "playback" },
   { keys: ["s"], label: "Toggle shuffle", category: "playback" },
   { keys: ["r"], label: "Cycle repeat", category: "playback" },
   { keys: ["N"], label: "New generation", category: "app" },
@@ -107,6 +110,10 @@ export function useKeyboardShortcuts(
       if (pendingRef.current === "g") {
         clearPending();
         switch (key) {
+          case "h":
+            e.preventDefault();
+            router.push("/");
+            return;
           case "g":
             e.preventDefault();
             router.push("/generate");
@@ -159,7 +166,7 @@ export function useKeyboardShortcuts(
         if (!hasQueue) return;
         e.preventDefault();
         // Accumulate seek delta, apply after debounce
-        seekDeltaRef.current += 10;
+        seekDeltaRef.current += 5;
         if (seekDebounceRef.current) clearTimeout(seekDebounceRef.current);
         seekDebounceRef.current = setTimeout(() => {
           const dur = durationRef.current;
@@ -174,7 +181,7 @@ export function useKeyboardShortcuts(
       if (key === "ArrowLeft") {
         if (!hasQueue) return;
         e.preventDefault();
-        seekDeltaRef.current -= 10;
+        seekDeltaRef.current -= 5;
         if (seekDebounceRef.current) clearTimeout(seekDebounceRef.current);
         seekDebounceRef.current = setTimeout(() => {
           const dur = durationRef.current;
@@ -240,6 +247,24 @@ export function useKeyboardShortcuts(
         return;
       }
 
+      if (key === "l") {
+        e.preventDefault();
+        cycleRepeat();
+        const next =
+          repeatRef.current === "off"
+            ? "repeat-all"
+            : repeatRef.current === "repeat-all"
+            ? "repeat-one"
+            : "off";
+        const loopLabels: Record<string, string> = {
+          off: "Loop: Off",
+          "repeat-all": "Loop: All",
+          "repeat-one": "Loop: One",
+        };
+        onFeedback?.(loopLabels[next]);
+        return;
+      }
+
       if (key === "r") {
         e.preventDefault();
         cycleRepeat();
@@ -263,6 +288,12 @@ export function useKeyboardShortcuts(
       if (key === "N") {
         e.preventDefault();
         router.push("/generate");
+        return;
+      }
+
+      if (key === "/") {
+        e.preventDefault();
+        document.dispatchEvent(new CustomEvent("sunoflow:focus-search"));
         return;
       }
 
