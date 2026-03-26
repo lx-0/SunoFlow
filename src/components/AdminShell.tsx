@@ -9,17 +9,21 @@ import {
   UsersIcon,
   ClipboardDocumentListIcon,
   FlagIcon,
+  ShieldExclamationIcon,
   ExclamationTriangleIcon,
   ArrowLeftIcon,
   MusicalNoteIcon,
+  PresentationChartLineIcon,
 } from "@heroicons/react/24/outline";
 
 const adminNav = [
   { label: "Dashboard", href: "/admin", icon: ChartBarIcon },
   { label: "Analytics", href: "/admin/analytics", icon: ChartPieIcon },
+  { label: "Metrics", href: "/admin/metrics", icon: PresentationChartLineIcon },
   { label: "Users", href: "/admin/users", icon: UsersIcon },
   { label: "Content", href: "/admin/content", icon: MusicalNoteIcon },
-  { label: "Reports", href: "/admin/reports", icon: FlagIcon, badge: "reports" as const },
+  { label: "Moderation", href: "/admin/moderation", icon: ShieldExclamationIcon, badge: "reports" as const },
+  { label: "Reports", href: "/admin/reports", icon: FlagIcon },
   { label: "Errors", href: "/admin/errors", icon: ExclamationTriangleIcon },
   { label: "Audit Log", href: "/admin/logs", icon: ClipboardDocumentListIcon },
 ];

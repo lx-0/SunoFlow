@@ -22,9 +22,9 @@ export async function PATCH(
   const body = await request.json();
   const { action, adminNote } = body;
 
-  if (!action || !["dismiss", "hide_song", "warn_user"].includes(action)) {
+  if (!action || !["dismiss", "hide_song", "delete_song", "warn_user"].includes(action)) {
     return NextResponse.json(
-      { error: "action must be one of: dismiss, hide_song, warn_user", code: "VALIDATION_ERROR" },
+      { error: "action must be one of: dismiss, hide_song, delete_song, warn_user", code: "VALIDATION_ERROR" },
       { status: 400 }
     );
   }
@@ -39,15 +39,20 @@ export async function PATCH(
     await logAdminAction(admin!.id, "dismiss_report", report.id, `Dismissed report for song ${report.songId}`);
   } else if (action === "hide_song") {
     updates.status = "actioned";
-    // Hide the song
     await prisma.song.update({
       where: { id: report.songId },
       data: { isHidden: true, isPublic: false },
     });
     await logAdminAction(admin!.id, "hide_song", report.songId, `Hidden song via report ${report.id}`);
+  } else if (action === "delete_song") {
+    updates.status = "actioned";
+    await prisma.song.delete({ where: { id: report.songId } });
+    await logAdminAction(admin!.id, "delete_song", report.songId, `Deleted song via report ${report.id}`);
+
+    const updated = await prisma.report.update({ where: { id: params.id }, data: updates });
+    return NextResponse.json(updated);
   } else if (action === "warn_user") {
     updates.status = "actioned";
-    // Log the warning (actual notification system is a placeholder)
     logger.info({ userId: report.song.userId, songId: report.songId, reportId: report.id }, "moderation: warning issued to user");
     await logAdminAction(admin!.id, "warn_user", report.song.userId, `Warned user via report ${report.id} for song ${report.songId}`);
   }
