@@ -7,6 +7,10 @@ import {
   MusicalNoteIcon,
   TrashIcon,
   QueueListIcon,
+  SparklesIcon,
+  FireIcon,
+  CalendarDaysIcon,
+  FaceSmileIcon,
 } from "@heroicons/react/24/outline";
 import { useToast } from "./Toast";
 import { track } from "@/lib/analytics";
@@ -20,10 +24,48 @@ interface PlaylistItem {
   _count: { songs: number };
 }
 
+interface SmartPlaylistItem extends PlaylistItem {
+  smartPlaylistType: string | null;
+  smartRefreshedAt: string | null;
+}
+
+function SmartPlaylistIcon({ type }: { type: string | null }) {
+  switch (type) {
+    case "top_hits":
+      return <FireIcon className="w-6 h-6 text-orange-400" />;
+    case "new_this_week":
+      return <CalendarDaysIcon className="w-6 h-6 text-blue-400" />;
+    case "mood":
+      return <FaceSmileIcon className="w-6 h-6 text-yellow-400" />;
+    default:
+      return <SparklesIcon className="w-6 h-6 text-violet-400" />;
+  }
+}
+
+function SmartPlaylistBadge({ type }: { type: string | null }) {
+  const label =
+    type === "top_hits"
+      ? "Top Hits"
+      : type === "new_this_week"
+      ? "New This Week"
+      : type === "mood"
+      ? "Mood"
+      : "Smart";
+
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300">
+      <SparklesIcon className="w-3 h-3" aria-hidden="true" />
+      {label}
+    </span>
+  );
+}
+
 export function PlaylistsView({
   playlists: initialPlaylists,
+  smartPlaylists = [],
 }: {
   playlists: PlaylistItem[];
+  smartPlaylists?: SmartPlaylistItem[];
 }) {
   const { toast } = useToast();
   const [playlists, setPlaylists] = useState(initialPlaylists);
@@ -151,7 +193,57 @@ export function PlaylistsView({
         </form>
       )}
 
-      {/* Playlist list */}
+      {/* Smart playlists section */}
+      {smartPlaylists.length > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <SparklesIcon className="w-4 h-4" aria-hidden="true" />
+            Auto-Generated
+          </h2>
+          <ul className="space-y-2">
+            {smartPlaylists.map((pl) => (
+              <li
+                key={pl.id}
+                className="bg-white dark:bg-gray-900 border border-violet-200 dark:border-violet-900/50 rounded-xl overflow-hidden transition-colors hover:border-violet-400 dark:hover:border-violet-600"
+              >
+                <Link href={`/playlists/${pl.id}`} className="flex items-center gap-3 px-4 py-3">
+                  {/* Icon */}
+                  <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                    <SmartPlaylistIcon type={pl.smartPlaylistType} />
+                  </div>
+
+                  {/* Name + meta */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate hover:text-violet-400 transition-colors">
+                        {pl.name}
+                      </p>
+                      <SmartPlaylistBadge type={pl.smartPlaylistType} />
+                    </div>
+                    {pl.description && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                        {pl.description}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                      {pl._count.songs} song{pl._count.songs !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* User-created playlists section */}
+      {smartPlaylists.length > 0 && (
+        <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+          <QueueListIcon className="w-4 h-4" aria-hidden="true" />
+          Your Playlists
+        </h2>
+      )}
+
       {playlists.length === 0 ? (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 text-center">
           <QueueListIcon className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600 mb-3" aria-hidden="true" />

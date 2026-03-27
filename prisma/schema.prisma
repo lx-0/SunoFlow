@@ -206,6 +206,10 @@ model Playlist {
   isCollaborative  Boolean  @default(false)
   slug             String?  @unique
   shareCount       Int      @default(0)
+  isSmartPlaylist  Boolean  @default(false)
+  smartPlaylistType String? // "top_hits" | "new_this_week" | "mood" | "similar_to"
+  smartPlaylistMeta Json?   // e.g. {"mood": "chill"} or {"sourceSongId": "..."}
+  smartRefreshedAt  DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -216,6 +220,7 @@ model Playlist {
 
   @@index([userId])
   @@index([userId, name])
+  @@index([userId, isSmartPlaylist])
 }
 
 model PlaylistSong {

@@ -11,24 +11,45 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 import { prisma } from "@/lib/prisma";
+import { ensureDefaultSmartPlaylists } from "@/lib/smart-playlists";
 
 async function fetchPlaylists() {
   try {
     const session = await auth();
-    if (!session?.user?.id) return [];
-    return await prisma.playlist.findMany({
-      where: { userId: session.user.id },
-      include: { _count: { select: { songs: true } } },
-      orderBy: { updatedAt: "desc" },
-    });
+    if (!session?.user?.id) return { playlists: [], smartPlaylists: [] };
+
+    const userId = session.user.id;
+
+    // Ensure smart playlists exist for this user (no-op after first visit)
+    await ensureDefaultSmartPlaylists(userId);
+
+    const [playlists, smartPlaylists] = await Promise.all([
+      prisma.playlist.findMany({
+        where: { userId, isSmartPlaylist: false },
+        include: { _count: { select: { songs: true } } },
+        orderBy: { updatedAt: "desc" },
+      }),
+      prisma.playlist.findMany({
+        where: { userId, isSmartPlaylist: true },
+        include: { _count: { select: { songs: true } } },
+        orderBy: { createdAt: "asc" },
+      }),
+    ]);
+
+    return { playlists, smartPlaylists };
   } catch {
-    return [];
+    return { playlists: [], smartPlaylists: [] };
   }
 }
 
 async function PlaylistsContent() {
-  const playlists = await fetchPlaylists();
-  return <PlaylistsView playlists={JSON.parse(JSON.stringify(playlists))} />;
+  const { playlists, smartPlaylists } = await fetchPlaylists();
+  return (
+    <PlaylistsView
+      playlists={JSON.parse(JSON.stringify(playlists))}
+      smartPlaylists={JSON.parse(JSON.stringify(smartPlaylists))}
+    />
+  );
 }
 
 export default function PlaylistsPage() {
