@@ -65,12 +65,14 @@ export async function GET(request: NextRequest) {
       where.createdAt = { gte: thirtyDaysAgo };
     }
 
-    // Full-text search: match title, tags, or lyrics (simple ILIKE)
+    // Full-text search: match title, tags, lyrics, or creator name
     if (q) {
       where.OR = [
         { title: { contains: q, mode: "insensitive" } },
         { tags: { contains: q, mode: "insensitive" } },
         { lyrics: { contains: q, mode: "insensitive" } },
+        { user: { name: { contains: q, mode: "insensitive" } } },
+        { user: { username: { contains: q, mode: "insensitive" } } },
       ];
     }
 
@@ -126,10 +128,14 @@ export async function GET(request: NextRequest) {
               title: true,
               tags: true,
               imageUrl: true,
+              audioUrl: true,
+              publicSlug: true,
+              duration: true,
               playCount: true,
               createdAt: true,
               user: {
                 select: {
+                  id: true,
                   name: true,
                   username: true,
                 },
@@ -143,17 +149,34 @@ export async function GET(request: NextRequest) {
       CacheTTL.PUBLIC_SONG
     );
 
-    // Shape the response — no private user data
-    const shaped = songs.map((s) => ({
+    // Shape and optionally sort by relevance when searching
+    let shaped = songs.map((s) => ({
       id: s.id,
       title: s.title,
       creatorDisplayName: s.user.name || s.user.username || "Anonymous",
+      creatorUserId: s.user.id,
       albumArtUrl: s.imageUrl,
+      audioUrl: s.audioUrl,
+      publicSlug: s.publicSlug,
+      duration: s.duration,
       genre: s.tags || null,
-      mood: s.tags || null,
       playCount: s.playCount,
       createdAt: s.createdAt,
     }));
+
+    // Re-rank by relevance when a search query is active
+    if (q) {
+      const ql = q.toLowerCase();
+      shaped = shaped.sort((a, b) => {
+        const score = (item: typeof a) => {
+          if (item.title?.toLowerCase().includes(ql)) return 3;
+          if (item.genre?.toLowerCase().includes(ql)) return 2;
+          if (item.creatorDisplayName.toLowerCase().includes(ql)) return 2;
+          return 1;
+        };
+        return score(b) - score(a);
+      });
+    }
 
     return NextResponse.json(
       {

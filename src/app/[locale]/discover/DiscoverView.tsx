@@ -45,6 +45,27 @@ interface TrendingSong {
   creatorDisplayName: string;
 }
 
+interface PublicSong {
+  id: string;
+  title: string | null;
+  creatorDisplayName: string;
+  creatorUserId: string;
+  albumArtUrl: string | null;
+  audioUrl: string | null;
+  publicSlug: string | null;
+  duration: number | null;
+  genre: string | null;
+  playCount: number;
+  createdAt: string;
+}
+
+interface PublicPagination {
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+}
+
 interface DiscoverPagination {
   page: number;
   totalPages: number;
@@ -178,6 +199,18 @@ export function DiscoverView({ basePath = "/discover" }: { basePath?: string } =
   const [trendingGenre, setTrendingGenre] = useState("");
   const [trendingMood, setTrendingMood] = useState("");
 
+  // Search state
+  const [searchInputValue, setSearchInputValue] = useState(
+    searchParams.get("q") || ""
+  );
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
+  const [searchResults, setSearchResults] = useState<PublicSong[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchPagination, setSearchPagination] = useState<PublicPagination>({
+    total: 0, limit: 20, offset: 0, hasMore: false,
+  });
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Shared state
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -187,20 +220,25 @@ export function DiscoverView({ basePath = "/discover" }: { basePath?: string } =
   const [loadingFilters, setLoadingFilters] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const searchSentinelRef = useRef<HTMLDivElement>(null);
 
-  // Sync tab/filters to URL
+  // Sync tab/filters/search to URL
   useEffect(() => {
     const params = new URLSearchParams();
-    if (tab !== "browse") params.set("tab", tab);
-    if (tab === "browse") {
-      if (sortBy !== "newest") params.set("sortBy", sortBy);
-      if (tag) params.set("tag", tag);
-      if (mood) params.set("mood", mood);
-      if (tempoPreset) params.set("tempo", tempoPreset);
+    if (searchQuery) {
+      params.set("q", searchQuery);
+    } else {
+      if (tab !== "browse") params.set("tab", tab);
+      if (tab === "browse") {
+        if (sortBy !== "newest") params.set("sortBy", sortBy);
+        if (tag) params.set("tag", tag);
+        if (mood) params.set("mood", mood);
+        if (tempoPreset) params.set("tempo", tempoPreset);
+      }
     }
     const qs = params.toString();
     router.replace(qs ? `${basePath}?${qs}` : basePath, { scroll: false });
-  }, [tab, sortBy, tag, mood, tempoPreset, router, basePath]);
+  }, [tab, sortBy, tag, mood, tempoPreset, searchQuery, router, basePath]);
 
   const tempoRange = TEMPO_PRESETS.find((p) => p.label === tempoPreset);
 
@@ -267,6 +305,38 @@ export function DiscoverView({ basePath = "/discover" }: { basePath?: string } =
     },
     []
   );
+
+  // Fetch search results from /api/songs/public
+  const fetchSearch = useCallback(
+    async (q: string, offset: number, append = false) => {
+      if (append) setLoadingMore(true);
+      else setSearchLoading(true);
+      try {
+        const params = new URLSearchParams({ q, limit: "20", offset: String(offset) });
+        const res = await fetch(`/api/songs/public?${params}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setSearchResults((prev) => (append ? [...prev, ...data.songs] : data.songs));
+        setSearchPagination(data.pagination);
+      } catch {
+        // keep existing state
+      } finally {
+        if (append) setLoadingMore(false);
+        else setSearchLoading(false);
+      }
+    },
+    []
+  );
+
+  // Trigger search when searchQuery changes
+  useEffect(() => {
+    if (!searchQuery) {
+      setSearchResults([]);
+      return;
+    }
+    setSearchResults([]);
+    fetchSearch(searchQuery, 0);
+  }, [searchQuery, fetchSearch]);
 
   // Fetch on browse tab changes
   useEffect(() => {
@@ -389,6 +459,25 @@ export function DiscoverView({ basePath = "/discover" }: { basePath?: string } =
     fetchTrending,
   ]);
 
+  // Infinite scroll for search results
+  useEffect(() => {
+    if (!searchQuery) return;
+    const sentinel = searchSentinelRef.current;
+    if (!sentinel || !searchPagination.hasMore || loadingMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          const nextOffset = searchPagination.offset + searchPagination.limit;
+          fetchSearch(searchQuery, nextOffset, true);
+          setSearchPagination((p) => ({ ...p, offset: nextOffset }));
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [searchQuery, searchPagination, loadingMore, fetchSearch]);
+
   const stopPlayback = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -417,6 +506,21 @@ export function DiscoverView({ basePath = "/discover" }: { basePath?: string } =
     },
     [playingSongId]
   );
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchInputValue(value);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setSearchQuery(value.trim());
+    }, 300);
+  }, []);
+
+  const clearSearch = useCallback(() => {
+    setSearchInputValue("");
+    setSearchQuery("");
+    setSearchResults([]);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+  }, []);
 
   const clearBrowseFilters = useCallback(() => {
     setTag("");
@@ -474,28 +578,89 @@ export function DiscoverView({ basePath = "/discover" }: { basePath?: string } =
             </Link>
           </div>
 
-          {/* Tab navigation */}
-          <div className="flex gap-1 mt-3">
-            {TABS.map(({ value, label, icon: Icon }) => (
+          {/* Search bar */}
+          <div className="relative mt-3">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <input
+              type="search"
+              value={searchInputValue}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Search songs, artists, genres..."
+              className="w-full pl-9 pr-9 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent placeholder:text-gray-400"
+              aria-label="Search public songs"
+            />
+            {searchInputValue && (
               <button
-                key={value}
-                onClick={() => handleTabChange(value)}
-                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors min-h-[36px] ${
-                  tab === value
-                    ? "bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300"
-                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                }`}
+                onClick={clearSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                aria-label="Clear search"
               >
-                <Icon className="w-4 h-4" />
-                {label}
+                <XMarkIcon className="w-4 h-4" />
               </button>
-            ))}
+            )}
           </div>
+
+          {/* Tab navigation — hidden during search */}
+          {!searchQuery && (
+            <div className="flex gap-1 mt-3">
+              {TABS.map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  onClick={() => handleTabChange(value)}
+                  className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors min-h-[36px] ${
+                    tab === value
+                      ? "bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300"
+                      : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-5">
-        {tab === "browse" && (
+        {/* Search results */}
+        {searchQuery && (
+          <>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {searchLoading
+                  ? "Searching…"
+                  : `${searchPagination.total} result${searchPagination.total !== 1 ? "s" : ""} for "${searchQuery}"`}
+              </p>
+            </div>
+            {searchLoading ? (
+              <SongGridSkeleton />
+            ) : searchResults.length === 0 ? (
+              <div className="text-center py-16">
+                <MusicalNoteIcon className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
+                <p className="text-gray-500 dark:text-gray-400 text-sm">
+                  No songs found. Try a different search.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                {searchResults.map((song) => (
+                  <SearchCard
+                    key={song.id}
+                    song={song}
+                    isPlaying={playingSongId === song.id}
+                    onPlayToggle={() => handlePlayToggle(song.id, song.audioUrl)}
+                  />
+                ))}
+              </div>
+            )}
+            {searchPagination.hasMore && (
+              <ScrollSentinel ref={searchSentinelRef} loading={loadingMore} />
+            )}
+          </>
+        )}
+
+        {!searchQuery && tab === "browse" && (
           <>
             {/* Sort + clear */}
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -669,7 +834,7 @@ export function DiscoverView({ basePath = "/discover" }: { basePath?: string } =
           </>
         )}
 
-        {(tab === "trending" || tab === "popular") && (
+        {!searchQuery && (tab === "trending" || tab === "popular") && (
           <>
             {/* Tab description */}
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -1055,6 +1220,107 @@ function DiscoverCard({
           )}
           {song.playCount > 0 && <span>{song.playCount} plays</span>}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function SearchCard({
+  song,
+  isPlaying,
+  onPlayToggle,
+}: {
+  song: PublicSong;
+  isPlaying: boolean;
+  onPlayToggle: () => void;
+}) {
+  const coverUrl = song.albumArtUrl || "/default-cover.png";
+  const href = song.publicSlug ? `/s/${song.publicSlug}` : "#";
+  const { genres, moods } = parseSongTags(song.genre);
+
+  return (
+    <div className="group relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden transition-shadow hover:shadow-lg hover:shadow-violet-500/10">
+      <Link href={href} className="block relative aspect-square">
+        <Image
+          src={coverUrl}
+          alt={song.title || "Song cover"}
+          fill
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+          className="object-cover"
+          loading="lazy"
+        />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+          {song.audioUrl && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onPlayToggle();
+              }}
+              className="opacity-0 group-hover:opacity-100 transition-opacity w-14 h-14 rounded-full bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center shadow-lg min-h-[44px] min-w-[44px]"
+              aria-label={isPlaying ? "Pause" : "Play preview"}
+            >
+              {isPlaying ? (
+                <PauseIcon className="w-7 h-7" />
+              ) : (
+                <PlayIcon className="w-7 h-7 ml-0.5" />
+              )}
+            </button>
+          )}
+        </div>
+        {song.duration && (
+          <span className="absolute bottom-2 right-2 px-1.5 py-0.5 text-xs font-medium bg-black/70 text-white rounded">
+            {formatDuration(song.duration)}
+          </span>
+        )}
+        {isPlaying && (
+          <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-1 bg-violet-600 text-white text-xs font-medium rounded-full">
+            <span className="flex gap-0.5">
+              <span className="w-0.5 h-3 bg-white rounded-full animate-pulse" />
+              <span className="w-0.5 h-2 bg-white rounded-full animate-pulse [animation-delay:150ms]" />
+              <span className="w-0.5 h-3.5 bg-white rounded-full animate-pulse [animation-delay:300ms]" />
+            </span>
+            Playing
+          </div>
+        )}
+      </Link>
+
+      <div className="p-3">
+        <Link href={href}>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+            {song.title || "Untitled"}
+          </h3>
+        </Link>
+        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+          {song.creatorDisplayName}
+        </p>
+
+        {(genres.length > 0 || moods.length > 0) && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {genres.map((g) => (
+              <span
+                key={g}
+                className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300"
+              >
+                {g}
+              </span>
+            ))}
+            {moods.map((m) => (
+              <span
+                key={m}
+                className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300"
+              >
+                {m}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {song.playCount > 0 && (
+          <div className="mt-1.5 text-xs text-gray-400 dark:text-gray-500">
+            {song.playCount} plays
+          </div>
+        )}
       </div>
     </div>
   );
