@@ -401,12 +401,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         role="dialog"
         aria-modal="true"
         aria-label="Navigation menu"
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-200 ease-in-out md:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-200 ease-in-out md:hidden ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Drawer header */}
-        <div className="flex items-center justify-between h-14 px-4 border-b border-gray-200 dark:border-gray-800">
+        <div className="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b border-gray-200 dark:border-gray-800">
           <span className="text-violet-400 font-bold text-lg tracking-tight">SunoFlow</span>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -417,8 +417,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
+        {/* Scrollable area: nav links + bottom section */}
+        <div className="flex-1 overflow-y-auto">
         {/* Nav links */}
-        <nav aria-label="Primary" className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
+        <nav aria-label="Primary" className="py-3 px-2 space-y-1">
           {navItems.map(({ label, href, icon: Icon }) => {
             const active = pathname === href;
             return (
@@ -506,6 +508,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         )}
+        </div>{/* end scrollable area */}
       </aside>
 
       {/* ── Main content area ── */}
