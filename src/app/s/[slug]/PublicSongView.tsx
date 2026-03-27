@@ -107,9 +107,14 @@ export function PublicSongView({
     }
   }
 
-  // Track public song page view on mount
+  // Track public song page view on mount (PostHog + DB)
   useEffect(() => {
     track("public_song_viewed", { songId, slug });
+    fetch("/api/analytics/view", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ songId }),
+    }).catch(() => {});
   }, [songId, slug]);
 
   // Fetch all reactions on mount (no auth needed for public songs)

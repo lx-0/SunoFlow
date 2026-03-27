@@ -11,6 +11,8 @@ import {
   ChatBubbleLeftIcon,
   ClockIcon,
   ChartBarIcon,
+  EyeIcon,
+  ShareIcon,
 } from "@heroicons/react/24/outline";
 
 const DailyPlaysLineChart = dynamic(
@@ -46,6 +48,7 @@ interface OverviewData {
   topSongs7d: Array<{ id: string; title: string; plays: number }>;
   topSongs30d: Array<{ id: string; title: string; plays: number }>;
   topSongsAllTime: Array<{ id: string; title: string; plays: number }>;
+  topSharedByPlays: Array<{ id: string; title: string; plays: number; views: number }>;
   mostCommented: Array<{ id: string; title: string; comments: number }>;
   dailyPlays: Array<{ date: string; count: number }>;
 }
@@ -260,6 +263,59 @@ export default function DashboardAnalyticsPage() {
             </div>
           )}
         </div>
+
+        {/* Top shared songs by plays */}
+        {data.topSharedByPlays.length > 0 && (
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <ShareIcon className="w-4 h-4 text-violet-500" />
+              <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+                Top Shared Songs by Plays
+              </h2>
+            </div>
+            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+              {data.topSharedByPlays.map((song, i) => (
+                <div key={song.id} className="flex items-center gap-3 py-2.5">
+                  <span className="text-sm font-bold text-gray-400 w-5 text-right">
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <Link
+                      href={`/songs/${song.id}`}
+                      className="text-sm font-medium text-gray-900 dark:text-white hover:text-violet-600 dark:hover:text-violet-400 truncate block"
+                    >
+                      {song.title}
+                    </Link>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0 text-right">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {song.plays.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-gray-500 flex items-center gap-0.5 justify-end">
+                        <PlayIcon className="w-3 h-3" /> plays
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {song.views.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-gray-500 flex items-center gap-0.5 justify-end">
+                        <EyeIcon className="w-3 h-3" /> views
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href={`/dashboard/analytics/${song.id}`}
+                    className="text-xs text-violet-500 hover:text-violet-700 dark:hover:text-violet-300 flex-shrink-0"
+                  >
+                    <ChartBarIcon className="w-4 h-4" />
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Most commented songs */}
         {data.mostCommented.some((s) => s.comments > 0) && (

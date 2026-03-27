@@ -19,13 +19,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify the song exists and belongs to user (or is public)
+    // Verify the song exists and is public (or belongs to user for private plays)
     const song = await prisma.song.findFirst({
       where: {
         id: songId,
         OR: [{ userId }, { isPublic: true }],
       },
-      select: { id: true },
+      select: { id: true, userId: true },
     });
 
     if (!song) {
@@ -33,6 +33,11 @@ export async function POST(request: Request) {
         { error: "Song not found", code: "NOT_FOUND" },
         { status: 404 }
       );
+    }
+
+    // Don't count the owner's own plays toward public analytics
+    if (song.userId === userId) {
+      return NextResponse.json({ ok: true, skipped: true }, { status: 200 });
     }
 
     const [event] = await prisma.$transaction([

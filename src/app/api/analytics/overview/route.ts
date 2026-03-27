@@ -27,6 +27,8 @@ export async function GET(request: Request) {
         id: true,
         title: true,
         playCount: true,
+        viewCount: true,
+        isPublic: true,
         duration: true,
         createdAt: true,
         _count: { select: { comments: true } },
@@ -43,6 +45,7 @@ export async function GET(request: Request) {
         topSongs7d: [],
         topSongs30d: [],
         topSongsAllTime: [],
+        topSharedByPlays: [],
         mostCommented: [],
         avgListenDuration: null,
         dailyPlays: [],
@@ -118,6 +121,17 @@ export async function GET(request: Request) {
       plays: s.playCount,
     }));
 
+    // Top shared songs (public) sorted by play count
+    const topSharedByPlays = userSongs
+      .filter((s) => s.isPublic)
+      .slice(0, 5)
+      .map((s) => ({
+        id: s.id,
+        title: s.title ?? "Untitled",
+        plays: s.playCount,
+        views: s.viewCount,
+      }));
+
     const mostCommented = [...userSongs]
       .sort((a, b) => b._count.comments - a._count.comments)
       .slice(0, 5)
@@ -145,6 +159,7 @@ export async function GET(request: Request) {
       topSongs7d: enrichSongs(topSongs7dRaw),
       topSongs30d: enrichSongs(topSongs30dRaw),
       topSongsAllTime,
+      topSharedByPlays,
       mostCommented,
       avgListenDuration: avgDurationRow._avg.durationSec,
       dailyPlays,

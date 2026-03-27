@@ -145,6 +145,7 @@ model Song {
   ratingNote       String?
   downloadCount    Int      @default(0)
   playCount        Int      @default(0)
+  viewCount        Int      @default(0)
   parentSongId         String?
   source               String?  @default("manual") // "manual" | "auto"
   rssFeedSubscriptionId String?
@@ -171,6 +172,7 @@ model Song {
   lyricAnnotations     LyricAnnotation[]
   playbackStates       PlaybackState[]
   playEvents           PlayEvent[]
+  viewEvents           SongView[]
   generationAttempt    GenerationAttempt?
 
   @@index([userId, title])
@@ -768,4 +770,16 @@ model GenerationAttempt {
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([userId, status])
+}
+
+// Anonymized public song page view events — no PII, just songId + timestamp
+model SongView {
+  id        String   @id @default(cuid())
+  songId    String
+  viewedAt  DateTime @default(now())
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@index([songId, viewedAt])
+  @@index([viewedAt])
 }
