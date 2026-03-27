@@ -10,6 +10,7 @@ import { useSession } from "next-auth/react";
 import { FollowButton } from "@/components/FollowButton";
 import type { ReactionItem } from "@/components/ReactionTimeline";
 import { track } from "@/lib/analytics";
+import { RelatedSongs } from "@/components/RelatedSongs";
 
 // Lazy-load below-fold and conditional components to reduce initial bundle
 const ReportModal = dynamic(() => import("@/components/ReportModal").then((m) => m.ReportModal), { ssr: false });
@@ -543,6 +544,9 @@ export function PublicSongView({
           }}
         />
       </div>
+
+      {/* Related songs */}
+      <RelatedSongs songId={songId} />
 
       {/* Branding */}
       <p className="text-center text-xs text-gray-500 dark:text-gray-400">
