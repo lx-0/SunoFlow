@@ -304,3 +304,81 @@ describe("middleware — user-based rate limiting", () => {
     expect(data.error).toContain("Too many requests");
   });
 });
+
+describe("middleware — auth edge cases", () => {
+  it("treats expired token (getToken returns null) as unauthenticated on protected routes", async () => {
+    // next-auth returns null for expired or invalid tokens
+    vi.mocked(getToken).mockResolvedValue(null);
+
+    const res = await middleware(makeRequest("http://localhost/dashboard"));
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toContain("/login");
+  });
+
+  it("treats revoked/invalid token (getToken returns null) same as unauthenticated", async () => {
+    // Revoked tokens cannot be detected in stateless JWT — getToken returns null
+    // once the token has expired; behavior is identical to expired token.
+    vi.mocked(getToken).mockResolvedValue(null);
+
+    const res = await middleware(makeRequest("http://localhost/songs"));
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toContain("/login");
+  });
+
+  it("redirects API route request with expired token (no API key) to /login", async () => {
+    vi.mocked(getToken).mockResolvedValue(null);
+
+    // /api/songs is not in publicPaths, so an expired session redirects
+    const res = await middleware(makeRequest("http://localhost/api/songs"));
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toContain("/login");
+  });
+
+  it("allows API key Bearer header through even when session token is expired", async () => {
+    // API key auth bypasses session — valid even if getToken returns null
+    vi.mocked(getToken).mockResolvedValue(null);
+
+    const res = await middleware(
+      makeRequest("http://localhost/api/songs", {
+        headers: { authorization: "Bearer sk-my-api-key" },
+      })
+    );
+    expect(res.status).not.toBe(307);
+  });
+
+  it("concurrent sessions: separate users have independent rate limit buckets", async () => {
+    const userA = "concurrent-user-a";
+    const userB = "concurrent-user-b";
+
+    // Exhaust userA's generate bucket (limit = 10)
+    vi.mocked(getToken).mockResolvedValue({ id: userA, sub: userA } as never);
+    for (let i = 0; i < 10; i++) {
+      await middleware(makeRequest("http://localhost/api/generate", { method: "POST" }));
+    }
+
+    // userA is now rate limited
+    const resA = await middleware(makeRequest("http://localhost/api/generate", { method: "POST" }));
+    expect(resA.status).toBe(429);
+
+    // userB has an independent bucket — should NOT be rate limited
+    vi.mocked(getToken).mockResolvedValue({ id: userB, sub: userB } as never);
+    const resB = await middleware(makeRequest("http://localhost/api/generate", { method: "POST" }));
+    expect(resB.status).not.toBe(429);
+  });
+
+  it("authenticated user accessing locale-prefixed public path is redirected to /", async () => {
+    vi.mocked(getToken).mockResolvedValue({ id: "user-1", sub: "user-1" } as never);
+
+    // /de/login should redirect authenticated users to home
+    const res = await middleware(makeRequest("http://localhost/de/login"));
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toContain("/");
+  });
+
+  it("unauthenticated user can access locale-prefixed public paths", async () => {
+    vi.mocked(getToken).mockResolvedValue(null);
+
+    const res = await middleware(makeRequest("http://localhost/de/register"));
+    expect(res.status).not.toBe(307);
+  });
+});
