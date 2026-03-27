@@ -31,6 +31,11 @@ export default defineConfig({
         "src/app/api/auth/verify-email/route.ts",
         "src/app/api/auth/resend-verification/route.ts",
         "src/app/api/auth/change-password/route.ts",
+        "src/app/api/generation-queue/route.ts",
+        "src/app/api/generation-queue/process-next/route.ts",
+        "src/app/api/generation-queue/reorder/route.ts",
+        "src/app/api/generation-queue/[id]/route.ts",
+        "src/app/api/generations/route.ts",
       ],
       exclude: [
         "src/lib/prisma.ts",
