@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { logServerError } from "@/lib/error-logger";
 import { CacheControl, CacheTTL, cached, cacheKey } from "@/lib/cache";
+import { withTiming } from "@/lib/timing";
 
 /**
  * GET /api/discover
@@ -151,7 +152,7 @@ function affinityScore(songTags: Set<string>, preferredTags: Map<string, number>
   return score;
 }
 
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   try {
     const params = request.nextUrl.searchParams;
 
@@ -438,3 +439,5 @@ async function buildPersonalizedFeed(
 
   return { items: allScored.map((s) => s.item), strategy };
 }
+
+export const GET = withTiming("/api/discover", handleGET);

@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { logServerError } from "@/lib/error-logger";
 import { CacheControl, CacheTTL, cached, cacheKey } from "@/lib/cache";
 import { rateLimited, internalError } from "@/lib/api-error";
+import { withTiming } from "@/lib/timing";
 
 // In-memory IP rate limiter — 60 req/min for public endpoint
 const ipHits = new Map<string, { count: number; resetAt: number }>();
@@ -49,7 +50,7 @@ function trendingScore(playCount: number, downloadCount: number, createdAt: Date
  *
  * Rankings are cached for 1 hour.
  */
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   try {
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
@@ -218,3 +219,5 @@ export async function GET(request: NextRequest) {
     return internalError();
   }
 }
+
+export const GET = withTiming("/api/songs/trending", handleGET);

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logServerError } from "@/lib/error-logger";
 import { cached, cacheKey, CacheTTL } from "@/lib/cache";
 import { cosineSimilarity, computeCentroid } from "@/lib/embeddings";
+import { withTiming } from "@/lib/timing";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
@@ -32,7 +33,7 @@ const CANDIDATES_LIMIT = 500;
  *
  * Results are cached per-user for 1 hour (matches cron embedding refresh cadence).
  */
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   try {
     const { userId, error: authError } = await resolveUser(request);
     if (authError) return authError;
@@ -214,6 +215,8 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export const GET = withTiming("/api/recommendations", handleGET);
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -35,6 +35,12 @@ interface GenerationStats {
   queueDepth: number;
 }
 
+interface CacheStats {
+  hits: number;
+  misses: number;
+  hitRate: number;
+}
+
 interface MetricsSnapshot {
   capturedAt: string;
   routes: Record<
@@ -53,6 +59,7 @@ interface MetricsSnapshot {
     queueDepth: number;
     processingTime: { p50: number; p95: number; p99: number } | null;
   };
+  cache: CacheStats;
 }
 
 // ---------------------------------------------------------------------------
@@ -61,11 +68,17 @@ interface MetricsSnapshot {
 
 const MAX_SAMPLES = 1000;
 
+interface CacheCounters {
+  hits: number;
+  misses: number;
+}
+
 const globalForMetrics = globalThis as unknown as {
   __appMetrics:
     | {
         routes: Map<string, RouteStats>;
         generation: GenerationStats;
+        cache: CacheCounters;
         resetAt: string;
       }
     | undefined;
@@ -81,6 +94,7 @@ function initMetrics() {
       processingTimeSamples: [] as number[],
       queueDepth: 0,
     } satisfies GenerationStats,
+    cache: { hits: 0, misses: 0 } satisfies CacheCounters,
     resetAt: new Date().toISOString(),
   };
 }
@@ -139,6 +153,20 @@ export function recordRequest(
   stats.requests++;
   if (statusCode >= 400) stats.errors++;
   insertSorted(stats.latencySamples, latencyMs, MAX_SAMPLES);
+}
+
+/**
+ * Record a cache hit for monitoring.
+ */
+export function recordCacheHit(): void {
+  state.cache.hits++;
+}
+
+/**
+ * Record a cache miss for monitoring.
+ */
+export function recordCacheMiss(): void {
+  state.cache.misses++;
 }
 
 /**
@@ -201,6 +229,8 @@ export function getMetricsSnapshot(): MetricsSnapshot {
   const gen = state.generation;
   const genSorted = gen.processingTimeSamples;
 
+  const total = state.cache.hits + state.cache.misses;
+
   return {
     capturedAt: new Date().toISOString(),
     routes,
@@ -217,6 +247,11 @@ export function getMetricsSnapshot(): MetricsSnapshot {
               p99: percentile(genSorted, 99),
             }
           : null,
+    },
+    cache: {
+      hits: state.cache.hits,
+      misses: state.cache.misses,
+      hitRate: total > 0 ? Math.round((state.cache.hits / total) * 10000) / 100 : 0,
     },
   };
 }

@@ -1,6 +1,7 @@
 import { LRUCache } from "lru-cache";
 import crypto from "crypto";
 import { logger } from "@/lib/logger";
+import { recordCacheHit, recordCacheMiss } from "@/lib/metrics";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -42,6 +43,8 @@ export const CacheTTL = {
   PLAYLIST: 30_000, // 30s
   /** Song recommendations — updated hourly */
   RECOMMENDATIONS: 3_600_000, // 1h
+  /** Public user profile data (name, image, counts) — moderate staleness ok */
+  USER_PROFILE: 60_000, // 60s
 } as const;
 
 /** Build a cache key from a prefix and components */
@@ -61,15 +64,13 @@ export async function cached<T>(
 ): Promise<T> {
   const hit = apiCache.get(key) as T | undefined;
   if (hit !== undefined) {
-    if (isDev) {
-      logger.debug({ key }, "cache: HIT");
-    }
+    recordCacheHit();
+    logger.debug({ key }, "cache: HIT");
     return hit;
   }
 
-  if (isDev) {
-    logger.debug({ key }, "cache: MISS");
-  }
+  recordCacheMiss();
+  logger.debug({ key }, "cache: MISS");
 
   const value = await fetcher();
   apiCache.set(key, value, { ttl });

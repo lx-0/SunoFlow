@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { resolveUser } from "@/lib/auth-resolver";
 import { prisma } from "@/lib/prisma";
 import { cached, cacheKey, CacheTTL, CacheControl } from "@/lib/cache";
+import { withTiming } from "@/lib/timing";
 
-export async function GET(request: Request) {
+async function handleGET(request: NextRequest) {
   try {
     const { userId, error: authError } = await resolveUser(request);
 
@@ -106,3 +107,5 @@ export async function GET(request: Request) {
     );
   }
 }
+
+export const GET = withTiming("/api/dashboard/stats", handleGET);
