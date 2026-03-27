@@ -42,6 +42,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
+  // Mark onboarding as completed so the tour modal doesn't appear in E2E tests
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { onboardingCompleted: true },
+  });
+
   const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? "";
   const useSecureCookies = (process.env.AUTH_URL ?? "").startsWith("https://");
   const cookieName = useSecureCookies

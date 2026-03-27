@@ -48,7 +48,7 @@ test.describe("Playlists — List & Create", () => {
       .fill("A test playlist");
 
     // Submit
-    await page.getByRole("button", { name: "Create" }).click();
+    await page.getByRole("button", { name: "Create", exact: true }).click();
 
     // Should show the new playlist in the list
     await expect(page.getByText("My First Playlist")).toBeVisible({
@@ -64,7 +64,7 @@ test.describe("Playlists — List & Create", () => {
     await page.getByRole("button", { name: "New" }).click();
 
     // Create button should be disabled when name is empty
-    const createBtn = page.getByRole("button", { name: "Create" });
+    const createBtn = page.getByRole("button", { name: "Create", exact: true });
     await expect(createBtn).toBeDisabled();
   });
 
@@ -88,7 +88,7 @@ test.describe("Playlists — Detail & Edit", () => {
     // Create a playlist first
     await page.getByRole("button", { name: "New" }).click();
     await page.getByPlaceholder("Playlist name").fill("Detail Test Playlist");
-    await page.getByRole("button", { name: "Create" }).click();
+    await page.getByRole("button", { name: "Create", exact: true }).click();
     await expect(page.getByText("Detail Test Playlist")).toBeVisible({
       timeout: 5000,
     });
@@ -110,7 +110,7 @@ test.describe("Playlists — Detail & Edit", () => {
     // Create a playlist
     await page.getByRole("button", { name: "New" }).click();
     await page.getByPlaceholder("Playlist name").fill("Editable Playlist");
-    await page.getByRole("button", { name: "Create" }).click();
+    await page.getByRole("button", { name: "Create", exact: true }).click();
     await expect(page.getByText("Editable Playlist")).toBeVisible({
       timeout: 5000,
     });
@@ -144,7 +144,7 @@ test.describe("Playlists — Song Management", () => {
     await page.goto("/playlists");
     await page.getByRole("button", { name: "New" }).click();
     await page.getByPlaceholder("Playlist name").fill("Songs Test Playlist");
-    await page.getByRole("button", { name: "Create" }).click();
+    await page.getByRole("button", { name: "Create", exact: true }).click();
     await expect(page.getByText("Songs Test Playlist")).toBeVisible({
       timeout: 5000,
     });
@@ -214,7 +214,7 @@ test.describe("Playlists — Song Management", () => {
     await page.goto("/playlists");
     await page.getByRole("button", { name: "New" }).click();
     await page.getByPlaceholder("Playlist name").fill("Remove Song Playlist");
-    await page.getByRole("button", { name: "Create" }).click();
+    await page.getByRole("button", { name: "Create", exact: true }).click();
     await expect(page.getByText("Remove Song Playlist")).toBeVisible({
       timeout: 5000,
     });
@@ -254,7 +254,7 @@ test.describe("Playlists — Delete", () => {
     // Create a playlist to delete
     await page.getByRole("button", { name: "New" }).click();
     await page.getByPlaceholder("Playlist name").fill("Playlist To Delete");
-    await page.getByRole("button", { name: "Create" }).click();
+    await page.getByRole("button", { name: "Create", exact: true }).click();
     await expect(page.getByText("Playlist To Delete")).toBeVisible({
       timeout: 5000,
     });

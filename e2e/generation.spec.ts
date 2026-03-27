@@ -226,9 +226,9 @@ test.describe("Generation — Rate Limiting", () => {
     await page.getByLabel("Style / genre").fill("jazz");
     await page.locator('button[type="submit"]').click();
 
-    // Should show rate limit error
+    // Should show rate limit error (multiple elements match — use first)
     await expect(
-      page.getByText(/Rate limit reached/i)
+      page.getByText(/Rate limit reached/i).first()
     ).toBeVisible({ timeout: 5000 });
   });
 });
