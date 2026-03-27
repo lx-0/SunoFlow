@@ -205,7 +205,7 @@ export async function middleware(request: NextRequest) {
   // Strip locale prefix for path matching (so /de/login matches /login)
   const pathnameWithoutLocale = stripLocalePrefix(pathname);
 
-  const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email", "/api/auth", "/api/register", "/api/health", "/api/agent-skill", "/s/", "/p/", "/embed/"];
+  const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email", "/api/auth", "/api/register", "/api/health", "/api/agent-skill", "/api/test/login", "/s/", "/p/", "/embed/"];
   const isPublic =
     pathnameWithoutLocale === "/" ||
     publicPaths.some((p) => pathnameWithoutLocale.startsWith(p) || pathname.startsWith(p));
