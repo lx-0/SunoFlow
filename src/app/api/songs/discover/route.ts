@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
               playCount: true,
               publicSlug: true,
               createdAt: true,
-              user: { select: { id: true, name: true } },
+              user: { select: { id: true, name: true, username: true } },
             },
           }),
           prisma.song.count({ where }),

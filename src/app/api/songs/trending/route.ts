@@ -146,6 +146,7 @@ export async function GET(request: NextRequest) {
               createdAt: s.createdAt,
               score: s.playCount,
               creatorDisplayName: s.user.name || s.user.username || "Anonymous",
+              creatorUsername: s.user.username || null,
             })),
             total,
           };
@@ -185,6 +186,7 @@ export async function GET(request: NextRequest) {
             createdAt: s.createdAt,
             score: trendingScore(s.playCount, s.downloadCount, s.createdAt),
             creatorDisplayName: s.user.name || s.user.username || "Anonymous",
+            creatorUsername: s.user.username || null,
           }))
           .sort((a, b) => b.score - a.score);
 

@@ -33,7 +33,7 @@ const getSong = cache((slug: string) =>
     () =>
       prisma.song.findUnique({
         where: { publicSlug: slug },
-        include: { user: { select: { name: true } } },
+        include: { user: { select: { name: true, username: true } } },
       }),
     CacheTTL.PUBLIC_SONG
   )
@@ -145,6 +145,7 @@ export default async function PublicSongPage({
           duration={song.duration}
           tags={song.tags}
           creatorName={song.user.name}
+          creatorUsername={song.user.username}
           prompt={song.prompt}
           createdAt={song.createdAt.toISOString()}
         />

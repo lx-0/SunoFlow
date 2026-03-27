@@ -155,6 +155,7 @@ export async function GET(request: NextRequest) {
       title: s.title,
       creatorDisplayName: s.user.name || s.user.username || "Anonymous",
       creatorUserId: s.user.id,
+      creatorUsername: s.user.username || null,
       albumArtUrl: s.imageUrl,
       audioUrl: s.audioUrl,
       publicSlug: s.publicSlug,

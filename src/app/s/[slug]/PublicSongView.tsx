@@ -34,6 +34,7 @@ interface PublicSongViewProps {
   duration: number | null;
   tags: string | null;
   creatorName: string | null;
+  creatorUsername?: string | null;
   prompt: string | null;
   createdAt: string;
 }
@@ -48,6 +49,7 @@ export function PublicSongView({
   duration,
   tags,
   creatorName,
+  creatorUsername,
   prompt,
   createdAt,
 }: PublicSongViewProps) {
@@ -243,7 +245,16 @@ export function PublicSongView({
           <div className="text-center space-y-1.5">
             <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">{title}</h1>
             {creatorName && (
-              <p className="text-sm text-gray-500 dark:text-gray-400">by {creatorName}</p>
+              creatorUsername ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  by{" "}
+                  <Link href={`/u/${creatorUsername}`} className="hover:text-violet-500 dark:hover:text-violet-400 transition-colors">
+                    {creatorName}
+                  </Link>
+                </p>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">by {creatorName}</p>
+              )
             )}
             {tags && (
               <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">{tags}</p>

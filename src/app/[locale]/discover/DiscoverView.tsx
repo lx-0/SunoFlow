@@ -28,7 +28,7 @@ interface DiscoverSong {
   playCount: number;
   publicSlug: string | null;
   createdAt: string;
-  user: { id: string; name: string | null };
+  user: { id: string; name: string | null; username: string | null };
 }
 
 interface TrendingSong {
@@ -43,6 +43,7 @@ interface TrendingSong {
   createdAt: string;
   score: number;
   creatorDisplayName: string;
+  creatorUsername: string | null;
 }
 
 interface PublicSong {
@@ -50,6 +51,7 @@ interface PublicSong {
   title: string | null;
   creatorDisplayName: string;
   creatorUserId: string;
+  creatorUsername: string | null;
   albumArtUrl: string | null;
   audioUrl: string | null;
   publicSlug: string | null;
@@ -1177,9 +1179,15 @@ function DiscoverCard({
           </h3>
         </Link>
         <div className="flex items-center justify-between mt-0.5">
-          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-            {song.user.name || "Unknown Artist"}
-          </p>
+          {song.user.username ? (
+            <Link href={`/u/${song.user.username}`} className="text-xs text-gray-500 dark:text-gray-400 truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+              {song.user.name || song.user.username}
+            </Link>
+          ) : (
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+              {song.user.name || "Unknown Artist"}
+            </p>
+          )}
           <div className="flex items-center flex-shrink-0">
             <AddToPlaylistButton songId={song.id} variant="icon" />
             <FollowButton userId={song.user.id} />
@@ -1291,9 +1299,15 @@ function SearchCard({
             {song.title || "Untitled"}
           </h3>
         </Link>
-        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-          {song.creatorDisplayName}
-        </p>
+        {song.creatorUsername ? (
+          <Link href={`/u/${song.creatorUsername}`} className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5 hover:text-violet-600 dark:hover:text-violet-400 transition-colors block">
+            {song.creatorDisplayName}
+          </Link>
+        ) : (
+          <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+            {song.creatorDisplayName}
+          </p>
+        )}
 
         {(genres.length > 0 || moods.length > 0) && (
           <div className="flex flex-wrap gap-1 mt-2">
@@ -1409,9 +1423,15 @@ function TrendingRow({
             {song.title || "Untitled"}
           </p>
         </Link>
-        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-          {song.creatorDisplayName}
-        </p>
+        {song.creatorUsername ? (
+          <Link href={`/u/${song.creatorUsername}`} className="text-xs text-gray-500 dark:text-gray-400 truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors block">
+            {song.creatorDisplayName}
+          </Link>
+        ) : (
+          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+            {song.creatorDisplayName}
+          </p>
+        )}
         {genres.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1">
             {genres.slice(0, 2).map((g) => (
