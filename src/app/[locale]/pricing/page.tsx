@@ -5,15 +5,15 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { CheckIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import { SparklesIcon } from "@heroicons/react/24/outline";
+import { track } from "@/lib/analytics";
 
 interface Tier {
   id: "free" | "starter" | "pro" | "studio";
   name: string;
-  price: string;
+  monthlyPrice: number | null;
+  annualPrice: number | null;
   priceNote: string;
   credits: string;
-  generations: string;
-  downloads: string;
   featured: boolean;
   cta: string;
   features: Array<{ label: string; included: boolean }>;
@@ -23,11 +23,10 @@ const TIERS: Tier[] = [
   {
     id: "free",
     name: "Free",
-    price: "$0",
+    monthlyPrice: null,
+    annualPrice: null,
     priceNote: "forever",
     credits: "200 credits/mo",
-    generations: "5 gen/hr",
-    downloads: "20 downloads/hr",
     featured: false,
     cta: "Get started",
     features: [
@@ -44,11 +43,10 @@ const TIERS: Tier[] = [
   {
     id: "starter",
     name: "Starter",
-    price: "$9.99",
+    monthlyPrice: 9.99,
+    annualPrice: 7.99,
     priceNote: "per month",
     credits: "1,500 credits/mo",
-    generations: "25 gen/hr",
-    downloads: "100 downloads/hr",
     featured: false,
     cta: "Upgrade to Starter",
     features: [
@@ -65,11 +63,10 @@ const TIERS: Tier[] = [
   {
     id: "pro",
     name: "Pro",
-    price: "$24.99",
+    monthlyPrice: 24.99,
+    annualPrice: 19.99,
     priceNote: "per month",
     credits: "5,000 credits/mo",
-    generations: "50 gen/hr",
-    downloads: "500 downloads/hr",
     featured: true,
     cta: "Upgrade to Pro",
     features: [
@@ -86,11 +83,10 @@ const TIERS: Tier[] = [
   {
     id: "studio",
     name: "Studio",
-    price: "$49.99",
+    monthlyPrice: 49.99,
+    annualPrice: 39.99,
     priceNote: "per month",
     credits: "15,000 credits/mo",
-    generations: "100 gen/hr",
-    downloads: "Unlimited",
     featured: false,
     cta: "Upgrade to Studio",
     features: [
@@ -106,11 +102,40 @@ const TIERS: Tier[] = [
   },
 ];
 
-function TierCard({ tier, onUpgrade, loading }: { tier: Tier; onUpgrade: (id: string) => void; loading: string | null }) {
+const FEATURE_MATRIX = [
+  { label: "Monthly credits", values: ["200", "1,500", "5,000", "15,000"] },
+  { label: "Generations / hour", values: ["5", "25", "50", "100"] },
+  { label: "Downloads / hour", values: ["20", "100", "500", "Unlimited"] },
+  { label: "Library & playlists", values: [true, true, true, true] },
+  { label: "Mashup Studio", values: [false, true, true, true] },
+  { label: "Priority Queue", values: [false, false, true, true] },
+  { label: "Vocal Separation", values: [false, false, true, true] },
+  { label: "API Key Access", values: [false, false, false, true] },
+];
+
+function TierCard({
+  tier,
+  annual,
+  onUpgrade,
+  loading,
+}: {
+  tier: Tier;
+  annual: boolean;
+  onUpgrade: (id: string, annual: boolean) => void;
+  loading: string | null;
+}) {
   const { data: session } = useSession();
-  const currentTier = (session?.user as unknown as Record<string, unknown>)?.subscriptionTier as string ?? "free";
+  const currentTier =
+    (session?.user as unknown as Record<string, unknown>)?.subscriptionTier as string ?? "free";
   const isCurrent = currentTier === tier.id;
   const isLoading = loading === tier.id;
+
+  const price =
+    tier.monthlyPrice === null
+      ? "$0"
+      : annual
+        ? `$${tier.annualPrice!.toFixed(2)}`
+        : `$${tier.monthlyPrice.toFixed(2)}`;
 
   function handleCta() {
     if (tier.id === "free") return;
@@ -118,7 +143,8 @@ function TierCard({ tier, onUpgrade, loading }: { tier: Tier; onUpgrade: (id: st
       window.location.href = "/register";
       return;
     }
-    onUpgrade(tier.id);
+    track("pricing_cta_clicked", { tier: tier.id, billing: annual ? "annual" : "monthly" });
+    onUpgrade(tier.id, annual);
   }
 
   return (
@@ -141,9 +167,14 @@ function TierCard({ tier, onUpgrade, loading }: { tier: Tier; onUpgrade: (id: st
       <div className="mb-4">
         <h3 className="text-lg font-bold text-gray-900 dark:text-white">{tier.name}</h3>
         <div className="mt-2 flex items-baseline gap-1">
-          <span className="text-3xl font-extrabold text-gray-900 dark:text-white">{tier.price}</span>
+          <span className="text-3xl font-extrabold text-gray-900 dark:text-white">{price}</span>
           <span className="text-sm text-gray-500 dark:text-gray-400">/{tier.priceNote}</span>
         </div>
+        {annual && tier.monthlyPrice !== null && (
+          <p className="mt-0.5 text-xs text-green-600 dark:text-green-400 font-medium">
+            Save ${((tier.monthlyPrice - tier.annualPrice!) * 12).toFixed(0)}/yr vs monthly
+          </p>
+        )}
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{tier.credits}</p>
       </div>
 
@@ -156,7 +187,9 @@ function TierCard({ tier, onUpgrade, loading }: { tier: Tier; onUpgrade: (id: st
               <XMarkIcon className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
             )}
             <span
-              className={f.included ? "text-gray-700 dark:text-gray-300" : "text-gray-400 dark:text-gray-600"}
+              className={
+                f.included ? "text-gray-700 dark:text-gray-300" : "text-gray-400 dark:text-gray-600"
+              }
             >
               {f.label}
             </span>
@@ -192,18 +225,30 @@ function TierCard({ tier, onUpgrade, loading }: { tier: Tier; onUpgrade: (id: st
   );
 }
 
+function FeatureMatrixCell({ value }: { value: boolean | string }) {
+  if (typeof value === "boolean") {
+    return value ? (
+      <CheckIcon className="w-5 h-5 text-green-500 mx-auto" />
+    ) : (
+      <XMarkIcon className="w-5 h-5 text-gray-300 dark:text-gray-600 mx-auto" />
+    );
+  }
+  return <span className="text-sm text-gray-700 dark:text-gray-300">{value}</span>;
+}
+
 export default function PricingPage() {
+  const [annual, setAnnual] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleUpgrade(tier: string) {
+  async function handleUpgrade(tier: string, isAnnual: boolean) {
     setLoading(tier);
     setError(null);
     try {
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier }),
+        body: JSON.stringify({ tier, annual: isAnnual }),
       });
       if (!res.ok) {
         const body = await res.json();
@@ -223,13 +268,49 @@ export default function PricingPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="max-w-6xl mx-auto px-4 py-16">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-10">
           <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-3">
             Simple, transparent pricing
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-400">
             Start free. Upgrade when you need more credits, speed, or features.
           </p>
+        </div>
+
+        {/* Billing toggle */}
+        <div className="flex items-center justify-center gap-3 mb-10">
+          <span
+            className={`text-sm font-medium ${!annual ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-gray-500"}`}
+          >
+            Monthly
+          </span>
+          <button
+            onClick={() => {
+              const next = !annual;
+              setAnnual(next);
+              track("pricing_billing_toggle", { billing: next ? "annual" : "monthly" });
+            }}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 ${
+              annual ? "bg-violet-600" : "bg-gray-300 dark:bg-gray-600"
+            }`}
+            role="switch"
+            aria-checked={annual}
+            aria-label="Toggle annual billing"
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                annual ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+          <span
+            className={`text-sm font-medium ${annual ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-gray-500"}`}
+          >
+            Annual
+            <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+              Save 20%
+            </span>
+          </span>
         </div>
 
         {error && (
@@ -241,14 +322,74 @@ export default function PricingPage() {
         {/* Tier cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {TIERS.map((tier) => (
-            <TierCard key={tier.id} tier={tier} onUpgrade={handleUpgrade} loading={loading} />
+            <TierCard
+              key={tier.id}
+              tier={tier}
+              annual={annual}
+              onUpgrade={handleUpgrade}
+              loading={loading}
+            />
           ))}
+        </div>
+
+        {/* Feature comparison matrix */}
+        <div className="mt-16">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">
+            Compare all features
+          </h2>
+          <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-800">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-500 dark:text-gray-400 w-1/3">
+                    Feature
+                  </th>
+                  {TIERS.map((t) => (
+                    <th
+                      key={t.id}
+                      className={`px-6 py-4 text-sm font-bold text-center ${
+                        t.featured
+                          ? "text-violet-600 dark:text-violet-400"
+                          : "text-gray-900 dark:text-white"
+                      }`}
+                    >
+                      {t.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {FEATURE_MATRIX.map((row, i) => (
+                  <tr
+                    key={row.label}
+                    className={`border-b border-gray-100 dark:border-gray-800/60 last:border-0 ${
+                      i % 2 === 0
+                        ? "bg-gray-50 dark:bg-gray-900/50"
+                        : "bg-white dark:bg-gray-900"
+                    }`}
+                  >
+                    <td className="px-6 py-3.5 text-sm text-gray-700 dark:text-gray-300 font-medium">
+                      {row.label}
+                    </td>
+                    {row.values.map((v, vi) => (
+                      <td key={vi} className="px-6 py-3.5 text-center">
+                        <FeatureMatrixCell value={v} />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Footer note */}
         <p className="mt-10 text-center text-sm text-gray-500 dark:text-gray-400">
           All plans include a 30-day grace period for existing users.{" "}
-          <Link href="/settings/billing" className="text-violet-600 dark:text-violet-400 hover:underline">
+          <Link
+            href="/settings/billing"
+            className="text-violet-600 dark:text-violet-400 hover:underline"
+          >
             Manage your subscription
           </Link>
         </p>

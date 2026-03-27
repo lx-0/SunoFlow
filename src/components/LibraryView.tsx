@@ -48,6 +48,7 @@ import { TagChip } from "./TagInput";
 // Lazy-load the import modal — only rendered when user opens it
 const SunoImportModal = dynamic(() => import("./SunoImportModal").then((m) => m.SunoImportModal), { ssr: false });
 import { RecentlyPlayed } from "./RecentlyPlayed";
+import { LowCreditsBanner } from "./LowCreditsBanner";
 import { AddToPlaylistButton } from "./AddToPlaylistButton";
 import { ShareButton } from "./ShareButton";
 
@@ -1811,6 +1812,9 @@ export function LibraryView({
 
   return (
     <div className="px-4 py-4 space-y-4" data-tour="library">
+      {/* Low credits banner — shown when user is running low */}
+      <LowCreditsBanner />
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

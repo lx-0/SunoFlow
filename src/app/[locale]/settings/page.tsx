@@ -2614,12 +2614,22 @@ function SubscriptionSummarySection() {
           </div>
         )}
       </div>
-      <Link
-        href="/settings/billing"
-        className="inline-flex items-center gap-1.5 text-sm text-violet-600 dark:text-violet-400 hover:underline"
-      >
-        Manage billing &amp; subscription
-      </Link>
+      <div className="flex items-center gap-4">
+        <Link
+          href="/settings/billing"
+          className="inline-flex items-center gap-1.5 text-sm text-violet-600 dark:text-violet-400 hover:underline"
+        >
+          Manage billing &amp; subscription
+        </Link>
+        {info.tier === "free" && (
+          <Link
+            href="/pricing"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-violet-600 dark:text-violet-400 hover:underline"
+          >
+            View plans →
+          </Link>
+        )}
+      </div>
     </section>
   );
 }

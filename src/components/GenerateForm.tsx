@@ -13,6 +13,7 @@ import { fetchWithTimeout, clientFetchErrorMessage } from "@/lib/fetch-client";
 import { GenerationProgress } from "./GenerationProgress";
 import { GenerationQueue } from "./GenerationQueue";
 import { Confetti } from "./Confetti";
+import { UpgradeModal, shouldShowUpgradeModal } from "./UpgradeModal";
 
 interface PersonaOption {
   id: string;
@@ -84,6 +85,7 @@ export function GenerateForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rateLimit, setRateLimit] = useState<RateLimitStatus | null>(null);
   const [promptError, setPromptError] = useState<string | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Template state
   const [templates, setTemplates] = useState<PromptTemplate[]>([]);
@@ -522,6 +524,12 @@ export function GenerateForm() {
       return;
     }
     setPromptError(null);
+
+    // Show upgrade modal if user has no credits (client-side check before hitting the server)
+    if (creditInfo !== null && creditInfo.creditsRemaining <= 0 && shouldShowUpgradeModal("no_credits")) {
+      setShowUpgradeModal(true);
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -1488,6 +1496,11 @@ export function GenerateForm() {
           </button>
         </div>
       </form>
+
+      {/* Upgrade modal — shown when user has no credits and tries to generate */}
+      {showUpgradeModal && (
+        <UpgradeModal trigger="no_credits" onClose={() => setShowUpgradeModal(false)} />
+      )}
     </div>
   );
 }
