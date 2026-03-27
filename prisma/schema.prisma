@@ -99,6 +99,7 @@ model User {
   playlistSongsAdded     PlaylistSong[]         @relation("PlaylistSongAddedBy")
   playbackState        PlaybackState?
   generationAttempts   GenerationAttempt[]
+  inspirationDigests   InspirationDigest[]
 }
 
 model Activity {
@@ -782,4 +783,16 @@ model SongView {
 
   @@index([songId, viewedAt])
   @@index([viewedAt])
+}
+
+model InspirationDigest {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  items     Json     // DigestItem[]
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
 }

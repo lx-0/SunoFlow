@@ -73,7 +73,24 @@ interface InstagramPost {
 const IG_POSTS_KEY = "sunoflow_ig_posts";
 const IG_CACHE_KEY = "sunoflow_ig_cache";
 
-type InspireTab = "all" | "rss" | "instagram";
+type InspireTab = "all" | "rss" | "instagram" | "digest";
+
+interface DigestItem {
+  source: "rss";
+  title: string;
+  link?: string;
+  mood: string;
+  topics: string[];
+  suggestedPrompt: string;
+  feedTitle?: string;
+}
+
+interface InspirationDigest {
+  id: string;
+  title: string;
+  items: DigestItem[];
+  createdAt: string;
+}
 
 // ─── Hooks ───
 
@@ -337,6 +354,144 @@ function PendingFeedGenerations({
   );
 }
 
+// ─── Digest Section ───
+
+function DigestSection({
+  digest,
+  loading,
+  generating,
+  onGenerate,
+  onUsePrompt,
+}: {
+  digest: InspirationDigest | null;
+  loading: boolean;
+  generating: boolean;
+  onGenerate: () => void;
+  onUsePrompt: (prompt: string) => void;
+}) {
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[...Array(3)].map((_, i) => (
+          <div
+            key={i}
+            className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 animate-pulse"
+          >
+            <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-2/3 mb-2" />
+            <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-full mb-1" />
+            <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-1/2" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (!digest) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <SparklesIcon className="w-4 h-4 text-emerald-400" />
+          <h3 className="text-sm font-semibold text-emerald-400">Daily Digest</h3>
+        </div>
+        <div className="bg-white dark:bg-gray-900 border border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-5 text-center">
+          <SparklesIcon className="w-8 h-8 text-gray-400 dark:text-gray-600 mx-auto mb-2" />
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+            Auto-curate inspiration from your RSS feeds into a daily digest with suggested prompts.
+          </p>
+          <button
+            onClick={onGenerate}
+            disabled={generating}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+          >
+            {generating ? "Generating…" : "Generate Today's Digest"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <SparklesIcon className="w-4 h-4 text-emerald-400" />
+          <h3 className="text-sm font-semibold text-emerald-400">Daily Digest</h3>
+        </div>
+        <button
+          onClick={onGenerate}
+          disabled={generating}
+          className="flex items-center gap-1 text-xs font-medium text-emerald-400 hover:text-emerald-300 transition-colors disabled:opacity-50"
+        >
+          <ArrowPathIcon className={`w-3.5 h-3.5 ${generating ? "animate-spin" : ""}`} />
+          Refresh
+        </button>
+      </div>
+      <p className="text-xs text-gray-500 dark:text-gray-400">{digest.title}</p>
+      <div className="space-y-3">
+        {(digest.items as DigestItem[]).map((item, i) => {
+          const badgeColor = MOOD_COLORS[item.mood] ?? MOOD_COLORS.neutral;
+          return (
+            <div
+              key={i}
+              className="bg-white dark:bg-gray-900 border border-emerald-200/30 dark:border-emerald-900/30 rounded-xl p-4"
+            >
+              {item.feedTitle && (
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1 truncate">
+                  {item.feedTitle}
+                </p>
+              )}
+              <div className="flex items-start gap-2 mb-1">
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300 flex-1 line-clamp-2">
+                  {item.title}
+                </p>
+                {item.mood && item.mood !== "neutral" && (
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${badgeColor}`}>
+                    {item.mood}
+                  </span>
+                )}
+              </div>
+              {item.topics.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1 mb-2">
+                  {item.topics.map((topic) => (
+                    <span
+                      key={topic}
+                      className="text-[10px] text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded"
+                    >
+                      {topic}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-gray-500 dark:text-gray-400 italic line-clamp-2 mb-2">
+                {item.suggestedPrompt}
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => onUsePrompt(item.suggestedPrompt)}
+                  className="flex items-center gap-1.5 text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors min-h-[44px]"
+                >
+                  <SparklesIcon className="w-4 h-4" />
+                  Generate from this
+                </button>
+                {item.link && (
+                  <a
+                    href={item.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-gray-400 hover:text-gray-300 transition-colors ml-auto"
+                  >
+                    Source ↗
+                  </a>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Instagram Section ───
 
 function InstagramMoodBoard({
@@ -562,6 +717,10 @@ function InspireContent() {
   const [pendingGenerations, setPendingGenerations] = useState<PendingFeedGenerationItem[]>([]);
   const [pendingLoading, setPendingLoading] = useState(true);
 
+  const [digest, setDigest] = useState<InspirationDigest | null>(null);
+  const [digestLoading, setDigestLoading] = useState(false);
+  const [digestGenerating, setDigestGenerating] = useState(false);
+
   const [activeTab, setActiveTab] = useState<InspireTab>("all");
   const [moodFilter, setMoodFilter] = useState<string | null>(null);
   const [dateSortDesc, setDateSortDesc] = useState(true);
@@ -721,12 +880,47 @@ function InspireContent() {
     }
   }, []);
 
+  // ── Digest ──
+
+  const fetchLatestDigest = useCallback(async () => {
+    setDigestLoading(true);
+    try {
+      const res = await fetch("/api/digests?limit=1");
+      if (!res.ok) return;
+      const data = await res.json();
+      setDigest(data.digests?.[0] ?? null);
+    } catch {
+      // ignore
+    } finally {
+      setDigestLoading(false);
+    }
+  }, []);
+
+  const generateDigest = useCallback(async () => {
+    setDigestGenerating(true);
+    try {
+      const res = await fetch("/api/digests/generate", { method: "POST" });
+      if (!res.ok) return;
+      const data = await res.json();
+      setDigest(data.digest ?? null);
+    } catch {
+      // ignore
+    } finally {
+      setDigestGenerating(false);
+    }
+  }, []);
+
+  const handleDigestPrompt = (prompt: string) => {
+    router.push(`/generate?prompt=${encodeURIComponent(prompt)}`);
+  };
+
   // ── Load on mount ──
 
   useEffect(() => {
     fetchDailyPrompts();
     fetchPendingGenerations();
-  }, [fetchDailyPrompts, fetchPendingGenerations]);
+    fetchLatestDigest();
+  }, [fetchDailyPrompts, fetchPendingGenerations, fetchLatestDigest]);
 
   useEffect(() => {
     if (!feedsLoaded || feedUrls.length === 0) return;
@@ -800,6 +994,9 @@ function InspireContent() {
     if (activeTab === "all") {
       promises.push(fetchDailyPrompts());
     }
+    if (activeTab === "all" || activeTab === "digest") {
+      promises.push(fetchLatestDigest());
+    }
     if (hasRss && (activeTab === "all" || activeTab === "rss")) {
       promises.push(fetchRssFeeds(feedUrls));
     }
@@ -807,7 +1004,7 @@ function InspireContent() {
       promises.push(fetchIgPosts(igUrls));
     }
     await Promise.all(promises);
-  }, [activeTab, hasRss, hasIg, feedUrls, igUrls, fetchDailyPrompts, fetchRssFeeds, fetchIgPosts]);
+  }, [activeTab, hasRss, hasIg, feedUrls, igUrls, fetchDailyPrompts, fetchLatestDigest, fetchRssFeeds, fetchIgPosts]);
 
   const isLoading = rssLoading || igLoading || !feedsLoaded;
 
@@ -839,14 +1036,15 @@ function InspireContent() {
     );
   }
 
-  // ── Tab bar (only if both sources exist) ──
+  // ── Tab bar ──
 
-  const showTabs = hasRss && hasIg;
+  const showTabs = hasRss || hasIg;
 
   const tabs: { key: InspireTab; label: string }[] = [
     { key: "all", label: "All" },
-    { key: "rss", label: "RSS" },
-    { key: "instagram", label: "Instagram" },
+    { key: "digest", label: "Digest" },
+    ...(hasRss ? [{ key: "rss" as InspireTab, label: "RSS" }] : []),
+    ...(hasIg ? [{ key: "instagram" as InspireTab, label: "Instagram" }] : []),
   ];
 
   return (
@@ -949,6 +1147,17 @@ function InspireContent() {
           stale={dailyStale}
           onGenerate={generateDailyPrompts}
           onUsePrompt={handleDailyPrompt}
+        />
+      )}
+
+      {/* Daily digest */}
+      {(activeTab === "digest" || (activeTab === "all" && hasRss)) && (
+        <DigestSection
+          digest={digest}
+          loading={digestLoading}
+          generating={digestGenerating}
+          onGenerate={generateDigest}
+          onUsePrompt={handleDigestPrompt}
         />
       )}
 
