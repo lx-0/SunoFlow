@@ -101,6 +101,11 @@ model User {
   playbackState        PlaybackState?
   generationAttempts   GenerationAttempt[]
   inspirationDigests   InspirationDigest[]
+
+  @@index([lastLoginAt])
+  @@index([createdAt])
+  @@index([isAdmin])
+  @@index([isDisabled])
 }
 
 model Activity {
@@ -195,6 +200,7 @@ model Song {
   @@index([isPublic, rating])
   @@index([userId, source])
   @@index([rssFeedSubscriptionId, source, createdAt])
+  @@index([generationStatus, createdAt])
 }
 
 model Playlist {
@@ -378,6 +384,7 @@ model Notification {
 
   @@index([userId, read, createdAt])
   @@index([userId, createdAt])
+  @@index([userId, type, createdAt])
 }
 
 model RssFeedSubscription {
@@ -500,6 +507,7 @@ model CreditUsage {
 
   @@index([userId, createdAt])
   @@index([userId, action])
+  @@index([createdAt])
 }
 
 model GenerationQueueItem {
@@ -671,6 +679,7 @@ model Subscription {
   @@index([stripeCustomerId])
   @@index([stripeSubscriptionId])
   @@index([status])
+  @@index([status, tier])
 }
 
 model PaymentEvent {
@@ -761,6 +770,7 @@ model PlayEvent {
 
   @@index([songId, startedAt])
   @@index([listenerId, startedAt])
+  @@index([listenerId])
 }
 
 model GenerationAttempt {
