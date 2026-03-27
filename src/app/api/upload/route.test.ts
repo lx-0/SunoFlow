@@ -104,8 +104,8 @@ beforeEach(() => {
   vi.mocked(resolveUserApiKey).mockResolvedValue(undefined);
   // Ensure process.env.SUNOAPI_KEY is set so the hasApiKey guard passes
   process.env.SUNOAPI_KEY = "test-key";
-  vi.mocked(uploadFileBase64).mockResolvedValue({ fileUrl: "https://cdn.example.com/upload.mp3" });
-  vi.mocked(uploadFileFromUrl).mockResolvedValue({ fileUrl: "https://cdn.example.com/upload.mp3" });
+  vi.mocked(uploadFileBase64).mockResolvedValue({ fileId: "file-1", fileUrl: "https://cdn.example.com/upload.mp3", downloadUrl: "https://cdn.example.com/upload.mp3", expiresAt: "2099-01-01T00:00:00Z" });
+  vi.mocked(uploadFileFromUrl).mockResolvedValue({ fileId: "file-2", fileUrl: "https://cdn.example.com/upload.mp3", downloadUrl: "https://cdn.example.com/upload.mp3", expiresAt: "2099-01-01T00:00:00Z" });
   vi.mocked(uploadAndCover).mockResolvedValue({ taskId: "task-cover-1" });
   vi.mocked(uploadAndExtend).mockResolvedValue({ taskId: "task-extend-1" });
   vi.mocked(prisma.song.create).mockResolvedValue({ id: "song-1" } as never);
