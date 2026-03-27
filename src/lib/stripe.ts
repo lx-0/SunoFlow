@@ -32,3 +32,17 @@ export const STRIPE_PRICES = {
   get pro() { return process.env.STRIPE_PRICE_PRO ?? ""; },
   get studio() { return process.env.STRIPE_PRICE_STUDIO ?? ""; },
 } as const;
+
+export const STRIPE_TOPUP_PRICES = {
+  get credits_10() { return process.env.STRIPE_PRICE_TOPUP_10 ?? ""; },
+  get credits_25() { return process.env.STRIPE_PRICE_TOPUP_25 ?? ""; },
+  get credits_50() { return process.env.STRIPE_PRICE_TOPUP_50 ?? ""; },
+} as const;
+
+export const TOPUP_PACKAGES = [
+  { id: "credits_10" as const, credits: 10, label: "10 Credits", priceLabel: "$0.99" },
+  { id: "credits_25" as const, credits: 25, label: "25 Credits", priceLabel: "$1.99" },
+  { id: "credits_50" as const, credits: 50, label: "50 Credits", priceLabel: "$3.49" },
+];
+
+export type TopupPackageId = "credits_10" | "credits_25" | "credits_50";

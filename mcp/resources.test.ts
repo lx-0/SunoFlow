@@ -222,6 +222,10 @@ describe("sunoflow://stats/credits", () => {
     vi.mocked(getMonthlyCreditUsage).mockResolvedValue({
       creditsRemaining: 300,
       budget: 500,
+      subscriptionBudget: 500,
+      topUpCredits: 0,
+      topUpCreditsRemaining: 0,
+      subscriptionCreditsRemaining: 300,
       creditsUsedThisMonth: 200,
       usagePercent: 40,
       generationsThisMonth: 20,

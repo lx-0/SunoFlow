@@ -42,6 +42,10 @@ describe("GET /api/credits", () => {
   it("returns credit usage for authenticated user", async () => {
     const usage = {
       budget: 500,
+      subscriptionBudget: 500,
+      topUpCredits: 0,
+      topUpCreditsRemaining: 0,
+      subscriptionCreditsRemaining: 400,
       creditsUsedThisMonth: 100,
       creditsRemaining: 400,
       generationsThisMonth: 10,

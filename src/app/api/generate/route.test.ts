@@ -111,6 +111,10 @@ const DEFAULT_BODY = { prompt: "upbeat pop song", title: "Test", tags: "pop", ma
 
 const DEFAULT_CREDIT_USAGE = {
   budget: 500,
+  subscriptionBudget: 500,
+  topUpCredits: 0,
+  topUpCreditsRemaining: 0,
+  subscriptionCreditsRemaining: 400,
   creditsUsedThisMonth: 100,
   creditsRemaining: 100,
   generationsThisMonth: 10,

@@ -12,6 +12,7 @@ import {
   ChevronRightIcon,
   ArrowDownTrayIcon,
   XMarkIcon,
+  PlusCircleIcon,
 } from "@heroicons/react/24/outline";
 import {
   TIER_LABELS,
@@ -32,11 +33,23 @@ interface SubscriptionData {
 
 interface CreditUsage {
   budget: number;
+  subscriptionBudget: number;
+  topUpCredits: number;
+  topUpCreditsRemaining: number;
+  subscriptionCreditsRemaining: number;
   creditsUsedThisMonth: number;
   creditsRemaining: number;
   usagePercent: number;
   isLow: boolean;
 }
+
+const TOPUP_PACKAGES = [
+  { id: "credits_10", credits: 10, label: "10 Credits", priceLabel: "$0.99" },
+  { id: "credits_25", credits: 25, label: "25 Credits", priceLabel: "$1.99" },
+  { id: "credits_50", credits: 50, label: "50 Credits", priceLabel: "$3.49" },
+] as const;
+
+type TopupPackageId = typeof TOPUP_PACKAGES[number]["id"];
 
 interface InvoiceItem {
   id: string;
@@ -208,11 +221,15 @@ export default function BillingPage() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [topupLoading, setTopupLoading] = useState(false);
+  const [selectedTopup, setSelectedTopup] = useState<TopupPackageId>("credits_10");
   const [error, setError] = useState<string | null>(null);
   const [cancelSuccess, setCancelSuccess] = useState(false);
 
   const successParam = searchParams.get("success");
   const cancelledParam = searchParams.get("cancelled");
+  const topupSuccessParam = searchParams.get("topup_success");
+  const topupCancelledParam = searchParams.get("topup_cancelled");
 
   const fetchData = useCallback(async () => {
     try {
@@ -283,6 +300,29 @@ export default function BillingPage() {
     }
   }
 
+  async function handleTopup() {
+    setTopupLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/billing/topup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ package: selectedTopup }),
+      });
+      if (!res.ok) {
+        const body = await res.json();
+        setError(body.error ?? "Could not start credit purchase");
+        return;
+      }
+      const { url } = await res.json();
+      if (url) window.location.href = url;
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setTopupLoading(false);
+    }
+  }
+
   const tier = (sub?.tier ?? "free") as SubscriptionTier;
   const isPaid = tier !== "free";
   const monthlyPrice = TIER_MONTHLY_PRICE[tier];
@@ -350,6 +390,21 @@ export default function BillingPage() {
           <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-sm">
             <ExclamationTriangleIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <p>Checkout was cancelled. Your plan was not changed.</p>
+          </div>
+        )}
+        {topupSuccessParam && (
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm">
+            <CheckCircleIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold">Credits added!</p>
+              <p>Your credits have been added to your account and are ready to use.</p>
+            </div>
+          </div>
+        )}
+        {topupCancelledParam && (
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-sm">
+            <ExclamationTriangleIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <p>Credit purchase was cancelled. No charge was made.</p>
           </div>
         )}
 
@@ -500,7 +555,7 @@ export default function BillingPage() {
                     <div>
                       <p className="font-semibold">Running low on credits</p>
                       <p>
-                        Upgrade to get more credits and avoid interruptions.{" "}
+                        Upgrade to get more credits, or buy a top-up below.{" "}
                         <Link href="/pricing" className="underline font-medium">
                           View plans
                         </Link>
@@ -508,8 +563,58 @@ export default function BillingPage() {
                     </div>
                   </div>
                 )}
+
+                {credits.topUpCreditsRemaining > 0 && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Includes {credits.topUpCreditsRemaining.toLocaleString()} top-up credits
+                  </p>
+                )}
               </div>
             )}
+
+            {/* Buy More Credits */}
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4">
+              <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                <PlusCircleIcon className="w-5 h-5 text-violet-500" />
+                Buy More Credits
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                One-time credit purchase. Top-up credits are consumed after your monthly subscription
+                credits are depleted and are valid for 1 year.
+              </p>
+
+              <div className="grid grid-cols-3 gap-2">
+                {TOPUP_PACKAGES.map((pkg) => (
+                  <button
+                    key={pkg.id}
+                    onClick={() => setSelectedTopup(pkg.id)}
+                    className={`flex flex-col items-center gap-1 p-3 rounded-lg border text-sm transition-colors ${
+                      selectedTopup === pkg.id
+                        ? "border-violet-500 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300"
+                        : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-violet-300 dark:hover:border-violet-700"
+                    }`}
+                  >
+                    <span className="font-semibold">{pkg.label}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{pkg.priceLabel}</span>
+                  </button>
+                ))}
+              </div>
+
+              {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+
+              <button
+                onClick={handleTopup}
+                disabled={topupLoading}
+                className="inline-flex items-center justify-center gap-2 w-full px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white transition-colors disabled:opacity-60"
+              >
+                {topupLoading ? (
+                  <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                ) : (
+                  <PlusCircleIcon className="w-4 h-4" />
+                )}
+                {topupLoading ? "Redirecting…" : `Buy ${TOPUP_PACKAGES.find((p) => p.id === selectedTopup)?.label}`}
+              </button>
+            </div>
 
             {/* Invoice history */}
             {invoices.length > 0 && (

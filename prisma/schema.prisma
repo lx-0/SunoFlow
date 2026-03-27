@@ -94,6 +94,7 @@ model User {
   userFeedbacks        UserFeedback[]
   subscription         Subscription?
   paymentEvents        PaymentEvent[]
+  creditTopUps         CreditTopUp[]
   playHistory          PlayHistory[]
   playlistCollaborations PlaylistCollaborator[]
   playlistSongsAdded     PlaylistSong[]         @relation("PlaylistSongAddedBy")
@@ -783,6 +784,24 @@ model SongView {
 
   @@index([songId, viewedAt])
   @@index([viewedAt])
+}
+
+model CreditTopUp {
+  id                    String    @id @default(cuid())
+  userId                String
+  credits               Int       // credits purchased
+  amountCents           Int       // price paid in cents
+  currency              String    @default("usd")
+  stripeSessionId       String    @unique
+  stripePaymentIntentId String?
+  expiresAt             DateTime? // null = no expiry; set to 1 year on creation
+  createdAt             DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, expiresAt])
+  @@index([stripeSessionId])
 }
 
 model InspirationDigest {

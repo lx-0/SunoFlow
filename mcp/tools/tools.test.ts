@@ -98,6 +98,10 @@ describe("generate_song tool", () => {
     vi.mocked(getMonthlyCreditUsage).mockResolvedValue({
       creditsRemaining: 100,
       budget: 500,
+      subscriptionBudget: 500,
+      topUpCredits: 0,
+      topUpCreditsRemaining: 0,
+      subscriptionCreditsRemaining: 100,
       creditsUsedThisMonth: 0,
       usagePercent: 0,
       generationsThisMonth: 0,
@@ -132,6 +136,10 @@ describe("generate_song tool", () => {
     vi.mocked(getMonthlyCreditUsage).mockResolvedValue({
       creditsRemaining: 100,
       budget: 500,
+      subscriptionBudget: 500,
+      topUpCredits: 0,
+      topUpCreditsRemaining: 0,
+      subscriptionCreditsRemaining: 100,
       creditsUsedThisMonth: 0,
       usagePercent: 0,
       generationsThisMonth: 0,
@@ -168,6 +176,10 @@ describe("generate_song tool", () => {
     vi.mocked(getMonthlyCreditUsage).mockResolvedValue({
       creditsRemaining: 5,
       budget: 500,
+      subscriptionBudget: 500,
+      topUpCredits: 0,
+      topUpCreditsRemaining: 0,
+      subscriptionCreditsRemaining: 5,
       creditsUsedThisMonth: 495,
       usagePercent: 99,
       generationsThisMonth: 49,
@@ -379,6 +391,10 @@ describe("get_credits tool", () => {
     vi.mocked(getMonthlyCreditUsage).mockResolvedValue({
       creditsRemaining: 250,
       budget: 500,
+      subscriptionBudget: 500,
+      topUpCredits: 0,
+      topUpCreditsRemaining: 0,
+      subscriptionCreditsRemaining: 250,
       creditsUsedThisMonth: 250,
       usagePercent: 50,
       generationsThisMonth: 25,

@@ -26,11 +26,25 @@ export const GRACE_PERIOD_CUTOFF = new Date("2026-03-25T00:00:00Z");
 export const GRACE_PERIOD_DAYS = 30;
 
 /**
- * Get the monthly credit budget for a user based on their subscription tier.
- * Users created before GRACE_PERIOD_CUTOFF retain DEFAULT_MONTHLY_BUDGET (500)
- * for 30 days after the cutoff date.
+ * Get the total unexpired top-up credits for a user.
+ * Top-up credits are consumed after subscription credits are depleted.
  */
-export async function getMonthlyBudget(userId: string): Promise<number> {
+export async function getTopUpCreditsRemaining(userId: string): Promise<number> {
+  const now = new Date();
+  const result = await prisma.creditTopUp.aggregate({
+    where: {
+      userId,
+      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+    },
+    _sum: { credits: true },
+  });
+  return result._sum.credits ?? 0;
+}
+
+/**
+ * Get the subscription-only monthly credit budget for a user (without top-ups).
+ */
+async function getSubscriptionBudget(userId: string): Promise<number> {
   const gracePeriodEnd = new Date(
     GRACE_PERIOD_CUTOFF.getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000
   );
@@ -55,6 +69,20 @@ export async function getMonthlyBudget(userId: string): Promise<number> {
   }
 
   return TIER_LIMITS[sub.tier].creditsPerMonth;
+}
+
+/**
+ * Get the monthly credit budget for a user based on their subscription tier
+ * plus any unexpired top-up credits.
+ * Users created before GRACE_PERIOD_CUTOFF retain DEFAULT_MONTHLY_BUDGET (500)
+ * for 30 days after the cutoff date.
+ */
+export async function getMonthlyBudget(userId: string): Promise<number> {
+  const [subscriptionBudget, topUpCredits] = await Promise.all([
+    getSubscriptionBudget(userId),
+    getTopUpCreditsRemaining(userId),
+  ]);
+  return subscriptionBudget + topUpCredits;
 }
 
 /**
@@ -89,8 +117,9 @@ export async function getMonthlyCreditUsage(userId: string) {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const [budget, monthlyUsage, totalAllTime, dailyBreakdown] = await Promise.all([
-    getMonthlyBudget(userId),
+  const [subscriptionBudget, topUpCredits, monthlyUsage, totalAllTime, dailyBreakdown] = await Promise.all([
+    getSubscriptionBudget(userId),
+    getTopUpCreditsRemaining(userId),
     prisma.creditUsage.aggregate({
       where: { userId, createdAt: { gte: startOfMonth } },
       _sum: { creditCost: true },
@@ -113,11 +142,17 @@ export async function getMonthlyCreditUsage(userId: string) {
     `,
   ]);
 
+  const budget = subscriptionBudget + topUpCredits;
   const creditsUsedThisMonth = monthlyUsage._sum.creditCost ?? 0;
   const generationsThisMonth = monthlyUsage._count;
   const creditsRemaining = Math.max(0, budget - creditsUsedThisMonth);
   const usagePercent = budget > 0 ? creditsUsedThisMonth / budget : 0;
   const isLow = usagePercent >= (1 - LOW_CREDIT_THRESHOLD);
+
+  // Breakdown: subscription vs top-up credits remaining
+  const subscriptionCreditsRemaining = Math.max(0, subscriptionBudget - creditsUsedThisMonth);
+  const topUpCreditsConsumed = Math.max(0, creditsUsedThisMonth - subscriptionBudget);
+  const topUpCreditsRemaining = Math.max(0, topUpCredits - topUpCreditsConsumed);
 
   // Fill daily chart for current month
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -136,6 +171,10 @@ export async function getMonthlyCreditUsage(userId: string) {
 
   return {
     budget,
+    subscriptionBudget,
+    topUpCredits,
+    topUpCreditsRemaining,
+    subscriptionCreditsRemaining,
     creditsUsedThisMonth,
     creditsRemaining,
     generationsThisMonth,
