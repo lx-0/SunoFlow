@@ -165,9 +165,18 @@ test.describe("Logout", () => {
     // a valid session cookie, protected routes must redirect to /login).
     await page.context().clearCookies();
 
-    // Trying to access a protected page should redirect back to login
-    await page.goto("/library");
-    await expect(page).toHaveURL(/\/login/, { timeout: 5000 });
+    // Verify the server correctly redirects unauthenticated requests.
+    // We use the request API (maxRedirects:0) rather than browser navigation
+    // to avoid service-worker or router-cache interference that can mask
+    // server-side redirects in the address bar.
+    const res = await page.request.get("/library", {
+      maxRedirects: 0,
+      failOnStatusCode: false,
+    });
+    expect(res.status()).toBeGreaterThanOrEqual(300);
+    expect(res.status()).toBeLessThan(400);
+    const location = res.headers()["location"] ?? "";
+    expect(location).toMatch(/login/);
   });
 });
 

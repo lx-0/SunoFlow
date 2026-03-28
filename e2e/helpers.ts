@@ -48,10 +48,11 @@ export async function loginViaUI(
     // Session cookie is now set — navigate to the home page to complete auth
     await page.goto("/");
     await expect(page).not.toHaveURL(/\/login/, { timeout: 10000 });
-    // Belt-and-suspenders: suppress onboarding tour via localStorage so it
-    // can't intercept pointer events even if the session token is stale
+    // Belt-and-suspenders: suppress onboarding tour and API key wizard via
+    // localStorage so they can't intercept pointer events in E2E tests.
     await page.evaluate(() => {
       try { localStorage.setItem("sunoflow-tour-completed", "true"); } catch {}
+      try { localStorage.setItem("sunoflow-apikey-wizard-dismissed", "true"); } catch {}
     });
   } else {
     // Fallback: use the browser form (works locally with existing CSRF cookies)
