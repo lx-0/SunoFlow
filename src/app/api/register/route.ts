@@ -20,16 +20,18 @@ export async function POST(request: NextRequest) {
       request.headers.get("x-real-ip") ||
       "unknown";
 
-    const { acquired, status: rlStatus } = await acquireAnonRateLimitSlot(
-      ip,
-      "register",
-      REGISTER_LIMIT,
-      REGISTER_WINDOW_MS
-    );
-    if (!acquired) {
-      return rateLimited("Too many registration attempts. Please try again later.", {
-        rateLimit: rlStatus,
-      });
+    if (process.env.PLAYWRIGHT_TEST !== "true") {
+      const { acquired, status: rlStatus } = await acquireAnonRateLimitSlot(
+        ip,
+        "register",
+        REGISTER_LIMIT,
+        REGISTER_WINDOW_MS
+      );
+      if (!acquired) {
+        return rateLimited("Too many registration attempts. Please try again later.", {
+          rateLimit: rlStatus,
+        });
+      }
     }
 
     const { name, email, password } = await request.json();

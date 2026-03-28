@@ -244,10 +244,21 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 4. Navigation requests: network-first with offline fallback
+  // 4. Navigation requests: network-first with offline fallback.
+  // Use redirect:"follow" (default) but detect server-side redirects via
+  // response.redirected so we can surface them as a real browser navigation
+  // (updating the address bar). Without this, the SW silently serves the
+  // redirect target's HTML under the original URL, breaking auth redirects.
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(() =>
+      fetch(request).then((response) => {
+        if (response.redirected && response.url) {
+          // Server redirected — tell the browser to navigate to the final URL
+          // so the address bar updates correctly (e.g., auth → /login).
+          return Response.redirect(response.url, 302);
+        }
+        return response;
+      }).catch(() =>
         caches.match(OFFLINE_URL).then((response) => response)
       )
     );
