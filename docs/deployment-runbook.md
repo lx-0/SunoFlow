@@ -111,3 +111,105 @@ railway logs --service SunoFlow --tail 100
 ```
 
 The health check path is `/api/health` (configured in `railway.toml`).
+
+The health response includes:
+- `db` — whether the Postgres connection is up
+- `uptime` — seconds since process start
+- `generation.queueDepth` — pending generation tasks (should stay near 0)
+- `jobs` — scheduler status for each cron job
+
+---
+
+## Environment Variable Reference
+
+All variables are set in Railway's **Variables** panel for each service/environment. The full list with defaults is in `.env.example` at the repo root.
+
+### Required
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | Postgres connection string (used by the app) |
+| `SUNOFLOW_DATABASE_URL` | Postgres connection string (used by Prisma CLI during migrations) |
+| `AUTH_SECRET` | NextAuth JWT signing secret. Generate with `npx auth secret`. Rotating this logs out all users. |
+| `AUTH_URL` | Public-facing app URL (e.g. `https://sunoflow.up.railway.app`). Must match exactly. |
+
+### Music Generation
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SUNOAPI_KEY` | — | Platform-level API key for sunoapi.org. Users can also supply their own in Settings. Omit for mock/demo mode. |
+| `SUNO_API_TIMEOUT_MS` | `30000` | Timeout in ms for Suno API calls |
+
+### Auth Providers
+
+| Variable | Description |
+|----------|-------------|
+| `AUTH_GOOGLE_ID` | Google OAuth client ID. Sign-in button is hidden when unset. |
+| `AUTH_GOOGLE_SECRET` | Google OAuth client secret |
+
+### AI / LLM
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OPENAI_API_KEY` | — | Required for lyrics generation, prompt suggestions, and embedding-based recommendations |
+| `OPENAI_MODEL` | `gpt-4o-mini` | Override the default LLM model |
+
+### Billing (Stripe)
+
+| Variable | Description |
+|----------|-------------|
+| `STRIPE_SECRET_KEY` | Stripe secret key (server-side) |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (client-side) |
+| `STRIPE_WEBHOOK_SECRET` | Webhook endpoint signing secret |
+| `STRIPE_PRICE_STARTER` / `_PRO` / `_STUDIO` | Price IDs for subscription tiers |
+| `STRIPE_PRICE_TOPUP_10` / `_25` / `_50` | Credit top-up price IDs |
+
+### Email (Mailjet)
+
+| Variable | Description |
+|----------|-------------|
+| `MAILJET_API_KEY` | Mailjet API key. Omit to log emails to console instead. |
+| `MAILJET_SECRET_KEY` | Mailjet secret key |
+| `EMAIL_FROM` | Sender address (e.g. `noreply@sunoflow.com`) |
+
+### Web Push (VAPID)
+
+| Variable | Description |
+|----------|-------------|
+| `VAPID_PUBLIC_KEY` | VAPID public key. Generate: `node -e "const wp=require('web-push');console.log(wp.generateVAPIDKeys())"` |
+| `VAPID_PRIVATE_KEY` | VAPID private key |
+| `VAPID_SUBJECT` | Contact URI (e.g. `mailto:noreply@sunoflow.app`) |
+
+### Observability
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SENTRY_DSN` | — | Sentry DSN for server-side error tracking. Omit to disable. |
+| `NEXT_PUBLIC_SENTRY_DSN` | — | Sentry DSN for client-side error tracking |
+| `SENTRY_ENVIRONMENT` | `NODE_ENV` | Override environment tag (e.g. `production`, `staging`) |
+| `SENTRY_RELEASE` | auto (Railway) | Release tag for source map association |
+| `SENTRY_AUTH_TOKEN` / `SENTRY_ORG` / `SENTRY_PROJECT` | — | Required to upload source maps during build |
+| `LOG_LEVEL` | `info` (prod) | `trace` \| `debug` \| `info` \| `warn` \| `error` \| `fatal` |
+| `LOG_PRETTY` | `false` | Set to `true` in development for human-readable log output |
+
+### Analytics
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_POSTHOG_KEY` | PostHog project API key. Omit to disable analytics. |
+| `NEXT_PUBLIC_POSTHOG_HOST` | PostHog ingest host (default: `https://us.i.posthog.com`) |
+
+### Cron / Scheduled Jobs
+
+| Variable | Description |
+|----------|-------------|
+| `CRON_SECRET` | Bearer token for authenticating cron requests. Generate: `openssl rand -hex 32` |
+
+### Misc
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NEXT_PUBLIC_SITE_URL` | — | Public base URL for Open Graph, sitemaps, and share links |
+| `ALLOWED_ORIGINS` | same-origin | Comma-separated CORS allowed origins |
+| `RATE_LIMIT_MAX_GENERATIONS` | `10` | Max AI generation requests per user per rate-limit window |
+| `INSTAGRAM_APP_ID` / `INSTAGRAM_CLIENT_TOKEN` | — | Required for Instagram oEmbed on the Inspire page |

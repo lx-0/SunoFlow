@@ -1701,4 +1701,957 @@ export const openApiSpec = {
       },
     },
   },
+
+  // ─── Auth ────────────────────────────────────────────────────────────────
+  "/api/auth/forgot-password": {
+    post: {
+      summary: "Request a password reset email",
+      tags: ["Auth"],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["email"],
+              properties: {
+                email: { type: "string", format: "email" },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        "200": {
+          description: "Always returns success (prevents email enumeration)",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { message: { type: "string" } },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  "/api/auth/reset-password": {
+    post: {
+      summary: "Reset password using a token from the reset email",
+      tags: ["Auth"],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["token", "password"],
+              properties: {
+                token: { type: "string" },
+                password: { type: "string", minLength: 8 },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        "200": {
+          description: "Password reset successful",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { message: { type: "string" } },
+              },
+            },
+          },
+        },
+        "400": { description: "Invalid or expired token" },
+      },
+    },
+  },
+  "/api/auth/verify-email": {
+    get: {
+      summary: "Verify email address using a token",
+      tags: ["Auth"],
+      parameters: [
+        { name: "token", in: "query", required: true, schema: { type: "string" } },
+      ],
+      responses: {
+        "200": { description: "Email verified" },
+        "400": { description: "Invalid or expired token" },
+      },
+    },
+  },
+  "/api/auth/resend-verification": {
+    post: {
+      summary: "Resend verification email for the authenticated user",
+      tags: ["Auth"],
+      security: [{ session: [] }],
+      responses: {
+        "200": { description: "Verification email sent" },
+        "401": { description: "Not authenticated" },
+        "429": { description: "Rate limit exceeded" },
+      },
+    },
+  },
+
+  // ─── Settings ─────────────────────────────────────────────────────────────
+  "/api/settings": {
+    get: {
+      summary: "Get current user profile and notification preferences",
+      tags: ["Settings"],
+      security: [{ session: [] }],
+      responses: {
+        "200": {
+          description: "User settings",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  id: { type: "string" },
+                  email: { type: "string" },
+                  name: { type: "string", nullable: true },
+                  bio: { type: "string", nullable: true },
+                  avatarUrl: { type: "string", nullable: true },
+                  emailWelcome: { type: "boolean" },
+                  emailGenerationComplete: { type: "boolean" },
+                  emailWeeklyHighlights: { type: "boolean" },
+                  connectedProviders: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "OAuth providers linked to the account (e.g. google)",
+                  },
+                },
+              },
+            },
+          },
+        },
+        "401": { description: "Not authenticated" },
+      },
+    },
+    patch: {
+      summary: "Update profile and/or notification preferences",
+      tags: ["Settings"],
+      security: [{ session: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                bio: { type: "string" },
+                avatarUrl: { type: "string" },
+                emailWelcome: { type: "boolean" },
+                emailGenerationComplete: { type: "boolean" },
+                emailWeeklyHighlights: { type: "boolean" },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        "200": { description: "Settings updated" },
+        "400": { description: "Validation error" },
+        "401": { description: "Not authenticated" },
+      },
+    },
+  },
+
+  // ─── Credits ──────────────────────────────────────────────────────────────
+  "/api/credits": {
+    get: {
+      summary: "Get current user's monthly credit usage",
+      tags: ["Credits"],
+      security: [{ session: [] }],
+      responses: {
+        "200": {
+          description: "Credit usage summary",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  used: { type: "integer" },
+                  limit: { type: "integer" },
+                  remaining: { type: "integer" },
+                  resetAt: { type: "string", format: "date-time" },
+                },
+              },
+            },
+          },
+        },
+        "401": { description: "Not authenticated" },
+      },
+    },
+  },
+
+  // ─── Streaks ──────────────────────────────────────────────────────────────
+  "/api/streaks": {
+    get: {
+      summary: "Get current user's creation streak data",
+      tags: ["Gamification"],
+      security: [{ session: [] }],
+      responses: {
+        "200": {
+          description: "Streak data",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  streak: {
+                    type: "object",
+                    properties: {
+                      currentStreak: { type: "integer" },
+                      longestStreak: { type: "integer" },
+                      lastActiveDate: { type: "string", format: "date-time", nullable: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        "401": { description: "Not authenticated" },
+      },
+    },
+  },
+
+  // ─── Search ───────────────────────────────────────────────────────────────
+  "/api/search": {
+    get: {
+      summary: "Search songs and playlists in the user's library",
+      tags: ["Search"],
+      security: [{ session: [] }],
+      parameters: [
+        {
+          name: "q",
+          in: "query",
+          required: true,
+          description: "Search query (matches title, prompt, lyrics, and tags)",
+          schema: { type: "string" },
+        },
+      ],
+      responses: {
+        "200": {
+          description: "Search results",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  songs: { type: "array", items: { $ref: "#/components/schemas/Song" } },
+                  playlists: { type: "array", items: { $ref: "#/components/schemas/Playlist" } },
+                },
+              },
+            },
+          },
+        },
+        "401": { description: "Not authenticated" },
+        "429": { description: "Rate limit exceeded (60 req/min)" },
+      },
+    },
+  },
+
+  // ─── Recommendations ──────────────────────────────────────────────────────
+  "/api/recommendations": {
+    get: {
+      summary: "Get personalized song recommendations based on listening history",
+      description:
+        "Returns songs ranked by cosine similarity to the user's taste profile (derived from favorites, ratings, and play history). Falls back to recent/popular songs on cold start. Results cached for 1 hour.",
+      tags: ["Recommendations"],
+      security: [{ session: [] }],
+      parameters: [
+        {
+          name: "limit",
+          in: "query",
+          schema: { type: "integer", minimum: 1, maximum: 50, default: 20 },
+        },
+        {
+          name: "exclude",
+          in: "query",
+          description: "Comma-separated song IDs to exclude",
+          schema: { type: "string" },
+        },
+      ],
+      responses: {
+        "200": {
+          description: "Recommended songs",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  songs: { type: "array", items: { $ref: "#/components/schemas/Song" } },
+                  coldStart: {
+                    type: "boolean",
+                    description: "true if the user had insufficient signal for personalization",
+                  },
+                },
+              },
+            },
+          },
+        },
+        "401": { description: "Not authenticated" },
+      },
+    },
+  },
+
+  // ─── Songs — Discover & Trending ──────────────────────────────────────────
+  "/api/songs/discover": {
+    get: {
+      summary: "Discover public songs",
+      description: "Returns publicly shared songs. No authentication required.",
+      tags: ["Songs"],
+      parameters: [
+        { name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 } },
+        { name: "sort", in: "query", schema: { type: "string", enum: ["newest", "popular", "trending"] } },
+        { name: "genre", in: "query", schema: { type: "string" } },
+        { name: "mood", in: "query", schema: { type: "string" } },
+        { name: "q", in: "query", schema: { type: "string" } },
+      ],
+      responses: {
+        "200": {
+          description: "Paginated public songs",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  songs: { type: "array", items: { $ref: "#/components/schemas/Song" } },
+                  pagination: {
+                    type: "object",
+                    properties: {
+                      page: { type: "integer" },
+                      totalPages: { type: "integer" },
+                      total: { type: "integer" },
+                      hasMore: { type: "boolean" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        "429": { description: "Rate limit exceeded (30 req/min per IP)" },
+      },
+    },
+  },
+  "/api/songs/trending": {
+    get: {
+      summary: "Get trending public songs",
+      description:
+        "Returns public songs ranked by a time-decay score: `(playCount + downloadCount×2) / (1 + age_days×0.1)`. Restricted to the last 30 days. No authentication required.",
+      tags: ["Songs"],
+      parameters: [
+        {
+          name: "sort",
+          in: "query",
+          schema: { type: "string", enum: ["trending", "popular"], default: "trending" },
+        },
+        { name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 100, default: 20 } },
+        { name: "offset", in: "query", schema: { type: "integer", minimum: 0, default: 0 } },
+        { name: "genre", in: "query", schema: { type: "string" } },
+        { name: "mood", in: "query", schema: { type: "string" } },
+      ],
+      responses: {
+        "200": {
+          description: "Trending songs",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  songs: { type: "array", items: { $ref: "#/components/schemas/Song" } },
+                  total: { type: "integer" },
+                },
+              },
+            },
+          },
+        },
+        "429": { description: "Rate limit exceeded (60 req/min per IP)" },
+      },
+    },
+  },
+  "/api/songs/favorites": {
+    get: {
+      summary: "List the current user's favorited songs",
+      tags: ["Songs"],
+      security: [{ session: [] }],
+      parameters: [
+        { name: "q", in: "query", schema: { type: "string" } },
+        { name: "status", in: "query", schema: { type: "string", enum: ["ready", "pending", "failed"] } },
+        {
+          name: "sortBy",
+          in: "query",
+          schema: {
+            type: "string",
+            enum: ["recently_liked", "newest", "oldest", "title"],
+            default: "recently_liked",
+          },
+        },
+        { name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 100, default: 20 } },
+        { name: "cursor", in: "query", schema: { type: "string" } },
+      ],
+      responses: {
+        "200": {
+          description: "Paginated favorites",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  favorites: { type: "array", items: { $ref: "#/components/schemas/Song" } },
+                  nextCursor: { type: "string", nullable: true },
+                  total: { type: "integer" },
+                },
+              },
+            },
+          },
+        },
+        "401": { description: "Not authenticated" },
+      },
+    },
+  },
+
+  // ─── Songs — Per-song actions ──────────────────────────────────────────────
+  "/api/songs/{id}/play": {
+    post: {
+      summary: "Record a play event and refresh the audio URL if close to expiry",
+      description:
+        "Increments the play count and, if the stored audio URL expires within 3 days, attempts to refresh it via the Suno API.",
+      tags: ["Songs"],
+      security: [{ session: [] }],
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+      ],
+      responses: {
+        "200": {
+          description: "Play recorded; includes (possibly refreshed) audio URL",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  audioUrl: { type: "string", nullable: true },
+                  audioUrlExpiresAt: { type: "string", format: "date-time", nullable: true },
+                  playCount: { type: "integer" },
+                },
+              },
+            },
+          },
+        },
+        "401": { description: "Not authenticated" },
+        "404": { description: "Song not found" },
+      },
+    },
+  },
+  "/api/songs/{id}/download": {
+    get: {
+      summary: "Download a song with embedded metadata",
+      description:
+        "Proxies the audio file and embeds ID3/WAV metadata. Rate-limited to 50 downloads per user per hour.",
+      tags: ["Songs"],
+      security: [{ session: [] }],
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+        {
+          name: "format",
+          in: "query",
+          schema: { type: "string", enum: ["mp3", "wav", "flac"], default: "mp3" },
+        },
+      ],
+      responses: {
+        "200": { description: "Audio file binary" },
+        "401": { description: "Not authenticated" },
+        "404": { description: "Song not found or no audio available" },
+        "429": { description: "Download rate limit exceeded (50/hour)" },
+      },
+    },
+  },
+  "/api/songs/{id}/comments": {
+    get: {
+      summary: "List comments on a public song",
+      tags: ["Songs"],
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+        { name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 } },
+      ],
+      responses: {
+        "200": {
+          description: "Paginated comments (20 per page, newest first)",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  comments: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        id: { type: "string" },
+                        body: { type: "string" },
+                        timestamp: { type: "number", nullable: true, description: "Playback position in seconds" },
+                        createdAt: { type: "string", format: "date-time" },
+                        user: {
+                          type: "object",
+                          properties: {
+                            id: { type: "string" },
+                            name: { type: "string", nullable: true },
+                            image: { type: "string", nullable: true },
+                          },
+                        },
+                      },
+                    },
+                  },
+                  total: { type: "integer" },
+                  page: { type: "integer" },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    post: {
+      summary: "Post a comment on a song",
+      tags: ["Songs"],
+      security: [{ session: [] }],
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["body"],
+              properties: {
+                body: { type: "string", maxLength: 500 },
+                timestamp: { type: "number", description: "Optional playback position in seconds" },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        "201": { description: "Comment created" },
+        "401": { description: "Not authenticated" },
+        "429": { description: "Rate limit exceeded (10 comments/min)" },
+      },
+    },
+  },
+  "/api/songs/{id}/comments/{commentId}": {
+    delete: {
+      summary: "Delete a comment (owner or admin only)",
+      tags: ["Songs"],
+      security: [{ session: [] }],
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+        { name: "commentId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+      ],
+      responses: {
+        "200": { description: "Comment deleted" },
+        "401": { description: "Not authenticated" },
+        "403": { description: "Not the comment owner" },
+        "404": { description: "Comment not found" },
+      },
+    },
+  },
+  "/api/songs/{id}/reactions": {
+    get: {
+      summary: "List emoji reactions on a song",
+      tags: ["Songs"],
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+        { name: "after", in: "query", schema: { type: "string", description: "Cursor for pagination" } },
+      ],
+      responses: {
+        "200": {
+          description: "Reactions",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  reactions: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        id: { type: "string" },
+                        emoji: { type: "string" },
+                        userId: { type: "string" },
+                        createdAt: { type: "string", format: "date-time" },
+                      },
+                    },
+                  },
+                  summary: {
+                    type: "object",
+                    additionalProperties: { type: "integer" },
+                    description: "Emoji → count map",
+                  },
+                  myReaction: { type: "string", nullable: true, description: "The authenticated user's current reaction" },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    post: {
+      summary: "Add an emoji reaction to a song",
+      tags: ["Songs"],
+      security: [{ session: [] }],
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["emoji"],
+              properties: {
+                emoji: { type: "string", description: "A single emoji character" },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        "201": { description: "Reaction added" },
+        "400": { description: "Invalid emoji" },
+        "401": { description: "Not authenticated" },
+        "429": { description: "Rate limit exceeded (30 reactions/min)" },
+      },
+    },
+  },
+  "/api/songs/{id}/reactions/{reactionId}": {
+    delete: {
+      summary: "Remove a reaction",
+      tags: ["Songs"],
+      security: [{ session: [] }],
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+        { name: "reactionId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+      ],
+      responses: {
+        "200": { description: "Reaction removed" },
+        "401": { description: "Not authenticated" },
+        "403": { description: "Not the reaction owner" },
+        "404": { description: "Reaction not found" },
+      },
+    },
+  },
+  "/api/songs/{id}/lyrics": {
+    get: {
+      summary: "Get lyrics for a song (original and edited versions)",
+      tags: ["Songs"],
+      security: [{ session: [] }],
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+      ],
+      responses: {
+        "200": {
+          description: "Lyrics",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  original: { type: "string", nullable: true },
+                  edited: { type: "string", nullable: true },
+                },
+              },
+            },
+          },
+        },
+        "401": { description: "Not authenticated" },
+        "404": { description: "Song not found" },
+      },
+    },
+    patch: {
+      summary: "Save edited lyrics for a song",
+      tags: ["Songs"],
+      security: [{ session: [] }],
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["lyrics"],
+              properties: {
+                lyrics: { type: "string" },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        "200": { description: "Lyrics saved" },
+        "401": { description: "Not authenticated" },
+        "404": { description: "Song not found" },
+      },
+    },
+  },
+  "/api/songs/{id}/refresh": {
+    post: {
+      summary: "Refresh a song's audio/image URLs from the Suno API",
+      tags: ["Songs"],
+      security: [{ session: [] }],
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+      ],
+      responses: {
+        "200": { description: "Song refreshed", content: { "application/json": { schema: { $ref: "#/components/schemas/Song" } } } },
+        "401": { description: "Not authenticated" },
+        "404": { description: "Song not found" },
+      },
+    },
+  },
+  "/api/songs/{id}/retry": {
+    post: {
+      summary: "Retry a failed song generation",
+      tags: ["Songs"],
+      security: [{ session: [] }],
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+      ],
+      responses: {
+        "200": { description: "Retry queued" },
+        "401": { description: "Not authenticated" },
+        "404": { description: "Song not found" },
+        "422": { description: "Song is not in a failed state" },
+      },
+    },
+  },
+  "/api/songs/{id}/extend": {
+    post: {
+      summary: "Extend a song with a continuation",
+      tags: ["Songs"],
+      security: [{ session: [] }],
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                prompt: { type: "string" },
+                continueAt: { type: "number", description: "Playback position in seconds to extend from" },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        "200": { description: "Extension queued; returns new song record(s)" },
+        "401": { description: "Not authenticated" },
+        "404": { description: "Song not found" },
+        "429": { description: "Rate limit exceeded" },
+      },
+    },
+  },
+
+  // ─── Billing ──────────────────────────────────────────────────────────────
+  "/api/billing/checkout": {
+    post: {
+      summary: "Start a Stripe Checkout session or upgrade/downgrade subscription",
+      description:
+        "For new subscribers, returns a Stripe Checkout URL. For existing paid subscribers, performs an inline upgrade/downgrade and returns the billing success page URL.",
+      tags: ["Billing"],
+      security: [{ session: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["tier"],
+              properties: {
+                tier: { type: "string", enum: ["starter", "pro", "studio"] },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        "200": {
+          description: "Checkout URL",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { url: { type: "string", format: "uri" } },
+              },
+            },
+          },
+        },
+        "400": { description: "Invalid tier or Stripe not configured" },
+        "401": { description: "Not authenticated" },
+      },
+    },
+  },
+  "/api/billing/portal": {
+    post: {
+      summary: "Create a Stripe Customer Portal session",
+      description: "Returns a URL to the Stripe billing portal where the user can manage their subscription and payment methods.",
+      tags: ["Billing"],
+      security: [{ session: [] }],
+      responses: {
+        "200": {
+          description: "Portal URL",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { url: { type: "string", format: "uri" } },
+              },
+            },
+          },
+        },
+        "401": { description: "Not authenticated" },
+        "404": { description: "No billing customer found" },
+      },
+    },
+  },
+  "/api/billing/cancel": {
+    post: {
+      summary: "Cancel the current user's subscription at period end",
+      tags: ["Billing"],
+      security: [{ session: [] }],
+      responses: {
+        "200": { description: "Subscription scheduled for cancellation" },
+        "401": { description: "Not authenticated" },
+        "404": { description: "No active subscription found" },
+      },
+    },
+  },
+  "/api/billing/subscription": {
+    get: {
+      summary: "Get current subscription details",
+      tags: ["Billing"],
+      security: [{ session: [] }],
+      responses: {
+        "200": {
+          description: "Subscription",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  plan: { type: "string", enum: ["free", "starter", "pro", "studio"] },
+                  status: { type: "string" },
+                  currentPeriodEnd: { type: "string", format: "date-time", nullable: true },
+                  cancelAtPeriodEnd: { type: "boolean" },
+                },
+              },
+            },
+          },
+        },
+        "401": { description: "Not authenticated" },
+      },
+    },
+  },
+
+  // ─── Suno Import ──────────────────────────────────────────────────────────
+  "/api/suno/import": {
+    post: {
+      summary: "Import songs from Suno by song ID",
+      description: "Fetches up to 20 songs from the Suno API and saves them to the user's library. Requires a configured Suno API key.",
+      tags: ["Suno"],
+      security: [{ session: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["songIds"],
+              properties: {
+                songIds: {
+                  type: "array",
+                  items: { type: "string" },
+                  maxItems: 20,
+                  description: "Suno song IDs to import",
+                },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        "200": {
+          description: "Import results",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  imported: { type: "integer" },
+                  skipped: { type: "integer" },
+                  errors: { type: "array", items: { type: "object" } },
+                },
+              },
+            },
+          },
+        },
+        "400": { description: "No API key configured or invalid request body" },
+        "401": { description: "Not authenticated" },
+      },
+    },
+  },
+
+  // ─── Social Feed ──────────────────────────────────────────────────────────
+  "/api/feed": {
+    get: {
+      summary: "Get the social activity feed (songs from followed users)",
+      tags: ["Social"],
+      security: [{ session: [] }],
+      parameters: [
+        { name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 } },
+      ],
+      responses: {
+        "200": {
+          description: "Paginated feed items",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  items: { type: "array", items: { type: "object" } },
+                  pagination: {
+                    type: "object",
+                    properties: {
+                      page: { type: "integer" },
+                      totalPages: { type: "integer" },
+                      total: { type: "integer" },
+                      hasMore: { type: "boolean" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        "401": { description: "Not authenticated" },
+      },
+    },
+  },
 } as const;
