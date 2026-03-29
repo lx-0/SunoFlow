@@ -884,13 +884,14 @@ interface SongGridCardProps {
   isSelected: boolean;
   selectionMode: boolean;
   searchQuery?: string;
+  priority?: boolean;
   onTogglePlay: (song: Song) => void;
   onToggleFavorite: (song: Song) => void;
   onToggleSelect: (songId: string) => void;
   onLongPress: (songId: string) => void;
 }
 
-function SongGridCard({ song, isActive, isPlaying, isSelected, selectionMode, searchQuery = "", onTogglePlay, onToggleFavorite, onToggleSelect, onLongPress }: SongGridCardProps) {
+function SongGridCard({ song, isActive, isPlaying, isSelected, selectionMode, searchQuery = "", priority = false, onTogglePlay, onToggleFavorite, onToggleSelect, onLongPress }: SongGridCardProps) {
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
   function handleTouchStart(e: React.TouchEvent) {
@@ -943,7 +944,8 @@ function SongGridCard({ song, isActive, isPlaying, isSelected, selectionMode, se
             fill
             className="object-cover"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            loading="lazy"
+            priority={priority}
+            loading={priority ? "eager" : "lazy"}
             placeholder="blur"
             blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHZpZXdCb3g9IjAgMCAxMCAxMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiM3YzNhZWQiIGZpbGwtb3BhY2l0eT0iMC4yIi8+PC9zdmc+"
           />
@@ -2662,7 +2664,7 @@ export function LibraryView({
         </div>
       ) : viewMode === "grid" ? (
         <ul aria-label="Song library" className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 ${selectionMode ? "pb-20" : ""}`}>
-          {songs.map((song) => (
+          {songs.map((song, idx) => (
             <SongGridCard
               key={song.id}
               song={song}
@@ -2671,6 +2673,7 @@ export function LibraryView({
               isSelected={selectedSongIds.has(song.id)}
               selectionMode={selectionMode}
               searchQuery={debouncedSearch}
+              priority={idx < 4}
               onTogglePlay={handleTogglePlay}
               onToggleFavorite={handleToggleFavorite}
               onToggleSelect={(songId) => handleToggleSelect(songId, false)}

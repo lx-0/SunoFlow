@@ -65,6 +65,11 @@ const nextConfig = {
     return config;
   },
   images: {
+    // Prefer AVIF (best compression), fall back to WebP — both serve smaller
+    // files than JPEG/PNG which improves LCP on image-heavy pages.
+    formats: ["image/avif", "image/webp"],
+    // Cache optimized images for 7 days (default is 60s — too short for CDN-hosted covers).
+    minimumCacheTTL: 604800,
     remotePatterns: [
       {
         protocol: "https",

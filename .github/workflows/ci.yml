@@ -95,6 +95,91 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
+  lighthouse:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+    needs: [qa]
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: projects
+          POSTGRES_PASSWORD: projects
+          POSTGRES_DB: sunoflow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U projects -d sunoflow"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      SUNOFLOW_DATABASE_URL: postgres://projects:projects@localhost:5432/sunoflow
+      DATABASE_URL: postgres://projects:projects@localhost:5432/sunoflow
+      AUTH_SECRET: ci-test-secret-not-for-production
+      AUTH_URL: http://localhost:3000
+      AUTH_TRUST_HOST: "1"
+      PORT: "3000"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Cache .next/cache
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
+            ${{ runner.os }}-nextjs-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+
+      - name: Apply DB migrations
+        run: pnpm exec prisma migrate deploy
+
+      - name: Build
+        run: pnpm build
+
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli@0.14.x
+
+      - name: Start Next.js server
+        run: |
+          node .next/standalone/server.js &
+          # Poll until the server is ready (up to 60s)
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:3000 && break || sleep 1
+          done
+
+      - name: Run Lighthouse CI
+        run: lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+      - name: Upload Lighthouse results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-results
+          path: .lighthouseci/
+          retention-days: 30
+
   secrets-scan:
     name: Secrets Scan
     runs-on: ubuntu-latest

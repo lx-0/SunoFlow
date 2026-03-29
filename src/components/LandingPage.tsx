@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { CheckIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import {
