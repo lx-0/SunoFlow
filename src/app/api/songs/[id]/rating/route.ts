@@ -53,11 +53,21 @@ export async function PATCH(
 
     const body = await request.json();
     const stars = body.stars;
-    const rawNote = typeof body.note === "string" ? body.note.trim() : null;
-    const note = rawNote && rawNote.length > 500 ? rawNote.slice(0, 500) : rawNote;
 
     if (typeof stars !== "number" || stars < 0 || stars > 5 || !Number.isInteger(stars)) {
       return NextResponse.json({ error: "stars must be an integer 0-5", code: "VALIDATION_ERROR" }, { status: 400 });
+    }
+
+    let note: string | null = null;
+    if (body.note !== undefined && body.note !== null) {
+      if (typeof body.note !== "string") {
+        return NextResponse.json({ error: "note must be a string", code: "VALIDATION_ERROR" }, { status: 400 });
+      }
+      const trimmed = body.note.trim();
+      if (trimmed.length > 500) {
+        return NextResponse.json({ error: "note must be 500 characters or fewer", code: "VALIDATION_ERROR" }, { status: 400 });
+      }
+      note = trimmed || null;
     }
 
     const updated = await prisma.song.update({

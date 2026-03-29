@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { resolveUser } from "@/lib/auth-resolver";
 import { prisma } from "@/lib/prisma";
+import { sanitizeText } from "@/lib/sanitize";
 
 export async function GET(
   request: Request,
@@ -50,7 +51,15 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const edited = typeof body.edited === "string" ? body.edited : null;
+
+    let edited: string | null = null;
+    if (body.edited !== undefined && body.edited !== null) {
+      const { value, error } = sanitizeText(body.edited, "lyrics");
+      if (error) {
+        return NextResponse.json({ error, code: "VALIDATION_ERROR" }, { status: 400 });
+      }
+      edited = value || null;
+    }
 
     const updated = await prisma.song.update({
       where: { id: song.id },

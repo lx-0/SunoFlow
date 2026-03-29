@@ -6,6 +6,7 @@ import { mockSongs } from "@/lib/sunoapi/mock";
 import { acquireRateLimitSlot } from "@/lib/rate-limit";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 import { logServerError } from "@/lib/error-logger";
+import { sanitizeText } from "@/lib/sanitize";
 
 const MAX_VARIATIONS = 5;
 
@@ -55,9 +56,29 @@ export async function POST(
     }
 
     const body = await request.json();
-    const prompt = (body.prompt?.trim() || parentSong.prompt || "").trim();
-    const style = (body.style?.trim() || parentSong.tags || "").trim() || undefined;
-    const title = body.title?.trim() || (parentSong.title ? `${parentSong.title} (extended)` : null);
+
+    // Validate and sanitize user-supplied text fields
+    let prompt = (parentSong.prompt || "").trim();
+    if (body.prompt !== undefined && body.prompt !== null) {
+      const { value, error } = sanitizeText(body.prompt, "prompt");
+      if (error) return NextResponse.json({ error, code: "VALIDATION_ERROR" }, { status: 400 });
+      prompt = value || prompt;
+    }
+
+    let style: string | undefined = (parentSong.tags || "").trim() || undefined;
+    if (body.style !== undefined && body.style !== null) {
+      const { value, error } = sanitizeText(body.style, "style", 500);
+      if (error) return NextResponse.json({ error, code: "VALIDATION_ERROR" }, { status: 400 });
+      style = value || undefined;
+    }
+
+    let title: string | null = parentSong.title ? `${parentSong.title} (extended)` : null;
+    if (body.title !== undefined && body.title !== null) {
+      const { value, error } = sanitizeText(body.title, "title");
+      if (error) return NextResponse.json({ error, code: "VALIDATION_ERROR" }, { status: 400 });
+      title = value || title;
+    }
+
     const continueAt = typeof body.continueAt === "number" ? body.continueAt : undefined;
 
     const userApiKey = await resolveUserApiKey(userId);

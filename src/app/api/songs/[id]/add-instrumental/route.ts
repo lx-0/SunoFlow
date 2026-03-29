@@ -6,6 +6,7 @@ import { mockSongs } from "@/lib/sunoapi/mock";
 import { acquireRateLimitSlot } from "@/lib/rate-limit";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 import { logServerError } from "@/lib/error-logger";
+import { sanitizeText } from "@/lib/sanitize";
 
 const MAX_VARIATIONS = 5;
 
@@ -59,11 +60,23 @@ export async function POST(
     }
 
     const body = await request.json();
-    const tags = (body.tags?.trim() || parentSong.tags || "").trim();
-    const title = body.title?.trim() || (parentSong.title ? `${parentSong.title} (instrumental)` : null);
+
+    let tags = (parentSong.tags || "").trim();
+    if (body.tags !== undefined && body.tags !== null) {
+      const { value, error } = sanitizeText(body.tags, "tags", 500);
+      if (error) return NextResponse.json({ error, code: "VALIDATION_ERROR" }, { status: 400 });
+      tags = value;
+    }
 
     if (!tags) {
       return NextResponse.json({ error: "Style tags are required for instrumental generation.", code: "VALIDATION_ERROR" }, { status: 400 });
+    }
+
+    let title: string | null = parentSong.title ? `${parentSong.title} (instrumental)` : null;
+    if (body.title !== undefined && body.title !== null) {
+      const { value, error } = sanitizeText(body.title, "title");
+      if (error) return NextResponse.json({ error, code: "VALIDATION_ERROR" }, { status: 400 });
+      title = value || title;
     }
 
     const userApiKey = await resolveUserApiKey(userId);

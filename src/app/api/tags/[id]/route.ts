@@ -21,11 +21,17 @@ export async function PATCH(
 
     const body = await request.json();
     const name = typeof body.name === "string" ? body.name.trim().toLowerCase() : undefined;
-    const color = typeof body.color === "string" ? body.color.trim() : undefined;
+    const rawColor = typeof body.color === "string" ? body.color.trim() : undefined;
 
     if (name !== undefined && (!name || name.length > 50)) {
       return NextResponse.json({ error: "Tag name is required (max 50 chars)", code: "VALIDATION_ERROR" }, { status: 400 });
     }
+
+    if (rawColor !== undefined && !/^#[0-9A-Fa-f]{6}$/.test(rawColor)) {
+      return NextResponse.json({ error: "color must be a valid hex color (e.g. #7c3aed)", code: "VALIDATION_ERROR" }, { status: 400 });
+    }
+
+    const color = rawColor;
 
     // Check duplicate name if renaming
     if (name && name !== tag.name) {

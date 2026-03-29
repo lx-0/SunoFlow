@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveUser } from "@/lib/auth-resolver";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import { stripHtml } from "@/lib/sanitize";
 
 const VALID_CATEGORIES = ["bug_report", "feature_request", "general"];
 
@@ -27,7 +28,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (category === "bug_report" && !comment?.trim()) {
+    let sanitizedComment: string | null = null;
+    if (comment !== undefined && comment !== null) {
+      if (typeof comment !== "string") {
+        return NextResponse.json({ error: "comment must be a string", code: "VALIDATION_ERROR" }, { status: 400 });
+      }
+      const stripped = stripHtml(comment).trim();
+      if (stripped.length > 5000) {
+        return NextResponse.json({ error: "comment must be 5000 characters or fewer", code: "VALIDATION_ERROR" }, { status: 400 });
+      }
+      sanitizedComment = stripped || null;
+    }
+
+    if (category === "bug_report" && !sanitizedComment) {
       return NextResponse.json(
         { error: "comment is required for bug reports", code: "VALIDATION_ERROR" },
         { status: 400 }
@@ -41,6 +54,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (pageUrl.length > 2000) {
+      return NextResponse.json({ error: "pageUrl must be 2000 characters or fewer", code: "VALIDATION_ERROR" }, { status: 400 });
+    }
+
     const userAgent = request.headers.get("user-agent") ?? undefined;
 
     const feedback = await prisma.userFeedback.create({
@@ -48,9 +65,9 @@ export async function POST(request: NextRequest) {
         userId,
         category,
         score: score ?? null,
-        comment: comment?.trim()?.slice(0, 5000) || null,
-        screenshotUrl: screenshotUrl?.trim() || null,
-        pageUrl: pageUrl.slice(0, 2000),
+        comment: sanitizedComment,
+        screenshotUrl: screenshotUrl?.trim()?.slice(0, 2000) || null,
+        pageUrl: pageUrl.trim(),
         userAgent: userAgent?.slice(0, 500) ?? null,
       },
     });

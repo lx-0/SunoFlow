@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { broadcast } from "@/lib/event-bus";
 import { sendPushToUser } from "@/lib/push";
+import { stripHtml } from "@/lib/sanitize";
 
 const COMMENT_RATE_LIMIT = 10;
 const COMMENT_WINDOW_MS = 60 * 1000; // 1 minute
@@ -96,14 +97,16 @@ export async function POST(
     }
 
     const body = await request.json();
-    const text = typeof body?.body === "string" ? body.body.trim() : "";
+    const rawText = typeof body?.body === "string" ? stripHtml(body.body).trim() : "";
 
-    if (!text || text.length > 500) {
+    if (!rawText || rawText.length > 500) {
       return NextResponse.json(
         { error: "Comment body must be 1–500 characters", code: "VALIDATION_ERROR" },
         { status: 400 }
       );
     }
+
+    const text = rawText;
 
     // Duplicate text protection: reject same text by same user on same song within 1 minute
     const dupeCheck = await prisma.comment.findFirst({

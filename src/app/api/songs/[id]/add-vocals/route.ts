@@ -6,6 +6,7 @@ import { mockSongs } from "@/lib/sunoapi/mock";
 import { acquireRateLimitSlot } from "@/lib/rate-limit";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 import { logServerError } from "@/lib/error-logger";
+import { sanitizeText } from "@/lib/sanitize";
 
 const MAX_VARIATIONS = 5;
 
@@ -59,12 +60,28 @@ export async function POST(
     }
 
     const body = await request.json();
-    const prompt = body.prompt?.trim();
-    const style = body.style?.trim() || parentSong.tags || "";
-    const title = body.title?.trim() || (parentSong.title ? `${parentSong.title} (with vocals)` : null);
 
-    if (!prompt) {
+    const promptResult = sanitizeText(body.prompt, "prompt");
+    if (!promptResult.value) {
       return NextResponse.json({ error: "A prompt describing the vocals is required.", code: "VALIDATION_ERROR" }, { status: 400 });
+    }
+    if (promptResult.error) {
+      return NextResponse.json({ error: promptResult.error, code: "VALIDATION_ERROR" }, { status: 400 });
+    }
+    const prompt = promptResult.value;
+
+    let style = parentSong.tags || "";
+    if (body.style !== undefined && body.style !== null) {
+      const { value, error } = sanitizeText(body.style, "style", 500);
+      if (error) return NextResponse.json({ error, code: "VALIDATION_ERROR" }, { status: 400 });
+      style = value;
+    }
+
+    let title: string | null = parentSong.title ? `${parentSong.title} (with vocals)` : null;
+    if (body.title !== undefined && body.title !== null) {
+      const { value, error } = sanitizeText(body.title, "title");
+      if (error) return NextResponse.json({ error, code: "VALIDATION_ERROR" }, { status: 400 });
+      title = value || title;
     }
 
     const userApiKey = await resolveUserApiKey(userId);
