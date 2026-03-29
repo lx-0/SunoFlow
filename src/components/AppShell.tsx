@@ -46,6 +46,7 @@ import { NotificationBell } from "./NotificationBell";
 import { SearchBar } from "./SearchBar";
 import { SubscriptionStatusBadge } from "./SubscriptionStatusBadge";
 import { EmailVerificationBanner } from "./EmailVerificationBanner";
+import { SunoStatusBanner } from "./SunoStatusBanner";
 const ResumePlaybackPrompt = dynamic(
   () => import("./ResumePlaybackPrompt").then((m) => m.ResumePlaybackPrompt),
   { ssr: false }
@@ -583,6 +584,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Email verification banner */}
         <EmailVerificationBanner />
+
+        {/* Suno API degradation banner */}
+        <SunoStatusBanner />
 
         {/* Resume playback prompt — shown on load when a saved state exists */}
         <ResumePlaybackPrompt />

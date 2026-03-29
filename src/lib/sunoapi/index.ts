@@ -50,8 +50,9 @@ export type {
   FileUploadResult,
 } from "./types";
 
-// Error class
+// Error classes
 export { SunoApiError } from "./http";
+export { CircuitOpenError } from "@/lib/circuit-breaker";
 
 // Music generation
 export {

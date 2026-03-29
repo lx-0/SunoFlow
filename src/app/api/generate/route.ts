@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { resolveUser } from "@/lib/auth-resolver";
 import { generateSong, SunoApiError } from "@/lib/sunoapi";
+import { CircuitOpenError, onCircuitClose } from "@/lib/circuit-breaker";
 import { mockSongs } from "@/lib/sunoapi/mock";
 import { prisma } from "@/lib/prisma";
 import { acquireRateLimitSlot, releaseRateLimitSlot } from "@/lib/rate-limit";
@@ -15,6 +16,13 @@ import { badRequest, rateLimited, internalError, insufficientCredits, ErrorCode 
 import { stripHtml } from "@/lib/sanitize";
 import { recordGenerationStart, recordGenerationEnd } from "@/lib/metrics";
 import { generateCoverArtVariants } from "@/lib/cover-art-generator";
+import { drainGenerationQueue } from "@/lib/queue-processor";
+
+// Register queue drain callback so it fires whenever the circuit closes.
+// Module-level registration runs once when this route module is first loaded.
+onCircuitClose(() => {
+  drainGenerationQueue().catch(() => {});
+});
 
 /** Map API errors to user-friendly messages */
 function userFriendlyError(error: unknown): { message: string; code: string } {
@@ -181,6 +189,48 @@ export async function POST(request: Request) {
 
         savedSongs = [song];
       } catch (apiError) {
+        // ── Circuit open: queue the request instead of failing ─────────────────
+        if (apiError instanceof CircuitOpenError) {
+          recordGenerationEnd(0, false);
+          logger.warn({ userId }, "generation: circuit open — queuing request");
+
+          // Release the rate limit slot; the slot will be re-acquired when drained.
+          if (!isAdmin && !usingPersonalKey) {
+            await releaseRateLimitSlot(userId).catch(() => {});
+          }
+
+          // Add to queue (find current max position first).
+          const maxPos = await prisma.generationQueueItem.aggregate({
+            _max: { position: true },
+            where: { userId, status: "pending" },
+          });
+          const position = (maxPos._max.position ?? 0) + 1;
+
+          await prisma.generationQueueItem.create({
+            data: {
+              userId,
+              prompt: generationParams.prompt,
+              title: generationParams.title ?? null,
+              tags: generationParams.style ?? null,
+              makeInstrumental: Boolean(makeInstrumental),
+              personaId: typeof personaId === "string" ? personaId : null,
+              status: "pending",
+              position,
+            },
+          });
+
+          return NextResponse.json(
+            {
+              queued: true,
+              message:
+                "Music generation is temporarily unavailable. Your request has been queued and will be processed automatically when the service recovers.",
+              code: ErrorCode.SERVICE_UNAVAILABLE,
+            },
+            { status: 503 }
+          );
+        }
+
+        // ── Normal API error ───────────────────────────────────────────────────
         recordGenerationEnd(0, false);
         const correlationId = logServerError("generate-api", apiError, {
           userId,

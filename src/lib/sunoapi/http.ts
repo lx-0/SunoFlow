@@ -1,6 +1,12 @@
 import type { SunoModel, StyleTuningOptions, SunoSong, SongStatus, TaskStatus } from "./types";
 import { SUNO_API_TIMEOUT_MS, SUNOAPI_KEY } from "@/lib/env";
 import { logger } from "@/lib/logger";
+import {
+  CircuitOpenError,
+  requestPermission,
+  recordSuccess,
+  recordFailure,
+} from "@/lib/circuit-breaker";
 
 export class SunoApiError extends Error {
   constructor(
@@ -36,6 +42,13 @@ export async function fetchWithRetry(
   init: RequestInit,
   maxRetries = 1
 ): Promise<Response> {
+  // ── Circuit breaker: check before any network activity ──────────────────────
+  const permission = requestPermission();
+  if (permission === "blocked") {
+    throw new CircuitOpenError();
+  }
+  // permission === "allowed" | "probe" — proceed with request
+
   const timeoutMs = getTimeoutMs();
   let attempt = 0;
   while (true) {
@@ -48,16 +61,21 @@ export async function fetchWithRetry(
     } catch (err: unknown) {
       clearTimeout(timeoutId);
       if (err instanceof DOMException && err.name === "AbortError") {
+        recordFailure();
         throw new SunoApiError(
           0,
           `Suno API request timed out after ${timeoutMs / 1000}s`
         );
       }
+      recordFailure();
       throw err;
     }
     clearTimeout(timeoutId);
 
-    if (res.ok) return res;
+    if (res.ok) {
+      recordSuccess();
+      return res;
+    }
 
     if (!isRetryable(res.status) || attempt >= maxRetries) {
       let message: string;
@@ -70,6 +88,11 @@ export async function fetchWithRetry(
         message = rawBody || res.statusText;
       }
       logger.error({ url, status: res.status, statusText: res.statusText, body: rawBody, attempt }, "suno-api: request failed");
+      // Only count server errors (5xx) and timeouts toward the circuit breaker;
+      // 4xx errors are client-side problems, not upstream outages.
+      if (res.status >= 500 || res.status === 0) {
+        recordFailure();
+      }
       throw new SunoApiError(res.status, message);
     }
 
