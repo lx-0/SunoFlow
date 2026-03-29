@@ -28,6 +28,7 @@ async function fetchFavorites() {
         },
       },
       orderBy: { createdAt: "desc" },
+      take: 20,
     });
 
     return favorites.map((f) => ({
