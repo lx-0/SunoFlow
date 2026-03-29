@@ -12,7 +12,9 @@ import { track } from "@/lib/analytics";
 import { fetchWithTimeout, clientFetchErrorMessage } from "@/lib/fetch-client";
 import { GenerationProgress } from "./GenerationProgress";
 import { GenerationQueue } from "./GenerationQueue";
-import { Confetti } from "./Confetti";
+import dynamic from "next/dynamic";
+// Lazy-load confetti — only shown after generation success, not needed on initial render
+const Confetti = dynamic(() => import("./Confetti").then((m) => m.Confetti), { ssr: false });
 import { UpgradeModal, shouldShowUpgradeModal } from "./UpgradeModal";
 
 interface PersonaOption {

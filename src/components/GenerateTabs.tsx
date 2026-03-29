@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { GenerateForm } from "./GenerateForm";
-import { AudioUploadForm } from "./AudioUploadForm";
+// Lazy-load upload tab — only rendered when user switches to the upload tab
+const AudioUploadForm = dynamic(() => import("./AudioUploadForm").then((m) => m.AudioUploadForm), { ssr: false });
 import {
   SparklesIcon,
   ArrowUpTrayIcon,

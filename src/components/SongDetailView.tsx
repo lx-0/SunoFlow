@@ -42,10 +42,11 @@ import { useToast } from "./Toast";
 import { useQueue } from "./QueueContext";
 const ReportModal = dynamic(() => import("./ReportModal").then((m) => m.ReportModal), { ssr: false });
 import { TagInput } from "./TagInput";
-import { SectionEditor } from "./SectionEditor";
+// Lazy-load modal/tool components that are only shown on user interaction
+const SectionEditor = dynamic(() => import("./SectionEditor").then((m) => m.SectionEditor), { ssr: false });
+const CoverArtModal = dynamic(() => import("./CoverArtModal").then((m) => m.CoverArtModal), { ssr: false });
 import { LyricsEditor } from "./LyricsEditor";
 import { CoverArtImage } from "./CoverArtImage";
-import { CoverArtModal } from "./CoverArtModal";
 import { AddToPlaylistButton } from "./AddToPlaylistButton";
 // Lazy-load below-fold recommendations to reduce initial bundle
 const RecommendationSection = dynamic(() => import("./SongRecommendations").then((m) => m.RecommendationSection), { ssr: false });
