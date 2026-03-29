@@ -55,7 +55,7 @@ COPY --from=deps /prisma-flat/node_modules/prisma ./node_modules/prisma
 COPY --from=sharp-builder /app/node_modules/sharp ./node_modules/sharp
 COPY --from=sharp-builder /app/node_modules/@img ./node_modules/@img
 COPY prisma ./prisma/
-COPY docker-entrypoint.sh ./docker-entrypoint.sh
+COPY --chown=nextjs:nodejs docker-entrypoint.sh ./docker-entrypoint.sh
 
 USER nextjs
 

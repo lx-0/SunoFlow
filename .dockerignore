@@ -7,3 +7,8 @@ playwright-report
 e2e
 .env
 .env.*
+coverage
+docker-compose*.yml
+mcp
+scripts
+*.log
