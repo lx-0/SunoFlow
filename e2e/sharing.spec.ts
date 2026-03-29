@@ -82,12 +82,19 @@ test.describe("Public Song Sharing", () => {
     // Hover to reveal share button
     await page.getByText("Shareable Song").hover();
 
-    // Click share button if visible
-    const shareBtn = page
-      .locator('[aria-label*="Share"], [aria-label*="share"]')
-      .first();
+    // Click share button if visible.
+    // Use getByRole to avoid matching the swipe-action panel button (inside an
+    // aria-hidden container and not actually interactable by Playwright).
+    const shareBtn = page.getByRole("button", { name: /share/i }).first();
     if (await shareBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       await shareBtn.click();
+
+      // Song is private — a "Make public to share?" confirmation dialog appears.
+      // Click through it so the share API is called.
+      const makePublicBtn = page.getByRole("button", { name: /make public/i });
+      if (await makePublicBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await makePublicBtn.click();
+      }
 
       // Should show confirmation toast or copied feedback
       await expect(
