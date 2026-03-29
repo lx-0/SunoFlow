@@ -1,10 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveUser } from "@/lib/auth-resolver";
 import { fetchInstagramPost, isValidInstagramUrl } from "@/lib/instagram";
+import { acquireRateLimitSlot } from "@/lib/rate-limit";
+import { rateLimited } from "@/lib/api-error";
+
+const INSTAGRAM_RATE_LIMIT = 30;
+const MINUTE_MS = 60_000;
 
 export async function POST(req: NextRequest) {
-  const { error: authError } = await resolveUser(req);
+  const { userId, isAdmin, error: authError } = await resolveUser(req);
   if (authError) return authError;
+
+  if (!isAdmin) {
+    const { acquired, status } = await acquireRateLimitSlot(userId, "instagram_fetch", INSTAGRAM_RATE_LIMIT, MINUTE_MS);
+    if (!acquired) {
+      return rateLimited(
+        `Rate limit exceeded. You can fetch up to ${INSTAGRAM_RATE_LIMIT} Instagram requests per minute.`,
+        { rateLimit: status }
+      );
+    }
+  }
   let body: unknown;
   try {
     body = await req.json();

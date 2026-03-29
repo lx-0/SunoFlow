@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveUser } from "@/lib/auth-resolver";
 import { fetchFeed } from "@/lib/rss";
+import { acquireRateLimitSlot } from "@/lib/rate-limit";
+import { rateLimited } from "@/lib/api-error";
 
 // Block SSRF by rejecting private/loopback/link-local IP ranges and
 // non-HTTP(S) schemes. Only public HTTPS URLs are allowed.
@@ -36,9 +38,22 @@ function isSsrfUrl(raw: string): boolean {
   return false;
 }
 
+const RSS_RATE_LIMIT = 20;
+const MINUTE_MS = 60_000;
+
 export async function POST(req: NextRequest) {
-  const { error: authError } = await resolveUser(req);
+  const { userId, isAdmin, error: authError } = await resolveUser(req);
   if (authError) return authError;
+
+  if (!isAdmin) {
+    const { acquired, status } = await acquireRateLimitSlot(userId, "rss_fetch", RSS_RATE_LIMIT, MINUTE_MS);
+    if (!acquired) {
+      return rateLimited(
+        `Rate limit exceeded. You can fetch up to ${RSS_RATE_LIMIT} RSS requests per minute.`,
+        { rateLimit: status }
+      );
+    }
+  }
 
   let body: unknown;
   try {
