@@ -93,9 +93,10 @@ test.describe("Playlists — Detail & Edit", () => {
       timeout: 5000,
     });
 
-    // Navigate to it
-    await page.getByText("Detail Test Playlist").click();
-    await expect(page).toHaveURL(/\/playlists\//, { timeout: 5000 });
+    // Navigate to it — click the anchor directly to avoid strict-mode ambiguity
+    // (getByText matches both the <p> and its parent <a>, causing strict violations)
+    await page.locator("a").filter({ hasText: "Detail Test Playlist" }).first().click();
+    await expect(page).toHaveURL(/\/playlists\//, { timeout: 10000 });
 
     // Should show empty state
     await expect(
@@ -192,10 +193,9 @@ test.describe("Playlists — Song Management", () => {
     await searchInput.fill("Playlist");
     await expect(page.getByText("Playlist Song")).toBeVisible({ timeout: 8000 });
 
-    // Hover to reveal action buttons and click "Add to playlist"
-    await page.getByText("Playlist Song").hover();
-    const addBtn = page.getByLabel("Add to playlist").first();
-    await expect(addBtn).toBeVisible({ timeout: 3000 });
+    // Click "Add to playlist" — use getByRole to match aria-label on button elements
+    const addBtn = page.getByRole("button", { name: "Add to playlist" }).first();
+    await expect(addBtn).toBeVisible({ timeout: 8000 });
     await addBtn.click();
 
     // Click the playlist in the dropdown
@@ -260,7 +260,8 @@ test.describe("Playlists — Delete", () => {
     });
 
     // Click the delete icon for this playlist (first step — shows confirmation)
-    await page.getByLabel("Delete playlist").first().click();
+    // Use getByRole to match aria-label on button elements (getByLabel targets form controls)
+    await page.getByRole("button", { name: "Delete playlist" }).first().click();
 
     // Confirm deletion by clicking the "Delete" confirmation button
     await page.getByRole("button", { name: "Delete", exact: true }).click();

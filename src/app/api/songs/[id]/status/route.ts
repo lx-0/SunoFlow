@@ -10,6 +10,7 @@ import { sendGenerationCompleteEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
 import { recordActivity } from "@/lib/activity";
 import { recordDailyActivity, checkSongMilestones, checkStreakMilestones } from "@/lib/streaks";
+import { sendPushToUser } from "@/lib/push";
 import crypto from "crypto";
 
 const MAX_POLL_ATTEMPTS = 60;
@@ -177,10 +178,15 @@ export async function GET(
       // Signal client to process next item
       broadcast(song.userId, { type: "queue_item_complete", data: { songId: id } });
 
-      // Send generation complete email if user has opted in
+      // Send generation complete email + push notification if user has opted in
       const userPrefs = await prisma.user.findUnique({
         where: { id: song.userId },
-        select: { email: true, emailGenerationComplete: true, unsubscribeToken: true },
+        select: {
+          email: true,
+          emailGenerationComplete: true,
+          unsubscribeToken: true,
+          pushGenerationComplete: true,
+        },
       });
       if (userPrefs?.email && userPrefs.emailGenerationComplete) {
         let unsubToken = userPrefs.unsubscribeToken;
@@ -191,6 +197,14 @@ export async function GET(
         sendGenerationCompleteEmail(userPrefs.email, { id, title: updated.title }, unsubToken).catch((err) =>
           logger.error({ userId: song.userId, songId: id, err }, "status: failed to send generation complete email")
         );
+      }
+      if (userPrefs?.pushGenerationComplete !== false) {
+        sendPushToUser(song.userId, {
+          title: "Your song is ready!",
+          body: `"${updated.title || "Untitled"}" has finished generating`,
+          url: `/library`,
+          tag: `generation-complete-${id}`,
+        }).catch(() => {});
       }
 
       return NextResponse.json({ song: updated });

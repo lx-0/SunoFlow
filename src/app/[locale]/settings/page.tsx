@@ -9,6 +9,7 @@ import { useTheme } from "@/components/ThemeProvider";
 import { PlusIcon, TrashIcon, SunIcon, MoonIcon, ComputerDesktopIcon, PencilIcon, CheckIcon, XMarkIcon, ArrowPathIcon, KeyIcon, ArrowDownTrayIcon, UserCircleIcon, Cog6ToothIcon, ShieldCheckIcon, BellIcon, SpeakerWaveIcon, ChartBarIcon, ExclamationTriangleIcon, CommandLineIcon, ClipboardDocumentIcon, LockClosedIcon, CloudArrowDownIcon } from "@heroicons/react/24/outline";
 import { useOnboarding } from "@/components/OnboardingTour";
 import { useOfflineCache } from "@/hooks/useOfflineCache";
+import { usePushSubscription } from "@/hooks/usePushSubscription";
 import { getCachedSongsMeta, formatBytes } from "@/lib/offline-cache";
 import { canUseFeature, type SubscriptionTier } from "@/lib/feature-gates";
 
@@ -708,6 +709,10 @@ function PreferencesTab() {
 
         <div className="border-t border-gray-200 dark:border-gray-800" />
 
+        <PushNotificationsSection />
+
+        <div className="border-t border-gray-200 dark:border-gray-800" />
+
         <PlaybackDefaultsSection />
 
         <div className="border-t border-gray-200 dark:border-gray-800" />
@@ -1378,6 +1383,145 @@ function NotificationPreferencesSection() {
         ))}
       </div>
     </section>
+  );
+}
+
+const PUSH_NOTIF_TYPES = [
+  { key: "pushGenerationComplete", label: "Generation complete", description: "When your song finishes generating" },
+  { key: "pushNewFollower", label: "New followers", description: "When someone follows you" },
+  { key: "pushSongComment", label: "Song comments", description: "When someone comments on your song" },
+];
+
+function PushNotificationsSection() {
+  const { state, subscribe, unsubscribe } = usePushSubscription();
+  const [prefs, setPrefs] = useState<Record<string, boolean>>({});
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  useEffect(() => {
+    fetch("/api/push/preferences")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.error) setPrefs(data);
+      })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, []);
+
+  const toggle = async (key: string) => {
+    const updated = { ...prefs, [key]: !prefs[key] };
+    setPrefs(updated);
+    setSaving(true);
+    try {
+      const res = await fetch("/api/push/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [key]: updated[key] }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        showToast(data.error ?? "Failed to update preference", "error");
+        setPrefs(prefs);
+      }
+    } catch {
+      showToast("Network error", "error");
+      setPrefs(prefs);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSubscribeToggle = async () => {
+    if (state === "subscribed") {
+      const ok = await unsubscribe();
+      if (!ok) showToast("Failed to disable push notifications", "error");
+    } else {
+      const ok = await subscribe();
+      if (!ok && state !== "denied") showToast("Failed to enable push notifications", "error");
+      if (state === "denied") showToast("Notifications are blocked. Enable them in your browser settings.", "error");
+    }
+  };
+
+  if (state === "unsupported" || state === "not-configured") return null;
+
+  return (
+    <>
+      {toast && <Toast message={toast.message} type={toast.type} />}
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Push Notifications</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            Receive notifications even when the app is in the background.
+          </p>
+        </div>
+
+        {/* Master enable/disable toggle */}
+        <div className="flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-3 py-3">
+          <div className="flex items-center gap-3">
+            <BellIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+            <div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                {state === "subscribed" ? "Push notifications enabled" : "Enable push notifications"}
+              </span>
+              {state === "denied" && (
+                <span className="block text-xs text-red-500 dark:text-red-400">
+                  Blocked by browser — update in browser settings
+                </span>
+              )}
+              {state === "loading" && (
+                <span className="block text-xs text-gray-400">Checking…</span>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={state === "subscribed"}
+            onClick={handleSubscribeToggle}
+            disabled={state === "loading" || state === "denied"}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
+              state === "subscribed" ? "bg-violet-600" : "bg-gray-300 dark:bg-gray-700"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                state === "subscribed" ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Per-type toggles (only shown when subscribed) */}
+        {state === "subscribed" && loaded && (
+          <div className="space-y-2">
+            {PUSH_NOTIF_TYPES.map(({ key, label, description }) => (
+              <label
+                key={key}
+                className="flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-3 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  checked={prefs[key] !== false}
+                  onChange={() => !saving && toggle(key)}
+                  disabled={saving}
+                  className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-violet-600 focus:ring-violet-500 dark:bg-gray-800"
+                />
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">{label}</span>
+                  <span className="block text-xs text-gray-500 dark:text-gray-400">{description}</span>
+                </div>
+              </label>
+            ))}
+          </div>
+        )}
+      </section>
+    </>
   );
 }
 

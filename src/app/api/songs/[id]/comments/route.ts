@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { broadcast } from "@/lib/event-bus";
+import { sendPushToUser } from "@/lib/push";
 
 const COMMENT_RATE_LIMIT = 10;
 const COMMENT_WINDOW_MS = 60 * 1000; // 1 minute
@@ -151,6 +152,10 @@ export async function POST(
       try {
         const commenterName = comment.user.name ?? "Someone";
         const songTitle = song.title ?? "your song";
+        const songOwner = await prisma.user.findUnique({
+          where: { id: song.userId },
+          select: { pushSongComment: true },
+        });
         const notification = await prisma.notification.create({
           data: {
             userId: song.userId,
@@ -165,6 +170,14 @@ export async function POST(
           type: "notification",
           data: { id: notification.id, type: "song_comment" },
         });
+        if (songOwner?.pushSongComment !== false) {
+          sendPushToUser(song.userId, {
+            title: "New comment on your song",
+            body: `${commenterName} commented on "${songTitle}"`,
+            url: `/songs/${song.id}`,
+            tag: `song-comment-${song.id}`,
+          }).catch(() => {});
+        }
       } catch {
         // Non-critical — don't fail the comment creation
       }
