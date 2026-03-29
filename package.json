@@ -15,7 +15,9 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "prepare": "husky",
-    "mcp": "tsx mcp/server.ts"
+    "mcp": "tsx mcp/server.ts",
+    "db:backup": "bash scripts/backup-db.sh",
+    "db:restore": "bash scripts/restore-db.sh"
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint"

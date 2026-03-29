@@ -385,6 +385,63 @@ To roll back a failed migration:
 pnpm exec prisma migrate resolve --rolled-back <migration-name>
 ```
 
+### Database backups
+
+#### Backup schedule
+
+Run `scripts/backup-db.sh` daily at **1 am UTC** (e.g. via cron or the job scheduler once SUNAA-548 is complete).
+
+```cron
+0 1 * * * cd /app && DATABASE_URL="$DATABASE_URL" ./scripts/backup-db.sh
+```
+
+The script creates a compressed `pg_dump --format=custom` archive and applies automatic rotation:
+
+| Tier    | Kept | Triggered when                |
+|---------|------|-------------------------------|
+| Daily   | 7    | Every day (except Sun / 1st)  |
+| Weekly  | 4    | Sundays                        |
+| Monthly | 3    | 1st day of the month          |
+
+**Environment variables:**
+
+| Variable    | Required | Description                                                      |
+|-------------|----------|------------------------------------------------------------------|
+| `DATABASE_URL` | Yes   | Postgres connection URL                                          |
+| `BACKUP_DIR`   | No    | Local directory for backup files (default: `./backups`)         |
+| `S3_BUCKET`    | No    | `s3://bucket/prefix` — when set, uploads each backup to S3      |
+| `AWS_PROFILE`  | No    | AWS CLI profile (optional, used with `S3_BUCKET`)               |
+
+#### Restoring a backup
+
+```bash
+# Restore to a temporary verification database, then drop it
+DATABASE_URL="postgres://..." ./scripts/restore-db.sh ./backups/daily_20260329T010000Z.pgdump
+
+# Restore to a named target database (drops & recreates it — use with care)
+DATABASE_URL="postgres://..." ./scripts/restore-db.sh ./backups/daily_20260329T010000Z.pgdump \
+  --target-db sunoflow_staging
+```
+
+The restore script:
+1. Creates (or recreates) the target database.
+2. Runs `pg_restore --no-owner --exit-on-error`.
+3. Queries row counts on 15 key tables (`User`, `Song`, `Playlist`, `Subscription`, `CreditUsage`, …) and the `_prisma_migrations` table.
+4. Prints a verification report and exits non-zero if any check fails.
+
+#### Round-trip verification
+
+```bash
+# 1. Take a backup
+DATABASE_URL="postgres://..." ./scripts/backup-db.sh
+
+# 2. Identify the latest backup file
+LATEST=$(ls -1t ./backups/*.pgdump | head -1)
+
+# 3. Restore and verify
+DATABASE_URL="postgres://..." ./scripts/restore-db.sh "$LATEST"
+```
+
 ### Health check
 
 The app exposes a health check endpoint:
