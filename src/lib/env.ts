@@ -48,6 +48,16 @@ export const SUNOAPI_KEY = optionalWarn("SUNOAPI_KEY");
 export const SUNO_API_TIMEOUT_MS = optionalInt("SUNO_API_TIMEOUT_MS", 30_000);
 export const RATE_LIMIT_MAX_GENERATIONS = optionalInt("RATE_LIMIT_MAX_GENERATIONS", 10);
 
+// --- AI (optional) ---
+/** OpenAI API key — required for LLM features (lyrics, prompts, embeddings). */
+export const OPENAI_API_KEY = optionalWarn("OPENAI_API_KEY");
+/** Override default OpenAI model (default: gpt-4o-mini). */
+export const OPENAI_MODEL = optional("OPENAI_MODEL", "gpt-4o-mini");
+
+// --- Cron (optional) ---
+/** Bearer token for authenticating scheduled cron job requests. */
+export const CRON_SECRET = process.env.CRON_SECRET;
+
 // --- Security (optional) ---
 /**
  * Comma-separated list of allowed CORS origins, e.g. "https://app.example.com,https://staging.example.com".
@@ -74,6 +84,9 @@ export const env = {
   SUNOAPI_KEY,
   SUNO_API_TIMEOUT_MS,
   RATE_LIMIT_MAX_GENERATIONS,
+  OPENAI_API_KEY,
+  OPENAI_MODEL,
+  CRON_SECRET,
   ALLOWED_ORIGINS,
   SENTRY_DSN,
   NEXT_PUBLIC_SENTRY_DSN,
