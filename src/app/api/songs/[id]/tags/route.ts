@@ -7,15 +7,16 @@ const MAX_TAGS_PER_USER = 50;
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
 
     if (authError) return authError;
 
     const song = await prisma.song.findFirst({
-      where: { id: params.id, userId: userId },
+      where: { id, userId: userId },
     });
     if (!song) {
       return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
@@ -35,15 +36,16 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
 
     if (authError) return authError;
 
     const song = await prisma.song.findFirst({
-      where: { id: params.id, userId: userId },
+      where: { id, userId: userId },
     });
     if (!song) {
       return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });

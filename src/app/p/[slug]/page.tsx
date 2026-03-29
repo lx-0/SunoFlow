@@ -57,9 +57,10 @@ const getPlaylist = cache((slug: string) =>
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const playlist = await getPlaylist(params.slug);
+  const { slug } = await params;
+  const playlist = await getPlaylist(slug);
 
   if (!playlist || !playlist.isPublic) {
     return { robots: { index: false } };
@@ -73,7 +74,7 @@ export async function generateMetadata({
   const description =
     playlist.description ??
     `${visibleSongs.length} song${visibleSongs.length !== 1 ? "s" : ""} by ${creatorName} on SunoFlow`;
-  const canonicalUrl = `${siteUrl}/p/${params.slug}`;
+  const canonicalUrl = `${siteUrl}/p/${slug}`;
 
   // Use first song's image as OG image
   const firstImage = visibleSongs.find((ps) => ps.song.imageUrl)?.song.imageUrl;
@@ -104,9 +105,10 @@ export async function generateMetadata({
 export default async function PublicPlaylistPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const playlist = await getPlaylist(params.slug);
+  const { slug } = await params;
+  const playlist = await getPlaylist(slug);
 
   if (!playlist || !playlist.isPublic) {
     notFound();
@@ -137,7 +139,7 @@ export default async function PublicPlaylistPage({
     name: playlist.name,
     description: playlist.description,
     creator: { "@type": "Person", name: creatorName },
-    url: `${siteUrl}/p/${params.slug}`,
+    url: `${siteUrl}/p/${slug}`,
     numTracks: visibleSongs.length,
     dateCreated: playlist.createdAt.toISOString(),
   };
@@ -151,7 +153,7 @@ export default async function PublicPlaylistPage({
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white flex items-center justify-center p-4">
         <PublicPlaylistView
           playlistId={playlist.id}
-          slug={params.slug}
+          slug={slug}
           name={playlist.name}
           description={playlist.description}
           creatorName={creatorName}

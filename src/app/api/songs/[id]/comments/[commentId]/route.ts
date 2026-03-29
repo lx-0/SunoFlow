@@ -4,8 +4,9 @@ import { prisma } from "@/lib/prisma";
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: { id: string; commentId: string } }
+  { params }: { params: Promise<{ id: string; commentId: string }> }
 ) {
+  const { id, commentId } = await params;
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -17,16 +18,16 @@ export async function DELETE(
 
     const [comment, song] = await Promise.all([
       prisma.comment.findUnique({
-        where: { id: params.commentId },
+        where: { id: commentId },
         select: { id: true, userId: true, songId: true },
       }),
       prisma.song.findUnique({
-        where: { id: params.id },
+        where: { id },
         select: { userId: true },
       }),
     ]);
 
-    if (!comment || comment.songId !== params.id) {
+    if (!comment || comment.songId !== id) {
       return NextResponse.json(
         { error: "Comment not found", code: "NOT_FOUND" },
         { status: 404 }
@@ -43,7 +44,7 @@ export async function DELETE(
       );
     }
 
-    await prisma.comment.delete({ where: { id: params.commentId } });
+    await prisma.comment.delete({ where: { id: commentId } });
 
     return new NextResponse(null, { status: 204 });
   } catch {

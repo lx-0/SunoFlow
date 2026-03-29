@@ -5,8 +5,9 @@ import { recordActivity } from "@/lib/activity";
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string; songId: string } }
+  { params }: { params: Promise<{ id: string; songId: string }> }
 ) {
+  const { id, songId } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
 
@@ -15,7 +16,7 @@ export async function DELETE(
     // Find playlist — allow owner or editor-role collaborator
     const playlist = await prisma.playlist.findFirst({
       where: {
-        id: params.id,
+        id,
         OR: [
           { userId },
           {
@@ -34,7 +35,7 @@ export async function DELETE(
       where: {
         playlistId_songId: {
           playlistId: playlist.id,
-          songId: params.songId,
+          songId: songId,
         },
       },
       include: { song: { select: { title: true } } },
@@ -80,7 +81,7 @@ export async function DELETE(
       recordActivity({
         userId,
         type: "song_removed_from_playlist",
-        songId: params.songId,
+        songId: songId,
         playlistId: playlist.id,
         metadata: { songTitle: playlistSong.song?.title ?? undefined },
       });

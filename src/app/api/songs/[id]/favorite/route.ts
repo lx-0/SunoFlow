@@ -6,15 +6,16 @@ import { recordActivity } from "@/lib/activity";
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
 
     if (authError) return authError;
 
     const song = await prisma.song.findFirst({
-      where: { id: params.id, userId: userId },
+      where: { id, userId: userId },
     });
 
     if (!song) {
@@ -43,15 +44,16 @@ export async function POST(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
 
     if (authError) return authError;
 
     const song = await prisma.song.findFirst({
-      where: { id: params.id, userId: userId },
+      where: { id, userId: userId },
     });
 
     if (!song) {

@@ -5,8 +5,9 @@ const PAGE_SIZE = 20;
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
@@ -14,7 +15,7 @@ export async function GET(
 
     // Verify user exists
     const user = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { id: true },
     });
     if (!user) {
@@ -26,7 +27,7 @@ export async function GET(
 
     const [activities, total] = await Promise.all([
       prisma.activity.findMany({
-        where: { userId: params.id },
+        where: { userId: id },
         orderBy: { createdAt: "desc" },
         skip,
         take: PAGE_SIZE,
@@ -59,7 +60,7 @@ export async function GET(
           },
         },
       }),
-      prisma.activity.count({ where: { userId: params.id } }),
+      prisma.activity.count({ where: { userId: id } }),
     ]);
 
     const items = activities

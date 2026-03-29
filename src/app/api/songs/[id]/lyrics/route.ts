@@ -4,14 +4,15 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
     if (authError) return authError;
 
     const song = await prisma.song.findFirst({
-      where: { id: params.id, userId },
+      where: { id, userId },
       select: { lyrics: true, lyricsEdited: true },
     });
 
@@ -33,14 +34,15 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
     if (authError) return authError;
 
     const song = await prisma.song.findFirst({
-      where: { id: params.id, userId },
+      where: { id, userId },
     });
 
     if (!song) {

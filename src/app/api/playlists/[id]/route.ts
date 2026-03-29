@@ -5,8 +5,9 @@ import { CacheControl, invalidateByPrefix, cacheKey } from "@/lib/cache";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
 
@@ -15,7 +16,7 @@ export async function GET(
     // Allow owner or accepted collaborator to read
     const playlist = await prisma.playlist.findFirst({
       where: {
-        id: params.id,
+        id,
         OR: [
           { userId },
           {
@@ -60,15 +61,16 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
 
     if (authError) return authError;
 
     const playlist = await prisma.playlist.findFirst({
-      where: { id: params.id, userId: userId },
+      where: { id, userId: userId },
     });
 
     if (!playlist) {
@@ -122,15 +124,16 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
 
     if (authError) return authError;
 
     const playlist = await prisma.playlist.findFirst({
-      where: { id: params.id, userId: userId },
+      where: { id, userId: userId },
     });
 
     if (!playlist) {

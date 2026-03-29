@@ -52,9 +52,9 @@ async function fetchSong(id: string, userId: string): Promise<CompareSong | null
 export default async function ComparePage({
   searchParams,
 }: {
-  searchParams: { a?: string; b?: string };
+  searchParams: Promise<{ a?: string; b?: string }>;
 }) {
-  const { a, b } = searchParams;
+  const { a, b } = await searchParams;
 
   if (!a || !b) notFound();
 

@@ -5,14 +5,15 @@ import { prisma } from "@/lib/prisma";
 // DELETE /api/playlists/[id]/collaborators/[collaboratorId] — remove collaborator (owner only)
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string; collaboratorId: string } }
+  { params }: { params: Promise<{ id: string; collaboratorId: string }> }
 ) {
+  const { id, collaboratorId } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
     if (authError) return authError;
 
     const playlist = await prisma.playlist.findFirst({
-      where: { id: params.id, userId },
+      where: { id, userId },
     });
 
     if (!playlist) {
@@ -20,7 +21,7 @@ export async function DELETE(
     }
 
     const collaborator = await prisma.playlistCollaborator.findFirst({
-      where: { id: params.collaboratorId, playlistId: playlist.id },
+      where: { id: collaboratorId, playlistId: playlist.id },
     });
 
     if (!collaborator) {

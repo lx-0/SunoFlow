@@ -4,14 +4,15 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
     if (authError) return authError;
 
     const feedback = await prisma.generationFeedback.findUnique({
-      where: { songId_userId: { songId: params.id, userId } },
+      where: { songId_userId: { songId: id, userId } },
       select: { rating: true },
     });
 
@@ -26,14 +27,15 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
     if (authError) return authError;
 
     const song = await prisma.song.findFirst({
-      where: { id: params.id },
+      where: { id },
       select: { id: true },
     });
     if (!song) {
@@ -51,9 +53,9 @@ export async function POST(
     }
 
     const feedback = await prisma.generationFeedback.upsert({
-      where: { songId_userId: { songId: params.id, userId } },
+      where: { songId_userId: { songId: id, userId } },
       update: { rating },
-      create: { songId: params.id, userId, rating },
+      create: { songId: id, userId, rating },
     });
 
     return NextResponse.json({ rating: feedback.rating });

@@ -14,6 +14,11 @@ const PwaInstallPrompt = nextDynamic(
   () => import("@/components/PwaInstallPrompt").then((m) => m.PwaInstallPrompt),
   { ssr: false }
 );
+// Lazy-load the push notification prompt — shown after onboarding for unenrolled users
+const PushNotificationPrompt = nextDynamic(
+  () => import("@/components/PushNotificationPrompt").then((m) => m.PushNotificationPrompt),
+  { ssr: false }
+);
 import "../globals.css";
 
 const geistSans = localFont({
@@ -27,9 +32,9 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sunoflow.app";
 export async function generateMetadata({
   params,
 }: {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
-  const { locale } = params;
+  const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "common" });
 
   return {
@@ -87,9 +92,9 @@ export default async function LocaleLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
-  const { locale } = params;
+  const { locale } = await params;
 
   // Validate locale
   if (!routing.locales.includes(locale as typeof routing.locales[number])) {
@@ -118,6 +123,7 @@ export default async function LocaleLayout({
             <ServiceWorkerRegistrar />
             <OfflineIndicator />
             <PwaInstallPrompt />
+            <PushNotificationPrompt />
             <SessionProvider>
               {children}
             </SessionProvider>

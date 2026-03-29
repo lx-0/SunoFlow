@@ -32,13 +32,14 @@ async function getPublicUserData(userId: string) {
 
 async function handleGET(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const session = await auth();
     const viewerId = session?.user?.id ?? null;
 
-    const user = await getPublicUserData(params.id);
+    const user = await getPublicUserData(id);
 
     if (!user) {
       return NextResponse.json(
@@ -48,9 +49,9 @@ async function handleGET(
     }
 
     let isFollowing = false;
-    if (viewerId && viewerId !== params.id) {
+    if (viewerId && viewerId !== id) {
       const follow = await prisma.follow.findUnique({
-        where: { followerId_followingId: { followerId: viewerId, followingId: params.id } },
+        where: { followerId_followingId: { followerId: viewerId, followingId: id } },
         select: { id: true },
       });
       isFollowing = !!follow;

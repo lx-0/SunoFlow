@@ -4,18 +4,19 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { error: authError } = await resolveUser(request);
     if (authError) return authError;
 
     const [thumbsUp, thumbsDown] = await Promise.all([
       prisma.generationFeedback.count({
-        where: { songId: params.id, rating: "thumbs_up" },
+        where: { songId: id, rating: "thumbs_up" },
       }),
       prisma.generationFeedback.count({
-        where: { songId: params.id, rating: "thumbs_down" },
+        where: { songId: id, rating: "thumbs_down" },
       }),
     ]);
 

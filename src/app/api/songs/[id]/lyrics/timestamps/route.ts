@@ -5,14 +5,15 @@ import { prisma } from "@/lib/prisma";
 // GET /api/songs/[id]/lyrics/timestamps — list all timestamps for the song
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
     if (authError) return authError;
 
     const song = await prisma.song.findFirst({
-      where: { id: params.id, userId },
+      where: { id, userId },
       select: { id: true },
     });
 
@@ -21,7 +22,7 @@ export async function GET(
     }
 
     const timestamps = await prisma.lyricTimestamp.findMany({
-      where: { songId: params.id },
+      where: { songId: id },
       orderBy: { lineIndex: "asc" },
       select: { lineIndex: true, startTime: true },
     });
@@ -39,14 +40,15 @@ export async function GET(
 // Body: { timestamps: Array<{ lineIndex: number; startTime: number }> }
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
     if (authError) return authError;
 
     const song = await prisma.song.findFirst({
-      where: { id: params.id, userId },
+      where: { id, userId },
       select: { id: true },
     });
 
@@ -76,8 +78,8 @@ export async function PUT(
     await prisma.$transaction(
       entries.map((e) =>
         prisma.lyricTimestamp.upsert({
-          where: { songId_lineIndex: { songId: params.id, lineIndex: e.lineIndex } },
-          create: { songId: params.id, lineIndex: e.lineIndex, startTime: e.startTime },
+          where: { songId_lineIndex: { songId: id, lineIndex: e.lineIndex } },
+          create: { songId: id, lineIndex: e.lineIndex, startTime: e.startTime },
           update: { startTime: e.startTime },
         })
       )

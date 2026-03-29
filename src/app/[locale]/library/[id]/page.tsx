@@ -179,15 +179,16 @@ async function SongDetailContent({ id }: { id: string }) {
   );
 }
 
-export default function SongDetailPage({
+export default async function SongDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   return (
     <AppShell>
       <Suspense fallback={<SongDetailSkeleton />}>
-        <SongDetailContent id={params.id} />
+        <SongDetailContent id={id} />
       </Suspense>
     </AppShell>
   );

@@ -13,14 +13,15 @@ function generateInviteToken(): string {
 // GET /api/playlists/[id]/collaborators — list collaborators (owner only)
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
     if (authError) return authError;
 
     const playlist = await prisma.playlist.findFirst({
-      where: { id: params.id, userId },
+      where: { id, userId },
     });
 
     if (!playlist) {
@@ -49,14 +50,15 @@ export async function GET(
 // Body: { username: string, role?: "editor"|"viewer" } — invite by username (auto-accepted)
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
     if (authError) return authError;
 
     const playlist = await prisma.playlist.findFirst({
-      where: { id: params.id, userId },
+      where: { id, userId },
     });
 
     if (!playlist) {

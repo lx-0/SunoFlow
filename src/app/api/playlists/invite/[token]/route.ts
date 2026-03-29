@@ -5,11 +5,12 @@ import { prisma } from "@/lib/prisma";
 // GET /api/playlists/invite/[token] — fetch invite info (no auth required)
 export async function GET(
   _request: Request,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
+  const { token } = await params;
   try {
     const collaborator = await prisma.playlistCollaborator.findUnique({
-      where: { inviteToken: params.token },
+      where: { inviteToken: token },
       include: {
         playlist: {
           select: {
@@ -54,14 +55,15 @@ export async function GET(
 // POST /api/playlists/invite/[token] — accept invite
 export async function POST(
   request: Request,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
+  const { token } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
     if (authError) return authError;
 
     const collaborator = await prisma.playlistCollaborator.findUnique({
-      where: { inviteToken: params.token },
+      where: { inviteToken: token },
       include: {
         playlist: { select: { id: true, name: true, userId: true } },
       },

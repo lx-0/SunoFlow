@@ -4,15 +4,16 @@ import { prisma } from "@/lib/prisma";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
 
     if (authError) return authError;
 
     const tag = await prisma.tag.findFirst({
-      where: { id: params.id, userId: userId },
+      where: { id, userId: userId },
     });
     if (!tag) {
       return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
@@ -52,15 +53,16 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
 
     if (authError) return authError;
 
     const tag = await prisma.tag.findFirst({
-      where: { id: params.id, userId: userId },
+      where: { id, userId: userId },
     });
     if (!tag) {
       return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });

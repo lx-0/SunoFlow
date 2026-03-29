@@ -7,8 +7,9 @@ import { sendPushToUser } from "@/lib/push";
 
 export async function POST(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -18,7 +19,7 @@ export async function POST(
       );
     }
     const followerId = session.user.id;
-    const followingId = params.id;
+    const followingId = id;
 
     if (followerId === followingId) {
       return NextResponse.json(
@@ -103,8 +104,9 @@ export async function POST(
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -114,7 +116,7 @@ export async function DELETE(
       );
     }
     const followerId = session.user.id;
-    const followingId = params.id;
+    const followingId = id;
 
     await prisma.follow.deleteMany({
       where: { followerId, followingId },

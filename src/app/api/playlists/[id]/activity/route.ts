@@ -7,8 +7,9 @@ const PAGE_SIZE = 20;
 // GET /api/playlists/[id]/activity — fetch activity feed for a collaborative playlist
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
     if (authError) return authError;
@@ -16,7 +17,7 @@ export async function GET(
     // Allow owner or accepted collaborator to read activity
     const playlist = await prisma.playlist.findFirst({
       where: {
-        id: params.id,
+        id,
         OR: [
           { userId },
           {

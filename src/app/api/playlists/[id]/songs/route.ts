@@ -7,8 +7,9 @@ const MAX_SONGS_PER_PLAYLIST = 500;
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
 
@@ -17,7 +18,7 @@ export async function POST(
     // Owner or accepted editor-role collaborator can add songs
     const playlist = await prisma.playlist.findFirst({
       where: {
-        id: params.id,
+        id,
         OR: [
           { userId },
           {

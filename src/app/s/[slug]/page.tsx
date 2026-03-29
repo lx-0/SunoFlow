@@ -42,9 +42,10 @@ const getSong = cache((slug: string) =>
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const song = await getSong(params.slug);
+  const { slug } = await params;
+  const song = await getSong(slug);
 
   if (!song || !song.isPublic || song.isHidden || song.archivedAt) {
     return { robots: { index: false } };
@@ -55,7 +56,7 @@ export async function generateMetadata({
   const description = song.prompt
     ? song.prompt.slice(0, 200)
     : `Listen to "${title}" by ${creatorName} on SunoFlow`;
-  const canonicalUrl = `${siteUrl}/s/${params.slug}`;
+  const canonicalUrl = `${siteUrl}/s/${slug}`;
   const fallbackImageUrl = `${siteUrl}/icons/icon-512.png`;
 
   const ogImages = song.imageUrl
@@ -106,9 +107,10 @@ export async function generateMetadata({
 export default async function PublicSongPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const song = await getSong(params.slug);
+  const { slug } = await params;
+  const song = await getSong(slug);
 
   if (!song || !song.isPublic || song.isHidden || song.archivedAt) {
     notFound();
@@ -122,7 +124,7 @@ export default async function PublicSongPage({
     "@type": "MusicRecording",
     name: title,
     byArtist: { "@type": "Person", name: creatorName },
-    url: `${siteUrl}/s/${params.slug}`,
+    url: `${siteUrl}/s/${slug}`,
     ...(song.duration ? { duration: `PT${Math.floor(song.duration / 60)}M${song.duration % 60}S` } : {}),
     ...(song.imageUrl ? { image: song.imageUrl } : {}),
     ...(song.audioUrl ? { audio: { "@type": "AudioObject", contentUrl: song.audioUrl, encodingFormat: "audio/mpeg" } } : {}),
@@ -138,7 +140,7 @@ export default async function PublicSongPage({
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white flex items-center justify-center p-4">
         <PublicSongView
           songId={song.id}
-          slug={params.slug}
+          slug={slug}
           title={title}
           imageUrl={song.imageUrl}
           audioUrl={song.audioUrl}

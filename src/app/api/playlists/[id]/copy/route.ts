@@ -9,8 +9,9 @@ import { invalidateByPrefix, cacheKey } from "@/lib/cache";
  */
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
 
@@ -18,7 +19,7 @@ export async function POST(
 
     // Fetch source playlist — must be public
     const source = await prisma.playlist.findFirst({
-      where: { id: params.id, isPublic: true },
+      where: { id, isPublic: true },
       include: {
         songs: {
           orderBy: { position: "asc" },

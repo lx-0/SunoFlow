@@ -33,7 +33,7 @@
     "bcryptjs": "^3.0.3",
     "jszip": "^3.10.1",
     "lru-cache": "^11.2.7",
-    "next": "14.2.35",
+    "next": "15.5.14",
     "next-auth": "^5.0.0-beta.30",
     "next-intl": "^4.8.3",
     "node-mailjet": "^6.0.11",
@@ -49,6 +49,10 @@
     "web-push": "^3.6.7"
   },
   "pnpm": {
+    "overrides": {
+      "picomatch": ">=4.0.4",
+      "brace-expansion@5": ">=5.0.5"
+    },
     "onlyBuiltDependencies": [
       "@parcel/watcher",
       "@prisma/client",
@@ -67,7 +71,7 @@
     ]
   },
   "devDependencies": {
-    "@next/bundle-analyzer": "^14.2.35",
+    "@next/bundle-analyzer": "^15.5.14",
     "@playwright/test": "^1.58.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/jszip": "^3.4.0",
@@ -80,7 +84,7 @@
     "dotenv": "^17.3.1",
     "dotenv-cli": "^11.0.0",
     "eslint": "^8",
-    "eslint-config-next": "14.2.35",
+    "eslint-config-next": "15.5.14",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "postcss": "^8",

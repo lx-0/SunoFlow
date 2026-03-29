@@ -36,9 +36,10 @@ const getSongById = cache((songId: string) =>
 export async function generateMetadata({
   params,
 }: {
-  params: { songId: string };
+  params: Promise<{ songId: string }>;
 }): Promise<Metadata> {
-  const song = await getSongById(params.songId);
+  const { songId } = await params;
+  const song = await getSongById(songId);
 
   if (!song || !song.isPublic || song.isHidden || song.archivedAt) {
     return { robots: { index: false } };
@@ -51,7 +52,7 @@ export async function generateMetadata({
     : `Listen to "${title}" by ${creatorName} on SunoFlow`;
   const canonicalUrl = song.publicSlug
     ? `${siteUrl}/s/${song.publicSlug}`
-    : `${siteUrl}/songs/${params.songId}`;
+    : `${siteUrl}/songs/${songId}`;
 
   return {
     title: `${title} by ${creatorName}`,
@@ -80,9 +81,10 @@ export async function generateMetadata({
 export default async function PublicSongByIdPage({
   params,
 }: {
-  params: { songId: string };
+  params: Promise<{ songId: string }>;
 }) {
-  const song = await getSongById(params.songId);
+  const { songId } = await params;
+  const song = await getSongById(songId);
 
   if (!song || !song.isPublic || song.isHidden || song.archivedAt) {
     notFound();
@@ -98,7 +100,7 @@ export default async function PublicSongByIdPage({
     byArtist: { "@type": "Person", name: creatorName },
     url: song.publicSlug
       ? `${siteUrl}/s/${song.publicSlug}`
-      : `${siteUrl}/songs/${params.songId}`,
+      : `${siteUrl}/songs/${songId}`,
     ...(song.duration
       ? { duration: `PT${Math.floor(song.duration / 60)}M${Math.floor(song.duration % 60)}S` }
       : {}),
@@ -110,10 +112,10 @@ export default async function PublicSongByIdPage({
   };
 
   // Prefer the slug-based URL for sharing; fall back to the ID-based URL
-  const shareSlug = song.publicSlug ?? params.songId;
+  const shareSlug = song.publicSlug ?? songId;
   const shareReturnUrl = song.publicSlug
     ? `/s/${song.publicSlug}`
-    : `/songs/${params.songId}`;
+    : `/songs/${songId}`;
 
   return (
     <>

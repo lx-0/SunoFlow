@@ -5,13 +5,14 @@ import { logger } from "@/lib/logger";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const { error, user: admin } = await requireAdmin();
   if (error) return error;
 
   const report = await prisma.report.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { song: { select: { id: true, userId: true } } },
   });
 
@@ -49,7 +50,7 @@ export async function PATCH(
     await prisma.song.delete({ where: { id: report.songId } });
     await logAdminAction(admin!.id, "delete_song", report.songId, `Deleted song via report ${report.id}`);
 
-    const updated = await prisma.report.update({ where: { id: params.id }, data: updates });
+    const updated = await prisma.report.update({ where: { id }, data: updates });
     return NextResponse.json(updated);
   } else if (action === "warn_user") {
     updates.status = "actioned";
@@ -58,7 +59,7 @@ export async function PATCH(
   }
 
   const updated = await prisma.report.update({
-    where: { id: params.id },
+    where: { id },
     data: updates,
   });
 

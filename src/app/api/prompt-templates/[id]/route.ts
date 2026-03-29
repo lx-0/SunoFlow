@@ -5,15 +5,16 @@ import { prisma } from "@/lib/prisma";
 // PATCH /api/prompt-templates/[id] — update a user template
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
 
     if (authError) return authError;
 
     const template = await prisma.promptTemplate.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!template) {
@@ -49,7 +50,7 @@ export async function PATCH(
     if (body.isInstrumental !== undefined) data.isInstrumental = Boolean(body.isInstrumental);
 
     const updated = await prisma.promptTemplate.update({
-      where: { id: params.id },
+      where: { id },
       data,
     });
 
@@ -62,15 +63,16 @@ export async function PATCH(
 // DELETE /api/prompt-templates/[id] — delete a user template
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
 
     if (authError) return authError;
 
     const template = await prisma.promptTemplate.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!template) {
@@ -85,7 +87,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden", code: "FORBIDDEN" }, { status: 403 });
     }
 
-    await prisma.promptTemplate.delete({ where: { id: params.id } });
+    await prisma.promptTemplate.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
   } catch {

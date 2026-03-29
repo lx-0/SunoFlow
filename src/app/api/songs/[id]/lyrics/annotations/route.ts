@@ -5,14 +5,15 @@ import { prisma } from "@/lib/prisma";
 // GET /api/songs/[id]/lyrics/annotations — list all annotations
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
     if (authError) return authError;
 
     const song = await prisma.song.findFirst({
-      where: { id: params.id, userId },
+      where: { id, userId },
       select: { id: true },
     });
 
@@ -21,7 +22,7 @@ export async function GET(
     }
 
     const annotations = await prisma.lyricAnnotation.findMany({
-      where: { songId: params.id },
+      where: { songId: id },
       orderBy: { lineIndex: "asc" },
       select: { lineIndex: true, body: true },
     });
@@ -39,14 +40,15 @@ export async function GET(
 // Body: { lineIndex: number; body: string } — body="" deletes the annotation
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId, error: authError } = await resolveUser(request);
     if (authError) return authError;
 
     const song = await prisma.song.findFirst({
-      where: { id: params.id, userId },
+      where: { id, userId },
       select: { id: true },
     });
 
@@ -74,14 +76,14 @@ export async function PUT(
     if (!text) {
       // Delete annotation if empty
       await prisma.lyricAnnotation.deleteMany({
-        where: { songId: params.id, lineIndex },
+        where: { songId: id, lineIndex },
       });
       return NextResponse.json({ ok: true, deleted: true });
     }
 
     await prisma.lyricAnnotation.upsert({
-      where: { songId_lineIndex: { songId: params.id, lineIndex } },
-      create: { songId: params.id, lineIndex, body: text },
+      where: { songId_lineIndex: { songId: id, lineIndex } },
+      create: { songId: id, lineIndex, body: text },
       update: { body: text },
     });
 

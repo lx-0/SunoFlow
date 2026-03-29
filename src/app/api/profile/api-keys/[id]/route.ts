@@ -6,8 +6,9 @@ import { logServerError } from "@/lib/error-logger";
 /** Revoke an API key by setting revokedAt. */
 export async function DELETE(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -16,7 +17,7 @@ export async function DELETE(
 
     const apiKey = await prisma.apiKey.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: session.user.id,
         revokedAt: null,
       },
@@ -35,7 +36,7 @@ export async function DELETE(
   } catch (error) {
     logServerError("api-keys", error, {
       route: "DELETE /api/profile/api-keys/:id",
-      params: { id: params.id },
+      params: { id },
     });
     return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }

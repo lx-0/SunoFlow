@@ -40,9 +40,10 @@ const getPlaylist = cache((slug: string) =>
 export default async function EmbedPlaylistPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const playlist = await getPlaylist(params.slug);
+  const { slug } = await params;
+  const playlist = await getPlaylist(slug);
 
   if (!playlist || !playlist.isPublic) {
     notFound();

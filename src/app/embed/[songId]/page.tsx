@@ -24,12 +24,14 @@ export default async function EmbedSongPage({
   params,
   searchParams,
 }: {
-  params: { songId: string };
-  searchParams: { theme?: string; autoplay?: string };
+  params: Promise<{ songId: string }>;
+  searchParams: Promise<{ theme?: string; autoplay?: string }>;
 }) {
-  const song = await getSong(params.songId);
+  const { songId } = await params;
+  const { theme: themeParam, autoplay: autoplayParam } = await searchParams;
+  const song = await getSong(songId);
 
-  const theme = searchParams.theme === "light" ? "light" : "dark";
+  const theme = themeParam === "light" ? "light" : "dark";
 
   if (!song || !song.isPublic || song.isHidden || song.archivedAt) {
     const isDark = theme === "dark";
@@ -54,13 +56,13 @@ export default async function EmbedSongPage({
       </html>
     );
   }
-  const autoplay = searchParams.autoplay === "1";
+  const autoplay = autoplayParam === "1";
 
   const title = song.title ?? "Untitled";
   const creatorName = song.user.name;
   const songUrl = song.publicSlug
     ? `${siteUrl}/s/${song.publicSlug}`
-    : `${siteUrl}/songs/${params.songId}`;
+    : `${siteUrl}/songs/${songId}`;
 
   return (
     <html lang="en">

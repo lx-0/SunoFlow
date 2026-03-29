@@ -48,9 +48,10 @@ const getProfile = cache((username: string) =>
 export async function generateMetadata({
   params,
 }: {
-  params: { username: string };
+  params: Promise<{ username: string }>;
 }): Promise<Metadata> {
-  const user = await getProfile(params.username);
+  const { username } = await params;
+  const user = await getProfile(username);
 
   if (!user) {
     return { robots: { index: false } };
@@ -87,9 +88,10 @@ export async function generateMetadata({
 export default async function PublicProfilePage({
   params,
 }: {
-  params: { username: string };
+  params: Promise<{ username: string }>;
 }) {
-  const user = await getProfile(params.username);
+  const { username } = await params;
+  const user = await getProfile(username);
 
   if (!user || !user.username) {
     notFound();

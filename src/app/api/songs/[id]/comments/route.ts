@@ -9,8 +9,9 @@ const COMMENT_WINDOW_MS = 60 * 1000; // 1 minute
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
@@ -19,7 +20,7 @@ export async function GET(
 
     const [comments, total] = await Promise.all([
       prisma.comment.findMany({
-        where: { songId: params.id },
+        where: { songId: id },
         orderBy: [{ createdAt: "desc" }],
         skip,
         take,
@@ -33,7 +34,7 @@ export async function GET(
           },
         },
       }),
-      prisma.comment.count({ where: { songId: params.id } }),
+      prisma.comment.count({ where: { songId: id } }),
     ]);
 
     return NextResponse.json({
@@ -55,8 +56,9 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -69,7 +71,7 @@ export async function POST(
 
     // Verify song exists and is public
     const song = await prisma.song.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { id: true, title: true, isPublic: true, isHidden: true, userId: true },
     });
 
@@ -106,7 +108,7 @@ export async function POST(
     // Duplicate text protection: reject same text by same user on same song within 1 minute
     const dupeCheck = await prisma.comment.findFirst({
       where: {
-        songId: params.id,
+        songId: id,
         userId,
         body: text,
         createdAt: { gte: new Date(Date.now() - COMMENT_WINDOW_MS) },
@@ -135,7 +137,7 @@ export async function POST(
 
     const [comment] = await prisma.$transaction([
       prisma.comment.create({
-        data: { songId: params.id, userId, body: text, timestamp },
+        data: { songId: id, userId, body: text, timestamp },
         select: {
           id: true,
           body: true,
