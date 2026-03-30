@@ -53,6 +53,7 @@ export async function generateMetadata({
   const canonicalUrl = song.publicSlug
     ? `${siteUrl}/s/${song.publicSlug}`
     : `${siteUrl}/songs/${songId}`;
+  const ogImageUrl = `${siteUrl}/api/og/song/${songId}`;
 
   return {
     title: `${title} by ${creatorName}`,
@@ -64,16 +65,14 @@ export async function generateMetadata({
       url: canonicalUrl,
       type: "music.song",
       siteName: "SunoFlow",
-      images: song.imageUrl
-        ? [{ url: song.imageUrl, alt: title }]
-        : [{ url: "/icons/icon-512.png", width: 512, height: 512, alt: "SunoFlow" }],
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: title }],
       ...(song.audioUrl ? { audio: [{ url: song.audioUrl, type: "audio/mpeg" }] } : {}),
     },
     twitter: {
       card: song.audioUrl ? "player" : "summary_large_image",
       title: `${title} by ${creatorName}`,
       description,
-      images: song.imageUrl ? [song.imageUrl] : ["/icons/icon-512.png"],
+      images: [ogImageUrl],
     },
   };
 }

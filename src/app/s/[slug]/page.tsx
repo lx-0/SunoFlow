@@ -57,13 +57,10 @@ export async function generateMetadata({
     ? song.prompt.slice(0, 200)
     : `Listen to "${title}" by ${creatorName} on SunoFlow`;
   const canonicalUrl = `${siteUrl}/s/${slug}`;
-  const fallbackImageUrl = `${siteUrl}/icons/icon-512.png`;
+  const ogImageUrl = `${siteUrl}/api/og/song/${song.id}`;
 
-  const ogImages = song.imageUrl
-    ? [{ url: song.imageUrl, alt: title }]
-    : [{ url: fallbackImageUrl, width: 512, height: 512, alt: "SunoFlow" }];
-
-  const twitterImages = song.imageUrl ? [song.imageUrl] : [fallbackImageUrl];
+  const ogImages = [{ url: ogImageUrl, width: 1200, height: 630, alt: title }];
+  const twitterImages = [ogImageUrl];
 
   const twitterMeta: Metadata["twitter"] = song.audioUrl
     ? {
