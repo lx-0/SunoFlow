@@ -1,4 +1,5 @@
-const CACHE_NAME = "sunoflow-v2";
+const CACHE_NAME = "sunoflow-v3";
+const STATIC_CACHE = "sunoflow-static-v1";
 const API_CACHE = "sunoflow-api-v1";
 const AUDIO_CACHE = "sunoflow-audio-v1";
 const OFFLINE_URL = "/offline.html";
@@ -8,6 +9,8 @@ const PRECACHE_URLS = [OFFLINE_URL];
 
 // Max cached audio files (LRU eviction)
 const MAX_AUDIO_ENTRIES = 20;
+// Max cached static assets (JS/CSS bundles, fonts, icons)
+const MAX_STATIC_ENTRIES = 100;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -17,7 +20,7 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
-  const keepCaches = [CACHE_NAME, API_CACHE, AUDIO_CACHE];
+  const keepCaches = [CACHE_NAME, STATIC_CACHE, API_CACHE, AUDIO_CACHE];
   event.waitUntil(
     caches
       .keys()
@@ -33,6 +36,25 @@ self.addEventListener("activate", (event) => {
 });
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function isStaticAsset(url) {
+  const path = new URL(url).pathname;
+  // Next.js content-hashed bundles and image optimizer output
+  return (
+    path.startsWith("/_next/static/") ||
+    path.startsWith("/_next/image/")
+  );
+}
+
+function isPublicStaticAsset(url) {
+  const path = new URL(url).pathname;
+  // Public directory assets: fonts, icons, manifest, etc.
+  return (
+    path.startsWith("/icons/") ||
+    path.startsWith("/fonts/") ||
+    path === "/manifest.json"
+  );
+}
 
 function isApiRequest(url) {
   const path = new URL(url).pathname;
@@ -244,7 +266,32 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 4. Navigation requests: network-first with offline fallback.
+  // 4. Static Next.js assets and public static files: cache-first (app shell).
+  // Next.js content-hashes all /_next/static/ filenames so a cache hit is
+  // always valid; no stale-content risk. Caching these enables previously-
+  // visited pages to render offline using assets already in the SW cache.
+  if (request.method === "GET" && (isStaticAsset(url) || isPublicStaticAsset(url))) {
+    event.respondWith(
+      caches.open(STATIC_CACHE).then(async (cache) => {
+        const cachedResponse = await cache.match(request);
+        if (cachedResponse) return cachedResponse;
+
+        try {
+          const networkResponse = await fetch(request);
+          if (networkResponse.ok) {
+            cache.put(request, networkResponse.clone());
+            trimCache(STATIC_CACHE, MAX_STATIC_ENTRIES);
+          }
+          return networkResponse;
+        } catch {
+          return new Response("Asset unavailable offline", { status: 503 });
+        }
+      })
+    );
+    return;
+  }
+
+  // 5. Navigation requests: network-first with offline fallback.
   // Use redirect:"follow" (default) but detect server-side redirects via
   // response.redirected so we can surface them as a real browser navigation
   // (updating the address bar). Without this, the SW silently serves the
