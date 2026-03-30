@@ -5,9 +5,9 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
 
 const DISMISS_KEY = "sunoflow_pwa_prompt_dismissed_until";
-const VISIT_COUNT_KEY = "sunoflow_pwa_visit_count";
+const USAGE_SECONDS_KEY = "sunoflow_pwa_usage_seconds";
 const DISMISS_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const MIN_VISITS = 2;
+const MIN_USAGE_SECONDS = 120; // 2 minutes
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -36,26 +36,25 @@ function isDismissed(): boolean {
   return Date.now() < Number(until);
 }
 
-function getVisitCount(): number {
-  return Number(localStorage.getItem(VISIT_COUNT_KEY) ?? "0");
-}
-
-function incrementVisitCount(): number {
-  const count = getVisitCount() + 1;
-  localStorage.setItem(VISIT_COUNT_KEY, String(count));
-  return count;
+function getStoredUsageSeconds(): number {
+  return Number(localStorage.getItem(USAGE_SECONDS_KEY) ?? "0");
 }
 
 export function PwaInstallPrompt() {
   const [show, setShow] = useState(false);
   const [ios, setIos] = useState(false);
   const deferredPrompt = useRef<BeforeInstallPromptEvent | null>(null);
+  const shownRef = useRef(false);
 
   useEffect(() => {
     if (!isMobile() || isStandalone() || isDismissed()) return;
 
-    const visitCount = incrementVisitCount();
-    if (visitCount < MIN_VISITS) return;
+    // If already past threshold from prior sessions, show immediately
+    if (getStoredUsageSeconds() >= MIN_USAGE_SECONDS) {
+      setIos(isIos());
+      setShow(true);
+      shownRef.current = true;
+    }
 
     // Listen for native install prompt (Chrome/Android)
     const onBeforeInstall = (e: Event) => {
@@ -64,14 +63,24 @@ export function PwaInstallPrompt() {
     };
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
 
-    // Slight delay so it doesn't flash on initial render
-    const timer = setTimeout(() => {
-      setIos(isIos());
-      setShow(true);
-    }, 2000);
+    // Accumulate usage time each second; show prompt after MIN_USAGE_SECONDS
+    const interval = setInterval(() => {
+      if (shownRef.current) {
+        clearInterval(interval);
+        return;
+      }
+      const seconds = getStoredUsageSeconds() + 1;
+      localStorage.setItem(USAGE_SECONDS_KEY, String(seconds));
+      if (seconds >= MIN_USAGE_SECONDS) {
+        setIos(isIos());
+        setShow(true);
+        shownRef.current = true;
+        clearInterval(interval);
+      }
+    }, 1000);
 
     return () => {
-      clearTimeout(timer);
+      clearInterval(interval);
       window.removeEventListener("beforeinstallprompt", onBeforeInstall);
     };
   }, []);
