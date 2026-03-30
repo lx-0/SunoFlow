@@ -30,14 +30,26 @@ async function smartPlaylistRefresh() {
 // Job: email digest send — weekly Monday 08:00 UTC
 // ---------------------------------------------------------------------------
 
-async function emailDigestSend() {
-  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+// Delay between individual email sends to avoid bursting Mailjet rate limits.
+const EMAIL_SEND_DELAY_MS = 150;
 
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+async function emailDigestSend() {
+  const now = Date.now();
+  const oneWeekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+  const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+
+  // Fetch opted-in, enabled users who were active in the last 30 days.
+  // lastLoginAt is the best available activity proxy.
   const users = await prisma.user.findMany({
     where: {
       emailWeeklyHighlights: true,
       email: { not: null },
       isDisabled: false,
+      lastLoginAt: { gte: thirtyDaysAgo },
     },
     select: {
       id: true,
@@ -47,27 +59,61 @@ async function emailDigestSend() {
     },
   });
 
+  // Pre-fetch trending public songs (pool of 20) for recommendations.
+  // Excludes songs by the digest recipient (filtered per-user below).
+  const trendingPool = await prisma.song.findMany({
+    where: { isPublic: true, generationStatus: "ready", isHidden: false },
+    orderBy: { playCount: "desc" },
+    take: 40,
+    select: { id: true, title: true, tags: true, userId: true },
+  });
+
   let sent = 0;
   let failed = 0;
 
   for (const user of users) {
     if (!user.email) continue;
+
     try {
-      const [topSongs, weekGenerations] = await Promise.all([
+      const [topSongs, weekGenerations, playsAggregate, newFollowers] = await Promise.all([
+        // Top songs from this week by play count
         prisma.song.findMany({
-          where: { userId: user.id, generationStatus: "ready" },
+          where: { userId: user.id, generationStatus: "ready", createdAt: { gte: oneWeekAgo } },
           orderBy: { playCount: "desc" },
           take: 5,
           select: { id: true, title: true, playCount: true },
         }),
+        // Count of songs generated this week
         prisma.song.count({
-          where: { userId: user.id, createdAt: { gte: oneWeekAgo } },
+          where: { userId: user.id, createdAt: { gte: oneWeekAgo }, generationStatus: "ready" },
+        }),
+        // Total plays across all user songs
+        prisma.song.aggregate({
+          where: { userId: user.id, generationStatus: "ready" },
+          _sum: { playCount: true },
+        }),
+        // New followers gained this week
+        prisma.follow.count({
+          where: { followingId: user.id, createdAt: { gte: oneWeekAgo } },
         }),
       ]);
 
+      // Recommend up to 5 trending songs the user didn't create
+      const recommendedSongs = trendingPool
+        .filter((s) => s.userId !== user.id)
+        .slice(0, 5)
+        .map((s) => ({ id: s.id, title: s.title, tags: s.tags }));
+
       await sendWeeklyHighlightsEmail(
         user.email,
-        { topSongs, totalSongs: user._count.songs, weekGenerations },
+        {
+          topSongs,
+          totalSongs: user._count.songs,
+          weekGenerations,
+          totalPlaysReceived: playsAggregate._sum.playCount ?? 0,
+          newFollowers,
+          recommendedSongs,
+        },
         user.unsubscribeToken ?? user.id
       );
       sent++;
@@ -75,6 +121,9 @@ async function emailDigestSend() {
       failed++;
       logger.error({ userId: user.id, err }, "jobs: email-digest-send user failed");
     }
+
+    // Rate-limit: small pause between sends
+    await sleep(EMAIL_SEND_DELAY_MS);
   }
 
   logger.info({ sent, failed, total: users.length }, "jobs: email-digest-send done");
