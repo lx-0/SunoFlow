@@ -253,6 +253,15 @@ const nextConfig = {
 
 let config = withNextIntl(nextConfig);
 
+// Bundle analysis workflow:
+//   Run `pnpm analyze` locally to generate an interactive treemap of client and
+//   server bundles. Opens browser tabs at .next/analyze/client.html (and server).
+//
+//   CI bundle size tracking uses scripts/bundle-size.mjs, which reads
+//   .next/static/chunks/ directly (no visual report needed for automation):
+//     node scripts/bundle-size.mjs --output bundle-size-report.json
+//   Compare against a saved baseline and fail on >10% regression:
+//     node scripts/bundle-size.mjs --baseline bundle-size-baseline.json --output bundle-size-report.json
 if (process.env.ANALYZE === "true") {
   const withBundleAnalyzer = (await import("@next/bundle-analyzer")).default;
   config = withBundleAnalyzer({ enabled: true })(config);

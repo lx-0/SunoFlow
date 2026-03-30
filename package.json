@@ -16,6 +16,7 @@
     "test:e2e:headed": "playwright test --headed",
     "prepare": "husky",
     "mcp": "tsx mcp/server.ts",
+    "analyze": "ANALYZE=true pnpm build",
     "db:backup": "bash scripts/backup-db.sh",
     "db:restore": "bash scripts/restore-db.sh"
   },

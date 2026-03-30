@@ -78,6 +78,36 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Restore bundle size baseline
+        id: restore-bundle-baseline
+        uses: actions/cache/restore@v4
+        with:
+          path: bundle-size-baseline.json
+          key: bundle-size-baseline-${{ github.sha }}
+          restore-keys: bundle-size-baseline-
+
+      - name: Measure and check bundle sizes
+        run: node scripts/bundle-size.mjs --baseline bundle-size-baseline.json --output bundle-size-report.json
+
+      - name: Save bundle size baseline
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: cp bundle-size-report.json bundle-size-baseline.json
+
+      - name: Cache bundle size baseline
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/cache/save@v4
+        with:
+          path: bundle-size-baseline.json
+          key: bundle-size-baseline-${{ github.sha }}
+
+      - name: Upload bundle size report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bundle-size-report
+          path: bundle-size-report.json
+          retention-days: 30
+
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
