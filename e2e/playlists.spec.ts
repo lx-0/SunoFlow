@@ -263,8 +263,8 @@ test.describe("Playlists — Delete", () => {
     // Use getByRole to match aria-label on button elements (getByLabel targets form controls)
     await page.getByRole("button", { name: "Delete playlist" }).first().click();
 
-    // Confirm deletion by clicking the "Delete" confirmation button
-    await page.getByRole("button", { name: "Delete", exact: true }).click();
+    // Confirm deletion — button has aria-label "Confirm delete {name}", text "Delete"
+    await page.getByRole("button", { name: /Confirm delete/i }).click();
 
     // Playlist should be removed after deletion
     await expect(page.getByText("Playlist To Delete")).not.toBeVisible({

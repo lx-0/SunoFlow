@@ -225,9 +225,9 @@ test.describe("Navigation", () => {
     await expect(page).toHaveURL(/\/library/, { timeout: 5000 });
     await expect(page.locator("h1").first()).toContainText("Library");
 
-    // Home
+    // Home — authenticated users are redirected to /library
     await page.getByRole("link", { name: "Home" }).first().click();
-    await page.waitForURL("**/", { timeout: 5000 });
+    await page.waitForURL(/\/library/, { timeout: 5000 });
 
     // Inspire
     await page.getByRole("link", { name: "Inspire" }).first().click();
