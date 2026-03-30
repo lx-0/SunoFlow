@@ -203,7 +203,7 @@ test.describe("Playlists — Song Management", () => {
 
     // Should show success toast
     await expect(
-      page.getByText(/added to playlist/i).or(page.getByRole("alert"))
+      page.getByText(/added to playlist/i).or(page.getByRole("alert")).first()
     ).toBeVisible({ timeout: 5000 });
   });
 

@@ -228,6 +228,8 @@ test.describe("Navigation", () => {
     // Home — authenticated users are redirected to /library
     await page.getByRole("link", { name: "Home" }).first().click();
     await page.waitForURL(/\/library/, { timeout: 5000 });
+    // Wait for the page to fully settle after the server-side redirect before the next click
+    await page.waitForLoadState("domcontentloaded");
 
     // Inspire
     await page.getByRole("link", { name: "Inspire" }).first().click();
