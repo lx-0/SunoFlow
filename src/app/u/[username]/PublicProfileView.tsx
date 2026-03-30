@@ -8,8 +8,8 @@ import {
   MusicalNoteIcon,
   QueueListIcon,
   UserGroupIcon,
-  LinkIcon,
 } from "@heroicons/react/24/outline";
+import { ShareMenu } from "@/components/ShareMenu";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -176,24 +176,14 @@ function FollowButton({
 // ─── Share Button ──────────────────────────────────────────────────────────────
 
 function ShareButton({ username }: { username: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const copy = () => {
-    const url = `${window.location.origin}/u/${username}`;
-    navigator.clipboard.writeText(url).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
-
   return (
-    <button
-      onClick={copy}
+    <ShareMenu
+      url={`${typeof window !== "undefined" ? window.location.origin : ""}/u/${username}`}
+      title={`${username} on SunoFlow`}
+      text={`Check out ${username}'s music on SunoFlow`}
+      source="public_profile"
       className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-violet-500 dark:hover:text-violet-400 transition-colors border border-gray-200 dark:border-gray-700 rounded-lg"
-    >
-      <LinkIcon className="w-3.5 h-3.5" />
-      {copied ? "Copied!" : "Share profile"}
-    </button>
+    />
   );
 }
 

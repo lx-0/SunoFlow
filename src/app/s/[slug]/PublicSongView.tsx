@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { PlayIcon, PauseIcon, MusicalNoteIcon, FlagIcon, ShareIcon, SparklesIcon, SpeakerWaveIcon, SpeakerXMarkIcon, CodeBracketIcon } from "@heroicons/react/24/solid";
+import { PlayIcon, PauseIcon, MusicalNoteIcon, FlagIcon, SparklesIcon, SpeakerWaveIcon, SpeakerXMarkIcon, CodeBracketIcon } from "@heroicons/react/24/solid";
 import dynamic from "next/dynamic";
 import { useToast } from "@/components/Toast";
 import { useSession } from "next-auth/react";
@@ -11,6 +11,7 @@ import { FollowButton } from "@/components/FollowButton";
 import type { ReactionItem } from "@/components/ReactionTimeline";
 import { track } from "@/lib/analytics";
 import { RelatedSongs } from "@/components/RelatedSongs";
+import { ShareMenu } from "@/components/ShareMenu";
 
 // Lazy-load below-fold and conditional components to reduce initial bundle
 const ReportModal = dynamic(() => import("@/components/ReportModal").then((m) => m.ReportModal), { ssr: false });
@@ -73,37 +74,6 @@ export function PublicSongView({
   const { data: session } = useSession();
   const { toast } = useToast();
 
-  const handleShare = useCallback(async () => {
-    const url = window.location.href;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title, url });
-        track("song_shared", { songId, source: "public_page", method: "native_share" });
-      } else {
-        await navigator.clipboard.writeText(url);
-        toast("Link copied to clipboard!", "success");
-        track("song_shared", { songId, source: "public_page", method: "clipboard" });
-      }
-    } catch {
-      // Fallback: manual copy
-      try {
-        await navigator.clipboard.writeText(url);
-        toast("Link copied to clipboard!", "success");
-        track("song_shared", { songId, source: "public_page", method: "clipboard" });
-      } catch {
-        toast("Could not copy link. Please copy the URL manually.", "error");
-      }
-    }
-  }, [title, toast, songId]);
-
-  const handleShareOnX = useCallback(() => {
-    const url = window.location.href;
-    const songTitle = title ?? "Check out this song";
-    const tweetText = `${songTitle} — listen on SunoFlow`;
-    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(url)}`;
-    window.open(twitterUrl, "_blank", "noopener,noreferrer");
-    track("song_shared", { songId, source: "public_page", method: "twitter" });
-  }, [title, songId]);
 
   function getEmbedCode() {
     const origin = typeof window !== "undefined" ? window.location.origin : "https://sunoflow.app";
@@ -396,24 +366,13 @@ export function PublicSongView({
 
       {/* Share + Embed + Report buttons */}
       <div className="flex justify-center gap-2 flex-wrap">
-        <button
-          onClick={handleShare}
+        <ShareMenu
+          url={typeof window !== "undefined" ? window.location.href : `/s/${slug}`}
+          title={title}
+          text={`${title} — listen on SunoFlow`}
+          source="public_song"
           className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all duration-200 active:scale-95 min-h-[44px]"
-          aria-label="Copy share link"
-        >
-          <ShareIcon className="w-3.5 h-3.5" aria-hidden="true" />
-          Share
-        </button>
-        <button
-          onClick={handleShareOnX}
-          className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 active:scale-95 min-h-[44px]"
-          aria-label="Share on X (Twitter)"
-        >
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-          </svg>
-          Share on X
-        </button>
+        />
         <button
           onClick={() => setEmbedOpen(true)}
           className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all duration-200 active:scale-95 min-h-[44px]"

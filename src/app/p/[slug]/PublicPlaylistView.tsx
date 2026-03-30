@@ -11,11 +11,11 @@ import {
 } from "@heroicons/react/24/solid";
 import {
   MusicalNoteIcon,
-  ShareIcon,
   BookmarkIcon,
 } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/components/Toast";
+import { ShareMenu } from "@/components/ShareMenu";
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
@@ -141,20 +141,6 @@ export function PublicPlaylistView({
 
   const pct = audioDuration > 0 ? (currentTime / audioDuration) * 100 : 0;
 
-  async function handleShare() {
-    const url = `${window.location.origin}/p/${slug}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: name, text: `Listen to "${name}" on SunoFlow`, url });
-      } catch {
-        // User cancelled or share failed — fall through to clipboard
-      }
-    } else {
-      await navigator.clipboard.writeText(url);
-      toast("Link copied!", "success");
-    }
-  }
-
   async function handleAddToLibrary() {
     if (isCopying) return;
     setIsCopying(true);
@@ -204,13 +190,13 @@ export function PublicPlaylistView({
 
         {/* Action buttons */}
         <div className="flex items-center justify-center gap-2 pt-1">
-          <button
-            onClick={handleShare}
+          <ShareMenu
+            url={`${typeof window !== "undefined" ? window.location.origin : ""}/p/${slug}`}
+            title={name}
+            text={`Listen to "${name}" on SunoFlow`}
+            source="public_playlist"
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-          >
-            <ShareIcon className="w-4 h-4" />
-            Share
-          </button>
+          />
 
           {session ? (
             <button
