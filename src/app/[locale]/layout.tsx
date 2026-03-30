@@ -112,8 +112,8 @@ export default async function LocaleLayout({
           <PostHogProvider>
             <ServiceWorkerRegistrar />
             <OfflineIndicator />
-            <ClientOnlyComponents />
             <SessionProvider>
+              <ClientOnlyComponents />
               {children}
             </SessionProvider>
           </PostHogProvider>
