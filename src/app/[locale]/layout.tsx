@@ -9,6 +9,7 @@ import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { PostHogProvider } from "@/components/PostHogProvider";
 import { ClientOnlyComponents } from "@/components/ClientOnlyComponents";
 import { OnboardingProvider } from "@/components/OnboardingTour";
+import { RouteAnnouncer } from "@/components/RouteAnnouncer";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
 
@@ -124,6 +125,7 @@ export default async function LocaleLayout({
           <PostHogProvider>
             <ServiceWorkerRegistrar />
             <OfflineIndicator />
+            <RouteAnnouncer />
             <SessionProvider>
               <OnboardingProvider>
                 <ClientOnlyComponents />

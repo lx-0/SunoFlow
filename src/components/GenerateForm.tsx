@@ -707,7 +707,7 @@ export function GenerateForm() {
       {/* Low Credit Warning Banner */}
       {creditInfo?.isLow && (
         <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-          <ExclamationTriangleIcon className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <ExclamationTriangleIcon className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
               Low Credits
@@ -723,7 +723,7 @@ export function GenerateForm() {
       {/* Source song banner (pre-filled from duplication) */}
       {sourceSongId && (
         <div className="flex items-center gap-3 p-3 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl">
-          <DocumentDuplicateIcon className="w-5 h-5 text-violet-600 dark:text-violet-400 flex-shrink-0" />
+          <DocumentDuplicateIcon className="w-5 h-5 text-violet-600 dark:text-violet-400 flex-shrink-0" aria-hidden="true" />
           <div className="flex-1 min-w-0 text-sm text-violet-800 dark:text-violet-300">
             Based on{" "}
             <Link href={`/library/${sourceSongId}`} className="font-medium underline hover:text-violet-900 dark:hover:text-violet-200">
@@ -1199,10 +1199,10 @@ export function GenerateForm() {
               type="button"
               onClick={handleBoostStyle}
               disabled={isBoosting || !stylePrompt.trim() || isSubmitting}
-              title="Enhance style description with AI"
+              aria-label={isBoosting ? "Enhancing style description with AI" : "Enhance style description with AI"}
               className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-900/30 disabled:opacity-50 transition-colors whitespace-nowrap"
             >
-              <BoltIcon className="h-4 w-4" />
+              <BoltIcon className="h-4 w-4" aria-hidden="true" />
               {isBoosting ? "..." : "Enhance"}
             </button>
           </div>
@@ -1436,16 +1436,24 @@ export function GenerateForm() {
                 </div>
 
                 {/* Progress bar */}
-                <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  role="progressbar"
+                  aria-valuenow={used}
+                  aria-valuemin={0}
+                  aria-valuemax={rateLimit.limit}
+                  aria-label={`Generation quota: ${used} of ${rateLimit.limit} used`}
+                  className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"
+                >
                   <div
                     className={`h-full rounded-full transition-all duration-300 ${barColor}`}
                     style={{ width: `${Math.min(pct, 100)}%` }}
+                    aria-hidden="true"
                   />
                 </div>
 
                 {/* Reset time */}
                 <div className="flex items-center gap-1 mt-2 text-xs text-gray-500 dark:text-gray-400">
-                  <ClockIcon className="h-3.5 w-3.5" />
+                  <ClockIcon className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>Resets in {minsLeft} minute{minsLeft === 1 ? "" : "s"}</span>
                 </div>
               </div>
@@ -1488,7 +1496,7 @@ export function GenerateForm() {
                 </>
               ) : (
                 <>
-                  <SparklesIcon className="h-5 w-5" />
+                  <SparklesIcon className="h-5 w-5" aria-hidden="true" />
                   Generate
                 </>
               )}
@@ -1504,10 +1512,10 @@ export function GenerateForm() {
             type="button"
             onClick={handleAddToQueue}
             disabled={isSubmitting || queueTotalActive >= 10}
-            title={queueTotalActive >= 10 ? "Queue is full (max 10)" : "Add to generation queue"}
+            aria-label={queueTotalActive >= 10 ? "Queue is full (max 10)" : `Add to generation queue${queueTotalActive > 0 ? ` (${queueTotalActive} active)` : ""}`}
             className="flex items-center justify-center gap-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-300 font-semibold rounded-xl px-4 py-3 transition-colors min-h-[52px] whitespace-nowrap"
           >
-            <QueueListIcon className="h-5 w-5" />
+            <QueueListIcon className="h-5 w-5" aria-hidden="true" />
             Queue{queueTotalActive > 0 ? ` (${queueTotalActive})` : ""}
           </button>
         </div>
