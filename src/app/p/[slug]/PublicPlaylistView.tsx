@@ -195,6 +195,7 @@ export function PublicPlaylistView({
             title={name}
             text={`Listen to "${name}" on SunoFlow`}
             source="public_playlist"
+            embedUrl={`/embed/playlist/${slug}`}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           />
 

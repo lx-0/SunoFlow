@@ -371,6 +371,7 @@ export function PublicSongView({
           title={title}
           text={`${title} — listen on SunoFlow`}
           source="public_song"
+          embedUrl={`/embed/${songId}`}
           className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all duration-200 active:scale-95 min-h-[44px]"
         />
         <button

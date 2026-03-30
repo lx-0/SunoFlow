@@ -5,6 +5,7 @@ import {
   ShareIcon,
   LinkIcon,
   CheckIcon,
+  CodeBracketIcon,
 } from "@heroicons/react/24/outline";
 import { useToast } from "./Toast";
 import { track } from "@/lib/analytics";
@@ -20,6 +21,8 @@ interface ShareMenuProps {
   source?: string;
   /** Extra class names on the trigger button */
   className?: string;
+  /** When provided, shows a "Copy Embed Code" option that copies an iframe snippet with this src */
+  embedUrl?: string;
 }
 
 /**
@@ -36,10 +39,12 @@ export function ShareMenu({
   text,
   source = "unknown",
   className = "",
+  embedUrl,
 }: ShareMenuProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [embedCopied, setEmbedCopied] = useState(false);
   const [hasNativeShare, setHasNativeShare] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -94,6 +99,23 @@ export function ShareMenu({
     track("shared", { source, method: "twitter" });
   }
 
+  async function copyEmbedCode() {
+    if (!embedUrl) return;
+    setOpen(false);
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const src = embedUrl.startsWith("http") ? embedUrl : `${origin}${embedUrl}`;
+    const snippet = `<iframe src="${src}" width="100%" height="180" frameborder="0" style="border:none;border-radius:12px;overflow:hidden;" allow="autoplay" title="${title} — SunoFlow"></iframe>`;
+    try {
+      await navigator.clipboard.writeText(snippet);
+    } catch {
+      // Clipboard API may be blocked in non-HTTPS contexts
+    }
+    setEmbedCopied(true);
+    setTimeout(() => setEmbedCopied(false), 2000);
+    toast("Embed code copied!", "success");
+    track("shared", { source, method: "embed_code" });
+  }
+
   return (
     <div ref={menuRef} className="relative inline-block">
       <button
@@ -144,6 +166,20 @@ export function ShareMenu({
             </svg>
             Share on X
           </button>
+          {embedUrl && (
+            <button
+              role="menuitem"
+              onClick={copyEmbedCode}
+              className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              {embedCopied ? (
+                <CheckIcon className="w-4 h-4 flex-shrink-0 text-violet-500" aria-hidden="true" />
+              ) : (
+                <CodeBracketIcon className="w-4 h-4 flex-shrink-0 text-violet-500" aria-hidden="true" />
+              )}
+              {embedCopied ? "Copied!" : "Copy Embed Code"}
+            </button>
+          )}
         </div>
       )}
     </div>
