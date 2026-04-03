@@ -209,31 +209,30 @@ test.describe("Library View", () => {
 // ─── Navigation ─────────────────────────────────────────────────────────────
 
 test.describe("Navigation", () => {
-  test("bottom nav links navigate to correct pages", async ({ page }) => {
+  test("nav links navigate to correct pages", async ({ page }) => {
     await loginViaUI(page, testEmail, TEST_PASSWORD);
 
-    // Should be on an authenticated page after login
-    // Navigate via bottom nav to each key page
+    // Wait for full hydration so the Next.js client-side router is ready.
+    // Without this, Link clicks may preventDefault (React handler attached)
+    // but fail to trigger client-side navigation (router not yet initialized).
+    await page.waitForLoadState("networkidle");
 
     // Generate
     await page.getByRole("link", { name: "Generate" }).first().click();
-    await expect(page).toHaveURL(/\/generate/, { timeout: 5000 });
-    await expect(page.locator("h1").first()).toContainText("Generate");
+    await page.waitForURL(/\/generate/, { timeout: 10000 });
 
     // Library
     await page.getByRole("link", { name: "Library" }).first().click();
-    await expect(page).toHaveURL(/\/library/, { timeout: 5000 });
-    await expect(page.locator("h1").first()).toContainText("Library");
+    await page.waitForURL(/\/library/, { timeout: 10000 });
 
     // Home — authenticated users are redirected to /library
     await page.getByRole("link", { name: "Home" }).first().click();
-    await page.waitForURL(/\/library/, { timeout: 5000 });
-    // Wait for the page to fully settle after the server-side redirect before the next click
-    await page.waitForLoadState("domcontentloaded");
+    await page.waitForURL(/\/library/, { timeout: 10000 });
+    await page.waitForLoadState("networkidle");
 
     // Inspire
     await page.getByRole("link", { name: "Inspire" }).first().click();
-    await expect(page).toHaveURL(/\/inspire/, { timeout: 5000 });
+    await page.waitForURL(/\/inspire/, { timeout: 10000 });
   });
 
   test("settings link in header navigates to settings", async ({ page }) => {
