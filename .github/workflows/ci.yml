@@ -236,14 +236,14 @@ jobs:
         run: npm install -g @railway/cli
 
       - name: Deploy to staging
-        run: railway up --detach --service SunoFlow-staging
+        run: railway up --detach --service SunoFlow
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
 
       - name: Write deploy summary
         run: |
           echo "## Staging Deploy" >> $GITHUB_STEP_SUMMARY
-          echo "- **Service**: SunoFlow-staging" >> $GITHUB_STEP_SUMMARY
+          echo "- **Service**: SunoFlow" >> $GITHUB_STEP_SUMMARY
           echo "- **SHA**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **URL**: ${{ vars.STAGING_URL }}" >> $GITHUB_STEP_SUMMARY
 
