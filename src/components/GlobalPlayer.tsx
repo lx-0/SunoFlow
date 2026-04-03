@@ -21,6 +21,7 @@ import {
   FaceSmileIcon,
   AdjustmentsHorizontalIcon,
   ChatBubbleLeftIcon,
+  CubeIcon,
 } from "@heroicons/react/24/outline";
 import { CoverArtImage } from "./CoverArtImage";
 import { useQueue } from "./QueueContext";
@@ -64,6 +65,9 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
     clearQueue,
     setVolume,
     toggleMute,
+    shuffleVersions,
+    toggleShuffleVersions,
+    activeVersion,
   } = useQueue();
 
   const [showUpNext, setShowUpNext] = useState(false);
@@ -412,9 +416,16 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
 
           {/* Song info */}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate" aria-live="polite">
-              {currentSong.title ?? "Untitled"}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-medium text-white truncate" aria-live="polite">
+                {currentSong.title ?? "Untitled"}
+              </p>
+              {activeVersion && activeVersion.id !== currentSong.id && (
+                <span className="flex-shrink-0 text-[10px] font-medium text-violet-400 bg-violet-400/10 px-1.5 py-0.5 rounded">
+                  Alt version
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2 text-xs text-gray-400">
               <span>{formatTime(currentTime)}</span>
               <span>/</span>
@@ -517,6 +528,20 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
               }`}
             >
               <ArrowsRightLeftIcon className="w-5 h-5" aria-hidden="true" />
+            </button>
+
+            {/* Shuffle Versions */}
+            <button
+              onClick={toggleShuffleVersions}
+              aria-label={shuffleVersions ? "Shuffle versions on" : "Shuffle versions off"}
+              title="Shuffle across versions — randomly play different versions of songs"
+              className={`hidden sm:flex w-11 h-11 rounded-full items-center justify-center transition-colors ${
+                shuffleVersions
+                  ? "text-violet-400"
+                  : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              <CubeIcon className="w-5 h-5" aria-hidden="true" />
             </button>
 
             {/* Skip prev */}
