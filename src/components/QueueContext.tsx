@@ -9,6 +9,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { useSession } from "next-auth/react";
 import { proxiedAudioUrl } from "@/lib/audio-cdn";
 import { track } from "@/lib/analytics";
 
@@ -129,6 +130,7 @@ export function useQueue(): QueueContextValue {
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function QueueProvider({ children }: { children: ReactNode }) {
+  const { status: sessionStatus } = useSession();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Original (unshuffled) queue preserved for unshuffle
@@ -687,6 +689,66 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   }, [fetchRadioSongs]);
 
   radioRefillRef.current = radioRefill;
+
+  // ─── Auto-restore saved playback state on mount ────────────────────────
+  const hasRestoredRef = useRef(false);
+  useEffect(() => {
+    if (sessionStatus !== "authenticated" || hasRestoredRef.current) return;
+    hasRestoredRef.current = true;
+
+    fetch("/api/user/playback-state")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.state?.song?.audioUrl) return;
+        const { song, position, queue: savedQueue, volume: savedVol } = data.state;
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        // Build a queue from saved state
+        const restoreQueue: QueueSong[] =
+          Array.isArray(savedQueue) && savedQueue.length > 0
+            ? savedQueue
+            : [
+                {
+                  id: song.id,
+                  title: song.title,
+                  audioUrl: song.audioUrl,
+                  imageUrl: song.imageUrl,
+                  duration: song.duration,
+                  lyrics: song.lyrics,
+                },
+              ];
+
+        const startIdx = restoreQueue.findIndex((s: QueueSong) => s.id === song.id);
+        const idx = startIdx >= 0 ? startIdx : 0;
+
+        // Load the queue state without auto-playing
+        originalQueueRef.current = restoreQueue;
+        setQueue(restoreQueue);
+        setCurrentIndex(idx);
+        setPlaylistSource("Resume");
+        setDuration(restoreQueue[idx].duration ?? 0);
+
+        // Set the audio source but don't play
+        audio.src = proxiedAudioUrl(restoreQueue[idx].id);
+
+        // Restore volume
+        const vol = typeof savedVol === "number" ? savedVol : 1;
+        setVolumeState(vol);
+        volumeRef.current = vol;
+        audio.volume = vol;
+
+        // Seek to saved position after audio loads
+        if (position > 0 && song.duration) {
+          const handleCanPlay = () => {
+            audio.currentTime = position;
+            audio.removeEventListener("canplay", handleCanPlay);
+          };
+          audio.addEventListener("canplay", handleCanPlay);
+        }
+      })
+      .catch(() => {});
+  }, [sessionStatus]);
 
   // ─── Volume ─────────────────────────────────────────────────────────────
 

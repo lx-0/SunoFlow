@@ -47,10 +47,6 @@ import { SearchBar } from "./SearchBar";
 import { SubscriptionStatusBadge } from "./SubscriptionStatusBadge";
 import { EmailVerificationBanner } from "./EmailVerificationBanner";
 import { SunoStatusBanner } from "./SunoStatusBanner";
-const ResumePlaybackPrompt = dynamic(
-  () => import("./ResumePlaybackPrompt").then((m) => m.ResumePlaybackPrompt),
-  { ssr: false }
-);
 import { LocaleSwitcher } from "./LocaleSwitcher";
 const FeedbackModal = dynamic(() => import("./FeedbackModal").then((m) => m.FeedbackModal), { ssr: false });
 
@@ -587,9 +583,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Suno API degradation banner */}
         <SunoStatusBanner />
-
-        {/* Resume playback prompt — shown on load when a saved state exists */}
-        <ResumePlaybackPrompt />
 
         {/* Page content */}
         <main id="main-content" className="flex-1 overflow-y-auto pb-36 md:pb-24">
