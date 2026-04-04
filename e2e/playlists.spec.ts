@@ -7,6 +7,7 @@ import {
   mockPlaylist,
   mockSongsAPI,
   gotoLibraryWithMock,
+  createPlaylistViaUI,
 } from "./helpers";
 
 const TEST_PASSWORD = DEFAULT_PASSWORD;
@@ -29,22 +30,10 @@ test.describe("Playlists — List & Create", () => {
     await loginViaUI(page, testEmail, TEST_PASSWORD);
     await page.goto("/playlists");
 
-    // Click "New" button
-    await page.getByRole("button", { name: "New" }).click();
-
-    // Fill form
-    await page.getByPlaceholder("Playlist name").fill("My First Playlist");
-    await page
-      .getByPlaceholder("Description (optional)")
-      .fill("A test playlist");
-
-    // Submit
-    await page.getByRole("button", { name: "Create", exact: true }).click();
-
-    // Should show the new playlist in the list
-    await expect(page.getByText("My First Playlist")).toBeVisible({
-      timeout: 10000,
+    await createPlaylistViaUI(page, "My First Playlist", {
+      description: "A test playlist",
     });
+
     await expect(page.getByText("A test playlist")).toBeVisible({ timeout: 5000 });
   });
 
@@ -77,12 +66,7 @@ test.describe("Playlists — Detail & Edit", () => {
     await page.goto("/playlists");
 
     // Create a playlist first
-    await page.getByRole("button", { name: "New" }).click();
-    await page.getByPlaceholder("Playlist name").fill("Detail Test Playlist");
-    await page.getByRole("button", { name: "Create", exact: true }).click();
-    await expect(page.getByText("Detail Test Playlist")).toBeVisible({
-      timeout: 10000,
-    });
+    await createPlaylistViaUI(page, "Detail Test Playlist");
 
     // Navigate to it — click the anchor directly to avoid strict-mode ambiguity
     // (getByText matches both the <p> and its parent <a>, causing strict violations)
@@ -100,12 +84,7 @@ test.describe("Playlists — Detail & Edit", () => {
     await page.goto("/playlists");
 
     // Create a playlist
-    await page.getByRole("button", { name: "New" }).click();
-    await page.getByPlaceholder("Playlist name").fill("Editable Playlist");
-    await page.getByRole("button", { name: "Create", exact: true }).click();
-    await expect(page.getByText("Editable Playlist")).toBeVisible({
-      timeout: 10000,
-    });
+    await createPlaylistViaUI(page, "Editable Playlist");
 
     // Navigate to detail
     await page.locator("a").filter({ hasText: "Editable Playlist" }).first().click();
@@ -134,12 +113,7 @@ test.describe("Playlists — Song Management", () => {
 
     // First create a playlist
     await page.goto("/playlists");
-    await page.getByRole("button", { name: "New" }).click();
-    await page.getByPlaceholder("Playlist name").fill("Songs Test Playlist");
-    await page.getByRole("button", { name: "Create", exact: true }).click();
-    await expect(page.getByText("Songs Test Playlist")).toBeVisible({
-      timeout: 10000,
-    });
+    await createPlaylistViaUI(page, "Songs Test Playlist");
 
     // Set up mocks before navigating to library
     const songs = [mockSong({ id: "add-to-pl-1", title: "Playlist Song" })];
@@ -198,12 +172,7 @@ test.describe("Playlists — Song Management", () => {
 
     // Create a playlist with a song already in it
     await page.goto("/playlists");
-    await page.getByRole("button", { name: "New" }).click();
-    await page.getByPlaceholder("Playlist name").fill("Remove Song Playlist");
-    await page.getByRole("button", { name: "Create", exact: true }).click();
-    await expect(page.getByText("Remove Song Playlist")).toBeVisible({
-      timeout: 10000,
-    });
+    await createPlaylistViaUI(page, "Remove Song Playlist");
 
     // Navigate to the playlist detail
     await page.getByText("Remove Song Playlist").click();
@@ -238,12 +207,7 @@ test.describe("Playlists — Delete", () => {
     await page.goto("/playlists");
 
     // Create a playlist to delete
-    await page.getByRole("button", { name: "New" }).click();
-    await page.getByPlaceholder("Playlist name").fill("Playlist To Delete");
-    await page.getByRole("button", { name: "Create", exact: true }).click();
-    await expect(page.getByText("Playlist To Delete")).toBeVisible({
-      timeout: 10000,
-    });
+    await createPlaylistViaUI(page, "Playlist To Delete");
 
     // Click the delete icon for this playlist (first step — shows confirmation)
     // Use getByRole to match aria-label on button elements (getByLabel targets form controls)

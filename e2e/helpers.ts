@@ -230,6 +230,47 @@ export async function gotoLibraryWithMock(page: Page, path = "/library") {
   await page.waitForTimeout(300);
 }
 
+/**
+ * Create a playlist via the UI form and wait for the API response.
+ * Ensures React hydration is complete before interacting with the form
+ * by waiting for the network to idle after page load.
+ */
+export async function createPlaylistViaUI(
+  page: Page,
+  name: string,
+  opts?: { description?: string },
+) {
+  // Click "New" to open the create form
+  await page.getByRole("button", { name: "New" }).click();
+  await expect(page.getByPlaceholder("Playlist name")).toBeVisible({ timeout: 5000 });
+
+  // Fill form fields
+  await page.getByPlaceholder("Playlist name").fill(name);
+  if (opts?.description) {
+    await page.getByPlaceholder("Description (optional)").fill(opts.description);
+  }
+
+  // Click Create and wait for the API response to confirm the JS handler fired
+  const apiResponse = page.waitForResponse(
+    (res) =>
+      res.url().includes("/api/playlists") &&
+      res.request().method() === "POST",
+    { timeout: 15000 },
+  );
+  await page.getByRole("button", { name: "Create", exact: true }).click();
+  const response = await apiResponse;
+
+  if (!response.ok()) {
+    const body = await response.text().catch(() => "");
+    throw new Error(
+      `createPlaylistViaUI: API returned ${response.status()} — ${body}`,
+    );
+  }
+
+  // Wait for the playlist to appear in the list
+  await expect(page.getByText(name)).toBeVisible({ timeout: 10000 });
+}
+
 /** Intercept GET /api/playlists to return mock playlists */
 export async function mockPlaylistsAPI(
   page: Page,

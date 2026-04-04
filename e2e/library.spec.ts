@@ -20,8 +20,9 @@ test.describe("Library — Search", () => {
     await page.goto("/library");
     await expect(page.locator("h1").first()).toContainText("Library");
 
-    // Type in search — the search input may have different aria-labels
-    const searchInput = page.getByLabel("Search songs");
+    // Type in search — use the library-specific input (exact match avoids the
+    // global "Search songs and playlists" combobox in the header).
+    const searchInput = page.getByRole("textbox", { name: "Search songs" });
     await searchInput.fill("Sunset");
 
     // Verify the search input has value
@@ -33,7 +34,7 @@ test.describe("Library — Search", () => {
 
     await page.goto("/library");
 
-    const searchInput = page.getByLabel("Search songs");
+    const searchInput = page.getByRole("textbox", { name: "Search songs" });
     await searchInput.fill("something");
     await expect(searchInput).toHaveValue("something");
 
