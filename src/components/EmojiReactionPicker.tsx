@@ -8,8 +8,8 @@ const ALL_EMOJIS = [
   "🎤", "🪩", "🤘", "💃", "🕺", "🧠", "👏", "😈", "🦋", "🌟", "❤️‍🔥", "🫡",
 ];
 
-const DISPLAY_COUNT = 12;
-const TOP_USED_COUNT = 6;
+const DISPLAY_COUNT = 8;
+const TOP_USED_COUNT = 4;
 
 /** Fisher-Yates shuffle (non-mutating) */
 function shuffled<T>(arr: T[]): T[] {
