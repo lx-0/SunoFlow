@@ -13,6 +13,10 @@ export default defineConfig({
     trace: "on-first-retry",
     // Force English locale so next-intl never redirects to a locale-prefixed URL
     locale: "en-US",
+    // Block service workers so page.route() can intercept API requests.
+    // The app's SW uses stale-while-revalidate for /api/songs, which bypasses
+    // Playwright route mocking and causes mock-dependent tests to fail.
+    serviceWorkers: "block",
   },
   // Increase default assertion timeout: first-time page compilation in dev can take >5s
   expect: { timeout: 15000 },
