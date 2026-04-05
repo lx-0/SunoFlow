@@ -15,6 +15,7 @@ import {
   XMarkIcon,
   SparklesIcon,
   RectangleStackIcon,
+  QueueListIcon,
 } from "@heroicons/react/24/solid";
 import { FollowButton } from "@/components/FollowButton";
 import { AddToPlaylistButton } from "@/components/AddToPlaylistButton";
@@ -84,7 +85,7 @@ interface TrendingPagination {
   hasMore: boolean;
 }
 
-type Tab = "for_you" | "browse" | "trending" | "popular" | "collections";
+type Tab = "for_you" | "browse" | "trending" | "popular" | "collections" | "playlists";
 
 interface FeedSong {
   id: string;
@@ -106,6 +107,29 @@ interface FeedSong {
 
 interface FeedPagination {
   page: number;
+  totalPages: number;
+  total: number;
+  hasMore: boolean;
+}
+
+interface DiscoverPlaylist {
+  id: string;
+  name: string;
+  description: string | null;
+  genre: string | null;
+  slug: string | null;
+  songCount: number;
+  publishedAt: string | null;
+  playCount: number;
+  createdAt: string;
+  creatorDisplayName: string;
+  creatorUsername: string | null;
+  score?: number;
+}
+
+interface PlaylistDiscoverPagination {
+  page: number;
+  limit: number;
   totalPages: number;
   total: number;
   hasMore: boolean;
@@ -204,6 +228,7 @@ const TABS: { value: Tab; label: string; icon: React.ElementType }[] = [
   { value: "trending", label: "Trending", icon: FireIcon },
   { value: "popular", label: "Popular", icon: TrophyIcon },
   { value: "collections", label: "Collections", icon: RectangleStackIcon },
+  { value: "playlists", label: "Playlists", icon: QueueListIcon },
 ];
 
 export function DiscoverView({
@@ -225,7 +250,7 @@ export function DiscoverView({
   // Tab state
   const [tab, setTab] = useState<Tab>(() => {
     const t = searchParams.get("tab");
-    return (t === "trending" || t === "popular" || t === "browse" || t === "for_you" || t === "collections") ? t : defaultTab;
+    return (t === "trending" || t === "popular" || t === "browse" || t === "for_you" || t === "collections" || t === "playlists") ? t : defaultTab;
   });
 
   // Browse tab state
@@ -269,6 +294,16 @@ export function DiscoverView({
   const [collectionsLoading, setCollectionsLoading] = useState(false);
   const collectionsFetchedRef = useRef(false);
 
+  // Playlists tab state
+  const [playlists, setPlaylists] = useState<DiscoverPlaylist[]>([]);
+  const [playlistsPagination, setPlaylistsPagination] = useState<PlaylistDiscoverPagination>({
+    page: 1, limit: 20, totalPages: 1, total: 0, hasMore: false,
+  });
+  const [playlistsSort, setPlaylistsSort] = useState<string>("trending");
+  const [playlistsGenre, setPlaylistsGenre] = useState("");
+  const [playlistsLoading, setPlaylistsLoading] = useState(false);
+  const playlistsSentinelRef = useRef<HTMLDivElement>(null);
+
   // Search state
   const [searchInputValue, setSearchInputValue] = useState(
     searchParams.get("q") || ""
@@ -307,11 +342,14 @@ export function DiscoverView({
       } else if (tab === "for_you") {
         if (feedTag) params.set("feedTag", feedTag);
         if (feedMood) params.set("feedMood", feedMood);
+      } else if (tab === "playlists") {
+        if (playlistsSort !== "trending") params.set("plSort", playlistsSort);
+        if (playlistsGenre) params.set("plGenre", playlistsGenre);
       }
     }
     const qs = params.toString();
     router.replace(qs ? `${basePath}?${qs}` : basePath, { scroll: false });
-  }, [tab, sortBy, tag, mood, tempoPreset, feedTag, feedMood, searchQuery, router, basePath]);
+  }, [tab, sortBy, tag, mood, tempoPreset, feedTag, feedMood, playlistsSort, playlistsGenre, searchQuery, router, basePath]);
 
   const tempoRange = TEMPO_PRESETS.find((p) => p.label === tempoPreset);
 
@@ -418,6 +456,29 @@ export function DiscoverView({
     }
   }, []);
 
+  // Fetch discover playlists
+  const fetchPlaylists = useCallback(
+    async (page: number, sort: string, genre: string, append = false) => {
+      if (append) setLoadingMore(true);
+      else setPlaylistsLoading(true);
+      try {
+        const params = new URLSearchParams({ page: String(page), sort });
+        if (genre) params.set("genre", genre);
+        const res = await fetch(`/api/playlists/discover?${params}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setPlaylists((prev) => (append ? [...prev, ...data.playlists] : data.playlists));
+        setPlaylistsPagination(data.pagination);
+      } catch {
+        // keep existing state
+      } finally {
+        if (append) setLoadingMore(false);
+        else setPlaylistsLoading(false);
+      }
+    },
+    []
+  );
+
   // Fetch search results from /api/songs/public
   const fetchSearch = useCallback(
     async (q: string, offset: number, append = false) => {
@@ -484,6 +545,13 @@ export function DiscoverView({
     collectionsFetchedRef.current = true;
     fetchCollections();
   }, [tab, fetchCollections]);
+
+  // Fetch on playlists tab changes
+  useEffect(() => {
+    if (tab !== "playlists") return;
+    setPlaylists([]);
+    fetchPlaylists(1, playlistsSort, playlistsGenre);
+  }, [tab, playlistsSort, playlistsGenre, fetchPlaylists]);
 
   // Fetch on "for_you" tab + filter changes
   useEffect(() => {
@@ -627,6 +695,23 @@ export function DiscoverView({
     return () => observer.disconnect();
   }, [searchQuery, searchPagination, loadingMore, fetchSearch]);
 
+  // Infinite scroll for playlists tab
+  useEffect(() => {
+    if (tab !== "playlists") return;
+    const sentinel = playlistsSentinelRef.current;
+    if (!sentinel || !playlistsPagination.hasMore || loadingMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          fetchPlaylists(playlistsPagination.page + 1, playlistsSort, playlistsGenre, true);
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [tab, playlistsPagination.hasMore, playlistsPagination.page, loadingMore, playlistsSort, playlistsGenre, fetchPlaylists]);
+
   const stopPlayback = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -722,6 +807,8 @@ export function DiscoverView({
                   ? "Your personalized discover feed"
                   : tab === "collections"
                   ? "Themed song collections curated from the community"
+                  : tab === "playlists"
+                  ? "Browse published playlists from the community"
                   : `Explore ${totalCount} publicly shared songs`}
               </p>
             </div>
@@ -1229,6 +1316,110 @@ export function DiscoverView({
                   <CollectionCard key={collection.id} collection={collection} />
                 ))}
               </div>
+            )}
+          </>
+        )}
+
+        {!searchQuery && tab === "playlists" && (
+          <>
+            {/* Sort + genre filter */}
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  Sort:
+                </span>
+                <div className="flex gap-1">
+                  {([
+                    { value: "trending", label: "Trending" },
+                    { value: "recent", label: "Recent" },
+                    { value: "popular", label: "Most Played" },
+                  ] as const).map((opt) => (
+                    <FilterPill
+                      key={opt.value}
+                      label={opt.label}
+                      active={playlistsSort === opt.value}
+                      onClick={() => setPlaylistsSort(opt.value)}
+                    />
+                  ))}
+                </div>
+              </div>
+              {playlistsGenre && (
+                <button
+                  onClick={() => setPlaylistsGenre("")}
+                  className="text-xs text-violet-600 dark:text-violet-400 hover:underline shrink-0"
+                >
+                  Clear filter
+                </button>
+              )}
+            </div>
+
+            {/* Active genre chip */}
+            {playlistsGenre && (
+              <div className="flex flex-wrap gap-2" aria-label="Active filters">
+                <ActiveFilterChip
+                  label={`Genre: ${playlistsGenre}`}
+                  onRemove={() => setPlaylistsGenre("")}
+                />
+              </div>
+            )}
+
+            {/* Genre filter chips */}
+            <section>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                Genre
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <FilterPill
+                  label="All Genres"
+                  active={playlistsGenre === ""}
+                  onClick={() => setPlaylistsGenre("")}
+                />
+                {loadingFilters
+                  ? Array.from({ length: 8 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="h-[44px] w-16 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse"
+                      />
+                    ))
+                  : genreTags.map((g) => (
+                      <FilterPill
+                        key={g}
+                        label={g}
+                        active={playlistsGenre === g}
+                        onClick={() => setPlaylistsGenre(playlistsGenre === g ? "" : g)}
+                      />
+                    ))}
+              </div>
+            </section>
+
+            {/* Playlists grid */}
+            {playlistsLoading ? (
+              <PlaylistsGridSkeleton />
+            ) : playlists.length === 0 ? (
+              <div className="text-center py-16">
+                <QueueListIcon className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
+                <p className="text-gray-500 dark:text-gray-400 text-sm">
+                  No published playlists yet.
+                </p>
+                {playlistsGenre && (
+                  <button
+                    onClick={() => setPlaylistsGenre("")}
+                    className="mt-3 text-sm text-violet-600 dark:text-violet-400 hover:underline"
+                  >
+                    Clear all filters
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {playlists.map((playlist) => (
+                  <PlaylistCard key={playlist.id} playlist={playlist} />
+                ))}
+              </div>
+            )}
+
+            {playlistsPagination.hasMore && (
+              <ScrollSentinel ref={playlistsSentinelRef} loading={loadingMore} />
             )}
           </>
         )}
@@ -1946,6 +2137,74 @@ function CollectionCard({ collection }: { collection: CollectionPreview }) {
         </div>
       </div>
     </Link>
+  );
+}
+
+function PlaylistCard({ playlist }: { playlist: DiscoverPlaylist }) {
+  const href = playlist.slug ? `/p/${playlist.slug}` : "#";
+
+  return (
+    <Link
+      href={href}
+      className="group block bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden hover:border-violet-400 dark:hover:border-violet-600 transition-colors"
+    >
+      {/* Gradient header */}
+      <div className="relative h-24 bg-gradient-to-br from-violet-500 to-indigo-600 flex items-end p-3">
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+        <h3 className="relative text-white font-bold text-sm leading-tight line-clamp-2 drop-shadow">
+          {playlist.name}
+        </h3>
+      </div>
+
+      <div className="p-3 space-y-2">
+        {playlist.description && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+            {playlist.description}
+          </p>
+        )}
+
+        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+          <span className="truncate">{playlist.creatorDisplayName}</span>
+        </div>
+
+        <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+          <span className="flex items-center gap-1">
+            <MusicalNoteIcon className="w-3.5 h-3.5" />
+            {playlist.songCount} song{playlist.songCount !== 1 ? "s" : ""}
+          </span>
+          <span className="flex items-center gap-1">
+            <PlayIcon className="w-3.5 h-3.5" />
+            {playlist.playCount.toLocaleString()} play{playlist.playCount !== 1 ? "s" : ""}
+          </span>
+        </div>
+
+        {playlist.genre && (
+          <span className="inline-block px-2 py-0.5 text-[10px] font-medium rounded-full bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-700">
+            {playlist.genre}
+          </span>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+function PlaylistsGridSkeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div
+          key={i}
+          className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden animate-pulse"
+        >
+          <div className="h-24 bg-gray-200 dark:bg-gray-800" />
+          <div className="p-3 space-y-2">
+            <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-3/4" />
+            <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-1/2" />
+            <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-1/3" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
