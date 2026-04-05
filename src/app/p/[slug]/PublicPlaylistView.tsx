@@ -49,8 +49,8 @@ interface PublicPlaylistViewProps {
   songs: PlaylistSong[];
   totalDuration: number;
   createdAt: string;
-  isPublished: boolean;
-  playCount: number;
+  isPublished?: boolean;
+  playCount?: number;
 }
 
 export function PublicPlaylistView({
@@ -62,8 +62,8 @@ export function PublicPlaylistView({
   songs,
   totalDuration,
   createdAt,
-  isPublished,
-  playCount,
+  isPublished = false,
+  playCount = 0,
 }: PublicPlaylistViewProps) {
   const { data: session } = useSession();
   const { toast } = useToast();

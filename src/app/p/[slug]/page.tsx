@@ -160,8 +160,8 @@ export default async function PublicPlaylistPage({
           songs={visibleSongs}
           totalDuration={totalDuration}
           createdAt={playlist.createdAt.toISOString()}
-          isPublished={playlist.isPublished}
-          playCount={playlist.playCount}
+          isPublished={playlist.isPublished ?? false}
+          playCount={playlist.playCount ?? 0}
         />
       </div>
     </>
