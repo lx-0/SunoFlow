@@ -98,7 +98,7 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
   }, []);
 
   // Swipe-up on mini player to expand
-  const { handlers: swipeUpHandlers, translateY: swipeUpY, isDragging: swipeUpDragging } = useVerticalSwipe({
+  const { handlers: swipeUpHandlers } = useVerticalSwipe({
     direction: "up",
     onSwipeComplete: handleExpand,
     disabled: isExpanded,

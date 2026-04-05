@@ -6,7 +6,6 @@ import {
   PauseIcon,
   ForwardIcon,
   BackwardIcon,
-  XMarkIcon,
   SpeakerWaveIcon,
   SpeakerXMarkIcon,
   ChevronDownIcon,
