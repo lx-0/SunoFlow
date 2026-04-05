@@ -35,6 +35,8 @@ import { ReactionTimeline, ReactionItem } from "./ReactionTimeline";
 import { useToast } from "./Toast";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { ExpandedPlayer } from "./ExpandedPlayer";
+import { useVerticalSwipe } from "@/hooks/useVerticalSwipe";
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
@@ -78,6 +80,29 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
   const [isFavorite, setIsFavorite] = useState(false);
   const [reactions, setReactions] = useState<ReactionItem[]>([]);
   const reactionSongIdRef = useRef<string | null>(null);
+
+  // Expanded player state
+  const [isExpanded, setIsExpanded] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("sunoflow-player-expanded") === "true";
+  });
+
+  const handleExpand = useCallback(() => {
+    setIsExpanded(true);
+    localStorage.setItem("sunoflow-player-expanded", "true");
+  }, []);
+
+  const handleCollapse = useCallback(() => {
+    setIsExpanded(false);
+    localStorage.setItem("sunoflow-player-expanded", "false");
+  }, []);
+
+  // Swipe-up on mini player to expand
+  const { handlers: swipeUpHandlers, translateY: swipeUpY, isDragging: swipeUpDragging } = useVerticalSwipe({
+    direction: "up",
+    onSwipeComplete: handleExpand,
+    disabled: isExpanded,
+  });
 
   // Timestamped comments — for waveform markers and playback overlays
   interface TimestampedComment { id: string; timestamp: number; body: string; username: string | null; }
@@ -311,6 +336,22 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
 
   if (!currentSong) return null;
 
+  // Render expanded player when active
+  if (isExpanded) {
+    return (
+      <ExpandedPlayer
+        onClose={handleCollapse}
+        translateY={0}
+        isDragging={false}
+        isFavorite={isFavorite}
+        onToggleFavorite={handleToggleFavorite}
+        reactions={reactions}
+        onReact={handleReact}
+        isAuthenticated={!!session?.user}
+      />
+    );
+  }
+
   return (
     <div role="region" aria-label="Audio player" className={`fixed bottom-16 left-0 right-0 z-20 px-2 md:bottom-0 transition-all duration-200 ${sidebarCollapsed ? "md:left-16" : "md:left-56"}`}>
       {/* Lyrics panel */}
@@ -378,7 +419,7 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
           </div>
         )}
 
-      <div className="bg-gray-900 dark:bg-gray-800 rounded-2xl md:rounded-none md:rounded-t-2xl shadow-2xl border border-gray-700 dark:border-gray-600 overflow-hidden">
+      <div className="bg-gray-900 dark:bg-gray-800 rounded-2xl md:rounded-none md:rounded-t-2xl shadow-2xl border border-gray-700 dark:border-gray-600 overflow-hidden" {...swipeUpHandlers}>
         {/* Waveform seek bar + reaction timeline overlay */}
         <div className="relative h-10 px-2 pt-1 pb-0.5 bg-gray-900 dark:bg-gray-800">
           <PlayerWaveform
@@ -400,10 +441,27 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2">
-          {/* Cover art — hidden on very small screens to save space */}
+          {/* Cover art — tap to expand on mobile, link on desktop */}
+          <button
+            onClick={handleExpand}
+            className="relative flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gray-800 dark:bg-gray-700 overflow-hidden flex items-center justify-center hover:ring-2 hover:ring-violet-500/50 transition-all md:hidden"
+            aria-label="Expand player"
+          >
+            {currentSong.imageUrl ? (
+              <CoverArtImage
+                src={currentSong.imageUrl}
+                alt={currentSong.title ?? "Song"}
+                fill
+                className="object-cover"
+                sizes="40px"
+              />
+            ) : (
+              <MusicalNoteIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+            )}
+          </button>
           <Link
             href={`/library/${currentSong.id}`}
-            className="relative flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gray-800 dark:bg-gray-700 overflow-hidden flex items-center justify-center hover:ring-2 hover:ring-violet-500/50 transition-all"
+            className="relative flex-shrink-0 w-10 h-10 rounded-lg bg-gray-800 dark:bg-gray-700 overflow-hidden items-center justify-center hover:ring-2 hover:ring-violet-500/50 transition-all hidden md:flex"
             title="View song details"
           >
             {currentSong.imageUrl ? (
@@ -419,16 +477,15 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
             )}
           </Link>
 
-          {/* Song info */}
-          <div className="flex-1 min-w-0">
+          {/* Song info — tap to expand on mobile */}
+          <div className="flex-1 min-w-0" onClick={handleExpand} role="button" tabIndex={0} aria-label="Expand player" onKeyDown={(e) => { if (e.key === "Enter") handleExpand(); }}>
             <div className="flex items-center gap-1.5">
-              <Link
-                href={`/library/${currentSong.id}`}
-                className="text-sm font-medium text-white truncate hover:text-violet-400 transition-colors"
+              <span
+                className="text-sm font-medium text-white truncate hover:text-violet-400 transition-colors cursor-pointer"
                 aria-live="polite"
               >
                 {currentSong.title ?? "Untitled"}
-              </Link>
+              </span>
               {activeVersion && activeVersion.id !== currentSong.id && (
                 <span className="flex-shrink-0 text-[10px] font-medium text-violet-400 bg-violet-400/10 px-1.5 py-0.5 rounded">
                   Alt version
