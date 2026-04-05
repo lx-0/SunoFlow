@@ -196,7 +196,11 @@ function UnifiedCard({
     : null;
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+    <div className={`bg-white dark:bg-gray-900 border rounded-xl overflow-hidden ${
+      item.sourceType === "pending"
+        ? "border-teal-400/60 dark:border-teal-500/40 ring-1 ring-teal-400/20"
+        : "border-gray-200 dark:border-gray-800"
+    }`}>
       {/* Instagram image */}
       {item.imageUrl && (
         <div className="aspect-video relative overflow-hidden bg-gray-100 dark:bg-gray-800 max-h-48">
@@ -939,7 +943,14 @@ function InspireContent() {
       <div className="px-4 py-6 space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Inspire</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Inspire</h2>
+            {pendingGenerations.length > 0 && (
+              <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-bold text-teal-100 bg-teal-500 rounded-full">
+                {pendingGenerations.length}
+              </span>
+            )}
+          </div>
           <button
             onClick={handleRefresh}
             disabled={isLoading}
