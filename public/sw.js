@@ -14,7 +14,14 @@ const MAX_STATIC_ENTRIES = 100;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
+    caches.open(CACHE_NAME).then((cache) =>
+      // Use individual add() calls so a single failed URL doesn't abort the
+      // entire install.  addAll() rejects if ANY request fails (e.g. offline.html
+      // returns an error during a deploy), which blocks activation.
+      Promise.all(
+        PRECACHE_URLS.map((url) => cache.add(url).catch(() => {}))
+      )
+    )
   );
   self.skipWaiting();
 });

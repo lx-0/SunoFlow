@@ -32,9 +32,8 @@ function getTimeoutMs(): number {
 }
 
 function isRetryable(status: number): boolean {
-  // Only retry transient server errors (5xx). 429 (rate limit) is not retried
-  // here — callers handle rate limit messages directly.
-  return status >= 500 && status <= 599;
+  // Retry transient server errors (5xx) and rate limits (429).
+  return status === 429 || (status >= 500 && status <= 599);
 }
 
 export async function fetchWithRetry(
@@ -87,7 +86,8 @@ export async function fetchWithRetry(
       } catch {
         message = rawBody || res.statusText;
       }
-      logger.error({ url, status: res.status, statusText: res.statusText, body: rawBody, attempt }, "suno-api: request failed");
+      const logFn = res.status === 429 ? logger.warn.bind(logger) : logger.error.bind(logger);
+      logFn({ url, status: res.status, statusText: res.statusText, body: rawBody, attempt }, "suno-api: request failed");
       // Only count server errors (5xx) and timeouts toward the circuit breaker;
       // 4xx errors are client-side problems, not upstream outages.
       if (res.status >= 500 || res.status === 0) {
@@ -96,7 +96,15 @@ export async function fetchWithRetry(
       throw new SunoApiError(res.status, message);
     }
 
-    const delay = 200 * Math.pow(2, attempt);
+    // For 429 responses, respect Retry-After header (seconds) with a minimum
+    // of 2s; for 5xx errors use a shorter exponential backoff.
+    let delay: number;
+    if (res.status === 429) {
+      const retryAfter = parseInt(res.headers.get("Retry-After") || "", 10);
+      delay = (Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 2000) * Math.pow(2, attempt);
+    } else {
+      delay = 200 * Math.pow(2, attempt);
+    }
     await new Promise((resolve) => setTimeout(resolve, delay));
     attempt++;
   }
