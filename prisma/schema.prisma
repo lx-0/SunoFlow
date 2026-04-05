@@ -225,6 +225,10 @@ model Playlist {
   isPublic         Boolean  @default(false)
   isCollaborative  Boolean  @default(false)
   slug             String?  @unique
+  isPublished      Boolean  @default(false)
+  publishedAt      DateTime?
+  genre            String?
+  playCount        Int      @default(0)
   shareCount       Int      @default(0)
   isSmartPlaylist  Boolean  @default(false)
   smartPlaylistType String? // "top_hits" | "new_this_week" | "mood" | "similar_to"
@@ -241,6 +245,7 @@ model Playlist {
   @@index([userId])
   @@index([userId, name])
   @@index([userId, isSmartPlaylist])
+  @@index([isPublished, publishedAt])
 }
 
 model PlaylistSong {
