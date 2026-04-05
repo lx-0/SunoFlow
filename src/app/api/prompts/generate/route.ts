@@ -219,7 +219,12 @@ export async function POST(req: NextRequest) {
 
       for (const entry of generated) {
         try {
-          const result = await boostStyle(entry.prompt, apiKey ?? undefined);
+          // Pass full excerpt + title for richer style generation;
+          // fall back to the terse prompt when excerpt is unavailable
+          const boostInput = entry.excerpt
+            ? `${entry.name}: ${entry.excerpt}`
+            : entry.prompt;
+          const result = await boostStyle(boostInput, apiKey ?? undefined);
           if (result.result) {
             entry.style = result.result;
           }
