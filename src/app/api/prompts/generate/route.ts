@@ -19,31 +19,125 @@ import { boostStyle } from "@/lib/sunoapi";
 const MAX_DAILY_PROMPTS = 5;
 const CATEGORY = "auto-generated";
 
-function buildPromptFromItem(item: RssItem): { name: string; prompt: string; style: string } {
+// ─── Narrative prompt templates keyed by mood ───
+
+const MOOD_TEMPLATES: Record<string, string[]> = {
+  energetic: [
+    "An energetic anthem capturing the thrill of {theme}. {texture}",
+    "A high-energy track fueled by {theme}. {texture}",
+  ],
+  chill: [
+    "A laid-back groove reflecting on {theme}. {texture}",
+    "A mellow, drifting piece inspired by {theme}. {texture}",
+  ],
+  melancholic: [
+    "A bittersweet ballad about {theme}. {texture}",
+    "A hauntingly beautiful song dwelling on {theme}. {texture}",
+  ],
+  romantic: [
+    "A tender love song woven around {theme}. {texture}",
+    "An intimate, heartfelt piece about {theme}. {texture}",
+  ],
+  uplifting: [
+    "An uplifting anthem celebrating {theme}. {texture}",
+    "A soaring, hopeful track inspired by {theme}. {texture}",
+  ],
+  dark: [
+    "A brooding, atmospheric piece exploring {theme}. {texture}",
+    "A shadowy soundscape immersed in {theme}. {texture}",
+  ],
+  dreamy: [
+    "An ethereal, floating track drifting through {theme}. {texture}",
+    "A dreamlike piece painting visions of {theme}. {texture}",
+  ],
+  intense: [
+    "An epic, powerful track channeling {theme}. {texture}",
+    "A relentless, storming piece driven by {theme}. {texture}",
+  ],
+};
+
+const FALLBACK_TEMPLATES = [
+  "A song inspired by {theme}. {texture}",
+  "A track exploring the world of {theme}. {texture}",
+];
+
+/**
+ * Extract the core theme from an excerpt — takes the first sentence or
+ * a meaningful clause, keeping it concise for prompt injection.
+ */
+function extractCoreTheme(excerpt: string): string {
+  // Grab the first sentence (up to . ! ?)
+  const sentenceMatch = excerpt.match(/^(.+?[.!?])\s/);
+  const sentence = sentenceMatch ? sentenceMatch[1] : excerpt;
+
+  // Cap at ~120 chars on a word boundary
+  if (sentence.length <= 120) return sentence.replace(/[.!?]+$/, "").trim();
+
+  const truncated = sentence.slice(0, 120);
+  const lastSpace = truncated.lastIndexOf(" ");
+  return (lastSpace > 40 ? truncated.slice(0, lastSpace) : truncated).trim();
+}
+
+/**
+ * Build a texture description from topics and mood-style info.
+ */
+function buildTexture(item: RssItem): string {
   const parts: string[] = [];
 
-  // Build a concise music generation prompt from feed item metadata
-  if (item.mood && item.mood !== "neutral") {
-    parts.push(`${item.mood} mood`);
+  // Use suggestedStyle from enrichItem when available (richer than raw topics)
+  if (item.suggestedStyle) {
+    parts.push(item.suggestedStyle + " feel");
+  } else {
+    if (item.topics && item.topics.length > 0) {
+      parts.push(item.topics.slice(0, 3).join(" and ") + " textures");
+    }
+    if (item.mood && item.mood !== "neutral") {
+      parts.push(`${item.mood} energy`);
+    }
   }
 
-  if (item.topics && item.topics.length > 0) {
-    parts.push(item.topics.join(", "));
-  }
+  return parts.length > 0
+    ? parts.join(" with ")
+    : "indie, alternative feel";
+}
 
-  // Use first meaningful sentence from title
+function buildPromptFromItem(item: RssItem): { name: string; prompt: string; style: string } {
   const titleClean = item.title.replace(/\s+/g, " ").trim();
-  if (titleClean.length > 5 && titleClean.length < 120) {
-    parts.push(`inspired by "${titleClean}"`);
+  const excerpt = item.excerpt || item.description || "";
+  const hasContent = excerpt.length > 20;
+
+  let prompt: string;
+
+  if (hasContent) {
+    // ── Narrative path: use excerpt to derive a content-aware prompt ──
+    const theme = extractCoreTheme(excerpt);
+    const texture = buildTexture(item);
+
+    const templates =
+      (item.mood && MOOD_TEMPLATES[item.mood]) || FALLBACK_TEMPLATES;
+    const template = templates[titleClean.length % templates.length];
+
+    prompt = template.replace("{theme}", theme).replace("{texture}", texture);
+  } else {
+    // ── Fallback: keyword-only prompt (original behavior) ──
+    const parts: string[] = [];
+    if (item.mood && item.mood !== "neutral") parts.push(`${item.mood} mood`);
+    if (item.topics && item.topics.length > 0) parts.push(item.topics.join(", "));
+    if (titleClean.length > 5 && titleClean.length < 120) {
+      parts.push(`inspired by "${titleClean}"`);
+    }
+    prompt = parts.length > 0 ? parts.join(". ") : titleClean;
   }
 
-  const prompt = parts.length > 0 ? parts.join(". ") : titleClean;
-
-  // Build style from mood + topics
-  const styleParts: string[] = [];
-  if (item.mood && item.mood !== "neutral") styleParts.push(item.mood);
-  if (item.topics && item.topics.length > 0) styleParts.push(...item.topics.slice(0, 3));
-  const style = styleParts.join(", ");
+  // Build style from suggestedStyle (preferred) or mood + topics
+  const style =
+    item.suggestedStyle ||
+    [
+      item.mood && item.mood !== "neutral" ? item.mood : "",
+      ...(item.topics?.slice(0, 3) ?? []),
+    ]
+      .filter(Boolean)
+      .join(", ");
 
   return {
     name: titleClean.slice(0, 60) || "Auto-generated prompt",
