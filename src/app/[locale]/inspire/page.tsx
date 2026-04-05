@@ -30,11 +30,13 @@ interface DailyPrompt {
 interface FeedItem {
   title: string;
   description: string;
+  content?: string;
   link?: string;
   source?: string;
   pubDate?: string;
   mood?: string;
   topics?: string[];
+  suggestedStyle?: string;
 }
 
 interface FeedResult {
@@ -602,6 +604,92 @@ function InstagramMoodBoard({
 
 // ─── RSS Section ───
 
+function RssFeedCard({
+  item,
+  onUseAsPrompt,
+}: {
+  item: FeedItem;
+  onUseAsPrompt: (item: FeedItem) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const hasContent = Boolean(item.content && item.content.length > (item.description?.length ?? 0));
+
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+      <div className="flex items-center gap-2 mb-1">
+        <p className="text-xs text-violet-400 font-medium">{item.source}</p>
+        {item.mood && item.mood !== "neutral" && (
+          <span
+            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${MOOD_COLORS[item.mood] ?? MOOD_COLORS.neutral}`}
+          >
+            {item.mood}
+          </span>
+        )}
+        {item.link && (
+          <a
+            href={item.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-gray-400 hover:text-gray-300 transition-colors ml-auto"
+          >
+            Source ↗
+          </a>
+        )}
+      </div>
+
+      <p className="text-sm font-semibold text-gray-900 dark:text-white leading-snug">
+        {item.title}
+      </p>
+
+      {/* Content preview — expandable */}
+      {item.content ? (
+        <div className="mt-2">
+          <p className={`text-xs text-gray-500 dark:text-gray-400 leading-relaxed ${expanded ? "" : "line-clamp-3"}`}>
+            {expanded ? item.content : item.description}
+          </p>
+          {hasContent && (
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="text-[11px] text-violet-400 hover:text-violet-300 mt-1 transition-colors"
+            >
+              {expanded ? "Show less" : "Read more…"}
+            </button>
+          )}
+        </div>
+      ) : item.description ? (
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 line-clamp-3">
+          {item.description}
+        </p>
+      ) : null}
+
+      {/* Style + topics */}
+      <div className="flex flex-wrap gap-1 mt-2">
+        {item.suggestedStyle && (
+          <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+            ♪ {item.suggestedStyle}
+          </span>
+        )}
+        {item.topics && item.topics.map((topic) => (
+          <span
+            key={topic}
+            className="text-[10px] text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded"
+          >
+            {topic}
+          </span>
+        ))}
+      </div>
+
+      <button
+        onClick={() => onUseAsPrompt(item)}
+        className="mt-3 flex items-center gap-1.5 text-sm font-medium text-violet-400 hover:text-violet-300 transition-colors min-h-[44px]"
+      >
+        <SparklesIcon className="w-4 h-4" />
+        Generate from this
+      </button>
+    </div>
+  );
+}
+
 function RssFeedList({
   items,
   loading,
@@ -620,6 +708,7 @@ function RssFeedList({
             className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 animate-pulse"
           >
             <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4 mb-2" />
+            <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-full mb-1" />
             <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-1/2" />
           </div>
         ))}
@@ -645,50 +734,7 @@ function RssFeedList({
             </div>
           );
         }
-        return (
-          <div
-            key={i}
-            className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4"
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <p className="text-xs text-violet-400 font-medium">{item.source}</p>
-              {item.mood && item.mood !== "neutral" && (
-                <span
-                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${MOOD_COLORS[item.mood] ?? MOOD_COLORS.neutral}`}
-                >
-                  {item.mood}
-                </span>
-              )}
-            </div>
-            <p className="text-sm font-semibold text-gray-900 dark:text-white leading-snug">
-              {item.title}
-            </p>
-            {item.description && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                {item.description}
-              </p>
-            )}
-            {item.topics && item.topics.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {item.topics.map((topic) => (
-                  <span
-                    key={topic}
-                    className="text-[10px] text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded"
-                  >
-                    {topic}
-                  </span>
-                ))}
-              </div>
-            )}
-            <button
-              onClick={() => onUseAsPrompt(item)}
-              className="mt-3 flex items-center gap-1.5 text-sm font-medium text-violet-400 hover:text-violet-300 transition-colors min-h-[44px]"
-            >
-              <SparklesIcon className="w-4 h-4" />
-              Generate from this
-            </button>
-          </div>
-        );
+        return <RssFeedCard key={i} item={item} onUseAsPrompt={onUseAsPrompt} />;
       })}
     </div>
   );
@@ -970,14 +1016,18 @@ function InspireContent() {
     // Build a descriptive lyrics-generation prompt from the article content
     const parts: string[] = [];
     if (item.title) parts.push(item.title);
-    if (item.description) parts.push(item.description.slice(0, 200));
-    if (item.topics && item.topics.length > 0) parts.push(item.topics.join(", "));
-    if (item.mood && item.mood !== "neutral") parts.push(`${item.mood} mood`);
-    const lyricsPrompt = parts.join(". ");
+    // Use full content (up to 800 chars) for richer lyrics inspiration
+    const body = item.content || item.description || "";
+    if (body) parts.push(body.slice(0, 800));
+    if (item.topics && item.topics.length > 0) parts.push(`Themes: ${item.topics.join(", ")}`);
+    if (item.mood && item.mood !== "neutral") parts.push(`Mood: ${item.mood}`);
+    const lyricsPrompt = parts.join("\n\n");
 
     const params = new URLSearchParams();
     params.set("lyricsprompt", lyricsPrompt);
-    if (item.mood && item.mood !== "neutral") params.set("tags", item.mood);
+    // Use suggested style (e.g. "rock, guitar, upbeat") instead of just mood keyword
+    const style = item.suggestedStyle || (item.mood !== "neutral" ? item.mood : "");
+    if (style) params.set("tags", style);
     router.push(`/generate?${params.toString()}`);
   };
 

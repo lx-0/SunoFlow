@@ -22,8 +22,10 @@ const MAX_AUTO_PER_USER = 10; // max songs auto-generated per cron run per user
 function buildPromptFromItem(item: {
   title: string;
   description: string;
+  content?: string;
   mood?: string;
   topics?: string[];
+  suggestedStyle?: string;
 }): { prompt: string; style: string } {
   const parts: string[] = [];
 
@@ -37,8 +39,18 @@ function buildPromptFromItem(item: {
   if (titleClean.length > 5 && titleClean.length < 120) {
     parts.push(`inspired by "${titleClean}"`);
   }
+  // Include content excerpt for richer prompt context
+  const body = item.content || item.description || "";
+  if (body.length > 20) {
+    parts.push(body.slice(0, 400));
+  }
 
   const prompt = parts.length > 0 ? parts.join(". ") : titleClean;
+
+  // Use suggested style if available, otherwise fall back to mood+topics
+  if (item.suggestedStyle) {
+    return { prompt, style: item.suggestedStyle };
+  }
 
   const styleParts: string[] = [];
   if (item.mood && item.mood !== "neutral") styleParts.push(item.mood);

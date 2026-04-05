@@ -1,11 +1,13 @@
 export interface RssItem {
   title: string;
   description: string;
+  content?: string;
   link?: string;
   source?: string;
   pubDate?: string;
   mood?: string;
   topics?: string[];
+  suggestedStyle?: string;
 }
 
 export interface FeedResult {
@@ -106,12 +108,57 @@ function extractTopics(text: string): string[] {
   return TOPIC_KEYWORDS.filter((t) => lower.includes(t)).slice(0, 5);
 }
 
+// ─── Style Suggestion ───
+
+const MOOD_STYLE_MAP: Record<string, string[]> = {
+  energetic: ["upbeat", "driving beat", "high energy"],
+  chill: ["lo-fi", "downtempo", "mellow groove"],
+  melancholic: ["ballad", "slow tempo", "minor key"],
+  romantic: ["smooth", "intimate vocals", "soft"],
+  uplifting: ["anthemic", "major key", "soaring melody"],
+  dark: ["heavy", "minor key", "brooding"],
+  dreamy: ["ambient", "ethereal", "reverb-heavy"],
+  intense: ["epic", "powerful", "dramatic build"],
+};
+
+function suggestStyle(mood: string, topics: string[]): string {
+  const parts: string[] = [];
+
+  // Genre from topics (pick first music-genre topic)
+  const genres = [
+    "rock", "pop", "jazz", "blues", "classical", "electronic", "hip-hop", "rap",
+    "country", "folk", "metal", "punk", "r&b", "soul", "reggae", "latin",
+    "ambient", "lo-fi", "cinematic", "orchestral", "acoustic",
+  ];
+  const genrePick = topics.find((t) => genres.includes(t));
+  if (genrePick) parts.push(genrePick);
+
+  // Instrument texture from topics
+  const instruments = ["guitar", "piano", "synth", "drums", "bass", "violin", "vocal"];
+  const instrPick = topics.find((t) => instruments.includes(t));
+  if (instrPick) parts.push(instrPick);
+
+  // Mood-derived style descriptors
+  const moodStyles = MOOD_STYLE_MAP[mood];
+  if (moodStyles) parts.push(moodStyles[0]);
+
+  // Fallback if nothing was derived
+  if (parts.length === 0) {
+    return mood !== "neutral" ? `${mood} indie` : "indie, alternative";
+  }
+
+  return parts.join(", ");
+}
+
 function enrichItem(item: RssItem): RssItem {
-  const text = `${item.title} ${item.description}`;
+  const text = `${item.title} ${item.description} ${item.content ?? ""}`;
+  const mood = detectMood(text);
+  const topics = extractTopics(text);
   return {
     ...item,
-    mood: detectMood(text),
-    topics: extractTopics(text),
+    mood,
+    topics,
+    suggestedStyle: suggestStyle(mood, topics),
   };
 }
 
@@ -150,9 +197,11 @@ export async function fetchFeed(url: string): Promise<FeedResult> {
         const rawContent =
           extractTagContent(entry, "content") ||
           extractTagContent(entry, "summary");
-        const description = stripTags(rawContent);
+        const fullText = stripTags(rawContent);
+        const description = fullText.slice(0, 200);
+        const content = fullText.slice(0, 1000);
         const link = extractAtomLink(entry) || extractTagContent(entry, "id");
-        return { title, description, link, source: feedTitle };
+        return { title, description, content, link, source: feedTitle };
       });
     } else {
       // RSS 2.0
@@ -179,10 +228,12 @@ export async function fetchFeed(url: string): Promise<FeedResult> {
           extractTagContent(item, "encoded");
         const rawDescription = contentEncoded ||
           stripCDATA(extractTagContent(item, "description"));
-        const description = stripTags(rawDescription);
+        const fullText = stripTags(rawDescription);
+        const description = fullText.slice(0, 200);
+        const content = fullText.slice(0, 1000);
         const link = extractTagContent(item, "link");
         const pubDate = extractTagContent(item, "pubDate");
-        return { title, description, link, source: feedTitle, pubDate };
+        return { title, description, content, link, source: feedTitle, pubDate };
       });
     }
 
