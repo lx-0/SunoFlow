@@ -60,32 +60,49 @@ export async function loginViaUI(
     // The login page is a "use client" component — we must wait for React hydration
     // before clicking Sign in, otherwise the form submits as plain HTML (no action attr)
     // and the page simply reloads on /login.
+    //
+    // Retry up to 2 times to absorb transient failures during staging deployments
+    // (e.g., server restarts causing brief 502s on the auth callback).
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      // Listen for the providers-config fetch that fires in the login page's useEffect
+      // — this signals that the component has mounted and event handlers are attached.
+      const hydrationPromise = page.waitForResponse(
+        (res) => res.url().includes("/api/auth/providers-config"),
+        { timeout: 20000 },
+      );
+      await page.goto("/login");
+      await hydrationPromise;
 
-    // Listen for the providers-config fetch that fires in the login page's useEffect
-    // — this signals that the component has mounted and event handlers are attached.
-    const hydrationPromise = page.waitForResponse(
-      (res) => res.url().includes("/api/auth/providers-config"),
-      { timeout: 20000 },
-    );
-    await page.goto("/login");
-    await hydrationPromise;
+      await page.getByLabel("Email").fill(email);
+      await page.getByLabel("Password").fill(password);
 
-    await page.getByLabel("Email").fill(email);
-    await page.getByLabel("Password").fill(password);
+      // Click and wait for the auth API call to confirm the JS handler fired
+      const signInBtn = page.getByRole("button", { name: "Sign in" });
+      await signInBtn.click();
 
-    // Click and wait for the auth API call to confirm the JS handler fired
-    const signInBtn = page.getByRole("button", { name: "Sign in" });
-    await signInBtn.click();
+      // Wait for the signIn() call to hit the auth backend
+      await page.waitForResponse(
+        (res) =>
+          res.url().includes("/api/auth/") &&
+          res.request().method() === "POST",
+        { timeout: 15000 },
+      );
 
-    // Wait for the signIn() call to hit the auth backend
-    await page.waitForResponse(
-      (res) =>
-        res.url().includes("/api/auth/") &&
-        res.request().method() === "POST",
-      { timeout: 15000 },
-    );
-
-    await expect(page).not.toHaveURL(/\/login/, { timeout: 15000 });
+      // Check if login succeeded (navigated away from /login)
+      try {
+        await expect(page).not.toHaveURL(/\/login/, { timeout: 5000 });
+        break; // login succeeded
+      } catch {
+        if (attempt < maxAttempts) {
+          // Brief wait before retrying — server may be restarting
+          await page.waitForTimeout(3000);
+        } else {
+          // Final attempt — fail with the full timeout for a clear error
+          await expect(page).not.toHaveURL(/\/login/, { timeout: 15000 });
+        }
+      }
+    }
   }
 
   // Safety net: dismiss welcome modal ("Skip for now") or tour tooltip ("Skip tour")
