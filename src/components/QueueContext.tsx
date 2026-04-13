@@ -212,6 +212,10 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   // Version cache — keyed by queue song ID, stores playable versions for the session
   const versionCacheRef = useRef<Map<string, QueueSong[]>>(new Map());
   const shuffleVersionsRef = useRef(false);
+  /** True when audio.play() was rejected (e.g. backgrounded on mobile) */
+  const pendingPlayRef = useRef(false);
+  const skipNextRef = useRef<() => void>(() => {});
+  const skipPrevRef = useRef<() => void>(() => {});
 
   const trackPlayRef = useRef(trackPlay);
   queueRef.current = queue;
@@ -262,7 +266,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     if (!shuffleVersionsRef.current) {
       setActiveVersion(null);
       audio.src = getAudioSrc(song);
-      audio.play().catch(console.error);
+      audio.play().catch(() => { pendingPlayRef.current = true; });
       trackPlayRef.current(song.id);
       return;
     }
@@ -286,12 +290,12 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       const picked = versions[Math.floor(Math.random() * versions.length)];
       setActiveVersion(picked);
       audio.src = getAudioSrc(picked);
-      audio.play().catch(console.error);
+      audio.play().catch(() => { pendingPlayRef.current = true; });
       trackPlayRef.current(picked.id);
     } else {
       setActiveVersion(null);
       audio.src = getAudioSrc(song);
-      audio.play().catch(console.error);
+      audio.play().catch(() => { pendingPlayRef.current = true; });
       trackPlayRef.current(song.id);
     }
   }, []);
@@ -303,7 +307,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     audioRef.current = new Audio();
     const audio = audioRef.current;
 
-    const onPlay = () => setIsPlaying(true);
+    const onPlay = () => { setIsPlaying(true); pendingPlayRef.current = false; };
     const onPause = () => {
       setIsPlaying(false);
       // Save position on pause so the user can resume from here on another device
@@ -356,7 +360,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
 
       if (rep === "repeat-one") {
         audio.currentTime = 0;
-        audio.play().catch(console.error);
+        audio.play().catch(() => { pendingPlayRef.current = true; });
         return;
       }
 
@@ -526,6 +530,9 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     audio.pause();
     resolveAndPlay(queue[prev], prev);
   }, [queue, currentIndex, repeat, resolveAndPlay]);
+
+  skipNextRef.current = skipNext;
+  skipPrevRef.current = skipPrev;
 
   const seek = useCallback(
     (fraction: number) => {
@@ -754,7 +761,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
           audio.src = getAudioSrc(merged[firstNew]);
           setCurrentTime(0);
           setDuration(merged[firstNew].duration ?? 0);
-          audio.play().catch(console.error);
+          audio.play().catch(() => { pendingPlayRef.current = true; });
           trackPlayRef.current(merged[firstNew].id);
         }
         return merged;
@@ -763,6 +770,68 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   }, [fetchRadioSongs]);
 
   radioRefillRef.current = radioRefill;
+
+  // ─── Visibility change recovery for background playback ────────────────
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (!document.hidden && pendingPlayRef.current) {
+        const audio = audioRef.current;
+        if (audio && audio.src && audio.paused) {
+          audio.play()
+            .then(() => { pendingPlayRef.current = false; })
+            .catch(() => {});
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, []);
+
+  // ─── Media Session API — action handlers (registered once) ─────────────
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+
+    navigator.mediaSession.setActionHandler("play", () => {
+      audioRef.current?.play().catch(() => {});
+    });
+    navigator.mediaSession.setActionHandler("pause", () => {
+      audioRef.current?.pause();
+    });
+    navigator.mediaSession.setActionHandler("nexttrack", () => {
+      skipNextRef.current();
+    });
+    navigator.mediaSession.setActionHandler("previoustrack", () => {
+      skipPrevRef.current();
+    });
+    navigator.mediaSession.setActionHandler("seekto", (details) => {
+      const audio = audioRef.current;
+      if (audio && details.seekTime != null) {
+        audio.currentTime = details.seekTime;
+      }
+    });
+  }, []);
+
+  // ─── Media Session API — metadata (updates when song changes) ──────────
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    const song = currentIndex >= 0 ? queue[currentIndex] : null;
+    const displaySong = activeVersion ?? song;
+    if (!displaySong) return;
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: displaySong.title ?? "Untitled",
+      artist: "SunoFlow",
+      artwork: displaySong.imageUrl
+        ? [{ src: displaySong.imageUrl, sizes: "512x512", type: "image/jpeg" }]
+        : [],
+    });
+  }, [queue, currentIndex, activeVersion]);
+
+  // ─── Media Session API — playback state ────────────────────────────────
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+  }, [isPlaying]);
 
   // ─── Auto-restore saved playback state on mount ────────────────────────
   const hasRestoredRef = useRef(false);
