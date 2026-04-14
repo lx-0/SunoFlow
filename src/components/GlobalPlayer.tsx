@@ -119,7 +119,7 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
     fetch(`/api/songs/${currentSong.id}`)
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
-        if (!cancelled && data) setIsFavorite(data.isFavorite ?? false);
+        if (!cancelled && data?.song) setIsFavorite(data.song.isFavorite ?? false);
       })
       .catch(() => {});
     return () => { cancelled = true; };
