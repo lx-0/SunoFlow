@@ -39,7 +39,7 @@ export async function PATCH(
     updates.status = "dismissed";
     await logAdminAction(admin!.id, "dismiss_report", report.id, `Dismissed report ${report.id}`);
   } else if (action === "hide_song") {
-    if (!report.songId) {
+    if (!report.songId || !report.song) {
       return NextResponse.json({ error: "This report is not for a song", code: "VALIDATION_ERROR" }, { status: 400 });
     }
     updates.status = "actioned";

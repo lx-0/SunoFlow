@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       const updates: Record<string, unknown> = { status: newStatus, updatedAt: new Date() };
 
       if (action === "hide_song") {
-        if (!report.songId) { errors.push(report.id); continue; }
+        if (!report.songId || !report.song) { errors.push(report.id); continue; }
         await prisma.song.update({
           where: { id: report.songId },
           data: { isHidden: true, isPublic: false },
