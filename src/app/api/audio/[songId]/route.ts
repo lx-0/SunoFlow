@@ -3,7 +3,7 @@ import { resolveUser } from "@/lib/auth-resolver";
 import { prisma } from "@/lib/prisma";
 import { getTaskStatus } from "@/lib/sunoapi/status";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
-import { getCachedAudio, getCachedAudioSize, cacheAudio, isCached } from "@/lib/audio-cache";
+import { getCachedAudio, cacheAudio, isCached } from "@/lib/audio-cache";
 
 // Refresh audio URL when within 3 days of expiry (matches play endpoint threshold).
 const REFRESH_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000;
