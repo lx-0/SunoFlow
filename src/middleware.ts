@@ -50,6 +50,8 @@ const MAX_BODY_BYTES = 1 * 1024 * 1024;
 // "public"      | 30           | 1 minute | /s/* (public share pages)
 // "playlist"    | 100          | 1 minute | /p/* (public playlist pages)
 // "embed"       | 200          | 1 minute | /embed/* (embed player pages)
+// "profile"     | 60           | 1 minute | /u/* (public user profiles)
+// "songs"       | 60           | 1 minute | /songs/* (public song-by-id pages)
 // "auth"        |  5           | 1 minute | /api/register, forgot/reset password
 // ---------------------------------------------------------------------------
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
@@ -205,7 +207,7 @@ export async function middleware(request: NextRequest) {
   // Strip locale prefix for path matching (so /de/login matches /login)
   const pathnameWithoutLocale = stripLocalePrefix(pathname);
 
-  const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email", "/api/auth", "/api/register", "/api/health", "/api/agent-skill", "/api/test/login", "/s/", "/p/", "/embed/"];
+  const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email", "/api/auth", "/api/register", "/api/health", "/api/agent-skill", "/api/test/login", "/s/", "/p/", "/u/", "/songs/", "/embed/"];
   const isPublic =
     pathnameWithoutLocale === "/" ||
     publicPaths.some((p) => pathnameWithoutLocale.startsWith(p) || pathname.startsWith(p));
@@ -248,6 +250,30 @@ export async function middleware(request: NextRequest) {
   // Rate limit public playlist pages: 100 req/min per IP
   if (pathname.startsWith("/p/")) {
     const { allowed, remaining, limit } = checkIpRateLimit(ip, "playlist", 100);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429, headers: { "X-RateLimit-Limit": String(limit), "X-RateLimit-Remaining": "0" } }
+      );
+    }
+    void remaining;
+  }
+
+  // Rate limit public profile pages: 60 req/min per IP
+  if (pathname.startsWith("/u/")) {
+    const { allowed, remaining, limit } = checkIpRateLimit(ip, "profile", 60);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429, headers: { "X-RateLimit-Limit": String(limit), "X-RateLimit-Remaining": "0" } }
+      );
+    }
+    void remaining;
+  }
+
+  // Rate limit public song-by-id pages: 60 req/min per IP
+  if (pathname.startsWith("/songs/")) {
+    const { allowed, remaining, limit } = checkIpRateLimit(ip, "songs", 60);
     if (!allowed) {
       return NextResponse.json(
         { error: "Too many requests" },
@@ -420,7 +446,7 @@ export async function middleware(request: NextRequest) {
   // Run next-intl middleware for page routes to handle locale detection and
   // URL rewriting. API routes and other special paths skip this.
   let response: NextResponse;
-  if (!pathname.startsWith("/api/") && !pathname.startsWith("/s/") && !pathname.startsWith("/p/") && !pathname.startsWith("/embed/")) {
+  if (!pathname.startsWith("/api/") && !pathname.startsWith("/s/") && !pathname.startsWith("/p/") && !pathname.startsWith("/u/") && !pathname.startsWith("/songs/") && !pathname.startsWith("/embed/")) {
     // Run next-intl middleware which handles locale prefix routing
     const intlResponse = intlMiddleware(request);
     response = intlResponse as NextResponse;
