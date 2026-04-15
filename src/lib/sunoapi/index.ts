@@ -7,11 +7,11 @@
  * Split into domain modules:
  *   - types.ts       — shared type definitions
  *   - http.ts        — error class, fetch helpers, response mappers
- *   - generation.ts  — music generation, extension, mashup, section replacement
+ *   - generation.ts  — music generation, extension, mashup, section replacement, sounds, cover images
  *   - lyrics.ts      — lyrics generation & timestamped lyrics
  *   - audio.ts       — vocal separation, WAV conversion, MIDI, music video
  *   - persona.ts     — persona creation, style boost
- *   - status.ts      — task status polling, credits query
+ *   - status.ts      — task status polling, credits query, detailed status for all task types
  *   - songs.ts       — song listing, retrieval, download
  *   - uploads.ts     — file uploads (base64, URL)
  */
@@ -24,6 +24,7 @@ export type {
   VocalGender,
   PersonaModel,
   SeparationType,
+  SoundKey,
   SunoSong,
   StyleTuningOptions,
   GenerateSongOptions,
@@ -48,6 +49,22 @@ export type {
   GenerateMidiOptions,
   BoostStyleResult,
   FileUploadResult,
+  GenerateSoundsOptions,
+  GenerateCoverImageOptions,
+  CoverImageResult,
+  LyricsTaskStatus,
+  LyricsDetailResult,
+  VocalSeparationStatus,
+  VocalSeparationDetailResult,
+  WavConversionStatus,
+  WavConversionDetailResult,
+  MusicVideoStatus,
+  MusicVideoDetailResult,
+  MidiNote,
+  MidiInstrument,
+  MidiDetailResult,
+  CoverImageDetailResult,
+  StreamUploadResult,
 } from "./types";
 
 // Error classes
@@ -64,6 +81,8 @@ export {
   addInstrumental,
   generateMashup,
   replaceSection,
+  generateSounds,
+  generateCoverImage,
 } from "./generation";
 
 // Lyrics
@@ -76,22 +95,31 @@ export { separateVocals, convertToWav, generateMidi, createMusicVideo } from "./
 export { generatePersona, boostStyle } from "./persona";
 
 // Status & credits
-export { getTaskStatus, getRemainingCredits } from "./status";
+export {
+  getTaskStatus,
+  getRemainingCredits,
+  getLyricsDetail,
+  getVocalSeparationDetail,
+  getWavConversionDetail,
+  getMusicVideoDetail,
+  getMidiDetail,
+  getCoverImageDetail,
+} from "./status";
 
 // Song retrieval
 export { listSongs, getSongById, downloadSong } from "./songs";
 
 // File uploads
-export { uploadFileBase64, uploadFileFromUrl } from "./uploads";
+export { uploadFileBase64, uploadFileFromUrl, uploadFileStream } from "./uploads";
 
 // Convenience namespace
-import { generateSong, extendMusic, uploadAndCover, uploadAndExtend, addVocals, addInstrumental, generateMashup, replaceSection } from "./generation";
+import { generateSong, extendMusic, uploadAndCover, uploadAndExtend, addVocals, addInstrumental, generateMashup, replaceSection, generateSounds, generateCoverImage } from "./generation";
 import { generateLyrics, getTimestampedLyrics } from "./lyrics";
 import { separateVocals, convertToWav, generateMidi, createMusicVideo } from "./audio";
 import { generatePersona, boostStyle } from "./persona";
-import { getTaskStatus, getRemainingCredits } from "./status";
+import { getTaskStatus, getRemainingCredits, getLyricsDetail, getVocalSeparationDetail, getWavConversionDetail, getMusicVideoDetail, getMidiDetail, getCoverImageDetail } from "./status";
 import { listSongs, getSongById, downloadSong } from "./songs";
-import { uploadFileBase64, uploadFileFromUrl } from "./uploads";
+import { uploadFileBase64, uploadFileFromUrl, uploadFileStream } from "./uploads";
 
 export const sunoApi = {
   generateSong,
@@ -102,6 +130,8 @@ export const sunoApi = {
   addInstrumental,
   generateMashup,
   replaceSection,
+  generateSounds,
+  generateCoverImage,
   generateLyrics,
   getTimestampedLyrics,
   separateVocals,
@@ -112,9 +142,16 @@ export const sunoApi = {
   boostStyle,
   getTaskStatus,
   getRemainingCredits,
+  getLyricsDetail,
+  getVocalSeparationDetail,
+  getWavConversionDetail,
+  getMusicVideoDetail,
+  getMidiDetail,
+  getCoverImageDetail,
   listSongs,
   getSongById,
   downloadSong,
   uploadFileBase64,
   uploadFileFromUrl,
+  uploadFileStream,
 } as const;

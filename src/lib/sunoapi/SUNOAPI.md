@@ -5,13 +5,23 @@
 > File Upload Base URL: `https://sunoapiorg.redpandaai.co`
 > Auth: `Authorization: Bearer <API_KEY>`
 
-## Model
+## Models
 
-SunoFlow targets **V5 only** — the latest Suno model. Legacy models (V4, V4_5, V4_5PLUS, V4_5ALL) are not supported.
+SunoFlow defaults to **V5_5** — the newest Suno model. All models are supported for full API coverage.
 
 | Model | Notes |
 |-------|-------|
-| V5 | Latest cutting-edge model. 5000-char prompt, 1000-char style, 100-char title |
+| V5_5 | Voice-customized model — custom models tailored to unique taste (default) |
+| V5 | Superior musical expression, faster generation. 5000-char prompt, 1000-char style, 100-char title |
+| V4_5PLUS | Richer sound, new creation methods, up to 8 minutes |
+| V4_5ALL | Better song structure, up to 8 minutes |
+| V4_5 | Superior genre blending, faster output, up to 8 minutes |
+| V4 | Best audio quality, up to 4 minutes. 3000-char prompt, 200-char style, 80-char title |
+
+Character limits vary by model:
+- **Prompt**: V4 (3000), V4_5+ / V5 / V5_5 (5000)
+- **Style**: V4 (200), others (1000)
+- **Title**: V4 / V4_5ALL (80), others (100)
 
 ## Rate Limits & Retention
 
@@ -205,6 +215,53 @@ Replace a specific time segment of an existing track.
 
 **Constraints:** Range must be 6–60 seconds and ≤50% of original track length.
 
+### Generate Sounds
+
+**POST** `/generate/sounds`
+
+Generate ambient sounds or sound effects from a text prompt. Only supports V5 model.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `prompt` | string | Yes | Sound description (max 500 chars) |
+| `model` | string | Yes | Must be `V5` |
+| `callBackUrl` | string | Yes | Webhook URL |
+| `soundLoop` | boolean | No | Enable looped playback for ambient audio (default: false) |
+| `soundTempo` | integer | No | BPM (1–300) |
+| `soundKey` | string | No | Musical key (Any, Cm, C#m, Dm, ..., B) — 24 values |
+| `grabLyrics` | boolean | No | Retrieve lyric subtitle data on completion (default: false) |
+
+**Response:** `{ "data": { "taskId": "..." } }`
+
+---
+
+## Cover Images
+
+### Generate Cover Image
+
+**POST** `/suno/cover/generate`
+
+Generate cover art images for a completed music generation task. Typically produces 2 different style images.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `taskId` | string | Yes | Original music task ID |
+| `callBackUrl` | string | Yes | Webhook URL |
+
+**Response:** `{ "data": { "taskId": "..." } }`
+
+Cover images are retained for **14 days**. One cover per task — duplicates return the existing taskId with status 400.
+
+### Get Cover Image Details
+
+**GET** `/suno/cover/record-info?taskId={taskId}`
+
+Poll for cover image generation status.
+
+**Response data:**
+- `successFlag`: 0=Pending, 1=Success, 2=Generating, 3=Failed
+- `response.images`: array of image URLs (when successFlag=1)
+
 ---
 
 ## Lyrics
@@ -381,6 +438,58 @@ Poll for task status and results.
 
 No parameters. Returns integer credit balance.
 
+### Get Lyrics Generation Details
+
+**GET** `/lyrics/record-info?taskId={taskId}`
+
+Poll for lyrics generation task status.
+
+**Status values:** PENDING, SUCCESS, CREATE_TASK_FAILED, GENERATE_LYRICS_FAILED, CALLBACK_EXCEPTION, SENSITIVE_WORD_ERROR
+
+**Response data:** `taskId`, `status`, `type` ("LYRICS"), `response.data[]` with `text`, `title`, `status`, `errorMessage`.
+
+### Get Vocal Separation Details
+
+**GET** `/vocal-removal/record-info?taskId={taskId}`
+
+Poll for vocal separation/stem split results.
+
+**Status values:** PENDING, SUCCESS, CREATE_TASK_FAILED, GENERATE_AUDIO_FAILED, CALLBACK_EXCEPTION
+
+**Response data:** `taskId`, `musicId`, `successFlag`, `response` with URLs for each stem (vocalUrl, instrumentalUrl, bassUrl, drumsUrl, etc.).
+
+### Get WAV Conversion Details
+
+**GET** `/wav/record-info?taskId={taskId}`
+
+Poll for WAV conversion results.
+
+**Status values:** PENDING, SUCCESS, CREATE_TASK_FAILED, GENERATE_WAV_FAILED, CALLBACK_EXCEPTION
+
+**Response data:** `taskId`, `musicId`, `successFlag`, `response.audioWavUrl`.
+
+### Get Music Video Details
+
+**GET** `/mp4/record-info?taskId={taskId}`
+
+Poll for music video generation results.
+
+**Status values:** PENDING, SUCCESS, CREATE_TASK_FAILED, GENERATE_MP4_FAILED, CALLBACK_EXCEPTION
+
+**Response data:** `taskId`, `musicId`, `successFlag`, `response.videoUrl`.
+
+### Get MIDI Generation Details
+
+**GET** `/midi/record-info?taskId={taskId}`
+
+Poll for MIDI generation results including instrument/note data.
+
+**successFlag:** 0=Pending, 1=Success, 2=Creation failed, 3=Generation failed
+
+**Response data:** `taskId`, `successFlag`, `midiData` with `state`, `instruments[]` containing `name` and `notes[]` (`pitch`, `start`, `end`, `velocity`).
+
+MIDI records retained for **14 days**. When using `split_stem` separation, midiData may be empty.
+
 ---
 
 ## File Uploads
@@ -403,7 +512,29 @@ Best for files ≤10MB. ~33% transmission overhead.
 
 **POST** `/api/file-stream-upload`
 
-Best for files >10MB. Uses multipart/form-data.
+Best for files >10MB. Uses `multipart/form-data`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | binary | Yes | File data |
+| `uploadPath` | string | Yes | Storage directory path (no leading/trailing slashes) |
+| `fileName` | string | No | Custom filename with extension |
+
+**Stream upload response:**
+```json
+{
+  "success": true,
+  "code": 200,
+  "data": {
+    "fileName": "track.mp3",
+    "filePath": "audio/track.mp3",
+    "downloadUrl": "https://...",
+    "fileSize": 5242880,
+    "mimeType": "audio/mpeg",
+    "uploadedAt": "2025-01-15T10:30:00Z"
+  }
+}
+```
 
 ### URL Upload
 

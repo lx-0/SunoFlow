@@ -8,6 +8,9 @@ import type {
   AddInstrumentalOptions,
   MashupOptions,
   ReplaceSectionOptions,
+  GenerateSoundsOptions,
+  GenerateCoverImageOptions,
+  CoverImageResult,
 } from "./types";
 import {
   BASE_URL,
@@ -272,5 +275,57 @@ export async function replaceSection(
   });
 
   const taskId = await extractTaskId(res, "replace-section API");
+  return { taskId };
+}
+
+/**
+ * Generate ambient sounds from a text prompt.
+ * Only supports the V5 model. Returns a taskId for polling.
+ */
+export async function generateSounds(
+  options: GenerateSoundsOptions,
+  apiKey?: string
+): Promise<GenerateResult> {
+  const body: Record<string, unknown> = {
+    prompt: options.prompt,
+    model: options.model ?? "V5",
+    callBackUrl: NOOP_CALLBACK_URL,
+  };
+
+  if (options.soundLoop != null) body.soundLoop = options.soundLoop;
+  if (options.soundTempo != null) body.soundTempo = options.soundTempo;
+  if (options.soundKey != null) body.soundKey = options.soundKey;
+  if (options.grabLyrics != null) body.grabLyrics = options.grabLyrics;
+
+  const res = await fetchWithRetry(`${BASE_URL}/generate/sounds`, {
+    method: "POST",
+    headers: buildHeaders(apiKey),
+    body: JSON.stringify(body),
+  });
+
+  const taskId = await extractTaskId(res, "generate/sounds API");
+  return { taskId };
+}
+
+/**
+ * Generate cover images for a completed music generation task.
+ * Typically produces 2 different style images. Images retained for 14 days.
+ */
+export async function generateCoverImage(
+  options: GenerateCoverImageOptions,
+  apiKey?: string
+): Promise<CoverImageResult> {
+  const body = {
+    taskId: options.taskId,
+    callBackUrl: NOOP_CALLBACK_URL,
+  };
+
+  const res = await fetchWithRetry(`${BASE_URL}/suno/cover/generate`, {
+    method: "POST",
+    headers: buildHeaders(apiKey),
+    body: JSON.stringify(body),
+  });
+
+  const taskId = await extractTaskId(res, "suno/cover/generate API");
   return { taskId };
 }

@@ -10,7 +10,7 @@ export type TaskStatus =
   | "CALLBACK_EXCEPTION"
   | "SENSITIVE_WORD_ERROR";
 
-export type SunoModel = "V5";
+export type SunoModel = "V4" | "V4_5" | "V4_5PLUS" | "V4_5ALL" | "V5" | "V5_5";
 
 export type VocalGender = "m" | "f";
 
@@ -223,4 +223,183 @@ export interface FileUploadResult {
   fileUrl: string;
   downloadUrl: string;
   expiresAt: string;
+}
+
+/** Pitch key values accepted by the sounds endpoint */
+export type SoundKey =
+  | "Any" | "Cm" | "C#m" | "Dm" | "D#m" | "Em" | "Fm" | "F#m"
+  | "Gm" | "G#m" | "Am" | "A#m" | "Bm"
+  | "C" | "C#" | "D" | "D#" | "E" | "F" | "F#"
+  | "G" | "G#" | "A" | "A#" | "B";
+
+export interface GenerateSoundsOptions {
+  prompt: string;
+  /** Only V5 is supported for sounds */
+  model?: "V5";
+  /** Enable looped playback for ambient audio */
+  soundLoop?: boolean;
+  /** BPM (1–300) */
+  soundTempo?: number;
+  /** Musical key */
+  soundKey?: SoundKey;
+  /** Retrieve lyric subtitle data on completion */
+  grabLyrics?: boolean;
+}
+
+export interface GenerateCoverImageOptions {
+  taskId: string;
+}
+
+export interface CoverImageResult {
+  taskId: string;
+}
+
+export type LyricsTaskStatus =
+  | "PENDING"
+  | "SUCCESS"
+  | "CREATE_TASK_FAILED"
+  | "GENERATE_LYRICS_FAILED"
+  | "CALLBACK_EXCEPTION"
+  | "SENSITIVE_WORD_ERROR";
+
+export interface LyricsDetailResult {
+  taskId: string;
+  status: LyricsTaskStatus;
+  type: string;
+  response?: {
+    data: Array<{
+      text: string;
+      title: string;
+      status: "complete" | "failed";
+      errorMessage?: string;
+    }>;
+  };
+  errorCode?: number;
+  errorMessage?: string;
+}
+
+export type VocalSeparationStatus =
+  | "PENDING"
+  | "SUCCESS"
+  | "CREATE_TASK_FAILED"
+  | "GENERATE_AUDIO_FAILED"
+  | "CALLBACK_EXCEPTION";
+
+export interface VocalSeparationDetailResult {
+  taskId: string;
+  musicId: string;
+  musicIndex: number;
+  successFlag: VocalSeparationStatus;
+  createTime: string;
+  completeTime?: string;
+  response?: {
+    originUrl?: string;
+    vocalUrl?: string;
+    instrumentalUrl?: string;
+    backingVocalsUrl?: string;
+    drumsUrl?: string;
+    bassUrl?: string;
+    guitarUrl?: string;
+    keyboardUrl?: string;
+    percussionUrl?: string;
+    stringsUrl?: string;
+    synthUrl?: string;
+    fxUrl?: string;
+    brassUrl?: string;
+    woodwindsUrl?: string;
+  };
+  errorCode?: number;
+  errorMessage?: string;
+}
+
+export type WavConversionStatus =
+  | "PENDING"
+  | "SUCCESS"
+  | "CREATE_TASK_FAILED"
+  | "GENERATE_WAV_FAILED"
+  | "CALLBACK_EXCEPTION";
+
+export interface WavConversionDetailResult {
+  taskId: string;
+  musicId: string;
+  musicIndex: number;
+  successFlag: WavConversionStatus;
+  createTime: string;
+  completeTime?: string;
+  response?: {
+    audioWavUrl?: string;
+  };
+  errorCode?: number;
+  errorMessage?: string;
+}
+
+export type MusicVideoStatus =
+  | "PENDING"
+  | "SUCCESS"
+  | "CREATE_TASK_FAILED"
+  | "GENERATE_MP4_FAILED"
+  | "CALLBACK_EXCEPTION";
+
+export interface MusicVideoDetailResult {
+  taskId: string;
+  musicId: string;
+  musicIndex: number;
+  successFlag: MusicVideoStatus;
+  createTime: string;
+  completeTime?: string;
+  response?: {
+    videoUrl?: string;
+  };
+  errorCode?: number;
+  errorMessage?: string;
+}
+
+export interface MidiNote {
+  pitch: number;
+  start: number;
+  end: number;
+  velocity: number;
+}
+
+export interface MidiInstrument {
+  name: string;
+  notes: MidiNote[];
+}
+
+export interface MidiDetailResult {
+  taskId: string;
+  /** 0=Pending, 1=Success, 2=Creation failed, 3=Generation failed */
+  successFlag: number;
+  audioId?: string;
+  createTime: number;
+  completeTime?: number;
+  midiData?: {
+    state: string;
+    instruments: MidiInstrument[];
+  };
+  errorCode?: string | null;
+  errorMessage?: string | null;
+}
+
+export interface CoverImageDetailResult {
+  taskId: string;
+  parentTaskId: string;
+  /** 0=Pending, 1=Success, 2=Generating, 3=Failed */
+  successFlag: number;
+  createTime: string;
+  completeTime?: string;
+  response?: {
+    images: string[];
+  };
+  errorCode?: number;
+  errorMessage?: string;
+}
+
+export interface StreamUploadResult {
+  fileName: string;
+  filePath: string;
+  downloadUrl: string;
+  fileSize: number;
+  mimeType: string;
+  uploadedAt: string;
 }
