@@ -31,10 +31,19 @@ import {
 // Register all tools by importing them (side-effect: calls registerTool)
 import "./tools/info";
 import "./tools/generate_song";
+import "./tools/extend_song";
 import "./tools/list_songs";
 import "./tools/get_song";
 import "./tools/playlist";
 import "./tools/get_credits";
+import "./tools/generate_lyrics";
+import "./tools/boost_style";
+import "./tools/separate_vocals";
+import "./tools/convert_to_wav";
+import "./tools/generate_midi";
+import "./tools/create_music_video";
+import "./tools/generate_cover_image";
+import "./tools/generate_sounds";
 
 // Register all resource providers by importing them (side-effect: calls register*)
 import "./providers/songs";
