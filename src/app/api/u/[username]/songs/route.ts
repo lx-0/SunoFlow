@@ -31,7 +31,7 @@ export async function GET(
           isPublic: true,
           isHidden: false,
           archivedAt: null,
-          generationStatus: "complete",
+          generationStatus: "ready",
         },
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * PAGE_SIZE,
@@ -54,7 +54,7 @@ export async function GET(
           isPublic: true,
           isHidden: false,
           archivedAt: null,
-          generationStatus: "complete",
+          generationStatus: "ready",
         },
       }),
     ]);

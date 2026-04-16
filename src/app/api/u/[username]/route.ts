@@ -27,7 +27,7 @@ export async function GET(
           select: {
             followers: true,
             following: true,
-            songs: { where: { isPublic: true, isHidden: false, archivedAt: null, generationStatus: "complete" } },
+            songs: { where: { isPublic: true, isHidden: false, archivedAt: null, generationStatus: "ready" } },
           },
         },
       },

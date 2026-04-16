@@ -37,7 +37,7 @@ const getProfile = cache((username: string) =>
           followers: true,
           following: true,
           songs: {
-            where: { isPublic: true, isHidden: false, archivedAt: null, generationStatus: "complete" },
+            where: { isPublic: true, isHidden: false, archivedAt: null, generationStatus: "ready" },
           },
         },
       },

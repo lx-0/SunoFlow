@@ -49,7 +49,7 @@ async function createSong(
     data: {
       userId,
       title: "Test Song",
-      generationStatus: "complete",
+      generationStatus: "ready",
       ...overrides,
     },
   });
@@ -159,7 +159,7 @@ describe.skipIf(!hasDb)("User model", () => {
   it("deletes a user and cascades to songs", async () => {
     const user = await createUser("user-cascade");
     await prisma.song.create({
-      data: { userId: user.id, title: "Cascade Song", generationStatus: "complete" },
+      data: { userId: user.id, title: "Cascade Song", generationStatus: "ready" },
     });
 
     await prisma.user.delete({ where: { id: user.id } });
@@ -209,7 +209,7 @@ describe.skipIf(!hasDb)("Song model", () => {
   it("creates a song with default field values", async () => {
     const song = await createSong(ownerId, { title: "Default Fields Song" });
     expect(song.id).toBeTruthy();
-    expect(song.generationStatus).toBe("complete");
+    expect(song.generationStatus).toBe("ready");
     expect(song.isInstrumental).toBe(false);
     expect(song.isPublic).toBe(false);
     expect(song.isHidden).toBe(false);
@@ -245,19 +245,19 @@ describe.skipIf(!hasDb)("Song model", () => {
 
   it("filters songs by generationStatus", async () => {
     await createSong(ownerId, { title: "Pending Song", generationStatus: "pending" });
-    await createSong(ownerId, { title: "Complete Song", generationStatus: "complete" });
+    await createSong(ownerId, { title: "Ready Song", generationStatus: "ready" });
 
     const pending = await prisma.song.findMany({
       where: { userId: ownerId, generationStatus: "pending" },
     });
-    const complete = await prisma.song.findMany({
-      where: { userId: ownerId, generationStatus: "complete" },
+    const ready = await prisma.song.findMany({
+      where: { userId: ownerId, generationStatus: "ready" },
     });
 
     expect(pending.length).toBeGreaterThanOrEqual(1);
-    expect(complete.length).toBeGreaterThanOrEqual(1);
+    expect(ready.length).toBeGreaterThanOrEqual(1);
     expect(pending.every((s) => s.generationStatus === "pending")).toBe(true);
-    expect(complete.every((s) => s.generationStatus === "complete")).toBe(true);
+    expect(ready.every((s) => s.generationStatus === "ready")).toBe(true);
   });
 
   it("filters songs by isPublic and isHidden", async () => {

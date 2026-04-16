@@ -30,7 +30,7 @@ export async function GET(
         isPublic: true,
         isHidden: false,
         archivedAt: null,
-        generationStatus: "complete",
+        generationStatus: "ready",
       },
     };
 

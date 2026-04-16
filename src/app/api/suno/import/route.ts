@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
             tags: song.tags ?? null,
             lyrics: song.lyrics ?? null,
             prompt: song.prompt ?? null,
-            generationStatus: "complete",
+            generationStatus: "ready",
           },
           select: { id: true },
         });
