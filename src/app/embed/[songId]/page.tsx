@@ -70,7 +70,7 @@ export default async function EmbedSongPage({
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="robots" content="noindex" />
-        <title>{title} — SunoFlow</title>
+        <title>{`${title} — SunoFlow`}</title>
       </head>
       <body
         style={{ margin: 0, padding: "8px", boxSizing: "border-box" }}
