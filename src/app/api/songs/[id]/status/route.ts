@@ -4,15 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getTaskStatus } from "@/lib/sunoapi";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 import { logServerError } from "@/lib/error-logger";
-import { invalidateByPrefix } from "@/lib/cache";
 import { broadcast } from "@/lib/event-bus";
-import { sendGenerationCompleteEmail } from "@/lib/email";
-import { logger } from "@/lib/logger";
-import { recordActivity } from "@/lib/activity";
-import { recordDailyActivity, checkSongMilestones, checkStreakMilestones } from "@/lib/streaks";
-import { sendPushToUser } from "@/lib/push";
-import crypto from "crypto";
-import { downloadAndCache, isCached } from "@/lib/audio-cache";
+import { handleSongSuccess, handleSongFailure } from "@/lib/song-completion";
 
 const MAX_POLL_ATTEMPTS = 60;
 
@@ -101,147 +94,15 @@ export async function GET(
       taskResult.status === "SENSITIVE_WORD_ERROR";
 
     if (isComplete && taskResult.songs.length > 0) {
-      const firstSong = taskResult.songs[0];
-      // Audio URLs expire in 15 days (generated); use 12 days as a conservative buffer.
-      const audioUrlExpiresAt = new Date(Date.now() + 12 * 24 * 60 * 60 * 1000);
-      // Update the primary song record with the first result
-      const updated = await prisma.song.update({
-        where: { id },
-        data: {
-          generationStatus: "ready",
-          audioUrl: firstSong.audioUrl || song.audioUrl,
-          audioUrlExpiresAt: firstSong.audioUrl ? audioUrlExpiresAt : song.audioUrlExpiresAt,
-          imageUrl: firstSong.imageUrl || song.imageUrl,
-          duration: firstSong.duration ?? song.duration,
-          lyrics: firstSong.lyrics || song.lyrics,
-          title: firstSong.title || song.title,
-          tags: firstSong.tags || song.tags,
-          sunoModel: firstSong.model || song.sunoModel,
-          pollCount: newPollCount,
-        },
-      });
-
-      // Proactively cache audio to local disk so playback never depends on
-      // Suno URL availability. Fire-and-forget to avoid slowing the response.
-      if (firstSong.audioUrl && !isCached(id)) {
-        downloadAndCache(id, firstSong.audioUrl).catch(() => {});
-      }
-
-      // If the API returned additional songs, create them as linked alternates
-      for (let i = 1; i < taskResult.songs.length; i++) {
-        const extra = taskResult.songs[i];
-        const alternateSong = await prisma.song.create({
-          data: {
-            userId: song.userId,
-            sunoJobId: extra.id || null,
-            title: extra.title || song.title,
-            prompt: song.prompt,
-            tags: extra.tags || song.tags,
-            audioUrl: extra.audioUrl || null,
-            audioUrlExpiresAt: extra.audioUrl ? audioUrlExpiresAt : null,
-            imageUrl: extra.imageUrl || null,
-            duration: extra.duration ?? null,
-            lyrics: extra.lyrics || null,
-            sunoModel: extra.model || null,
-            isInstrumental: song.isInstrumental,
-            generationStatus: "ready",
-            parentSongId: id,
-          },
-        });
-        broadcast(song.userId, {
-          type: "generation_update",
-          data: {
-            songId: alternateSong.id,
-            parentSongId: id,
-            status: "ready",
-            title: alternateSong.title,
-            audioUrl: alternateSong.audioUrl,
-            imageUrl: alternateSong.imageUrl,
-          },
-        });
-        // Cache alternate audio locally too
-        if (extra.audioUrl) {
-          downloadAndCache(alternateSong.id, extra.audioUrl).catch(() => {});
-        }
-      }
-
-      const alternateCount = taskResult.songs.length - 1;
-      invalidateByPrefix(`dashboard-stats:${song.userId}`);
-      broadcast(song.userId, {
-        type: "generation_update",
-        data: { songId: id, status: "ready", title: updated.title, audioUrl: updated.audioUrl, imageUrl: updated.imageUrl, alternateCount },
-      });
-
-      // Record activity for the primary song
-      recordActivity({ userId: song.userId, type: "song_created", songId: id });
-
-      // Update streak and check milestones (fire-and-forget)
-      recordDailyActivity(song.userId)
-        .then((newStreak) => checkStreakMilestones(song.userId, newStreak))
-        .catch(() => {});
-      checkSongMilestones(song.userId).catch(() => {});
-
-      // Update linked queue item
-      await prisma.generationQueueItem.updateMany({
-        where: { songId: id, status: "processing" },
-        data: { status: "done" },
-      });
-      // Signal client to process next item
-      broadcast(song.userId, { type: "queue_item_complete", data: { songId: id } });
-
-      // Send generation complete email + push notification if user has opted in
-      const userPrefs = await prisma.user.findUnique({
-        where: { id: song.userId },
-        select: {
-          email: true,
-          emailGenerationComplete: true,
-          unsubscribeToken: true,
-          pushGenerationComplete: true,
-        },
-      });
-      if (userPrefs?.email && userPrefs.emailGenerationComplete) {
-        let unsubToken = userPrefs.unsubscribeToken;
-        if (!unsubToken) {
-          unsubToken = crypto.randomUUID();
-          await prisma.user.update({ where: { id: song.userId }, data: { unsubscribeToken: unsubToken } });
-        }
-        sendGenerationCompleteEmail(userPrefs.email, { id, title: updated.title }, unsubToken).catch((err) =>
-          logger.error({ userId: song.userId, songId: id, err }, "status: failed to send generation complete email")
-        );
-      }
-      if (userPrefs?.pushGenerationComplete !== false) {
-        sendPushToUser(song.userId, {
-          title: "Your song is ready!",
-          body: `"${updated.title || "Untitled"}" has finished generating`,
-          url: `/library`,
-          tag: `generation-complete-${id}`,
-        }).catch(() => {});
-      }
-
+      await handleSongSuccess(song, taskResult.songs);
+      const updated = await prisma.song.findUnique({ where: { id } });
       return NextResponse.json({ song: updated });
     }
 
     if (isFailed) {
-      const updated = await prisma.song.update({
-        where: { id },
-        data: {
-          generationStatus: "failed",
-          pollCount: newPollCount,
-          errorMessage: taskResult.errorMessage || `Generation failed: ${taskResult.status}`,
-        },
-      });
-      broadcast(song.userId, {
-        type: "generation_update",
-        data: { songId: id, status: "failed", errorMessage: updated.errorMessage },
-      });
-
-      // Update linked queue item and signal next
-      await prisma.generationQueueItem.updateMany({
-        where: { songId: id, status: "processing" },
-        data: { status: "failed", errorMessage: updated.errorMessage },
-      });
-      broadcast(song.userId, { type: "queue_item_complete", data: { songId: id } });
-
+      const errorMessage = taskResult.errorMessage || `Generation failed: ${taskResult.status}`;
+      await handleSongFailure(song, errorMessage);
+      const updated = await prisma.song.findUnique({ where: { id } });
       return NextResponse.json({ song: updated });
     }
 

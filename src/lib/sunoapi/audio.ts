@@ -5,7 +5,7 @@ import type {
   MusicVideoOptions,
   GenerateResult,
 } from "./types";
-import { BASE_URL, NOOP_CALLBACK_URL, fetchWithRetry, buildHeaders, extractTaskId } from "./http";
+import { BASE_URL, getCallbackUrl, fetchWithRetry, buildHeaders, extractTaskId } from "./http";
 
 /**
  * Separate vocals and instruments from a track.
@@ -20,7 +20,7 @@ export async function separateVocals(
     taskId: options.taskId,
     audioId: options.audioId,
     type: options.type,
-    callBackUrl: NOOP_CALLBACK_URL,
+    callBackUrl: getCallbackUrl(),
   };
 
   const res = await fetchWithRetry(`${BASE_URL}/vocal-removal/generate`, {
@@ -43,7 +43,7 @@ export async function convertToWav(
   const body = {
     taskId: options.taskId,
     audioId: options.audioId,
-    callBackUrl: NOOP_CALLBACK_URL,
+    callBackUrl: getCallbackUrl(),
   };
 
   const res = await fetchWithRetry(`${BASE_URL}/wav/generate`, {
@@ -66,7 +66,7 @@ export async function generateMidi(
 ): Promise<GenerateResult> {
   const body: Record<string, unknown> = {
     taskId: options.taskId,
-    callBackUrl: NOOP_CALLBACK_URL,
+    callBackUrl: getCallbackUrl(),
   };
   if (options.audioId != null) body.audioId = options.audioId;
 
@@ -91,7 +91,7 @@ export async function createMusicVideo(
   const body: Record<string, unknown> = {
     taskId: options.taskId,
     audioId: options.audioId,
-    callBackUrl: NOOP_CALLBACK_URL,
+    callBackUrl: getCallbackUrl(),
   };
 
   if (options.author != null) body.author = options.author;

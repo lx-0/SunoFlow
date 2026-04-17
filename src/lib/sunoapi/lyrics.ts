@@ -1,5 +1,5 @@
 import type { GenerateLyricsOptions, LyricsResult, TimestampedLyricsResult } from "./types";
-import { SunoApiError, BASE_URL, NOOP_CALLBACK_URL, fetchWithRetry, buildHeaders, extractTaskId } from "./http";
+import { SunoApiError, BASE_URL, getCallbackUrl, fetchWithRetry, buildHeaders, extractTaskId } from "./http";
 
 /**
  * Generate lyrics from a text description (max 200 chars).
@@ -11,7 +11,7 @@ export async function generateLyrics(
 ): Promise<LyricsResult> {
   const body = {
     prompt: options.prompt,
-    callBackUrl: NOOP_CALLBACK_URL,
+    callBackUrl: getCallbackUrl(),
   };
 
   const res = await fetchWithRetry(`${BASE_URL}/lyrics`, {

@@ -1,5 +1,5 @@
 import type { SunoModel, StyleTuningOptions, SunoSong, SongStatus, TaskStatus } from "./types";
-import { SUNO_API_TIMEOUT_MS, SUNOAPI_KEY } from "@/lib/env";
+import { SUNO_API_TIMEOUT_MS, SUNOAPI_KEY, WEBHOOK_BASE_URL, SUNO_WEBHOOK_SECRET } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import {
   CircuitOpenError,
@@ -22,8 +22,16 @@ export class SunoApiError extends Error {
 export const BASE_URL = "https://api.sunoapi.org/api/v1";
 export const FILE_UPLOAD_BASE_URL = "https://sunoapiorg.redpandaai.co";
 
-/** Use a no-op callback URL — we poll for results instead of receiving callbacks */
-export const NOOP_CALLBACK_URL = "https://localhost/noop";
+const NOOP_CALLBACK_URL = "https://localhost/noop";
+
+/** Build the callback URL for Suno API async endpoints.
+ *  When SUNO_WEBHOOK_SECRET is configured, returns a real webhook URL;
+ *  otherwise falls back to the no-op URL (polling-only mode). */
+export function getCallbackUrl(): string {
+  if (!SUNO_WEBHOOK_SECRET) return NOOP_CALLBACK_URL;
+  const base = WEBHOOK_BASE_URL.replace(/\/+$/, "");
+  return `${base}/api/webhooks/suno?token=${encodeURIComponent(SUNO_WEBHOOK_SECRET)}`;
+}
 
 export const DEFAULT_MODEL: SunoModel = "V5_5";
 

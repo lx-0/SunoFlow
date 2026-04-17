@@ -14,7 +14,7 @@ import type {
 } from "./types";
 import {
   BASE_URL,
-  NOOP_CALLBACK_URL,
+  getCallbackUrl,
   DEFAULT_MODEL,
   fetchWithRetry,
   buildHeaders,
@@ -40,7 +40,7 @@ export async function generateSong(
     instrumental,
     customMode,
     model: options.model ?? DEFAULT_MODEL,
-    callBackUrl: NOOP_CALLBACK_URL,
+    callBackUrl: getCallbackUrl(),
   };
 
   if (options.style) body.style = options.style;
@@ -69,7 +69,7 @@ export async function extendMusic(
     audioId: options.audioId,
     defaultParamFlag: options.defaultParamFlag ?? false,
     model: options.model ?? DEFAULT_MODEL,
-    callBackUrl: NOOP_CALLBACK_URL,
+    callBackUrl: getCallbackUrl(),
   };
 
   if (options.prompt != null) body.prompt = options.prompt;
@@ -103,7 +103,7 @@ export async function uploadAndCover(
     customMode,
     instrumental,
     model: options.model ?? DEFAULT_MODEL,
-    callBackUrl: NOOP_CALLBACK_URL,
+    callBackUrl: getCallbackUrl(),
   };
 
   if (options.prompt != null) body.prompt = options.prompt;
@@ -132,7 +132,7 @@ export async function uploadAndExtend(
     uploadUrl: options.uploadUrl,
     defaultParamFlag: options.defaultParamFlag ?? false,
     model: options.model ?? DEFAULT_MODEL,
-    callBackUrl: NOOP_CALLBACK_URL,
+    callBackUrl: getCallbackUrl(),
   };
 
   if (options.instrumental != null) body.instrumental = options.instrumental;
@@ -164,7 +164,7 @@ export async function addVocals(
     prompt: options.prompt,
     title: options.title,
     style: options.style,
-    callBackUrl: NOOP_CALLBACK_URL,
+    callBackUrl: getCallbackUrl(),
   };
 
   if (options.negativeTags != null) body.negativeTags = options.negativeTags;
@@ -195,7 +195,7 @@ export async function addInstrumental(
     uploadUrl: options.uploadUrl,
     title: options.title,
     tags: options.tags,
-    callBackUrl: NOOP_CALLBACK_URL,
+    callBackUrl: getCallbackUrl(),
   };
 
   if (options.negativeTags != null) body.negativeTags = options.negativeTags;
@@ -228,7 +228,7 @@ export async function generateMashup(
     uploadUrlList: options.uploadUrlList,
     customMode,
     model: options.model ?? DEFAULT_MODEL,
-    callBackUrl: NOOP_CALLBACK_URL,
+    callBackUrl: getCallbackUrl(),
   };
 
   if (options.instrumental != null) body.instrumental = options.instrumental;
@@ -263,7 +263,7 @@ export async function replaceSection(
     title: options.title,
     infillStartS: options.infillStartS,
     infillEndS: options.infillEndS,
-    callBackUrl: NOOP_CALLBACK_URL,
+    callBackUrl: getCallbackUrl(),
   };
 
   if (options.negativeTags != null) body.negativeTags = options.negativeTags;
@@ -289,7 +289,7 @@ export async function generateSounds(
   const body: Record<string, unknown> = {
     prompt: options.prompt,
     model: options.model ?? "V5",
-    callBackUrl: NOOP_CALLBACK_URL,
+    callBackUrl: getCallbackUrl(),
   };
 
   if (options.soundLoop != null) body.soundLoop = options.soundLoop;
@@ -317,7 +317,7 @@ export async function generateCoverImage(
 ): Promise<CoverImageResult> {
   const body = {
     taskId: options.taskId,
-    callBackUrl: NOOP_CALLBACK_URL,
+    callBackUrl: getCallbackUrl(),
   };
 
   const res = await fetchWithRetry(`${BASE_URL}/suno/cover/generate`, {

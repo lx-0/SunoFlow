@@ -54,6 +54,12 @@ export const OPENAI_API_KEY = optionalWarn("OPENAI_API_KEY");
 /** Override default OpenAI model (default: gpt-4o-mini). */
 export const OPENAI_MODEL = optional("OPENAI_MODEL", "gpt-4o-mini");
 
+// --- Webhooks (optional) ---
+/** Public base URL used to build Suno API callback URLs. Defaults to NEXTAUTH_URL. */
+export const WEBHOOK_BASE_URL = optional("WEBHOOK_BASE_URL", NEXTAUTH_URL);
+/** Shared secret appended as a query token to Suno callback URLs for verification. */
+export const SUNO_WEBHOOK_SECRET = process.env.SUNO_WEBHOOK_SECRET;
+
 // --- Cron (optional) ---
 /** Bearer token for authenticating scheduled cron job requests. */
 export const CRON_SECRET = process.env.CRON_SECRET;
@@ -86,6 +92,8 @@ export const env = {
   RATE_LIMIT_MAX_GENERATIONS,
   OPENAI_API_KEY,
   OPENAI_MODEL,
+  WEBHOOK_BASE_URL,
+  SUNO_WEBHOOK_SECRET,
   CRON_SECRET,
   ALLOWED_ORIGINS,
   SENTRY_DSN,
