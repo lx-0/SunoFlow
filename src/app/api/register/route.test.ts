@@ -21,6 +21,10 @@ vi.mock("@/lib/prisma", () => ({
       findUnique: vi.fn(),
       create: vi.fn(),
     },
+    subscription: {
+      findUnique: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue({ id: "sub-1", userId: "user-1", tier: "free" }),
+    },
     anonRateLimitEntry: {
       findMany: (...args: unknown[]) => mockAnonFindMany(...args),
       create: (...args: unknown[]) => mockAnonCreate(...args),

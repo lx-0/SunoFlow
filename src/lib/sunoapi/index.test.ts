@@ -9,6 +9,8 @@ vi.mock("@/lib/env", () => ({
   get SUNOAPI_KEY() { return mockSunoApiKey; },
   get SUNO_API_TIMEOUT_MS() { return mockTimeoutMs; },
   get RATE_LIMIT_MAX_GENERATIONS() { return 10; },
+  get WEBHOOK_BASE_URL() { return "http://localhost:3000"; },
+  get SUNO_WEBHOOK_SECRET() { return "test-webhook-secret"; },
   env: {},
 }));
 

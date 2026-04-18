@@ -10,6 +10,8 @@ vi.mock("@/lib/env", () => ({
   get SUNOAPI_KEY() { return "test-key"; },
   get SUNO_API_TIMEOUT_MS() { return 30000; },
   get RATE_LIMIT_MAX_GENERATIONS() { return 10; },
+  get WEBHOOK_BASE_URL() { return "http://localhost:3000"; },
+  get SUNO_WEBHOOK_SECRET() { return "test-webhook-secret"; },
   env: {},
 }));
 
@@ -56,6 +58,11 @@ vi.mock("@/lib/event-bus", () => ({
 
 vi.mock("@/lib/cache", () => ({
   invalidateByPrefix: vi.fn(),
+}));
+
+vi.mock("@/lib/song-completion", () => ({
+  handleSongSuccess: vi.fn().mockResolvedValue(undefined),
+  handleSongFailure: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/auth-resolver", () => ({
@@ -141,18 +148,19 @@ describe("GET /api/songs/[id]/status", () => {
   });
 
   it("marks song as failed on Suno API task failure (GENERATE_AUDIO_FAILED)", async () => {
-    vi.mocked(prisma.song.findUnique).mockResolvedValue({ ...baseSong } as never);
+    vi.mocked(prisma.song.findUnique)
+      .mockResolvedValueOnce({ ...baseSong } as never)
+      .mockResolvedValueOnce({
+        ...baseSong,
+        generationStatus: "failed",
+        errorMessage: "Audio generation failed due to content policy",
+      } as never);
     vi.mocked(getTaskStatus).mockResolvedValue({
       taskId: "task-abc",
       status: "GENERATE_AUDIO_FAILED",
       songs: [],
       errorMessage: "Audio generation failed due to content policy",
     });
-    vi.mocked(prisma.song.update).mockResolvedValue({
-      ...baseSong,
-      generationStatus: "failed",
-      errorMessage: "Audio generation failed due to content policy",
-    } as never);
 
     const res = await GET(makeRequest(), makeParams());
     const data = await res.json();
@@ -162,18 +170,19 @@ describe("GET /api/songs/[id]/status", () => {
   });
 
   it("marks song as failed on SENSITIVE_WORD_ERROR", async () => {
-    vi.mocked(prisma.song.findUnique).mockResolvedValue({ ...baseSong } as never);
+    vi.mocked(prisma.song.findUnique)
+      .mockResolvedValueOnce({ ...baseSong } as never)
+      .mockResolvedValueOnce({
+        ...baseSong,
+        generationStatus: "failed",
+        errorMessage: "Prompt contains sensitive content",
+      } as never);
     vi.mocked(getTaskStatus).mockResolvedValue({
       taskId: "task-abc",
       status: "SENSITIVE_WORD_ERROR",
       songs: [],
       errorMessage: "Prompt contains sensitive content",
     });
-    vi.mocked(prisma.song.update).mockResolvedValue({
-      ...baseSong,
-      generationStatus: "failed",
-      errorMessage: "Prompt contains sensitive content",
-    } as never);
 
     const res = await GET(makeRequest(), makeParams());
     const data = await res.json();
@@ -244,7 +253,13 @@ describe("GET /api/songs/[id]/status", () => {
   });
 
   it("updates song to ready when task succeeds", async () => {
-    vi.mocked(prisma.song.findUnique).mockResolvedValue({ ...baseSong } as never);
+    vi.mocked(prisma.song.findUnique)
+      .mockResolvedValueOnce({ ...baseSong } as never)
+      .mockResolvedValueOnce({
+        ...baseSong,
+        generationStatus: "ready",
+        audioUrl: "https://cdn.suno.com/audio.mp3",
+      } as never);
     vi.mocked(getTaskStatus).mockResolvedValue({
       taskId: "task-abc",
       status: "SUCCESS",
@@ -264,11 +279,6 @@ describe("GET /api/songs/[id]/status", () => {
       ],
       errorMessage: null,
     });
-    vi.mocked(prisma.song.update).mockResolvedValue({
-      ...baseSong,
-      generationStatus: "ready",
-      audioUrl: "https://cdn.suno.com/audio.mp3",
-    } as never);
 
     const res = await GET(makeRequest(), makeParams());
     const data = await res.json();
