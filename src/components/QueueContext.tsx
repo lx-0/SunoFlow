@@ -215,6 +215,8 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   /** True when audio.play() was rejected (e.g. backgrounded on mobile) */
   const pendingPlayRef = useRef(false);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Pending canplay handler for mobile source-loading fallback */
+  const pendingCanPlayRef = useRef<(() => void) | null>(null);
   const skipNextRef = useRef<() => void>(() => {});
   const skipPrevRef = useRef<() => void>(() => {});
 
@@ -229,7 +231,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   shuffleVersionsRef.current = shuffleVersions;
 
   // Retry audio.play() with exponential backoff for mobile PWA background playback
-  const retryPlay = useCallback((audio: HTMLAudioElement, retriesLeft = 3, delay = 200) => {
+  const retryPlay = useCallback((audio: HTMLAudioElement, retriesLeft = 5, delay = 200) => {
     if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
     audio.play()
       .then(() => { pendingPlayRef.current = false; })
@@ -278,10 +280,32 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     setCurrentTime(0);
     setDuration(song.duration ?? 0);
 
+    // Remove any prior canplay fallback from a previous transition
+    if (pendingCanPlayRef.current) {
+      audio.removeEventListener("canplay", pendingCanPlayRef.current);
+      pendingCanPlayRef.current = null;
+    }
+
+    const loadAndPlay = (target: QueueSong) => {
+      audio.src = getAudioSrc(target);
+
+      // Mobile PWA: the new source may not be ready when play() is called
+      // immediately. Register a one-shot canplay listener as a fallback so
+      // playback starts once the browser has buffered enough data.
+      const onCanPlayOnce = () => {
+        audio.removeEventListener("canplay", onCanPlayOnce);
+        pendingCanPlayRef.current = null;
+        if (audio.paused) retryPlay(audio);
+      };
+      pendingCanPlayRef.current = onCanPlayOnce;
+      audio.addEventListener("canplay", onCanPlayOnce);
+
+      retryPlay(audio);
+    };
+
     if (!shuffleVersionsRef.current) {
       setActiveVersion(null);
-      audio.src = getAudioSrc(song);
-      retryPlay(audio);
+      loadAndPlay(song);
       trackPlayRef.current(song.id);
       return;
     }
@@ -304,13 +328,11 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     if (versions && versions.length > 1) {
       const picked = versions[Math.floor(Math.random() * versions.length)];
       setActiveVersion(picked);
-      audio.src = getAudioSrc(picked);
-      retryPlay(audio);
+      loadAndPlay(picked);
       trackPlayRef.current(picked.id);
     } else {
       setActiveVersion(null);
-      audio.src = getAudioSrc(song);
-      retryPlay(audio);
+      loadAndPlay(song);
       trackPlayRef.current(song.id);
     }
   }, [retryPlay]);
@@ -324,8 +346,12 @@ export function QueueProvider({ children }: { children: ReactNode }) {
 
     const onPlay = () => { setIsPlaying(true); pendingPlayRef.current = false; };
     const onPause = () => {
+      // When a song ends, the browser fires pause before ended. Skip updating
+      // state here so the media session stays "playing" and mobile OS keeps the
+      // audio session alive during the transition to the next track.
+      if (audio.ended) return;
+
       setIsPlaying(false);
-      // Save position on pause so the user can resume from here on another device
       const q = queueRef.current;
       const idx = currentIndexRef.current;
       const currentSong = idx >= 0 ? q[idx] : null;
@@ -421,6 +447,10 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener("canplay", onCanPlay);
       audio.removeEventListener("error", onError);
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      if (pendingCanPlayRef.current) {
+        audio.removeEventListener("canplay", pendingCanPlayRef.current);
+        pendingCanPlayRef.current = null;
+      }
       audio.pause();
     };
   }, []);
