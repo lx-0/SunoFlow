@@ -6,6 +6,7 @@ import type {
   GenerateResult,
 } from "./types";
 import { BASE_URL, getCallbackUrl, fetchWithRetry, buildHeaders, extractTaskId } from "./http";
+import { validateAuthor, validateDomainName } from "./validation";
 
 /**
  * Separate vocals and instruments from a track.
@@ -88,6 +89,9 @@ export async function createMusicVideo(
   options: MusicVideoOptions,
   apiKey?: string
 ): Promise<GenerateResult> {
+  if (options.author != null) validateAuthor(options.author);
+  if (options.domainName != null) validateDomainName(options.domainName);
+
   const body: Record<string, unknown> = {
     taskId: options.taskId,
     audioId: options.audioId,

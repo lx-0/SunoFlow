@@ -69,6 +69,7 @@ export type {
 
 // Error classes
 export { SunoApiError } from "./http";
+export { SunoValidationError } from "./validation";
 export { CircuitOpenError } from "@/lib/circuit-breaker";
 
 // Music generation

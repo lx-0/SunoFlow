@@ -21,6 +21,16 @@ import {
   extractTaskId,
   applyStyleTuning,
 } from "./http";
+import {
+  validatePrompt,
+  validateNonCustomPrompt,
+  validateStyle,
+  validateTitle,
+  validateStyleTuningWeights,
+  validateSoundsPrompt,
+  validateSoundTempo,
+  validateInfillRange,
+} from "./validation";
 
 /**
  * Generate songs from a text prompt.
@@ -34,12 +44,22 @@ export async function generateSong(
 ): Promise<GenerateResult> {
   const instrumental = options.instrumental ?? false;
   const customMode = !!(options.title || options.style);
+  const model = options.model ?? DEFAULT_MODEL;
+
+  if (customMode) {
+    validatePrompt(prompt, model);
+    if (options.style) validateStyle(options.style, model);
+    if (options.title) validateTitle(options.title, model);
+  } else {
+    validateNonCustomPrompt(prompt);
+  }
+  validateStyleTuningWeights(options);
 
   const body: Record<string, unknown> = {
     prompt,
     instrumental,
     customMode,
-    model: options.model ?? DEFAULT_MODEL,
+    model,
     callBackUrl: getCallbackUrl(),
   };
 
@@ -65,10 +85,17 @@ export async function extendMusic(
   options: ExtendMusicOptions,
   apiKey?: string
 ): Promise<GenerateResult> {
+  const model = options.model ?? DEFAULT_MODEL;
+
+  if (options.prompt != null) validatePrompt(options.prompt, model);
+  if (options.style != null) validateStyle(options.style, model);
+  if (options.title != null) validateTitle(options.title, model);
+  validateStyleTuningWeights(options);
+
   const body: Record<string, unknown> = {
     audioId: options.audioId,
     defaultParamFlag: options.defaultParamFlag ?? false,
-    model: options.model ?? DEFAULT_MODEL,
+    model,
     callBackUrl: getCallbackUrl(),
   };
 
@@ -97,12 +124,22 @@ export async function uploadAndCover(
 ): Promise<GenerateResult> {
   const customMode = options.customMode ?? false;
   const instrumental = options.instrumental ?? false;
+  const model = options.model ?? DEFAULT_MODEL;
+
+  if (customMode) {
+    if (options.prompt != null) validatePrompt(options.prompt, model);
+    if (options.style != null) validateStyle(options.style, model);
+    if (options.title != null) validateTitle(options.title, model);
+  } else if (options.prompt != null) {
+    validateNonCustomPrompt(options.prompt);
+  }
+  validateStyleTuningWeights(options);
 
   const body: Record<string, unknown> = {
     uploadUrl: options.uploadUrl,
     customMode,
     instrumental,
-    model: options.model ?? DEFAULT_MODEL,
+    model,
     callBackUrl: getCallbackUrl(),
   };
 
@@ -128,10 +165,17 @@ export async function uploadAndExtend(
   options: UploadExtendOptions,
   apiKey?: string
 ): Promise<GenerateResult> {
+  const model = options.model ?? DEFAULT_MODEL;
+
+  if (options.prompt != null) validatePrompt(options.prompt, model);
+  if (options.style != null) validateStyle(options.style, model);
+  if (options.title != null) validateTitle(options.title, model);
+  validateStyleTuningWeights(options);
+
   const body: Record<string, unknown> = {
     uploadUrl: options.uploadUrl,
     defaultParamFlag: options.defaultParamFlag ?? false,
-    model: options.model ?? DEFAULT_MODEL,
+    model,
     callBackUrl: getCallbackUrl(),
   };
 
@@ -159,6 +203,13 @@ export async function addVocals(
   options: AddVocalsOptions,
   apiKey?: string
 ): Promise<GenerateResult> {
+  const model = options.model ?? DEFAULT_MODEL;
+
+  validatePrompt(options.prompt, model);
+  validateTitle(options.title, model);
+  validateStyle(options.style, model);
+  validateStyleTuningWeights(options);
+
   const body: Record<string, unknown> = {
     uploadUrl: options.uploadUrl,
     prompt: options.prompt,
@@ -191,6 +242,11 @@ export async function addInstrumental(
   options: AddInstrumentalOptions,
   apiKey?: string
 ): Promise<GenerateResult> {
+  const model = options.model ?? DEFAULT_MODEL;
+
+  validateTitle(options.title, model);
+  validateStyleTuningWeights(options);
+
   const body: Record<string, unknown> = {
     uploadUrl: options.uploadUrl,
     title: options.title,
@@ -223,11 +279,21 @@ export async function generateMashup(
   apiKey?: string
 ): Promise<GenerateResult> {
   const customMode = options.customMode ?? false;
+  const model = options.model ?? DEFAULT_MODEL;
+
+  if (customMode) {
+    if (options.prompt != null) validatePrompt(options.prompt, model);
+    if (options.style != null) validateStyle(options.style, model);
+    if (options.title != null) validateTitle(options.title, model);
+  } else if (options.prompt != null) {
+    validateNonCustomPrompt(options.prompt);
+  }
+  validateStyleTuningWeights(options);
 
   const body: Record<string, unknown> = {
     uploadUrlList: options.uploadUrlList,
     customMode,
-    model: options.model ?? DEFAULT_MODEL,
+    model,
     callBackUrl: getCallbackUrl(),
   };
 
@@ -255,6 +321,8 @@ export async function replaceSection(
   options: ReplaceSectionOptions,
   apiKey?: string
 ): Promise<GenerateResult> {
+  validateInfillRange(options.infillStartS, options.infillEndS);
+
   const body: Record<string, unknown> = {
     taskId: options.taskId,
     audioId: options.audioId,
@@ -286,6 +354,9 @@ export async function generateSounds(
   options: GenerateSoundsOptions,
   apiKey?: string
 ): Promise<GenerateResult> {
+  validateSoundsPrompt(options.prompt);
+  if (options.soundTempo != null) validateSoundTempo(options.soundTempo);
+
   const body: Record<string, unknown> = {
     prompt: options.prompt,
     model: options.model ?? "V5",

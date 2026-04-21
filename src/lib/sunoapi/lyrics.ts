@@ -1,5 +1,6 @@
 import type { GenerateLyricsOptions, LyricsResult, TimestampedLyricsResult } from "./types";
 import { SunoApiError, BASE_URL, getCallbackUrl, fetchWithRetry, buildHeaders, extractTaskId } from "./http";
+import { validateLyricsPrompt } from "./validation";
 
 /**
  * Generate lyrics from a text description (max 200 chars).
@@ -9,6 +10,8 @@ export async function generateLyrics(
   options: GenerateLyricsOptions,
   apiKey?: string
 ): Promise<LyricsResult> {
+  validateLyricsPrompt(options.prompt);
+
   const body = {
     prompt: options.prompt,
     callBackUrl: getCallbackUrl(),

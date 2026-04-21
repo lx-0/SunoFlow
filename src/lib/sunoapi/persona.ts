@@ -1,5 +1,6 @@
 import type { GeneratePersonaOptions, PersonaResult, BoostStyleResult } from "./types";
 import { SunoApiError, BASE_URL, fetchWithRetry, buildHeaders } from "./http";
+import { validatePersonaVocalSegment } from "./validation";
 
 /**
  * Create a reusable persona from an existing audio track.
@@ -9,6 +10,10 @@ export async function generatePersona(
   options: GeneratePersonaOptions,
   apiKey?: string
 ): Promise<PersonaResult> {
+  const vocalStart = options.vocalStart ?? 0;
+  const vocalEnd = options.vocalEnd ?? 30;
+  validatePersonaVocalSegment(vocalStart, vocalEnd);
+
   const body: Record<string, unknown> = {
     taskId: options.taskId,
     audioId: options.audioId,
