@@ -197,9 +197,11 @@ export function PublicSongView({
   }
 
   return (
-    <div className="w-full max-w-sm">
-      {/* Hero cover art with blurred background */}
-      <div className="relative w-full overflow-hidden rounded-b-3xl mb-6">
+    <div className="w-full max-w-sm md:max-w-4xl">
+      <div className="md:grid md:grid-cols-[2fr_3fr] md:gap-8 md:items-start">
+      {/* Left column: cover art */}
+      <div className="md:sticky md:top-8">
+      <div className="relative w-full overflow-hidden rounded-b-3xl md:rounded-3xl mb-6 md:mb-0">
         {/* Blurred background layer */}
         {imageUrl && (
           <div className="absolute inset-0">
@@ -219,17 +221,17 @@ export function PublicSongView({
           {/* Cover art */}
           <div className="relative aspect-square w-full rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 overflow-hidden flex items-center justify-center shadow-xl ring-1 ring-black/5 dark:ring-white/10">
             {imageUrl ? (
-              <Image src={imageUrl} alt={title} fill className="object-cover" sizes="(max-width: 384px) 100vw, 384px" priority />
+              <Image src={imageUrl} alt={title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 400px" priority />
             ) : (
               <MusicalNoteIcon className="w-20 h-20 text-gray-300 dark:text-gray-700" />
             )}
           </div>
 
           {/* Song info */}
-          <div className="text-center space-y-1.5">
-            <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">{title}</h1>
+          <div className="text-center md:text-left space-y-1.5">
+            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">{title}</h1>
             {creatorName && (
-              <div className="flex items-center justify-center gap-2 flex-wrap">
+              <div className="flex items-center justify-center md:justify-start gap-2 flex-wrap">
                 {creatorUsername ? (
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     by{" "}
@@ -254,8 +256,10 @@ export function PublicSongView({
           </div>
         </div>
       </div>
+      </div>
 
-      <div className="space-y-6 px-4">
+      {/* Right column: content */}
+      <div className="space-y-6 px-4 md:px-0 md:pt-4">
       {/* Prompt */}
       {prompt && (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 transition-shadow duration-200 hover:shadow-md">
@@ -541,6 +545,7 @@ export function PublicSongView({
       <p className="text-center text-xs text-gray-500 dark:text-gray-400">
         Shared via SunoFlow
       </p>
+      </div>
       </div>
     </div>
   );
