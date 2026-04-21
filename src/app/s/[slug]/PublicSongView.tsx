@@ -18,6 +18,7 @@ const ReportModal = dynamic(() => import("@/components/ReportModal").then((m) =>
 const CommentsSection = dynamic(() => import("@/components/CommentsSection").then((m) => m.CommentsSection), { ssr: false });
 const EmojiReactionPicker = dynamic(() => import("@/components/EmojiReactionPicker").then((m) => m.EmojiReactionPicker), { ssr: false });
 const ReactionTimeline = dynamic(() => import("@/components/ReactionTimeline").then((m) => m.ReactionTimeline), { ssr: false });
+const PlayerWaveform = dynamic(() => import("@/components/PlayerWaveform").then((m) => m.PlayerWaveform), { ssr: false });
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
@@ -195,8 +196,6 @@ export function PublicSongView({
     audioRef.current.currentTime = pct * audioDuration;
   }
 
-  const pct = audioDuration > 0 ? (currentTime / audioDuration) * 100 : 0;
-
   return (
     <div className="w-full max-w-sm">
       {/* Hero cover art with blurred background */}
@@ -291,26 +290,25 @@ export function PublicSongView({
             </button>
           </div>
 
-          {/* Seek bar + reaction timeline */}
+          {/* Waveform + reaction timeline */}
           <div className="space-y-1">
-            <div className="relative h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full">
-              <div
-                className="absolute inset-y-0 left-0 bg-violet-500 rounded-full transition-all"
-                style={{ width: `${pct}%` }}
+            <div className="relative h-14 bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden px-2 pt-1 pb-0.5">
+              <PlayerWaveform
+                songId={songId}
+                currentTime={currentTime}
+                duration={audioDuration}
+                isBuffering={false}
+                onSeek={handleSeek}
+                reactionTimestamps={reactions.map((r) => r.timestamp)}
               />
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={pct}
-                onChange={(e) => handleSeek(Number(e.target.value) / 100)}
-                className="absolute left-0 right-0 top-1/2 -translate-y-1/2 w-full opacity-0 cursor-pointer min-h-[44px]"
-                aria-label="Seek"
-              />
+              {reactions.length > 0 && audioDuration > 0 && (
+                <div className="absolute inset-x-2 top-0 bottom-0 pointer-events-none">
+                  <div className="pointer-events-auto">
+                    <ReactionTimeline reactions={reactions} duration={audioDuration} />
+                  </div>
+                </div>
+              )}
             </div>
-            {reactions.length > 0 && audioDuration > 0 && (
-              <ReactionTimeline reactions={reactions} duration={audioDuration} />
-            )}
             <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
               <span>{formatTime(currentTime)}</span>
               <span>{formatTime(audioDuration)}</span>

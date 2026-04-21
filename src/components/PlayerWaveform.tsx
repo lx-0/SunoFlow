@@ -244,6 +244,12 @@ export function PlayerWaveform({
     return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
   };
 
+  const getTouchFrac = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    const touch = e.touches[0];
+    const r = e.currentTarget.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (touch.clientX - r.left) / r.width));
+  };
+
   return (
     <div className="relative w-full h-full select-none">
       {/* Visually hidden range input for keyboard/screen reader seek access */}
@@ -277,6 +283,18 @@ export function PlayerWaveform({
           dragging.current = false;
         }}
         onMouseLeave={() => {
+          dragging.current = false;
+          setTooltip(null);
+        }}
+        onTouchStart={(e) => {
+          e.preventDefault();
+          dragging.current = true;
+          onSeek(getTouchFrac(e));
+        }}
+        onTouchMove={(e) => {
+          if (dragging.current) onSeek(getTouchFrac(e));
+        }}
+        onTouchEnd={() => {
           dragging.current = false;
           setTooltip(null);
         }}
