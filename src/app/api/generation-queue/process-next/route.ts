@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { resolveUser } from "@/lib/auth-resolver";
 import { prisma } from "@/lib/prisma";
-import { generateSong, SunoApiError } from "@/lib/sunoapi";
+import { generateSong, SunoApiError, getRemainingCredits } from "@/lib/sunoapi";
 import { acquireRateLimitSlot } from "@/lib/rate-limit";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 import { mockSongs } from "@/lib/sunoapi/mock";
@@ -17,10 +17,18 @@ import {
 } from "@/lib/credits";
 import { invalidateByPrefix } from "@/lib/cache";
 
-function userFriendlyError(error: unknown): { message: string; code: string } {
+function userFriendlyError(error: unknown): { message: string; code: string; details?: Record<string, unknown> } {
   if (error instanceof SunoApiError) {
+    if (error.status === 402)
+      return { message: "Insufficient credits. Please check your balance or top up to continue.", code: ErrorCode.INSUFFICIENT_CREDITS };
+    if (error.status === 409)
+      return { message: "A conflicting request is already in progress. Please wait and try again.", code: ErrorCode.CONFLICT };
+    if (error.status === 422)
+      return { message: `Validation error: ${error.message}`, code: ErrorCode.VALIDATION_ERROR, details: error.details };
     if (error.status === 429)
       return { message: "The music generation service is busy. Please try again in a few minutes.", code: ErrorCode.SUNO_RATE_LIMIT };
+    if (error.status === 451)
+      return { message: "This request was blocked for compliance reasons. Please modify your prompt and try again.", code: ErrorCode.COMPLIANCE_BLOCK };
     if (error.status === 400)
       return { message: "Invalid generation parameters. Please adjust your prompt and try again.", code: ErrorCode.VALIDATION_ERROR };
     if (error.status === 401 || error.status === 403)
@@ -131,7 +139,7 @@ export async function POST(request: Request) {
           route: "/api/generation-queue/process-next",
           params: { queueItemId: nextItem.id },
         });
-        const { message: errorMsg, code: errorCode } = userFriendlyError(apiError);
+        const { message: errorMsg, code: errorCode, details: errorDetails } = userFriendlyError(apiError);
 
         song = await prisma.song.create({
           data: {
@@ -150,12 +158,19 @@ export async function POST(request: Request) {
           data: { status: "failed", songId: song.id, errorMessage: errorMsg },
         });
 
+        let creditBalance: number | undefined;
+        if (apiError instanceof SunoApiError && apiError.status === 402) {
+          creditBalance = await getRemainingCredits().catch(() => undefined);
+        }
+
         return NextResponse.json(
           {
             item: { ...nextItem, status: "failed", songId: song.id, errorMessage: errorMsg },
             song,
             error: errorMsg,
             code: errorCode,
+            ...(errorDetails && { details: errorDetails }),
+            ...(creditBalance !== undefined && { creditBalance }),
             correlationId,
           },
           { status: 201 }

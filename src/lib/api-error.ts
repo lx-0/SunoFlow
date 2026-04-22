@@ -27,6 +27,7 @@ export const ErrorCode = {
   SUNO_AUTH_ERROR: "SUNO_AUTH_ERROR",
   TIMEOUT: "TIMEOUT",
   INSUFFICIENT_CREDITS: "INSUFFICIENT_CREDITS",
+  COMPLIANCE_BLOCK: "COMPLIANCE_BLOCK",
 } as const;
 
 export type ErrorCodeValue = (typeof ErrorCode)[keyof typeof ErrorCode];

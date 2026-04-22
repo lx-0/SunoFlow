@@ -8,10 +8,23 @@ import {
   recordFailure,
 } from "@/lib/circuit-breaker";
 
+export type SunoApiErrorCode =
+  | "INSUFFICIENT_CREDITS"
+  | "CONFLICT"
+  | "VALIDATION_ERROR"
+  | "COMPLIANCE_BLOCK"
+  | "RATE_LIMITED"
+  | "AUTH_ERROR"
+  | "SERVER_ERROR"
+  | "TIMEOUT"
+  | "UNKNOWN";
+
 export class SunoApiError extends Error {
   constructor(
     public readonly status: number,
-    message: string
+    message: string,
+    public readonly code: SunoApiErrorCode = "UNKNOWN",
+    public readonly details?: Record<string, unknown>
   ) {
     super(message);
     this.name = "SunoApiError";
@@ -71,7 +84,8 @@ export async function fetchWithRetry(
         recordFailure();
         throw new SunoApiError(
           0,
-          `Suno API request timed out after ${timeoutMs / 1000}s`
+          `Suno API request timed out after ${timeoutMs / 1000}s`,
+          "TIMEOUT"
         );
       }
       recordFailure();
@@ -87,10 +101,11 @@ export async function fetchWithRetry(
     if (!isRetryable(res.status) || attempt >= maxRetries) {
       let message: string;
       let rawBody: string | undefined;
+      let parsedBody: Record<string, unknown> | undefined;
       try {
         rawBody = await res.text();
-        const body = JSON.parse(rawBody) as { msg?: string; message?: string; error?: string };
-        message = body.msg ?? body.message ?? body.error ?? res.statusText;
+        parsedBody = JSON.parse(rawBody) as Record<string, unknown>;
+        message = (parsedBody.msg as string) ?? (parsedBody.message as string) ?? (parsedBody.error as string) ?? res.statusText;
       } catch {
         message = rawBody || res.statusText;
       }
@@ -101,7 +116,35 @@ export async function fetchWithRetry(
       if (res.status >= 500 || res.status === 0) {
         recordFailure();
       }
-      throw new SunoApiError(res.status, message);
+
+      let errorCode: SunoApiErrorCode = "UNKNOWN";
+      let errorDetails: Record<string, unknown> | undefined;
+      switch (res.status) {
+        case 402:
+          errorCode = "INSUFFICIENT_CREDITS";
+          break;
+        case 409:
+          errorCode = "CONFLICT";
+          break;
+        case 422:
+          errorCode = "VALIDATION_ERROR";
+          if (parsedBody) errorDetails = { validation: parsedBody };
+          break;
+        case 451:
+          errorCode = "COMPLIANCE_BLOCK";
+          break;
+        case 429:
+          errorCode = "RATE_LIMITED";
+          break;
+        case 401:
+        case 403:
+          errorCode = "AUTH_ERROR";
+          break;
+        default:
+          if (res.status >= 500) errorCode = "SERVER_ERROR";
+      }
+
+      throw new SunoApiError(res.status, message, errorCode, errorDetails);
     }
 
     // For 429 responses, respect Retry-After header (seconds) with a minimum

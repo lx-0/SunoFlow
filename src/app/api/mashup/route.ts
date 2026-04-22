@@ -19,8 +19,16 @@ const EXPIRY_BUFFER_MS = 60 * 60 * 1000;
 
 function userFriendlyError(error: unknown): string {
   if (error instanceof SunoApiError) {
+    if (error.status === 402)
+      return "Insufficient credits. Please check your balance or top up to continue.";
+    if (error.status === 409)
+      return "A conflicting request is already in progress. Please wait and try again.";
+    if (error.status === 422)
+      return `Validation error: ${error.message}`;
     if (error.status === 429)
       return "The music generation service is busy. Please try again in a few minutes.";
+    if (error.status === 451)
+      return "This request was blocked for compliance reasons. Please modify your prompt and try again.";
     if (error.status === 400)
       return "Invalid mashup parameters. Please check your files and settings.";
     if (error.status === 401 || error.status === 403)

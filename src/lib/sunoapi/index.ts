@@ -68,7 +68,7 @@ export type {
 } from "./types";
 
 // Error classes
-export { SunoApiError } from "./http";
+export { SunoApiError, type SunoApiErrorCode } from "./http";
 export { SunoValidationError } from "./validation";
 export { CircuitOpenError } from "@/lib/circuit-breaker";
 
