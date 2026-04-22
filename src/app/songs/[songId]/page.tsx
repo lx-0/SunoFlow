@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PublicSongView } from "@/app/s/[slug]/PublicSongView";
 import { cached, cacheKey, CacheTTL } from "@/lib/cache";
+import { getVariantFamily } from "@/lib/variant-family";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sunoflow.app";
 
@@ -148,6 +149,12 @@ export default async function PublicSongByIdPage({
     ? `/s/${song.publicSlug}`
     : `/songs/${songId}`;
 
+  const variants = await getVariantFamily(song.id, song.parentSongId);
+  const serializedVariants = variants.map((v) => ({
+    ...v,
+    createdAt: v.createdAt.toISOString(),
+  }));
+
   return (
     <>
       <script
@@ -169,6 +176,7 @@ export default async function PublicSongByIdPage({
           prompt={song.prompt}
           lyrics={song.lyrics}
           createdAt={song.createdAt.toISOString()}
+          variants={serializedVariants}
         />
       </div>
     </>

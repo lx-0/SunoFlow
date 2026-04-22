@@ -28,6 +28,17 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+export interface SerializedPublicVariant {
+  id: string;
+  title: string | null;
+  audioUrl: string | null;
+  imageUrl: string | null;
+  duration: number | null;
+  tags: string | null;
+  publicSlug: string | null;
+  createdAt: string;
+}
+
 interface PublicSongViewProps {
   songId: string;
   slug: string;
@@ -44,6 +55,7 @@ interface PublicSongViewProps {
   prompt: string | null;
   lyrics: string | null;
   createdAt: string;
+  variants?: SerializedPublicVariant[];
 }
 
 export function PublicSongView({
@@ -61,6 +73,7 @@ export function PublicSongView({
   prompt,
   lyrics,
   createdAt,
+  variants = [],
 }: PublicSongViewProps) {
   const signupReturnUrl = returnUrl ?? `/s/${slug}`;
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -78,6 +91,45 @@ export function PublicSongView({
   const { data: session } = useSession();
   const { toast } = useToast();
   const [isFavorite, setIsFavorite] = useState(false);
+
+  const [activeSongId, setActiveSongId] = useState(songId);
+  const [activeTitle, setActiveTitle] = useState(title);
+  const [activeImageUrl, setActiveImageUrl] = useState(imageUrl);
+  const [activeAudioUrl, setActiveAudioUrl] = useState(audioUrl);
+  const [activeDuration, setActiveDuration] = useState(duration);
+  const [activeTags, setActiveTags] = useState(tags);
+
+  const showVariants = variants.length > 1;
+
+  const handleVariantSwitch = useCallback(
+    (variant: SerializedPublicVariant) => {
+      if (variant.id === activeSongId) return;
+
+      if (audioRef.current) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
+
+      setActiveSongId(variant.id);
+      setActiveTitle(variant.title ?? "Untitled");
+      setActiveImageUrl(variant.imageUrl);
+      setActiveAudioUrl(variant.audioUrl);
+      setActiveDuration(variant.duration);
+      setActiveTags(variant.tags);
+      setCurrentTime(0);
+      setAudioDuration(variant.duration ?? 0);
+
+      shownReactionIdsRef.current = new Set();
+      shownCommentIdsRef.current = new Set();
+      setActivePopups([]);
+      setActiveCommentPopups([]);
+
+      if (variant.publicSlug) {
+        window.history.replaceState(null, "", `/s/${variant.publicSlug}`);
+      }
+    },
+    [activeSongId]
+  );
 
   useEffect(() => {
     if (!songId || !session?.user) {
@@ -144,6 +196,13 @@ export function PublicSongView({
       toast("Could not copy embed code.", "error");
     }
   }
+
+  // Reload audio element when the source URL changes (variant switch)
+  useEffect(() => {
+    if (audioRef.current && activeAudioUrl) {
+      audioRef.current.load();
+    }
+  }, [activeAudioUrl]);
 
   // Track public song page view on mount (PostHog + DB)
   useEffect(() => {
@@ -324,10 +383,10 @@ export function PublicSongView({
       <div className="md:sticky md:top-8">
       <div className="relative w-full overflow-hidden rounded-b-3xl md:rounded-3xl mb-6 md:mb-0">
         {/* Blurred background layer */}
-        {imageUrl && (
+        {activeImageUrl && (
           <div className="absolute inset-0">
             <Image
-              src={imageUrl}
+              src={activeImageUrl}
               alt=""
               fill
               className="object-cover scale-110 blur-2xl opacity-60"
@@ -341,8 +400,8 @@ export function PublicSongView({
         <div className="relative px-4 pt-4 pb-6 space-y-4">
           {/* Cover art */}
           <div className="relative aspect-square w-full rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 overflow-hidden flex items-center justify-center shadow-xl ring-1 ring-black/5 dark:ring-white/10">
-            {imageUrl ? (
-              <Image src={imageUrl} alt={title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 400px" priority />
+            {activeImageUrl ? (
+              <Image src={activeImageUrl} alt={activeTitle} fill className="object-cover" sizes="(max-width: 768px) 100vw, 400px" priority />
             ) : (
               <MusicalNoteIcon className="w-20 h-20 text-gray-300 dark:text-gray-700" />
             )}
@@ -350,7 +409,7 @@ export function PublicSongView({
 
           {/* Song info */}
           <div className="text-center md:text-left space-y-1.5">
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">{title}</h1>
+            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">{activeTitle}</h1>
             {creatorName && (
               <div className="flex items-center justify-center md:justify-start gap-2 flex-wrap">
                 {creatorUsername ? (
@@ -368,8 +427,8 @@ export function PublicSongView({
                 )}
               </div>
             )}
-            {tags && (
-              <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">{tags}</p>
+            {activeTags && (
+              <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">{activeTags}</p>
             )}
             <p className="text-xs text-gray-400 dark:text-gray-500">
               {new Date(createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
@@ -398,7 +457,7 @@ export function PublicSongView({
       )}
 
       {/* Audio player */}
-      {audioUrl && (
+      {activeAudioUrl && (
         <div className="space-y-3">
           {/* Play button */}
           <div className="flex justify-center">
@@ -527,7 +586,7 @@ export function PublicSongView({
 
           <audio
             ref={audioRef}
-            src={audioUrl}
+            src={activeAudioUrl}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             onEnded={() => { setIsPlaying(false); setCurrentTime(0); shownReactionIdsRef.current = new Set(); shownCommentIdsRef.current = new Set(); setActivePopups([]); setActiveCommentPopups([]); }}
@@ -708,6 +767,62 @@ export function PublicSongView({
           songTitle={title}
           onClose={() => setReportOpen(false)}
         />
+      )}
+
+      {/* Variations */}
+      {showVariants && (
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            Variations ({variants.length})
+          </h2>
+          <div className="space-y-2">
+            {variants.map((v) => {
+              const isActive = v.id === activeSongId;
+              return (
+                <button
+                  key={v.id}
+                  onClick={() => handleVariantSwitch(v)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
+                    isActive
+                      ? "border-violet-400 bg-violet-50 dark:bg-violet-900/20"
+                      : "border-gray-200 dark:border-gray-700 hover:border-violet-300 dark:hover:border-violet-600"
+                  }`}
+                >
+                  <div className="relative w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden flex-shrink-0">
+                    {v.imageUrl ? (
+                      <Image src={v.imageUrl} alt={v.title ?? "Variant"} fill className="object-cover" sizes="40px" />
+                    ) : (
+                      <MusicalNoteIcon className="w-5 h-5 text-gray-400 dark:text-gray-600 absolute inset-0 m-auto" />
+                    )}
+                    {!isActive && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
+                        <PlayIcon className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white block truncate">
+                      {v.title || "Untitled variation"}
+                    </span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {v.duration != null && (
+                        <span className="text-xs text-gray-400 dark:text-gray-500">{formatTime(v.duration)}</span>
+                      )}
+                      {v.tags && (
+                        <span className="text-xs text-gray-400 dark:text-gray-500 truncate">{v.tags}</span>
+                      )}
+                    </div>
+                  </div>
+                  {isActive && (
+                    <span className="flex-shrink-0 text-xs font-medium text-violet-600 dark:text-violet-400 px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40">
+                      Playing
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       {/* Comments */}
