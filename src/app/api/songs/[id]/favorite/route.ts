@@ -4,6 +4,43 @@ import { prisma } from "@/lib/prisma";
 import { invalidateByPrefix } from "@/lib/cache";
 import { recordActivity } from "@/lib/activity";
 
+async function findAccessibleSong(id: string, userId: string) {
+  return prisma.song.findFirst({
+    where: {
+      id,
+      OR: [{ userId }, { isPublic: true }],
+    },
+  });
+}
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  try {
+    const { userId, error: authError } = await resolveUser(request);
+
+    if (authError) return authError;
+
+    const song = await findAccessibleSong(id, userId);
+    if (!song) {
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
+    }
+
+    const existing = await prisma.favorite.findUnique({
+      where: { userId_songId: { userId, songId: song.id } },
+    });
+
+    return NextResponse.json({ isFavorite: !!existing });
+  } catch {
+    return NextResponse.json(
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -14,10 +51,7 @@ export async function POST(
 
     if (authError) return authError;
 
-    const song = await prisma.song.findFirst({
-      where: { id, userId: userId },
-    });
-
+    const song = await findAccessibleSong(id, userId);
     if (!song) {
       return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
@@ -52,10 +86,7 @@ export async function DELETE(
 
     if (authError) return authError;
 
-    const song = await prisma.song.findFirst({
-      where: { id, userId: userId },
-    });
-
+    const song = await findAccessibleSong(id, userId);
     if (!song) {
       return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }

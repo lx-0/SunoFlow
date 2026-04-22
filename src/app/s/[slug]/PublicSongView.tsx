@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { PlayIcon, PauseIcon, MusicalNoteIcon, FlagIcon, SparklesIcon, SpeakerWaveIcon, SpeakerXMarkIcon, CodeBracketIcon } from "@heroicons/react/24/solid";
-import { ChatBubbleLeftIcon } from "@heroicons/react/24/outline";
+import { PlayIcon, PauseIcon, MusicalNoteIcon, FlagIcon, SparklesIcon, SpeakerWaveIcon, SpeakerXMarkIcon, CodeBracketIcon, HeartIcon } from "@heroicons/react/24/solid";
+import { ChatBubbleLeftIcon, HeartIcon as HeartOutlineIcon } from "@heroicons/react/24/outline";
 import dynamic from "next/dynamic";
 import { useToast } from "@/components/Toast";
 import { useSession } from "next-auth/react";
@@ -77,6 +77,41 @@ export function PublicSongView({
   const [reactions, setReactions] = useState<ReactionItem[]>([]);
   const { data: session } = useSession();
   const { toast } = useToast();
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  useEffect(() => {
+    if (!songId || !session?.user) {
+      setIsFavorite(false);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/songs/${songId}/favorite`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data) setIsFavorite(data.isFavorite ?? false);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [songId, session?.user]);
+
+  async function handleToggleFavorite() {
+    if (!session?.user) return;
+    const prev = isFavorite;
+    const newFav = !prev;
+    setIsFavorite(newFav);
+    try {
+      const res = await fetch(`/api/songs/${songId}/favorite`, {
+        method: newFav ? "POST" : "DELETE",
+      });
+      if (!res.ok) {
+        setIsFavorite(prev);
+      }
+    } catch {
+      setIsFavorite(prev);
+    }
+  }
 
   // Timestamped comments — for waveform markers and playback popups
   interface TimestampedComment { id: string; timestamp: number; body: string; username: string | null; }
@@ -502,8 +537,35 @@ export function PublicSongView({
         </div>
       )}
 
-      {/* Share + Embed + Report buttons */}
+      {/* Favorite + Share + Embed + Report buttons */}
       <div className="flex justify-center gap-2 flex-wrap">
+        {session?.user ? (
+          <button
+            onClick={handleToggleFavorite}
+            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-200 active:scale-95 min-h-[44px] ${
+              isFavorite
+                ? "text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/20"
+                : "text-gray-500 dark:text-gray-400 hover:text-pink-500 dark:hover:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/20"
+            }`}
+          >
+            {isFavorite ? (
+              <HeartIcon className="w-4 h-4" aria-hidden="true" />
+            ) : (
+              <HeartOutlineIcon className="w-4 h-4" aria-hidden="true" />
+            )}
+            Favorite
+          </button>
+        ) : (
+          <Link
+            href="/auth/signin"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg text-gray-500 dark:text-gray-400 hover:text-pink-500 dark:hover:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/20 transition-all duration-200 active:scale-95 min-h-[44px]"
+            aria-label="Log in to favorite"
+          >
+            <HeartOutlineIcon className="w-4 h-4" aria-hidden="true" />
+            Favorite
+          </Link>
+        )}
         <ShareMenu
           url={typeof window !== "undefined" ? window.location.href : `/s/${slug}`}
           title={title}
