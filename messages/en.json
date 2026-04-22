@@ -58,6 +58,7 @@
   "nav": {
     "home": "Home",
     "library": "Library",
+    "import": "Import",
     "inspire": "Inspire",
     "generate": "Generate",
     "templates": "Templates",
