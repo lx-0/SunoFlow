@@ -78,6 +78,8 @@ export async function POST(request: NextRequest) {
             tags: song.tags ?? null,
             lyrics: song.lyrics ?? null,
             prompt: song.prompt ?? null,
+            sunoModel: song.model ?? null,
+            source: "import",
             generationStatus: "ready",
           },
           select: { id: true },
