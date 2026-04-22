@@ -9,7 +9,6 @@
  */
 
 export async function register() {
-  // Only run in the Node.js server runtime, not in Edge or during client builds.
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
   const { registerAllJobs } = await import("@/lib/jobs");
@@ -18,9 +17,9 @@ export async function register() {
   registerAllJobs();
   await startScheduler();
 
-  // Graceful shutdown: wait for in-progress jobs before exiting
-  process.once("SIGTERM", async () => {
+  const proc = globalThis.process;
+  proc.once("SIGTERM", async () => {
     await stopScheduler(30_000);
-    process.exit(0);
+    proc.exit(0);
   });
 }
