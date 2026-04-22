@@ -245,7 +245,7 @@ jobs:
         run: |
           echo "Waiting for staging to respond at ${{ vars.STAGING_URL }}/api/health ..."
           for i in $(seq 1 30); do
-            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" "${{ vars.STAGING_URL }}/api/health" 2>/dev/null || echo "000")
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.STAGING_URL }}/api/health" 2>/dev/null || true)
             if [ "$STATUS" = "200" ]; then
               echo "Staging is healthy (attempt $i)"
               exit 0
