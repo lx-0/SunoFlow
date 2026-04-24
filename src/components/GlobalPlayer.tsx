@@ -487,7 +487,7 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
 
           {/* Emoji reaction toggle — only when playing and authenticated */}
           {isPlaying && !!session?.user && (
-            <div className="relative flex-shrink-0">
+            <div className="relative flex-shrink-0 hidden lg:block">
               <button
                 onClick={() => setShowReactions((v) => !v)}
                 aria-label={showReactions ? "Hide reactions" : "React with emoji"}
@@ -555,12 +555,12 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
           </div>
 
           {/* Controls — touch-friendly targets */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-shrink-0">
             {/* Shuffle */}
             <button
               onClick={toggleShuffle}
               aria-label={shuffle ? "Shuffle on" : "Shuffle off"}
-              className={`hidden sm:flex w-11 h-11 rounded-full items-center justify-center transition-colors ${
+              className={`hidden md:flex w-11 h-11 rounded-full items-center justify-center transition-colors ${
                 shuffle
                   ? "text-violet-400"
                   : "text-gray-500 hover:text-gray-300"
@@ -574,7 +574,7 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
               onClick={toggleShuffleVersions}
               aria-label={shuffleVersions ? "Shuffle versions on" : "Shuffle versions off"}
               title="Shuffle across versions — randomly play different versions of songs"
-              className={`hidden sm:flex w-11 h-11 rounded-full items-center justify-center transition-colors ${
+              className={`hidden lg:flex w-11 h-11 rounded-full items-center justify-center transition-colors ${
                 shuffleVersions
                   ? "text-violet-400"
                   : "text-gray-500 hover:text-gray-300"
@@ -624,7 +624,7 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
             <button
               onClick={cycleRepeat}
               aria-label={`Repeat: ${repeat}`}
-              className={`hidden sm:flex relative w-11 h-11 rounded-full items-center justify-center transition-colors ${
+              className={`hidden md:flex relative w-11 h-11 rounded-full items-center justify-center transition-colors ${
                 repeat !== "off"
                   ? "text-violet-400"
                   : "text-gray-500 hover:text-gray-300"
@@ -644,7 +644,7 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
                 onClick={() => setShowLyrics((v) => !v)}
                 aria-label={showLyrics ? "Hide lyrics" : "Show lyrics"}
                 aria-expanded={showLyrics}
-                className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+                className={`hidden lg:flex w-11 h-11 rounded-full items-center justify-center transition-colors ${
                   showLyrics
                     ? "text-violet-400"
                     : "text-gray-500 hover:text-gray-300"
@@ -659,7 +659,7 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
               onClick={() => setShowEQ((v) => !v)}
               aria-label={showEQ ? "Hide equalizer" : "Show equalizer"}
               aria-expanded={showEQ}
-              className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+              className={`hidden lg:flex w-11 h-11 rounded-full items-center justify-center transition-colors ${
                 showEQ
                   ? "text-violet-400"
                   : "text-gray-500 hover:text-gray-300"
@@ -673,7 +673,7 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
               onClick={() => setShowUpNext((v) => !v)}
               aria-label={showUpNext ? "Hide Up Next" : "Show Up Next"}
               aria-expanded={showUpNext}
-              className={`relative w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+              className={`hidden lg:flex relative w-11 h-11 rounded-full items-center justify-center transition-colors ${
                 showUpNext
                   ? "text-violet-400"
                   : "text-gray-500 hover:text-gray-300"
