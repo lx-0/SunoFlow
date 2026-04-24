@@ -68,11 +68,16 @@ export function useSSE({ handlers, enabled = true }: UseSSEOptions) {
       }
     }
 
-    connect();
+    if (document.readyState === "complete") {
+      connect();
+    } else {
+      window.addEventListener("load", connect, { once: true });
+    }
 
     return () => {
       active = false;
       connectedRef.current = false;
+      window.removeEventListener("load", connect);
       if (reconnectTimer) clearTimeout(reconnectTimer);
       eventSource?.close();
     };
