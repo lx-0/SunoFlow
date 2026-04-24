@@ -37,7 +37,7 @@ export async function GET(
 
     if (!song?.audioUrl) {
       return NextResponse.json(
-        { error: "Not found", code: "NOT_FOUND" },
+        { error: "Not found", code: "NOT_FOUND", detail: { hasJobId: !!song?.sunoJobId } },
         { status: 404 }
       );
     }
@@ -49,6 +49,7 @@ export async function GET(
 
     // ── Cache miss — fetch from Suno ──────────────────────────────────────
     let audioUrl = song.audioUrl;
+    let refreshed = false;
 
     // Refresh the Suno URL if expired or near-expiry
     const now = Date.now();
@@ -70,26 +71,35 @@ export async function GET(
             },
           });
           audioUrl = fresh.audioUrl;
+          refreshed = true;
+        } else {
+          logger.warn({ songId, sunoJobId: song.sunoJobId }, "audio proxy: refresh returned no audioUrl");
         }
-      } catch {
-        // Refresh failed — continue with existing URL (may still work)
+      } catch (err) {
+        logger.warn({ songId, sunoJobId: song.sunoJobId, err }, "audio proxy: refresh failed");
       }
+    } else if (isExpired && !song.sunoJobId) {
+      logger.warn({ songId }, "audio proxy: URL expired but no sunoJobId — cannot refresh");
     }
 
     // Fetch from Suno — full file (no Range) so we can cache the complete file
     let upstream: Response;
     try {
       upstream = await fetch(audioUrl);
-    } catch {
+    } catch (err) {
+      logger.error({ songId, audioUrl, refreshed, err }, "audio proxy: fetch threw");
       return NextResponse.json(
-        { error: "Failed to fetch audio from origin", code: "UPSTREAM_ERROR" },
+        { error: "Failed to fetch audio from origin", code: "UPSTREAM_ERROR",
+          detail: { refreshed, hasJobId: !!song.sunoJobId, urlExpired: isExpired } },
         { status: 502 }
       );
     }
 
     if (!upstream.ok) {
+      logger.error({ songId, audioUrl, refreshed, status: upstream.status }, "audio proxy: upstream not ok");
       return NextResponse.json(
-        { error: "Audio unavailable at origin", code: "UPSTREAM_ERROR" },
+        { error: "Audio unavailable at origin", code: "UPSTREAM_ERROR",
+          detail: { refreshed, upstreamStatus: upstream.status, hasJobId: !!song.sunoJobId, urlExpired: isExpired } },
         { status: 502 }
       );
     }
