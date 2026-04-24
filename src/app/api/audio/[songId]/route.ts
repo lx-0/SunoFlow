@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getTaskStatus } from "@/lib/sunoapi/status";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 import { getCachedAudio, cacheAudio, isCached } from "@/lib/audio-cache";
+import { logger } from "@/lib/logger";
 
 // Refresh audio URL when within 3 days of expiry (matches play endpoint threshold).
 const REFRESH_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000;
@@ -100,7 +101,8 @@ export async function GET(
     cacheAudio(songId, buf);
 
     return serveBuf(buf, request.headers.get("range"));
-  } catch {
+  } catch (err) {
+    logger.error({ err }, "audio proxy: unhandled error");
     return NextResponse.json(
       { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }

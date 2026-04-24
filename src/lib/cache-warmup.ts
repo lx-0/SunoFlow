@@ -1,12 +1,37 @@
 import { prisma } from "@/lib/prisma";
 import { downloadAndCache, isCached } from "@/lib/audio-cache";
-import { getTaskStatus } from "@/lib/sunoapi/status";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
+import { buildHeaders } from "@/lib/sunoapi/http";
 import { logger } from "@/lib/logger";
 
 const BATCH_SIZE = parseInt(process.env.CACHE_WARMUP_BATCH_SIZE || "100", 10);
 const DELAY_MS = 1000;
 const CDN_URL_TTL_MS = 12 * 24 * 60 * 60 * 1000;
+const SUNO_API_BASE = "https://api.sunoapi.org/api/v1";
+
+async function fetchFreshAudioUrl(
+  taskId: string,
+  apiKey?: string
+): Promise<{ audioUrl?: string; imageUrl?: string } | null> {
+  const res = await fetch(
+    `${SUNO_API_BASE}/generate/record-info?taskId=${encodeURIComponent(taskId)}`,
+    { method: "GET", headers: buildHeaders(apiKey) }
+  );
+  if (!res.ok) return null;
+
+  const json = (await res.json()) as {
+    data?: { response?: { sunoData?: Record<string, unknown>[] } };
+  };
+  const clips = json.data?.response?.sunoData ?? [];
+  const match = clips.find(
+    (c) => typeof c.audio_url === "string" && c.audio_url
+  );
+  if (!match) return null;
+  return {
+    audioUrl: match.audio_url as string,
+    imageUrl: (match.image_url as string) || undefined,
+  };
+}
 
 export async function warmUpAudioCache(): Promise<void> {
   const songs = await prisma.song.findMany({
@@ -35,8 +60,10 @@ export async function warmUpAudioCache(): Promise<void> {
         userKeys.set(song.userId, await resolveUserApiKey(song.userId));
       }
 
-      const taskResult = await getTaskStatus(song.sunoJobId!, userKeys.get(song.userId));
-      const fresh = taskResult.songs.find((s) => s.audioUrl);
+      const fresh = await fetchFreshAudioUrl(
+        song.sunoJobId!,
+        userKeys.get(song.userId)
+      );
       if (!fresh?.audioUrl) {
         failed++;
         continue;
@@ -60,8 +87,9 @@ export async function warmUpAudioCache(): Promise<void> {
       } else {
         failed++;
       }
-    } catch {
+    } catch (err) {
       failed++;
+      logger.warn({ songId: song.id, err }, "cache-warmup: song failed");
     }
 
     await new Promise<void>((r) => setTimeout(r, DELAY_MS));
