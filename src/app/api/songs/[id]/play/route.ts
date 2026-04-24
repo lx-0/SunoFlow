@@ -4,9 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { fetchFreshUrls } from "@/lib/sunoapi/refresh";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 
-// Audio URLs expire in 15 days for generated songs; refresh when within 3 days of expiry or already expired.
-const REFRESH_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000;
-// Conservative expiry to set after a successful refresh (12 days).
 const AUDIO_URL_TTL_MS = 12 * 24 * 60 * 60 * 1000;
 
 export async function POST(
@@ -24,12 +21,9 @@ export async function POST(
       return NextResponse.json({ error: "Song not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
-    const now = Date.now();
-    const isExpired =
-      !song.audioUrlExpiresAt ||
-      song.audioUrlExpiresAt.getTime() - now < REFRESH_THRESHOLD_MS;
-
-    if (isExpired && song.sunoJobId) {
+    // Always attempt to refresh the URL — the CDN can 404 even before
+    // the timestamp says it's expired.
+    if (song.sunoJobId) {
       try {
         const userApiKey = await resolveUserApiKey(userId);
         const fresh = await fetchFreshUrls(song.sunoJobId, userApiKey);
@@ -38,7 +32,7 @@ export async function POST(
             where: { id },
             data: {
               audioUrl: fresh.audioUrl,
-              audioUrlExpiresAt: new Date(now + AUDIO_URL_TTL_MS),
+              audioUrlExpiresAt: new Date(Date.now() + AUDIO_URL_TTL_MS),
               imageUrl: fresh.imageUrl || song.imageUrl,
               playCount: { increment: 1 },
             },
@@ -46,7 +40,7 @@ export async function POST(
           return NextResponse.json({ ok: true, audioUrl: fresh.audioUrl });
         }
       } catch {
-        // Transient error — allow playback to continue with existing URL (may still work).
+        // Transient error — allow playback to continue with existing URL.
       }
     }
 

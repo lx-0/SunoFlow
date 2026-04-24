@@ -50,14 +50,11 @@ export async function GET(
     // ── Cache miss — fetch from Suno ──────────────────────────────────────
     let audioUrl = song.audioUrl;
     let refreshed = false;
-
-    // Refresh the Suno URL if expired or near-expiry
     const now = Date.now();
-    const isExpired =
-      !song.audioUrlExpiresAt ||
-      song.audioUrlExpiresAt.getTime() - now < REFRESH_THRESHOLD_MS;
 
-    if (isExpired && song.sunoJobId) {
+    // Helper: refresh URL from sunoapi.org (bypasses circuit breaker)
+    const tryRefresh = async (): Promise<boolean> => {
+      if (!song.sunoJobId) return false;
       try {
         const userApiKey = await resolveUserApiKey(userId);
         const fresh = await fetchFreshUrls(song.sunoJobId, userApiKey);
@@ -66,20 +63,27 @@ export async function GET(
             where: { id: songId },
             data: {
               audioUrl: fresh.audioUrl,
-              audioUrlExpiresAt: new Date(now + AUDIO_URL_TTL_MS),
+              audioUrlExpiresAt: new Date(Date.now() + AUDIO_URL_TTL_MS),
               imageUrl: fresh.imageUrl || undefined,
             },
           });
           audioUrl = fresh.audioUrl;
           refreshed = true;
-        } else {
-          logger.warn({ songId, sunoJobId: song.sunoJobId }, "audio proxy: refresh returned no audioUrl");
+          return true;
         }
+        logger.warn({ songId, sunoJobId: song.sunoJobId }, "audio proxy: refresh returned no audioUrl");
       } catch (err) {
         logger.warn({ songId, sunoJobId: song.sunoJobId, err }, "audio proxy: refresh failed");
       }
-    } else if (isExpired && !song.sunoJobId) {
-      logger.warn({ songId }, "audio proxy: URL expired but no sunoJobId — cannot refresh");
+      return false;
+    };
+
+    // Pre-emptive refresh if URL is expired or near-expiry
+    const isExpired =
+      !song.audioUrlExpiresAt ||
+      song.audioUrlExpiresAt.getTime() - now < REFRESH_THRESHOLD_MS;
+    if (isExpired) {
+      await tryRefresh();
     }
 
     // Fetch from Suno — full file (no Range) so we can cache the complete file
@@ -93,6 +97,24 @@ export async function GET(
           detail: { refreshed, hasJobId: !!song.sunoJobId, urlExpired: isExpired } },
         { status: 502 }
       );
+    }
+
+    // If upstream failed and we haven't refreshed yet, force a refresh and retry
+    if (!upstream.ok && !refreshed && song.sunoJobId) {
+      logger.warn({ songId, status: upstream.status }, "audio proxy: upstream failed, forcing refresh");
+      const didRefresh = await tryRefresh();
+      if (didRefresh) {
+        try {
+          upstream = await fetch(audioUrl);
+        } catch (err) {
+          logger.error({ songId, audioUrl, err }, "audio proxy: retry fetch threw");
+          return NextResponse.json(
+            { error: "Failed to fetch audio after refresh", code: "UPSTREAM_ERROR",
+              detail: { refreshed: true, hasJobId: true, urlExpired: isExpired } },
+            { status: 502 }
+          );
+        }
+      }
     }
 
     if (!upstream.ok) {
