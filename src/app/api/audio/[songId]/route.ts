@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { fetchFreshUrls } from "@/lib/sunoapi/refresh";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 import { getCachedAudio, cacheAudio, isCached } from "@/lib/audio-cache";
+import { downloadAndCacheImage, hasCachedImage } from "@/lib/image-cache";
 import { logger } from "@/lib/logger";
 
 // Refresh audio URL when within 3 days of expiry (matches play endpoint threshold).
@@ -67,6 +68,9 @@ export async function GET(
               imageUrl: fresh.imageUrl || undefined,
             },
           });
+          if (fresh.imageUrl && !hasCachedImage(songId)) {
+            downloadAndCacheImage(songId, fresh.imageUrl).catch(() => {});
+          }
           audioUrl = fresh.audioUrl;
           refreshed = true;
           return true;

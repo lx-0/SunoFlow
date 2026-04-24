@@ -5,6 +5,7 @@ import { getTaskStatus } from "@/lib/sunoapi/status";
 import { SunoApiError } from "@/lib/sunoapi";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 import { downloadAndCache } from "@/lib/audio-cache";
+import { downloadAndCacheImage, hasCachedImage } from "@/lib/image-cache";
 
 // Conservative expiry after a successful refresh (12 days).
 const CDN_URL_TTL_MS = 12 * 24 * 60 * 60 * 1000;
@@ -77,9 +78,11 @@ export async function POST(
       },
     });
 
-    // Cache audio locally so playback never depends on Suno URL availability
     if (updated.audioUrl) {
       downloadAndCache(id, updated.audioUrl).catch(() => {});
+    }
+    if (updated.imageUrl && !hasCachedImage(id)) {
+      downloadAndCacheImage(id, updated.imageUrl).catch(() => {});
     }
 
     return NextResponse.json({ ok: true, song: updated });

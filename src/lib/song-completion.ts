@@ -7,6 +7,7 @@ import { recordActivity } from "@/lib/activity";
 import { recordDailyActivity, checkSongMilestones, checkStreakMilestones } from "@/lib/streaks";
 import { sendPushToUser } from "@/lib/push";
 import { downloadAndCache, isCached } from "@/lib/audio-cache";
+import { downloadAndCacheImage, hasCachedImage } from "@/lib/image-cache";
 import crypto from "crypto";
 
 
@@ -68,6 +69,10 @@ export async function handleSongSuccess(
   if (firstSong.audioUrl && !isCached(song.id)) {
     downloadAndCache(song.id, firstSong.audioUrl).catch(() => {});
   }
+  const coverUrl = firstSong.imageUrl || song.imageUrl;
+  if (coverUrl && !hasCachedImage(song.id)) {
+    downloadAndCacheImage(song.id, coverUrl).catch(() => {});
+  }
 
   for (let i = 1; i < completionSongs.length; i++) {
     const extra = completionSongs[i];
@@ -104,6 +109,9 @@ export async function handleSongSuccess(
     });
     if (extra.audioUrl) {
       downloadAndCache(alternateSong.id, extra.audioUrl).catch(() => {});
+    }
+    if (extra.imageUrl) {
+      downloadAndCacheImage(alternateSong.id, extra.imageUrl).catch(() => {});
     }
   }
 
