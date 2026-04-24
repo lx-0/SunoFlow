@@ -1,0 +1,105 @@
+name: Uptime Monitor
+
+# External uptime monitor for production. Railway's built-in health check only
+# restarts the service — it does not alert humans. This workflow runs off-platform
+# every 5 minutes, hits /api/health, and fails (with email + optional webhook) if
+# the service is unhealthy. See docs/uptime-monitoring.md.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Override health URL (defaults to PRODUCTION_URL variable)"
+        required: false
+        type: string
+
+concurrency:
+  group: uptime-monitor
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Probe /api/health
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Resolve target URL
+        id: target
+        env:
+          OVERRIDE_URL: ${{ inputs.url }}
+          PROD_URL: ${{ vars.PRODUCTION_URL }}
+        run: |
+          base="${OVERRIDE_URL:-${PROD_URL:-https://sunoflow.up.railway.app}}"
+          base="${base%/}"
+          echo "url=${base}/api/health" >> "$GITHUB_OUTPUT"
+          echo "base=${base}"           >> "$GITHUB_OUTPUT"
+          echo "Probing ${base}/api/health"
+
+      - name: Probe health endpoint
+        id: probe
+        env:
+          HEALTH_URL: ${{ steps.target.outputs.url }}
+        run: |
+          set -u
+          check_once() {
+            local tmp body http
+            tmp=$(mktemp)
+            http=$(curl -sS -o "$tmp" -w '%{http_code}' --max-time 20 "$HEALTH_URL" || echo '000')
+            body=$(cat "$tmp"); rm -f "$tmp"
+            if [ "$http" != "200" ]; then
+              printf '%s\n' "HTTP $http: $body"
+              return 1
+            fi
+            if ! printf '%s' "$body" | jq -e '.status == "ok" and .db == true' >/dev/null 2>&1; then
+              printf '%s\n' "Payload not healthy: $body"
+              return 1
+            fi
+            printf '%s\n' "$body"
+            return 0
+          }
+
+          attempts=3
+          delay=30
+          for i in $(seq 1 $attempts); do
+            if result=$(check_once); then
+              echo "Attempt $i: OK"
+              echo "$result" | jq -r '"Status: \(.status) | db: \(.db) | uptime: \(.uptime)s | queueDepth: \(.generation.queueDepth // "n/a")"'
+              exit 0
+            fi
+            echo "Attempt $i failed: $result"
+            if [ "$i" -lt "$attempts" ]; then sleep $delay; fi
+          done
+          echo "::error title=Uptime check failed::${HEALTH_URL} failed $attempts consecutive probes"
+          exit 1
+
+      - name: Post webhook alert on failure
+        if: failure()
+        env:
+          WEBHOOK: ${{ secrets.UPTIME_ALERT_WEBHOOK }}
+          HEALTH_URL: ${{ steps.target.outputs.url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "${WEBHOOK:-}" ]; then
+            echo "UPTIME_ALERT_WEBHOOK not configured — GitHub will still email the workflow failure."
+            exit 0
+          fi
+          payload=$(jq -n \
+            --arg text "SunoFlow uptime alert: $HEALTH_URL failed 3 consecutive probes. Run: $RUN_URL" \
+            '{text: $text, username: "uptime-monitor"}')
+          curl -sS -X POST -H 'Content-Type: application/json' \
+            --data "$payload" "$WEBHOOK" \
+            || echo "::warning::Webhook POST failed — alert delivered via email only."
+
+      - name: Write summary
+        if: always()
+        env:
+          HEALTH_URL: ${{ steps.target.outputs.url }}
+        run: |
+          {
+            echo "## Uptime Monitor"
+            echo "- **URL**: \`$HEALTH_URL\`"
+            echo "- **Status**: ${{ job.status }}"
+            echo "- **Time**: $(date -u +%FT%TZ)"
+          } >> "$GITHUB_STEP_SUMMARY"
