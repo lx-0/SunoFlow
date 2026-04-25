@@ -298,19 +298,27 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     }
 
     const loadAndPlay = (target: QueueSong) => {
+      // Installed PWAs are allowed to autoplay. Setting this before changing
+      // src lets the browser auto-start the next track without a play() call,
+      // which avoids NotAllowedError on mobile during song transitions.
+      audio.autoplay = true;
       audio.src = getAudioSrc(target);
 
-      // Mobile PWA: the new source may not be ready when play() is called
-      // immediately. Register a one-shot canplay listener as a fallback so
-      // playback starts once the browser has buffered enough data.
+      // Fallback: when the source is ready, try play() directly (bypassing
+      // retryPlay's guards) in case autoplay didn't kick in.
       const onCanPlayOnce = () => {
         audio.removeEventListener("canplay", onCanPlayOnce);
         pendingCanPlayRef.current = null;
-        if (audio.paused) retryPlay(audio);
+        if (audio.paused) {
+          audio.play()
+            .then(() => { pendingPlayRef.current = false; })
+            .catch(() => { pendingPlayRef.current = true; });
+        }
       };
       pendingCanPlayRef.current = onCanPlayOnce;
       audio.addEventListener("canplay", onCanPlayOnce);
 
+      // Fast path for cached sources (service worker hit)
       retryPlay(audio);
     };
 
@@ -355,7 +363,11 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     audioRef.current = new Audio();
     const audio = audioRef.current;
 
-    const onPlay = () => { setIsPlaying(true); pendingPlayRef.current = false; };
+    const onPlay = () => {
+      setIsPlaying(true);
+      pendingPlayRef.current = false;
+      audio.autoplay = false;
+    };
     const onPause = () => {
       // When a song ends, the browser fires pause before ended. Skip updating
       // state here so the media session stays "playing" and mobile OS keeps the
@@ -959,6 +971,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
         setDuration(restoreQueue[idx].duration ?? 0);
 
         // Set the audio source but don't play
+        audio.autoplay = false;
         audio.src = proxiedAudioUrl(restoreQueue[idx].id);
 
         // Restore shuffleVersions
