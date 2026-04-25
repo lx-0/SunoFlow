@@ -487,7 +487,7 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
 
           {/* Emoji reaction toggle — only when playing and authenticated */}
           {isPlaying && !!session?.user && (
-            <div className="relative flex-shrink-0 hidden lg:block">
+            <div className="relative flex-shrink-0">
               <button
                 onClick={() => setShowReactions((v) => !v)}
                 aria-label={showReactions ? "Hide reactions" : "React with emoji"}
