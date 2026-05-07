@@ -227,6 +227,62 @@ async function checkCreditBalance(
   return { ok: true };
 }
 
+interface CoreSpec {
+  userId: string;
+  action: string;
+  songParams: SongParams;
+  apiCall: () => Promise<{ taskId: string }>;
+  description: string;
+  creditRecording: boolean;
+  coverArt?: boolean;
+}
+
+type CoreOutcome =
+  | { status: "created"; song: Song }
+  | { status: "api_error"; rawError: unknown; song: Song; errorMessage: string }
+  | { status: "circuit_open" };
+
+async function executeCore(core: CoreSpec): Promise<CoreOutcome> {
+  recordGenerationStart();
+  const startMs = Date.now();
+
+  try {
+    const result = await core.apiCall();
+    recordGenerationEnd(Date.now() - startMs, true);
+
+    const song = await createSongRecord(core.userId, core.songParams, {
+      status: "pending",
+      sunoJobId: result.taskId,
+    });
+
+    if (core.creditRecording) {
+      await deductCredits(core.userId, core.action, {
+        songId: song.id,
+        description: core.description,
+      });
+    }
+
+    afterCreation(
+      { userId: core.userId, songParams: core.songParams, coverArt: core.coverArt },
+      song
+    );
+    return { status: "created", song };
+  } catch (apiError) {
+    if (apiError instanceof CircuitOpenError) {
+      recordGenerationEnd(0, false);
+      return { status: "circuit_open" };
+    }
+
+    recordGenerationEnd(Date.now() - startMs, false);
+    const { message: errorMsg } = userFriendlyError(apiError);
+    const song = await createSongRecord(core.userId, core.songParams, {
+      status: "failed",
+      errorMessage: errorMsg,
+    });
+    return { status: "api_error", rawError: apiError, song, errorMessage: errorMsg };
+  }
+}
+
 export async function executeGeneration(spec: GenerationSpec): Promise<GenerationOutcome> {
   const guards = resolveGuards(spec.guards ?? "standard");
   let rateLimitStatus: RateLimitStatus | undefined;
@@ -257,46 +313,32 @@ export async function executeGeneration(spec: GenerationSpec): Promise<Generatio
     return { status: "created", song, rateLimitStatus };
   }
 
-  recordGenerationStart();
-  const startMs = Date.now();
+  const outcome = await executeCore({
+    userId: spec.userId,
+    action: spec.action,
+    songParams: spec.songParams,
+    apiCall: spec.apiCall,
+    description: spec.description,
+    creditRecording: guards.creditRecording,
+    coverArt: spec.coverArt,
+  });
 
-  try {
-    const result = await spec.apiCall();
-    recordGenerationEnd(Date.now() - startMs, true);
-
-    const song = await createSongRecord(spec.userId, spec.songParams, {
-      status: "pending",
-      sunoJobId: result.taskId,
-    });
-
-    if (guards.creditRecording) {
-      await deductCredits(spec.userId, spec.action, {
-        songId: song.id,
-        description: spec.description,
-      });
-    }
-
-    afterCreation(spec, song);
-    return { status: "created", song, rateLimitStatus };
-  } catch (apiError) {
-    if (apiError instanceof CircuitOpenError) {
-      recordGenerationEnd(0, false);
+  switch (outcome.status) {
+    case "created":
+      return { status: "created", song: outcome.song, rateLimitStatus };
+    case "circuit_open":
       return enqueueGeneration(spec);
-    }
-
-    recordGenerationEnd(Date.now() - startMs, false);
-
-    if (guards.rateLimit) {
-      await releaseRateLimitSlot(spec.userId).catch(() => {});
-    }
-
-    const { message: errorMsg } = userFriendlyError(apiError);
-    const song = await createSongRecord(spec.userId, spec.songParams, {
-      status: "failed",
-      errorMessage: errorMsg,
-    });
-
-    return { status: "failed", song, error: errorMsg, rawError: apiError, rateLimitStatus };
+    case "api_error":
+      if (guards.rateLimit) {
+        await releaseRateLimitSlot(spec.userId).catch(() => {});
+      }
+      return {
+        status: "failed",
+        song: outcome.song,
+        error: outcome.errorMessage,
+        rawError: outcome.rawError,
+        rateLimitStatus,
+      };
   }
 }
 
@@ -363,58 +405,67 @@ export async function drainQueuedItems(): Promise<void> {
       data: { status: "processing" },
     });
 
-    recordGenerationStart();
-    const startMs = Date.now();
+    const songParams: SongParams = {
+      title: item.title ?? null,
+      prompt: item.prompt,
+      tags: item.tags ?? null,
+      isInstrumental: item.makeInstrumental,
+    };
 
-    try {
-      const result = await generateSong(
-        item.prompt,
-        {
-          title: item.title ?? undefined,
-          style: item.tags ?? undefined,
-          instrumental: item.makeInstrumental,
-          personaId: item.personaId ?? undefined,
-        },
-        SUNOAPI_KEY
-      );
+    const outcome = await executeCore({
+      userId: item.userId,
+      action: "generate",
+      songParams,
+      apiCall: () =>
+        generateSong(
+          item.prompt,
+          {
+            title: item.title ?? undefined,
+            style: item.tags ?? undefined,
+            instrumental: item.makeInstrumental,
+            personaId: item.personaId ?? undefined,
+          },
+          SUNOAPI_KEY
+        ),
+      description: `Song generation (queued): ${item.title || "Untitled"}`,
+      creditRecording: true,
+      coverArt: false,
+    });
 
-      recordGenerationEnd(Date.now() - startMs, true);
-
-      const songParams: SongParams = {
-        title: item.title ?? null,
-        prompt: item.prompt,
-        tags: item.tags ?? null,
-        isInstrumental: item.makeInstrumental,
-      };
-
-      const song = await createSongRecord(item.userId, songParams, {
-        status: "pending",
-        sunoJobId: result.taskId,
-      });
-
-      await deductCredits(item.userId, "generate", {
-        songId: song.id,
-        description: `Song generation (queued): ${item.title || "Untitled"}`,
-      });
-
-      afterCreation({ userId: item.userId, songParams, coverArt: false }, song);
-
-      await markDone(item.id, song.id);
-
-      logger.info(
-        { queueItemId: item.id, songId: song.id, taskId: result.taskId },
-        "generation: queued item processed"
-      );
-    } catch (err) {
-      recordGenerationEnd(Date.now() - startMs, false);
-      const message = err instanceof Error ? err.message : "Unknown error";
-      logger.error({ queueItemId: item.id, err }, "generation: queued item failed");
-      await markFailed(item.id, message).catch((updateErr) => {
-        logger.error(
-          { queueItemId: item.id, updateErr },
-          "generation: failed to mark queued item as failed"
+    switch (outcome.status) {
+      case "created":
+        await markDone(item.id, outcome.song.id);
+        logger.info(
+          { queueItemId: item.id, songId: outcome.song.id },
+          "generation: queued item processed"
         );
-      });
+        break;
+
+      case "circuit_open":
+        await prisma.generationQueueItem.update({
+          where: { id: item.id },
+          data: { status: "pending" },
+        });
+        logger.warn(
+          { queueItemId: item.id },
+          "generation: circuit opened during drain — stopping"
+        );
+        return;
+
+      case "api_error":
+        logger.error(
+          { queueItemId: item.id, err: outcome.rawError },
+          "generation: queued item failed"
+        );
+        await markFailed(item.id, outcome.errorMessage, outcome.song.id).catch(
+          (updateErr) => {
+            logger.error(
+              { queueItemId: item.id, updateErr },
+              "generation: failed to mark queued item as failed"
+            );
+          }
+        );
+        break;
     }
   }
 }
