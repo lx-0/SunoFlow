@@ -169,6 +169,27 @@ export async function recordPaymentEvent(
   });
 }
 
+// ── Audit recording for unhandled events ────────────────────────────
+
+export async function recordUnhandledEvent(event: Stripe.Event): Promise<void> {
+  const obj = event.data.object as unknown as Record<string, unknown>;
+  const customerId = typeof obj.customer === "string" ? obj.customer : null;
+  const userId = customerId ? await userIdFromCustomerId(customerId) : null;
+
+  await prisma.paymentEvent.create({
+    data: {
+      stripeEventId: event.id,
+      type: event.type,
+      amount: null,
+      currency: null,
+      status: "processed",
+      stripeCustomerId: customerId,
+      userId,
+      metadata: event.data.object as object,
+    },
+  });
+}
+
 // ── User lookup ─────────────────────────────────────────────────────
 
 export async function userIdFromCustomerId(customerId: string): Promise<string | null> {

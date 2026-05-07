@@ -9,6 +9,7 @@ import {
   resolveSubscriptionDetails,
   resolveInvoiceContext,
   recordPaymentEvent,
+  recordUnhandledEvent,
   userIdFromSubscriptionId,
 } from "./resolve";
 
@@ -278,12 +279,14 @@ export async function handleBillingEvent(event: Stripe.Event): Promise<void> {
     case "checkout.session.completed":
       await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
       break;
+    case "customer.subscription.created":
     case "customer.subscription.updated":
       await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
       break;
     case "customer.subscription.deleted":
       await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
       break;
+    case "invoice.paid":
     case "invoice.payment_succeeded":
       await handleInvoicePaymentSucceeded(event);
       break;
@@ -291,6 +294,7 @@ export async function handleBillingEvent(event: Stripe.Event): Promise<void> {
       await handleInvoicePaymentFailed(event);
       break;
     default:
-      logger.debug({ eventType: event.type }, "billing-webhook: unhandled event type");
+      await recordUnhandledEvent(event);
+      break;
   }
 }
