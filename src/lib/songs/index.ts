@@ -3,6 +3,9 @@ import type { Song, SongTag, Tag, Favorite } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logServerError } from "@/lib/error-logger";
 
+export { prepareSongDownload } from "./download";
+export type { DownloadFormat, DownloadSong, DownloadRequest, DownloadResult } from "./download";
+
 // ---------------------------------------------------------------------------
 // Filters — reusable Prisma WHERE-clause builders
 // ---------------------------------------------------------------------------
