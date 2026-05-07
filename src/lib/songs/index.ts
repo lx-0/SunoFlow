@@ -9,6 +9,9 @@ export type { DownloadFormat, DownloadSong, DownloadRequest, DownloadResult } fr
 export { getTopGenres, getTopMoods } from "./taxonomy";
 export type { TagCount } from "./taxonomy";
 
+export { queryPublicSongs } from "./public";
+export type { PublicSongsQuery, PublicSongsResult, PublicSong, PublicSongSort } from "./public";
+
 // ---------------------------------------------------------------------------
 // Filters — reusable Prisma WHERE-clause builders
 // ---------------------------------------------------------------------------
