@@ -1,4 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { resultResponse } from "@/lib/route-handler";
+import { logServerError } from "@/lib/error-logger";
+import { internalError } from "@/lib/api-error";
 import { recordPlay } from "@/lib/playlists";
 
 export async function POST(
@@ -7,17 +10,9 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const result = await recordPlay(id);
-    if (!result.ok)
-      return NextResponse.json(
-        { error: result.error, code: result.code },
-        { status: result.status },
-      );
-    return NextResponse.json(result.data);
-  } catch {
-    return NextResponse.json(
-      { error: "Internal server error", code: "INTERNAL_ERROR" },
-      { status: 500 },
-    );
+    return resultResponse(await recordPlay(id));
+  } catch (error) {
+    logServerError("playlist-play", error, { route: "/api/playlists/[id]/play" });
+    return internalError();
   }
 }

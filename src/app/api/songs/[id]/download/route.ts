@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { resolveUser } from "@/lib/auth";
+import { resultResponse } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { acquireRateLimitSlot } from "@/lib/rate-limit";
 import { prepareSongDownload } from "@/lib/songs";
@@ -59,12 +60,7 @@ export async function GET(
       embedMetadata,
     });
 
-    if (!result.ok) {
-      return NextResponse.json(
-        { error: result.error, code: result.code },
-        { status: result.status }
-      );
-    }
+    if (!result.ok) return resultResponse(result);
 
     const headers = new Headers();
     headers.set("Content-Type", result.contentType);

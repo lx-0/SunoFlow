@@ -1,41 +1,20 @@
-import { NextResponse } from "next/server";
-import { resolveUser } from "@/lib/auth";
+import { authRoute, resultResponse } from "@/lib/route-handler";
 import { togglePublish } from "@/lib/playlists";
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { id } = await params;
+export const PATCH = authRoute<{ id: string }>(async (request, { auth, params }) => {
+  let genre: string | undefined;
   try {
-    const { userId, error: authError } = await resolveUser(request);
-    if (authError) return authError;
-
-    let genre: string | undefined;
-    try {
-      const body = await request.json();
-      if (
-        body.genre !== undefined &&
-        typeof body.genre === "string" &&
-        body.genre.trim().length > 0
-      ) {
-        genre = body.genre.trim();
-      }
-    } catch {
-      // No body or invalid JSON — genre is optional
+    const body = await request.json();
+    if (
+      body.genre !== undefined &&
+      typeof body.genre === "string" &&
+      body.genre.trim().length > 0
+    ) {
+      genre = body.genre.trim();
     }
-
-    const result = await togglePublish(id, userId, genre);
-    if (!result.ok)
-      return NextResponse.json(
-        { error: result.error, code: result.code },
-        { status: result.status },
-      );
-    return NextResponse.json(result.data);
   } catch {
-    return NextResponse.json(
-      { error: "Internal server error", code: "INTERNAL_ERROR" },
-      { status: 500 },
-    );
+    // No body or invalid JSON — genre is optional
   }
-}
+
+  return resultResponse(await togglePublish(params.id, auth.userId, genre));
+}, { route: "/api/playlists/[id]/publish" });

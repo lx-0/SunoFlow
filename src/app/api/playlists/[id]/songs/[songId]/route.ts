@@ -1,27 +1,6 @@
-import { NextResponse } from "next/server";
-import { resolveUser } from "@/lib/auth";
+import { authRoute, resultResponse } from "@/lib/route-handler";
 import { removeSong } from "@/lib/playlists";
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string; songId: string }> },
-) {
-  const { id, songId } = await params;
-  try {
-    const { userId, error: authError } = await resolveUser(request);
-    if (authError) return authError;
-
-    const result = await removeSong(id, userId, songId);
-    if (!result.ok)
-      return NextResponse.json(
-        { error: result.error, code: result.code },
-        { status: result.status },
-      );
-    return NextResponse.json(result.data);
-  } catch {
-    return NextResponse.json(
-      { error: "Internal server error", code: "INTERNAL_ERROR" },
-      { status: 500 },
-    );
-  }
-}
+export const DELETE = authRoute<{ id: string; songId: string }>(async (_request, { auth, params }) => {
+  return resultResponse(await removeSong(params.id, auth.userId, params.songId));
+}, { route: "/api/playlists/[id]/songs/[songId]" });

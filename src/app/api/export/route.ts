@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authRoute } from "@/lib/route-handler";
+import { authRoute, resultResponse } from "@/lib/route-handler";
 import { exportUserData } from "@/lib/data-export";
 
 export const GET = authRoute(async (request, { auth }) => {
@@ -10,11 +10,7 @@ export const GET = authRoute(async (request, { auth }) => {
     searchParams.get("type") ?? "all",
   );
 
-  if (!result.ok)
-    return NextResponse.json(
-      { error: result.error, code: result.code },
-      { status: result.status },
-    );
+  if (!result.ok) return resultResponse(result);
 
   return new NextResponse(result.data.content, {
     status: 200,

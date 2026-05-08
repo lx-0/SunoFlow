@@ -1,30 +1,11 @@
-import { NextResponse } from "next/server";
-import { resolveUser } from "@/lib/auth";
+import { authRoute, resultResponse } from "@/lib/route-handler";
 import { getPreferences, updatePreferences } from "@/lib/profile";
 
-export async function GET(request: Request) {
-  const { userId, error: authError } = await resolveUser(request);
-  if (authError) return authError;
+export const GET = authRoute(async (_request, { auth }) => {
+  return resultResponse(await getPreferences(auth.userId));
+}, { route: "/api/profile/preferences" });
 
-  const result = await getPreferences(userId);
-  if (!result.ok)
-    return NextResponse.json(
-      { error: result.error, code: result.code },
-      { status: result.status },
-    );
-  return NextResponse.json(result.data);
-}
-
-export async function PATCH(request: Request) {
-  const { userId, error: authError } = await resolveUser(request);
-  if (authError) return authError;
-
+export const PATCH = authRoute(async (request, { auth }) => {
   const body = await request.json();
-  const result = await updatePreferences(userId, body);
-  if (!result.ok)
-    return NextResponse.json(
-      { error: result.error, code: result.code },
-      { status: result.status },
-    );
-  return NextResponse.json(result.data);
-}
+  return resultResponse(await updatePreferences(auth.userId, body));
+}, { route: "/api/profile/preferences" });

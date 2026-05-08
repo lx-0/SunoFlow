@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveUser } from "@/lib/auth";
+import { resultResponse } from "@/lib/route-handler";
 import { acquireRateLimitSlot } from "@/lib/rate-limit";
 import { rateLimited, internalError } from "@/lib/api-error";
 import { exportGdprZip } from "@/lib/data-export";
@@ -33,12 +34,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await exportGdprZip(userId);
-    if (!result.ok) {
-      return NextResponse.json(
-        { error: result.error, code: result.code },
-        { status: result.status }
-      );
-    }
+    if (!result.ok) return resultResponse(result);
 
     const { zipBuffer, filename } = result.data;
 

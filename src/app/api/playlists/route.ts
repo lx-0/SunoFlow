@@ -1,17 +1,10 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
-import { authRoute } from "@/lib/route-handler";
+import { authRoute, resultResponse } from "@/lib/route-handler";
 import { CacheControl } from "@/lib/cache";
 import { listPlaylists, createPlaylist } from "@/lib/playlists";
 
 export const GET = authRoute(async (_request, { auth }) => {
-  const result = await listPlaylists(auth.userId);
-  if (!result.ok)
-    return NextResponse.json(
-      { error: result.error, code: result.code },
-      { status: result.status },
-    );
-  return NextResponse.json(result.data, {
+  return resultResponse(await listPlaylists(auth.userId), {
     headers: { "Cache-Control": CacheControl.privateShort },
   });
 }, { route: "/api/playlists" });
@@ -29,11 +22,5 @@ const createPlaylistBody = z.object({
 });
 
 export const POST = authRoute(async (_request, { auth, body }) => {
-  const result = await createPlaylist(auth.userId, body);
-  if (!result.ok)
-    return NextResponse.json(
-      { error: result.error, code: result.code },
-      { status: result.status },
-    );
-  return NextResponse.json(result.data, { status: 201 });
+  return resultResponse(await createPlaylist(auth.userId, body), { status: 201 });
 }, { route: "/api/playlists", body: createPlaylistBody });

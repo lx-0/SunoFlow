@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { resolveUser } from "@/lib/auth";
+import { authRoute, resultResponse } from "@/lib/route-handler";
 import { getInviteInfo, acceptInvite } from "@/lib/playlists";
+import { logServerError } from "@/lib/error-logger";
+import { internalError } from "@/lib/api-error";
 
 export async function GET(
   _request: Request,
@@ -8,41 +10,13 @@ export async function GET(
 ) {
   const { token } = await params;
   try {
-    const result = await getInviteInfo(token);
-    if (!result.ok)
-      return NextResponse.json(
-        { error: result.error, code: result.code },
-        { status: result.status },
-      );
-    return NextResponse.json(result.data);
-  } catch {
-    return NextResponse.json(
-      { error: "Internal server error", code: "INTERNAL_ERROR" },
-      { status: 500 },
-    );
+    return resultResponse(await getInviteInfo(token));
+  } catch (error) {
+    logServerError("playlist-invite-get", error, { route: "/api/playlists/invite/[token]" });
+    return internalError();
   }
 }
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ token: string }> },
-) {
-  const { token } = await params;
-  try {
-    const { userId, error: authError } = await resolveUser(request);
-    if (authError) return authError;
-
-    const result = await acceptInvite(token, userId);
-    if (!result.ok)
-      return NextResponse.json(
-        { error: result.error, code: result.code },
-        { status: result.status },
-      );
-    return NextResponse.json(result.data);
-  } catch {
-    return NextResponse.json(
-      { error: "Internal server error", code: "INTERNAL_ERROR" },
-      { status: 500 },
-    );
-  }
-}
+export const POST = authRoute<{ token: string }>(async (_request, { auth, params }) => {
+  return resultResponse(await acceptInvite(params.token, auth.userId));
+}, { route: "/api/playlists/invite/[token]" });

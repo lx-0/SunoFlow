@@ -1,24 +1,16 @@
 import { NextResponse } from "next/server";
-import { resolveUser } from "@/lib/auth";
+import { authRoute, resultResponse } from "@/lib/route-handler";
 import { executeBatch } from "@/lib/songs/batch";
 
-export async function POST(request: Request) {
-  const { userId, error: authError } = await resolveUser(request);
-  if (authError) return authError;
-
+export const POST = authRoute(async (request, { auth }) => {
   const body = await request.json();
-  const result = await executeBatch(userId, body);
+  const result = await executeBatch(auth.userId, body);
 
-  if (!result.ok) {
-    return NextResponse.json(
-      { error: result.error, code: result.code },
-      { status: result.status },
-    );
-  }
+  if (!result.ok) return resultResponse(result);
 
   return NextResponse.json({
     action: result.action,
     affected: result.affected,
     songIds: result.songIds,
   });
-}
+}, { route: "/api/songs/batch" });
