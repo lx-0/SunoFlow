@@ -1,4 +1,6 @@
 export { auth, handlers, signIn, signOut, googleEnabled } from "./session";
+export { registerUser } from "./register";
+export type { RegisterInput, RegisterResult } from "./register";
 
 import { randomBytes, createHash, timingSafeEqual } from "crypto";
 import { auth } from "./session";
