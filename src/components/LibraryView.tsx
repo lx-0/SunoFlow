@@ -495,7 +495,11 @@ export function LibraryView({
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">(() => {
     if (typeof window === "undefined") return "list";
-    return (localStorage.getItem("library-view-mode") as "list" | "grid") ?? "list";
+    try {
+      return (localStorage.getItem("library-view-mode") as "list" | "grid") ?? "list";
+    } catch {
+      return "list";
+    }
   });
   const [availableTags, setAvailableTags] = useState<{ id: string; name: string; color: string; _count?: { songTags: number } }[]>([]);
 
