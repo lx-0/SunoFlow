@@ -1,5 +1,12 @@
-import type { GenerationQueueItem } from "@prisma/client";
+import type { GenerationQueueItem, Song } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { acquireRateLimitSlot, type RateLimitStatus } from "@/lib/rate-limit";
+import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
+import { generateSong, SunoApiError, getRemainingCredits } from "@/lib/sunoapi";
+import { mockSongs } from "@/lib/sunoapi/mock";
+import { SUNOAPI_KEY } from "@/lib/env";
+import { logServerError } from "@/lib/error-logger";
+import { executeGeneration, userFriendlyError } from "@/lib/generation";
 
 
 export const MAX_QUEUE_SIZE = 10;
@@ -213,5 +220,128 @@ export async function markFailedBySongId(
     where: { songId, status: "processing" },
     data: { status: "failed", errorMessage },
   });
+}
+
+// ── Process-next orchestration ──────────────────────────────────────────
+// Absorbs queue-item acquisition, rate limiting, API key resolution,
+// generation execution, outcome handling, and queue state updates.
+
+export type ProcessNextResult =
+  | { outcome: "already_processing"; item: GenerationQueueItem }
+  | { outcome: "empty" }
+  | { outcome: "rate_limited"; rateLimit: RateLimitStatus }
+  | { outcome: "denied" }
+  | { outcome: "queued"; message: string }
+  | {
+      outcome: "failed";
+      queueItem: GenerationQueueItem;
+      song: Song;
+      error: string;
+      code: string;
+      details?: Record<string, unknown>;
+      creditBalance?: number;
+      correlationId: string;
+    }
+  | {
+      outcome: "created";
+      queueItem: GenerationQueueItem;
+      song: Song;
+      queueStatus: "done" | "processing";
+    };
+
+export async function processNextItem(userId: string): Promise<ProcessNextResult> {
+  const acquireResult = await acquireNextItem(userId);
+  if (acquireResult.status === "already_processing") {
+    return { outcome: "already_processing", item: acquireResult.item };
+  }
+  if (acquireResult.status === "empty") {
+    return { outcome: "empty" };
+  }
+  const nextItem = acquireResult.item;
+
+  const { acquired, status: rateLimitStatus } = await acquireRateLimitSlot(userId);
+  if (!acquired) {
+    await markPending(nextItem.id);
+    return { outcome: "rate_limited", rateLimit: rateLimitStatus };
+  }
+
+  const userApiKey = await resolveUserApiKey(userId);
+  const hasApiKey = !!(userApiKey || SUNOAPI_KEY);
+
+  const genOutcome = await executeGeneration({
+    userId,
+    action: "generate",
+    songParams: {
+      title: nextItem.title || null,
+      prompt: nextItem.prompt,
+      tags: nextItem.tags || null,
+      isInstrumental: nextItem.makeInstrumental,
+    },
+    hasApiKey,
+    mockFallback: mockSongs[0],
+    guards: "pre-authorized",
+    description: `Song generation (queued): ${nextItem.title || "Untitled"}`,
+    apiCall: () =>
+      generateSong(
+        nextItem.prompt,
+        {
+          title: nextItem.title || undefined,
+          style: nextItem.tags || undefined,
+          instrumental: nextItem.makeInstrumental,
+          personaId: nextItem.personaId || undefined,
+        },
+        userApiKey,
+      ),
+  });
+
+  if (genOutcome.status === "denied") {
+    await markFailed(nextItem.id, "Generation denied");
+    return { outcome: "denied" };
+  }
+
+  if (genOutcome.status === "queued") {
+    await markPending(nextItem.id, "Re-queued: circuit still open");
+    return { outcome: "queued", message: genOutcome.message };
+  }
+
+  if (genOutcome.status === "failed") {
+    const correlationId = logServerError("queue-process", genOutcome.rawError, {
+      userId,
+      route: "/api/generation-queue/process-next",
+      params: { queueItemId: nextItem.id },
+    });
+    const { code, details } = userFriendlyError(genOutcome.rawError);
+    await markFailed(nextItem.id, genOutcome.error, genOutcome.song.id);
+
+    let creditBalance: number | undefined;
+    if (genOutcome.rawError instanceof SunoApiError && genOutcome.rawError.status === 402) {
+      creditBalance = await getRemainingCredits().catch(() => undefined);
+    }
+
+    return {
+      outcome: "failed",
+      queueItem: nextItem,
+      song: genOutcome.song,
+      error: genOutcome.error,
+      code,
+      details,
+      creditBalance,
+      correlationId,
+    };
+  }
+
+  const queueStatus = genOutcome.song.generationStatus === "ready" ? "done" as const : "processing" as const;
+  if (queueStatus === "done") {
+    await markDone(nextItem.id, genOutcome.song.id);
+  } else {
+    await linkSong(nextItem.id, genOutcome.song.id);
+  }
+
+  return {
+    outcome: "created",
+    queueItem: nextItem,
+    song: genOutcome.song,
+    queueStatus,
+  };
 }
 
