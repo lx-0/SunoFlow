@@ -30,6 +30,8 @@ import { resolveUser } from "@/lib/auth";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+const seg = { params: Promise.resolve({}) } as never;
+
 function makeRequest(): Request {
   return new Request("http://localhost/api/billing/subscription");
 }
@@ -71,7 +73,7 @@ describe("GET /api/billing/subscription", () => {
         error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }) as never,
       });
 
-      const res = await GET(makeRequest() as never);
+      const res = await GET(makeRequest() as never, seg);
       expect(res.status).toBe(401);
     });
   });
@@ -89,7 +91,7 @@ describe("GET /api/billing/subscription", () => {
         trialEnd: null,
       });
 
-      const res = await GET(makeRequest() as never);
+      const res = await GET(makeRequest() as never, seg);
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.tier).toBe("free");
@@ -102,7 +104,7 @@ describe("GET /api/billing/subscription", () => {
 
   describe("active subscription", () => {
     it("returns pro tier info with correct limits", async () => {
-      const res = await GET(makeRequest() as never);
+      const res = await GET(makeRequest() as never, seg);
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.tier).toBe("pro");
@@ -113,14 +115,14 @@ describe("GET /api/billing/subscription", () => {
     });
 
     it("includes period dates in the response", async () => {
-      const res = await GET(makeRequest() as never);
+      const res = await GET(makeRequest() as never, seg);
       const data = await res.json();
       expect(data.currentPeriodStart).toBe(now.toISOString());
       expect(data.currentPeriodEnd).toBe(periodEnd.toISOString());
     });
 
     it("includes trialEnd as null when not on trial", async () => {
-      const res = await GET(makeRequest() as never);
+      const res = await GET(makeRequest() as never, seg);
       const data = await res.json();
       expect(data.trialEnd).toBeNull();
     });
@@ -137,7 +139,7 @@ describe("GET /api/billing/subscription", () => {
         trialEnd: null,
       });
 
-      const res = await GET(makeRequest() as never);
+      const res = await GET(makeRequest() as never, seg);
       const data = await res.json();
       expect(data.cancelAtPeriodEnd).toBe(true);
     });
@@ -147,7 +149,7 @@ describe("GET /api/billing/subscription", () => {
     it("returns 500 when module throws", async () => {
       mockGetSubscriptionStatus.mockRejectedValue(new Error("DB error"));
 
-      const res = await GET(makeRequest() as never);
+      const res = await GET(makeRequest() as never, seg);
       expect(res.status).toBe(500);
       const data = await res.json();
       expect(data.code).toBe("INTERNAL_ERROR");

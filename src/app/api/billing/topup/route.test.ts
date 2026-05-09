@@ -32,6 +32,8 @@ import { resolveUser } from "@/lib/auth";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+const seg = { params: Promise.resolve({}) } as never;
+
 function makePostRequest(body: Record<string, unknown>): Request {
   return new Request("http://localhost/api/billing/topup", {
     method: "POST",
@@ -73,7 +75,7 @@ describe("POST /api/billing/topup", () => {
         error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }) as never,
       });
 
-      const res = await POST(makePostRequest({ package: "credits_10" }) as never);
+      const res = await POST(makePostRequest({ package: "credits_10" }) as never, seg);
       expect(res.status).toBe(401);
     });
   });
@@ -87,7 +89,7 @@ describe("POST /api/billing/topup", () => {
         status: 400,
       });
 
-      const res = await POST(makePostRequest({}) as never);
+      const res = await POST(makePostRequest({}) as never, seg);
       expect(res.status).toBe(400);
       const data = await res.json();
       expect(data.code).toBe("VALIDATION_ERROR");
@@ -101,7 +103,7 @@ describe("POST /api/billing/topup", () => {
         status: 400,
       });
 
-      const res = await POST(makePostRequest({ package: "credits_100" }) as never);
+      const res = await POST(makePostRequest({ package: "credits_100" }) as never, seg);
       expect(res.status).toBe(400);
       const data = await res.json();
       expect(data.code).toBe("VALIDATION_ERROR");
@@ -117,7 +119,7 @@ describe("POST /api/billing/topup", () => {
         status: 400,
       });
 
-      const res = await POST(makePostRequest({ package: "credits_10" }) as never);
+      const res = await POST(makePostRequest({ package: "credits_10" }) as never, seg);
       expect(res.status).toBe(400);
       const data = await res.json();
       expect(data.code).toBe("USER_ERROR");
@@ -126,14 +128,14 @@ describe("POST /api/billing/topup", () => {
 
   describe("success", () => {
     it("returns checkout URL on success", async () => {
-      const res = await POST(makePostRequest({ package: "credits_10" }) as never);
+      const res = await POST(makePostRequest({ package: "credits_10" }) as never, seg);
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.url).toBe("https://checkout.stripe.com/topup_session");
     });
 
     it("passes userId and package to createTopupSession", async () => {
-      await POST(makePostRequest({ package: "credits_25" }) as never);
+      await POST(makePostRequest({ package: "credits_25" }) as never, seg);
       expect(mockCreateTopupSession).toHaveBeenCalledWith("user-1", "credits_25");
     });
   });
@@ -142,7 +144,7 @@ describe("POST /api/billing/topup", () => {
     it("returns 500 when module throws", async () => {
       mockCreateTopupSession.mockRejectedValue(new Error("Stripe error"));
 
-      const res = await POST(makePostRequest({ package: "credits_25" }) as never);
+      const res = await POST(makePostRequest({ package: "credits_25" }) as never, seg);
       expect(res.status).toBe(500);
       const data = await res.json();
       expect(data.code).toBe("INTERNAL_ERROR");
@@ -160,14 +162,14 @@ describe("GET /api/billing/topup", () => {
         error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }) as never,
       });
 
-      const res = await GET(makeGetRequest() as never);
+      const res = await GET(makeGetRequest() as never, seg);
       expect(res.status).toBe(401);
     });
   });
 
   describe("success", () => {
     it("returns empty array when user has no top-ups", async () => {
-      const res = await GET(makeGetRequest() as never);
+      const res = await GET(makeGetRequest() as never, seg);
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.topUps).toEqual([]);
@@ -180,7 +182,7 @@ describe("GET /api/billing/topup", () => {
       ];
       mockGetTopupHistory.mockResolvedValue(mockTopUps);
 
-      const res = await GET(makeGetRequest() as never);
+      const res = await GET(makeGetRequest() as never, seg);
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.topUps).toHaveLength(2);
@@ -193,7 +195,7 @@ describe("GET /api/billing/topup", () => {
     it("returns 500 when module throws", async () => {
       mockGetTopupHistory.mockRejectedValue(new Error("DB error"));
 
-      const res = await GET(makeGetRequest() as never);
+      const res = await GET(makeGetRequest() as never, seg);
       expect(res.status).toBe(500);
       const data = await res.json();
       expect(data.code).toBe("INTERNAL_ERROR");

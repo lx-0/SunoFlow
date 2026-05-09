@@ -1,41 +1,39 @@
 import { NextResponse } from "next/server";
-import { resolveUser } from "@/lib/auth";
+import { z } from "zod";
+import { authRoute } from "@/lib/route-handler";
+import { badRequest } from "@/lib/api-error";
 import { listItems, addItem } from "@/lib/generation-queue";
 
-export async function GET(request: Request) {
-  const { userId, error } = await resolveUser(request);
-  if (error) return error;
-
-  const items = await listItems(userId);
+export const GET = authRoute(async (_request, { auth }) => {
+  const items = await listItems(auth.userId);
   return NextResponse.json({ items });
-}
+}, { route: "/api/generation-queue" });
 
-export async function POST(request: Request) {
-  const { userId, error } = await resolveUser(request);
-  if (error) return error;
+export const POST = authRoute(async (_request, { auth, body }) => {
+  const { prompt, title, tags, makeInstrumental, personaId } = body;
 
-  const { prompt, title, tags, makeInstrumental, personaId } =
-    await request.json();
-
-  if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
-    return NextResponse.json(
-      { error: "A prompt is required", code: "VALIDATION_ERROR" },
-      { status: 400 }
-    );
+  if (!prompt.trim()) {
+    return badRequest("A prompt is required");
   }
 
   if (prompt.length > 3000) {
-    return NextResponse.json(
-      { error: "Prompt must be 3000 characters or less", code: "VALIDATION_ERROR" },
-      { status: 400 }
-    );
+    return badRequest("Prompt must be 3000 characters or less");
   }
 
-  const result = await addItem(userId, { prompt, title, tags, makeInstrumental, personaId });
+  const result = await addItem(auth.userId, { prompt, title, tags, makeInstrumental, personaId });
 
   if (!result.ok) {
     return NextResponse.json({ error: result.message }, { status: 400 });
   }
 
   return NextResponse.json({ item: result.item }, { status: 201 });
-}
+}, {
+  route: "/api/generation-queue",
+  body: z.object({
+    prompt: z.string(),
+    title: z.string().optional(),
+    tags: z.string().optional(),
+    makeInstrumental: z.boolean().optional(),
+    personaId: z.string().optional(),
+  }),
+});

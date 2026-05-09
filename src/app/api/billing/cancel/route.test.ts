@@ -30,6 +30,8 @@ import { resolveUser } from "@/lib/auth";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+const seg = { params: Promise.resolve({}) } as never;
+
 function makeRequest(body: Record<string, unknown> = {}): Request {
   return new Request("http://localhost/api/billing/cancel", {
     method: "POST",
@@ -63,7 +65,7 @@ describe("POST /api/billing/cancel", () => {
         error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }) as never,
       });
 
-      const res = await POST(makeRequest() as never);
+      const res = await POST(makeRequest() as never, seg);
       expect(res.status).toBe(401);
     });
   });
@@ -77,7 +79,7 @@ describe("POST /api/billing/cancel", () => {
         status: 400,
       });
 
-      const res = await POST(makeRequest() as never);
+      const res = await POST(makeRequest() as never, seg);
       expect(res.status).toBe(400);
       const data = await res.json();
       expect(data.code).toBe("NO_SUBSCRIPTION");
@@ -91,7 +93,7 @@ describe("POST /api/billing/cancel", () => {
         status: 400,
       });
 
-      const res = await POST(makeRequest() as never);
+      const res = await POST(makeRequest() as never, seg);
       expect(res.status).toBe(400);
       const data = await res.json();
       expect(data.code).toBe("NO_SUBSCRIPTION");
@@ -105,7 +107,7 @@ describe("POST /api/billing/cancel", () => {
         status: 400,
       });
 
-      const res = await POST(makeRequest() as never);
+      const res = await POST(makeRequest() as never, seg);
       expect(res.status).toBe(400);
       const data = await res.json();
       expect(data.code).toBe("ALREADY_CANCELLED");
@@ -114,7 +116,7 @@ describe("POST /api/billing/cancel", () => {
 
   describe("success", () => {
     it("cancels subscription at period end and returns success", async () => {
-      const res = await POST(makeRequest() as never);
+      const res = await POST(makeRequest() as never, seg);
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.success).toBe(true);
@@ -122,13 +124,13 @@ describe("POST /api/billing/cancel", () => {
     });
 
     it("passes userId and reason to cancelSubscription", async () => {
-      await POST(makeRequest({ reason: "too expensive" }) as never);
+      await POST(makeRequest({ reason: "too expensive" }) as never, seg);
       expect(mockCancelSubscription).toHaveBeenCalledWith("user-1", "too expensive");
     });
 
     it("truncates reason to 500 characters", async () => {
       const longReason = "x".repeat(600);
-      await POST(makeRequest({ reason: longReason }) as never);
+      await POST(makeRequest({ reason: longReason }) as never, seg);
       expect(mockCancelSubscription).toHaveBeenCalledWith("user-1", "x".repeat(500));
     });
   });
@@ -137,7 +139,7 @@ describe("POST /api/billing/cancel", () => {
     it("returns 500 when module throws", async () => {
       mockCancelSubscription.mockRejectedValue(new Error("Stripe error"));
 
-      const res = await POST(makeRequest() as never);
+      const res = await POST(makeRequest() as never, seg);
       expect(res.status).toBe(500);
       const data = await res.json();
       expect(data.code).toBe("INTERNAL_ERROR");

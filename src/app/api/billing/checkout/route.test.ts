@@ -34,6 +34,8 @@ import { resolveUser } from "@/lib/auth";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+const seg = { params: Promise.resolve({}) } as never;
+
 function makeRequest(body: Record<string, unknown>): Request {
   return new Request("http://localhost/api/billing/checkout", {
     method: "POST",
@@ -70,7 +72,7 @@ describe("POST /api/billing/checkout", () => {
         error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }) as never,
       });
 
-      const res = await POST(makeRequest({ tier: "starter" }) as never);
+      const res = await POST(makeRequest({ tier: "starter" }) as never, seg);
       expect(res.status).toBe(401);
     });
   });
@@ -84,7 +86,7 @@ describe("POST /api/billing/checkout", () => {
         status: 400,
       });
 
-      const res = await POST(makeRequest({ tier: "enterprise" }) as never);
+      const res = await POST(makeRequest({ tier: "enterprise" }) as never, seg);
       expect(res.status).toBe(400);
       const data = await res.json();
       expect(data.code).toBe("VALIDATION_ERROR");
@@ -100,7 +102,7 @@ describe("POST /api/billing/checkout", () => {
         status: 400,
       });
 
-      const res = await POST(makeRequest({ tier: "pro" }) as never);
+      const res = await POST(makeRequest({ tier: "pro" }) as never, seg);
       expect(res.status).toBe(400);
       const data = await res.json();
       expect(data.code).toBe("USER_ERROR");
@@ -109,14 +111,14 @@ describe("POST /api/billing/checkout", () => {
 
   describe("success", () => {
     it("returns checkout URL on success", async () => {
-      const res = await POST(makeRequest({ tier: "pro" }) as never);
+      const res = await POST(makeRequest({ tier: "pro" }) as never, seg);
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.url).toBe("https://checkout.stripe.com/session_abc");
     });
 
     it("passes tier and userId to createCheckoutSession", async () => {
-      await POST(makeRequest({ tier: "pro" }) as never);
+      await POST(makeRequest({ tier: "pro" }) as never, seg);
       expect(mockCreateCheckoutSession).toHaveBeenCalledWith("user-1", "pro");
     });
   });
@@ -125,7 +127,7 @@ describe("POST /api/billing/checkout", () => {
     it("returns 500 when module throws", async () => {
       mockCreateCheckoutSession.mockRejectedValue(new Error("Stripe error"));
 
-      const res = await POST(makeRequest({ tier: "starter" }) as never);
+      const res = await POST(makeRequest({ tier: "starter" }) as never, seg);
       expect(res.status).toBe(500);
       const data = await res.json();
       expect(data.code).toBe("INTERNAL_ERROR");
@@ -139,7 +141,7 @@ describe("POST /api/billing/checkout", () => {
         url: "http://localhost:3000/settings/billing?success=1",
       });
 
-      const res = await POST(makeRequest({ tier: "pro" }) as never);
+      const res = await POST(makeRequest({ tier: "pro" }) as never, seg);
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.url).toContain("/settings/billing?success=1");
@@ -153,7 +155,7 @@ describe("POST /api/billing/checkout", () => {
         status: 400,
       });
 
-      const res = await POST(makeRequest({ tier: "pro" }) as never);
+      const res = await POST(makeRequest({ tier: "pro" }) as never, seg);
       expect(res.status).toBe(400);
       const data = await res.json();
       expect(data.code).toBe("SAME_PLAN");
@@ -167,7 +169,7 @@ describe("POST /api/billing/checkout", () => {
         status: 500,
       });
 
-      const res = await POST(makeRequest({ tier: "pro" }) as never);
+      const res = await POST(makeRequest({ tier: "pro" }) as never, seg);
       expect(res.status).toBe(500);
       const data = await res.json();
       expect(data.code).toBe("SUBSCRIPTION_ERROR");

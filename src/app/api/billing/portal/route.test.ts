@@ -30,6 +30,8 @@ import { resolveUser } from "@/lib/auth";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+const seg = { params: Promise.resolve({}) } as never;
+
 function makeRequest(): Request {
   return new Request("http://localhost/api/billing/portal", { method: "POST" });
 }
@@ -62,7 +64,7 @@ describe("POST /api/billing/portal", () => {
         error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }) as never,
       });
 
-      const res = await POST(makeRequest() as never);
+      const res = await POST(makeRequest() as never, seg);
       expect(res.status).toBe(401);
     });
   });
@@ -76,7 +78,7 @@ describe("POST /api/billing/portal", () => {
         status: 400,
       });
 
-      const res = await POST(makeRequest() as never);
+      const res = await POST(makeRequest() as never, seg);
       expect(res.status).toBe(400);
       const data = await res.json();
       expect(data.code).toBe("NO_SUBSCRIPTION");
@@ -90,7 +92,7 @@ describe("POST /api/billing/portal", () => {
         status: 400,
       });
 
-      const res = await POST(makeRequest() as never);
+      const res = await POST(makeRequest() as never, seg);
       expect(res.status).toBe(400);
       const data = await res.json();
       expect(data.code).toBe("NO_SUBSCRIPTION");
@@ -99,14 +101,14 @@ describe("POST /api/billing/portal", () => {
 
   describe("success", () => {
     it("creates a portal session and returns url", async () => {
-      const res = await POST(makeRequest() as never);
+      const res = await POST(makeRequest() as never, seg);
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.url).toBe("https://billing.stripe.com/portal_abc");
     });
 
     it("passes userId to createPortalSession", async () => {
-      await POST(makeRequest() as never);
+      await POST(makeRequest() as never, seg);
       expect(mockCreatePortalSession).toHaveBeenCalledWith("user-1");
     });
   });
@@ -115,7 +117,7 @@ describe("POST /api/billing/portal", () => {
     it("returns 500 when module throws", async () => {
       mockCreatePortalSession.mockRejectedValue(new Error("Stripe error"));
 
-      const res = await POST(makeRequest() as never);
+      const res = await POST(makeRequest() as never, seg);
       expect(res.status).toBe(500);
       const data = await res.json();
       expect(data.code).toBe("INTERNAL_ERROR");

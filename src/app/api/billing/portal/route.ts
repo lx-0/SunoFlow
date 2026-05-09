@@ -1,25 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import { resolveUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { authRoute } from "@/lib/route-handler";
 import { createPortalSession } from "@/lib/billing";
-import { logServerError } from "@/lib/error-logger";
 
-export async function POST(request: NextRequest) {
-  try {
-    const { userId, error: authError } = await resolveUser(request);
-    if (authError) return authError;
+export const POST = authRoute(async (_request, { auth }) => {
+  const result = await createPortalSession(auth.userId);
 
-    const result = await createPortalSession(userId);
-
-    if (!result.ok) {
-      return NextResponse.json(
-        { error: result.message, code: result.code },
-        { status: result.status },
-      );
-    }
-
-    return NextResponse.json({ url: result.url });
-  } catch (error) {
-    logServerError("billing-portal-post", error, { route: "/api/billing/portal" });
-    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
+  if (!result.ok) {
+    return NextResponse.json(
+      { error: result.message, code: result.code },
+      { status: result.status },
+    );
   }
-}
+
+  return NextResponse.json({ url: result.url });
+}, { route: "/api/billing/portal" });

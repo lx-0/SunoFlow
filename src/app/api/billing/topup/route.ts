@@ -1,39 +1,25 @@
-import { NextRequest, NextResponse } from "next/server";
-import { resolveUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { authRoute } from "@/lib/route-handler";
 import { createTopupSession, getTopupHistory } from "@/lib/billing";
-import { logServerError } from "@/lib/error-logger";
 
-export async function POST(request: NextRequest) {
-  try {
-    const { userId, error: authError } = await resolveUser(request);
-    if (authError) return authError;
+export const POST = authRoute(async (_request, { auth, body }) => {
+  const result = await createTopupSession(auth.userId, body.package);
 
-    const { package: pkg } = (await request.json()) as { package: string };
-    const result = await createTopupSession(userId, pkg);
-
-    if (!result.ok) {
-      return NextResponse.json(
-        { error: result.message, code: result.code },
-        { status: result.status },
-      );
-    }
-
-    return NextResponse.json({ url: result.url });
-  } catch (error) {
-    logServerError("billing-topup-post", error, { route: "/api/billing/topup" });
-    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
+  if (!result.ok) {
+    return NextResponse.json(
+      { error: result.message, code: result.code },
+      { status: result.status },
+    );
   }
-}
 
-export async function GET(request: NextRequest) {
-  try {
-    const { userId, error: authError } = await resolveUser(request);
-    if (authError) return authError;
+  return NextResponse.json({ url: result.url });
+}, {
+  route: "/api/billing/topup",
+  body: z.object({ package: z.string() }),
+});
 
-    const topUps = await getTopupHistory(userId);
-    return NextResponse.json({ topUps });
-  } catch (error) {
-    logServerError("billing-topup-get", error, { route: "/api/billing/topup" });
-    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
-  }
-}
+export const GET = authRoute(async (_request, { auth }) => {
+  const topUps = await getTopupHistory(auth.userId);
+  return NextResponse.json({ topUps });
+}, { route: "/api/billing/topup" });

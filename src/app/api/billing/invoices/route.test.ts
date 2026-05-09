@@ -30,6 +30,8 @@ import { resolveUser } from "@/lib/auth";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+const seg = { params: Promise.resolve({}) } as never;
+
 function makeRequest(): Request {
   return new Request("http://localhost/api/billing/invoices");
 }
@@ -70,7 +72,7 @@ describe("GET /api/billing/invoices", () => {
         error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }) as never,
       });
 
-      const res = await GET(makeRequest() as never);
+      const res = await GET(makeRequest() as never, seg);
       expect(res.status).toBe(401);
     });
   });
@@ -79,7 +81,7 @@ describe("GET /api/billing/invoices", () => {
     it("returns empty invoices array when no subscription exists", async () => {
       mockGetInvoices.mockResolvedValue([]);
 
-      const res = await GET(makeRequest() as never);
+      const res = await GET(makeRequest() as never, seg);
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.invoices).toEqual([]);
@@ -88,7 +90,7 @@ describe("GET /api/billing/invoices", () => {
     it("returns empty invoices array for free plan customers", async () => {
       mockGetInvoices.mockResolvedValue([]);
 
-      const res = await GET(makeRequest() as never);
+      const res = await GET(makeRequest() as never, seg);
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.invoices).toEqual([]);
@@ -97,7 +99,7 @@ describe("GET /api/billing/invoices", () => {
 
   describe("paid users", () => {
     it("returns mapped invoice list", async () => {
-      const res = await GET(makeRequest() as never);
+      const res = await GET(makeRequest() as never, seg);
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.invoices).toHaveLength(1);
@@ -115,13 +117,13 @@ describe("GET /api/billing/invoices", () => {
     it("returns empty invoices when module returns empty array", async () => {
       mockGetInvoices.mockResolvedValue([]);
 
-      const res = await GET(makeRequest() as never);
+      const res = await GET(makeRequest() as never, seg);
       const data = await res.json();
       expect(data.invoices).toEqual([]);
     });
 
     it("passes userId to getInvoices", async () => {
-      await GET(makeRequest() as never);
+      await GET(makeRequest() as never, seg);
       expect(mockGetInvoices).toHaveBeenCalledWith("user-1");
     });
   });
@@ -130,7 +132,7 @@ describe("GET /api/billing/invoices", () => {
     it("returns 500 when module throws", async () => {
       mockGetInvoices.mockRejectedValue(new Error("Stripe error"));
 
-      const res = await GET(makeRequest() as never);
+      const res = await GET(makeRequest() as never, seg);
       expect(res.status).toBe(500);
       const data = await res.json();
       expect(data.code).toBe("INTERNAL_ERROR");

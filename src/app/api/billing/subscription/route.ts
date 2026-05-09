@@ -1,17 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { resolveUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { authRoute } from "@/lib/route-handler";
 import { getSubscriptionStatus } from "@/lib/billing";
-import { logServerError } from "@/lib/error-logger";
 
-export async function GET(request: NextRequest) {
-  try {
-    const { userId, error: authError } = await resolveUser(request);
-    if (authError) return authError;
-
-    const status = await getSubscriptionStatus(userId);
-    return NextResponse.json(status);
-  } catch (error) {
-    logServerError("billing-subscription-get", error, { route: "/api/billing/subscription" });
-    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
-  }
-}
+export const GET = authRoute(async (_request, { auth }) => {
+  const status = await getSubscriptionStatus(auth.userId);
+  return NextResponse.json(status);
+}, { route: "/api/billing/subscription" });

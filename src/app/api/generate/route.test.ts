@@ -95,6 +95,8 @@ import {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+const seg = { params: Promise.resolve({}) } as never;
+
 function makeRequest(body: Record<string, unknown>): Request {
   return new Request("http://localhost/api/generate", {
     method: "POST",
@@ -155,7 +157,7 @@ describe("POST /api/generate", () => {
       isAdmin: false,
       error: NextResponse.json({ error: "Unauthorized", code: "UNAUTHORIZED" }, { status: 401 }),
     });
-    const res = await POST(makeRequest(DEFAULT_BODY));
+    const res = await POST(makeRequest(DEFAULT_BODY) as never, seg);
     expect(res.status).toBe(401);
   });
 
@@ -164,14 +166,14 @@ describe("POST /api/generate", () => {
       acquired: false,
       status: { remaining: 0, limit: 10, resetAt: new Date().toISOString() },
     });
-    const res = await POST(makeRequest(DEFAULT_BODY));
+    const res = await POST(makeRequest(DEFAULT_BODY) as never, seg);
     expect(res.status).toBe(429);
     const data = await res.json();
     expect(data.error).toContain("Rate limit exceeded");
   });
 
   it("returns 400 for empty prompt", async () => {
-    const res = await POST(makeRequest({ prompt: "" }));
+    const res = await POST(makeRequest({ prompt: "" }) as never, seg);
     expect(res.status).toBe(400);
     const data = await res.json();
     expect(data.error).toContain("prompt is required");
@@ -181,7 +183,7 @@ describe("POST /api/generate", () => {
     const apiError = new SunoApiError(502, "Bad Gateway");
     vi.mocked(generateSong).mockRejectedValue(apiError);
 
-    const res = await POST(makeRequest(DEFAULT_BODY));
+    const res = await POST(makeRequest(DEFAULT_BODY) as never, seg);
     expect(res.status).toBe(201);
 
     const data = await res.json();
@@ -214,7 +216,7 @@ describe("POST /api/generate", () => {
     const apiError = new SunoApiError(400, "Invalid prompt");
     vi.mocked(generateSong).mockRejectedValue(apiError);
 
-    const res = await POST(makeRequest(DEFAULT_BODY));
+    const res = await POST(makeRequest(DEFAULT_BODY) as never, seg);
     expect(res.status).toBe(201);
 
     const data = await res.json();
@@ -233,7 +235,7 @@ describe("POST /api/generate", () => {
     const apiError = new SunoApiError(429, "Too many requests");
     vi.mocked(generateSong).mockRejectedValue(apiError);
 
-    const res = await POST(makeRequest(DEFAULT_BODY));
+    const res = await POST(makeRequest(DEFAULT_BODY) as never, seg);
     const data = await res.json();
     expect(data.error).toContain("busy");
     expect(prisma.song.create).toHaveBeenCalledWith(
@@ -249,7 +251,7 @@ describe("POST /api/generate", () => {
     const networkError = new TypeError("fetch failed");
     vi.mocked(generateSong).mockRejectedValue(networkError);
 
-    const res = await POST(makeRequest(DEFAULT_BODY));
+    const res = await POST(makeRequest(DEFAULT_BODY) as never, seg);
     const data = await res.json();
     expect(data.error).toContain("Could not reach");
     expect(prisma.song.create).toHaveBeenCalledWith(
@@ -265,7 +267,7 @@ describe("POST /api/generate", () => {
     mockSunoApiKey = undefined;
     vi.mocked(resolveUserApiKey).mockResolvedValue(undefined);
 
-    const res = await POST(makeRequest(DEFAULT_BODY));
+    const res = await POST(makeRequest(DEFAULT_BODY) as never, seg);
     expect(res.status).toBe(201);
 
     // Should NOT have called generateSong
@@ -284,7 +286,7 @@ describe("POST /api/generate", () => {
   it("creates a pending song on successful API call", async () => {
     vi.mocked(generateSong).mockResolvedValue({ taskId: "task-xyz" });
 
-    const res = await POST(makeRequest(DEFAULT_BODY));
+    const res = await POST(makeRequest(DEFAULT_BODY) as never, seg);
     expect(res.status).toBe(201);
 
     const data = await res.json();
@@ -303,7 +305,7 @@ describe("POST /api/generate", () => {
   it("records credit usage after successful generation", async () => {
     vi.mocked(generateSong).mockResolvedValue({ taskId: "task-xyz" });
 
-    await POST(makeRequest(DEFAULT_BODY));
+    await POST(makeRequest(DEFAULT_BODY) as never, seg);
 
     expect(deductCredits).toHaveBeenCalledWith(
       "user-1",
@@ -317,7 +319,7 @@ describe("POST /api/generate", () => {
   it("returns 402 when user has insufficient credits", async () => {
     vi.mocked(checkCredits).mockResolvedValue({ ok: false, creditCost: 1, creditsRemaining: 0 });
 
-    const res = await POST(makeRequest(DEFAULT_BODY));
+    const res = await POST(makeRequest(DEFAULT_BODY) as never, seg);
     expect(res.status).toBe(402);
 
     const data = await res.json();
@@ -332,7 +334,7 @@ describe("POST /api/generate", () => {
   it("does not record credit usage when credits are insufficient", async () => {
     vi.mocked(checkCredits).mockResolvedValue({ ok: false, creditCost: 1, creditsRemaining: 0 });
 
-    await POST(makeRequest(DEFAULT_BODY));
+    await POST(makeRequest(DEFAULT_BODY) as never, seg);
 
     expect(deductCredits).not.toHaveBeenCalled();
   });
@@ -340,7 +342,7 @@ describe("POST /api/generate", () => {
   it("deducts credits after successful generation (notifications handled internally)", async () => {
     vi.mocked(generateSong).mockResolvedValue({ taskId: "task-xyz" });
 
-    await POST(makeRequest(DEFAULT_BODY));
+    await POST(makeRequest(DEFAULT_BODY) as never, seg);
 
     expect(deductCredits).toHaveBeenCalledWith(
       "user-1",
@@ -358,7 +360,7 @@ describe("POST /api/generate — malformed input edge cases", () => {
       body: "{ this is not valid json ::::",
     });
 
-    const res = await POST(req);
+    const res = await POST(req as never, seg);
     expect(res.status).toBe(500);
     const data = await res.json();
     expect(data.code).toBe("INTERNAL_ERROR");
@@ -373,7 +375,7 @@ describe("POST /api/generate — malformed input edge cases", () => {
       body: "",
     });
 
-    const res = await POST(req);
+    const res = await POST(req as never, seg);
     expect(res.status).toBe(500);
   });
 
@@ -381,7 +383,7 @@ describe("POST /api/generate — malformed input edge cases", () => {
     vi.mocked(generateSong).mockResolvedValue({ taskId: "task-xss" });
 
     const xssPrompt = '<script>alert("xss")</script>pop upbeat music';
-    const res = await POST(makeRequest({ ...DEFAULT_BODY, prompt: xssPrompt }));
+    const res = await POST(makeRequest({ ...DEFAULT_BODY, prompt: xssPrompt }) as never, seg);
 
     // Route should NOT reject the request; it strips HTML and continues
     expect(res.status).toBe(201);
@@ -399,7 +401,7 @@ describe("POST /api/generate — malformed input edge cases", () => {
     vi.mocked(generateSong).mockResolvedValue({ taskId: "task-xss-title" });
 
     const res = await POST(
-      makeRequest({ ...DEFAULT_BODY, title: '<img src=x onerror=alert(1)>My Song' })
+      makeRequest({ ...DEFAULT_BODY, title: '<img src=x onerror=alert(1)>My Song' }) as never, seg
     );
 
     expect(res.status).toBe(201);
@@ -414,7 +416,7 @@ describe("POST /api/generate — malformed input edge cases", () => {
 
   it("rejects an explicitly empty prompt regardless of HTML content", async () => {
     // The route validates prompt before stripping — empty string is rejected
-    const res = await POST(makeRequest({ ...DEFAULT_BODY, prompt: "" }));
+    const res = await POST(makeRequest({ ...DEFAULT_BODY, prompt: "" }) as never, seg);
     expect(res.status).toBe(400);
     const data = await res.json();
     expect(data.code).toBe("VALIDATION_ERROR");
