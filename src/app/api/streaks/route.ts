@@ -1,17 +1,8 @@
 import { NextResponse } from "next/server";
 import { authRoute } from "@/lib/route-handler";
-import { prisma } from "@/lib/prisma";
+import { getUserStreak } from "@/lib/streaks";
 
 export const GET = authRoute(async (_request, { auth }) => {
-  const streak = await prisma.userStreak.findUnique({ where: { userId: auth.userId } });
-
-  return NextResponse.json({
-    streak: streak
-      ? {
-          currentStreak: streak.currentStreak,
-          longestStreak: streak.longestStreak,
-          lastActiveDate: streak.lastActiveDate,
-        }
-      : { currentStreak: 0, longestStreak: 0, lastActiveDate: null },
-  });
+  const streak = await getUserStreak(auth.userId);
+  return NextResponse.json({ streak });
 }, { route: "/api/streaks" });

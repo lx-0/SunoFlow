@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   calculateListeningTime,
   buildPeakHoursHeatmap,
-  calculateActivityStreaks,
   buildCreditChart,
 } from "./index";
 
@@ -50,41 +49,6 @@ describe("buildPeakHoursHeatmap", () => {
     expect(result[10]).toEqual({ hour: 10, count: 5 });
     expect(result[14]).toEqual({ hour: 14, count: 12 });
     expect(result[0]).toEqual({ hour: 0, count: 0 });
-  });
-});
-
-describe("calculateActivityStreaks", () => {
-  it("calculates current streak from consecutive days", () => {
-    const now = new Date("2024-06-15T12:00:00Z");
-    const activeDays = [
-      { day: "2024-06-15" },
-      { day: "2024-06-14" },
-      { day: "2024-06-13" },
-      { day: "2024-06-10" },
-    ];
-
-    const result = calculateActivityStreaks(activeDays, now);
-    expect(result.currentStreak).toBe(3);
-    expect(result.longestStreak).toBe(3);
-  });
-
-  it("returns zero streak when no recent activity", () => {
-    const now = new Date("2024-06-15T12:00:00Z");
-    const activeDays = [{ day: "2024-06-10" }];
-
-    const result = calculateActivityStreaks(activeDays, now);
-    expect(result.currentStreak).toBe(0);
-  });
-
-  it("counts yesterday as current if today has no activity", () => {
-    const now = new Date("2024-06-15T12:00:00Z");
-    const activeDays = [
-      { day: "2024-06-14" },
-      { day: "2024-06-13" },
-    ];
-
-    const result = calculateActivityStreaks(activeDays, now);
-    expect(result.currentStreak).toBe(2);
   });
 });
 
