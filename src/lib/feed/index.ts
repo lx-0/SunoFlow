@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { DEFAULT_PAGE_SIZE, offsetPagination, pageSkip } from "@/lib/pagination";
 import { SongFilters, SongSelect } from "@/lib/songs";
 import { gatherUserSignals } from "@/lib/user-signals";
 import { rankAnonymousFeed, rankPersonalizedFeed, type TasteProfile } from "./rank";
@@ -41,7 +42,6 @@ export interface ActivityFeedResult {
   pagination: { page: number; totalPages: number; total: number; hasMore: boolean };
 }
 
-const PAGE_SIZE = 20;
 const BUCKET_SIZE = 60;
 
 const songPublicSelect = SongSelect.public;
@@ -60,11 +60,10 @@ async function buildTasteProfile(userId: string): Promise<TasteProfile> {
 
 export function paginate(items: import("./rank").FeedItem[], page: number) {
   const total = items.length;
-  const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
-  const start = (page - 1) * PAGE_SIZE;
+  const start = pageSkip(page, DEFAULT_PAGE_SIZE);
   return {
-    feed: items.slice(start, start + PAGE_SIZE),
-    pagination: { page, totalPages, total, hasMore: page < totalPages },
+    feed: items.slice(start, start + DEFAULT_PAGE_SIZE),
+    pagination: offsetPagination(page, DEFAULT_PAGE_SIZE, total),
   };
 }
 
@@ -72,7 +71,7 @@ export async function buildActivityFeed(
   userId: string,
   page: number,
 ): Promise<ActivityFeedResult> {
-  const skip = (page - 1) * PAGE_SIZE;
+  const skip = pageSkip(page, DEFAULT_PAGE_SIZE);
 
   const following = await prisma.follow.findMany({
     where: { followerId: userId },
@@ -82,7 +81,7 @@ export async function buildActivityFeed(
   if (following.length === 0) {
     return {
       items: [],
-      pagination: { page, totalPages: 0, total: 0, hasMore: false },
+      pagination: offsetPagination(page, DEFAULT_PAGE_SIZE, 0),
     };
   }
 
@@ -93,7 +92,7 @@ export async function buildActivityFeed(
       where: { userId: { in: followingIds } },
       orderBy: { createdAt: "desc" },
       skip,
-      take: PAGE_SIZE,
+      take: DEFAULT_PAGE_SIZE,
       select: {
         id: true,
         type: true,
@@ -172,12 +171,7 @@ export async function buildActivityFeed(
 
   return {
     items,
-    pagination: {
-      page,
-      totalPages: Math.ceil(total / PAGE_SIZE),
-      total,
-      hasMore: skip + PAGE_SIZE < total,
-    },
+    pagination: offsetPagination(page, DEFAULT_PAGE_SIZE, total),
   };
 }
 

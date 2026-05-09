@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { DEFAULT_PAGE_SIZE, offsetPagination, pageSkip } from "@/lib/pagination";
 import { logger } from "@/lib/logger";
 import { logAdminAction } from "@/lib/auth";
 
@@ -94,10 +95,8 @@ export async function createReport(userId: string, input: CreateReportInput) {
 
 // ── Report listing ──────────────────────────────────────────────────
 
-const PAGE_SIZE = 20;
-
 export async function listReports({ status, page }: ListReportsInput) {
-  const skip = (page - 1) * PAGE_SIZE;
+  const skip = pageSkip(page, DEFAULT_PAGE_SIZE);
   const where = status === "all" ? {} : { status };
 
   const [reports, total] = await Promise.all([
@@ -105,7 +104,7 @@ export async function listReports({ status, page }: ListReportsInput) {
       where,
       orderBy: { createdAt: "desc" },
       skip,
-      take: PAGE_SIZE,
+      take: DEFAULT_PAGE_SIZE,
       include: {
         song: {
           select: {
@@ -126,7 +125,7 @@ export async function listReports({ status, page }: ListReportsInput) {
     prisma.report.count({ where }),
   ]);
 
-  return { reports, total, page, totalPages: Math.ceil(total / PAGE_SIZE) };
+  return { reports, ...offsetPagination(page, DEFAULT_PAGE_SIZE, total) };
 }
 
 export async function pendingReportCount() {

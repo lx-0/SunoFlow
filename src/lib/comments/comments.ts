@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { DEFAULT_PAGE_SIZE, offsetPagination, pageSkip } from "@/lib/pagination";
 import { stripHtml } from "@/lib/sanitize";
 import { notifyUser } from "@/lib/notifications";
 import { type Result, success, Err } from "@/lib/result";
@@ -8,7 +9,6 @@ import { type Result, success, Err } from "@/lib/result";
 const RATE_LIMIT = 10;
 const WINDOW_MS = 60 * 1000;
 const MAX_BODY_LENGTH = 500;
-const PAGE_SIZE = 20;
 
 // ── Public types ───────────────────────────────────────────────────────────────
 
@@ -114,15 +114,15 @@ export async function listComments(
   songId: string,
   page: number,
 ): Promise<Result<CommentPage>> {
-  const take = PAGE_SIZE;
-  const skip = (Math.max(1, page) - 1) * take;
+  const safePage = Math.max(1, page);
+  const skip = pageSkip(safePage, DEFAULT_PAGE_SIZE);
 
   const [comments, total] = await Promise.all([
     prisma.comment.findMany({
       where: { songId },
       orderBy: [{ createdAt: "desc" }],
       skip,
-      take,
+      take: DEFAULT_PAGE_SIZE,
       select: COMMENT_SELECT,
     }),
     prisma.comment.count({ where: { songId } }),
@@ -130,12 +130,7 @@ export async function listComments(
 
   return success({
     comments,
-    pagination: {
-      page: Math.max(1, page),
-      totalPages: Math.ceil(total / take),
-      total,
-      hasMore: skip + take < total,
-    },
+    pagination: offsetPagination(safePage, DEFAULT_PAGE_SIZE, total),
   });
 }
 

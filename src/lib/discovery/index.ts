@@ -1,12 +1,12 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { DEFAULT_PAGE_SIZE, offsetPagination, pageSkip } from "@/lib/pagination";
 import { SongFilters } from "@/lib/songs";
 import { trendingScore } from "@/lib/scoring";
 import { cached, cacheKey, CacheTTL } from "@/lib/cache";
 
 const TRENDING_POOL_SIZE = 500;
 const TRENDING_WINDOW_DAYS = 30;
-const DISCOVER_PAGE_SIZE = 20;
 
 // ── Shared ──────────────────────────────────────────────────────────────────
 
@@ -15,8 +15,7 @@ function trendingCutoff(): Date {
 }
 
 function paginationMeta(page: number, limit: number, total: number) {
-  const totalPages = Math.ceil(total / limit);
-  return { page, limit, totalPages, total, hasMore: page < totalPages };
+  return { ...offsetPagination(page, limit, total), limit };
 }
 
 // ── Song Trending / Popular ─────────────────────────────────────────────────
@@ -167,7 +166,7 @@ const SONG_DISCOVER_SELECT = {
 } as const;
 
 export async function discoverSongs(q: DiscoverSongsQuery) {
-  const skip = (q.page - 1) * DISCOVER_PAGE_SIZE;
+  const skip = pageSkip(q.page, DEFAULT_PAGE_SIZE);
 
   const key = cacheKey(
     "discover",
@@ -211,7 +210,7 @@ export async function discoverSongs(q: DiscoverSongsQuery) {
           where,
           orderBy,
           skip,
-          take: DISCOVER_PAGE_SIZE,
+          take: DEFAULT_PAGE_SIZE,
           select: SONG_DISCOVER_SELECT,
         }),
         prisma.song.count({ where }),
@@ -224,7 +223,7 @@ export async function discoverSongs(q: DiscoverSongsQuery) {
 
   return {
     songs,
-    pagination: paginationMeta(q.page, DISCOVER_PAGE_SIZE, total),
+    pagination: paginationMeta(q.page, DEFAULT_PAGE_SIZE, total),
   };
 }
 

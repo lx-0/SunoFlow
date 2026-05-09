@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { DEFAULT_PAGE_SIZE, offsetPagination, pageSkip } from "@/lib/pagination";
 import { SongFilters } from "@/lib/songs";
-
-const PAGE_SIZE = 20;
 
 export async function GET(
   request: Request,
@@ -32,8 +31,8 @@ export async function GET(
           userId: user.id,
         },
         orderBy: { createdAt: "desc" },
-        skip: (page - 1) * PAGE_SIZE,
-        take: PAGE_SIZE,
+        skip: pageSkip(page, DEFAULT_PAGE_SIZE),
+        take: DEFAULT_PAGE_SIZE,
         select: {
           id: true,
           title: true,
@@ -56,12 +55,7 @@ export async function GET(
 
     return NextResponse.json({
       songs,
-      pagination: {
-        page,
-        pageSize: PAGE_SIZE,
-        total,
-        hasMore: page * PAGE_SIZE < total,
-      },
+      pagination: offsetPagination(page, DEFAULT_PAGE_SIZE, total),
     });
   } catch {
     return NextResponse.json(

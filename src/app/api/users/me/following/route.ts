@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-const PAGE_SIZE = 20;
+import { DEFAULT_PAGE_SIZE, offsetPagination, pageSkip } from "@/lib/pagination";
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,14 +16,14 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
-    const skip = (page - 1) * PAGE_SIZE;
+    const skip = pageSkip(page, DEFAULT_PAGE_SIZE);
 
     const [follows, total] = await Promise.all([
       prisma.follow.findMany({
         where: { followerId: userId },
         orderBy: { createdAt: "desc" },
         skip,
-        take: PAGE_SIZE,
+        take: DEFAULT_PAGE_SIZE,
         select: {
           createdAt: true,
           following: {
@@ -62,12 +61,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       users,
-      pagination: {
-        page,
-        totalPages: Math.ceil(total / PAGE_SIZE),
-        total,
-        hasMore: skip + PAGE_SIZE < total,
-      },
+      pagination: offsetPagination(page, DEFAULT_PAGE_SIZE, total),
     });
   } catch {
     return NextResponse.json(

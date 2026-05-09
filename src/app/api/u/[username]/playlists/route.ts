@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
-const PAGE_SIZE = 20;
+import { DEFAULT_PAGE_SIZE, offsetPagination, pageSkip } from "@/lib/pagination";
 
 export async function GET(
   request: Request,
@@ -28,8 +27,8 @@ export async function GET(
       prisma.playlist.findMany({
         where: { userId: user.id, isPublic: true },
         orderBy: { updatedAt: "desc" },
-        skip: (page - 1) * PAGE_SIZE,
-        take: PAGE_SIZE,
+        skip: pageSkip(page, DEFAULT_PAGE_SIZE),
+        take: DEFAULT_PAGE_SIZE,
         select: {
           id: true,
           name: true,
@@ -61,12 +60,7 @@ export async function GET(
         coverImage: pl.songs[0]?.song.imageUrl ?? null,
         createdAt: pl.createdAt,
       })),
-      pagination: {
-        page,
-        pageSize: PAGE_SIZE,
-        total,
-        hasMore: page * PAGE_SIZE < total,
-      },
+      pagination: offsetPagination(page, DEFAULT_PAGE_SIZE, total),
     });
   } catch {
     return NextResponse.json(

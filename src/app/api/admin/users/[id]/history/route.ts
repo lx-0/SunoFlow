@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { offsetPagination, pageSkip } from "@/lib/pagination";
 import type { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     prisma.song.findMany({
       where: { userId: id },
       orderBy: { createdAt: "desc" },
-      skip: (page - 1) * limit,
+      skip: pageSkip(page, limit),
       take: limit,
       select: {
         id: true,
@@ -33,8 +34,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   return NextResponse.json({
     songs,
-    total,
-    page,
-    totalPages: Math.ceil(total / limit),
+    ...offsetPagination(page, limit, total),
   });
 }

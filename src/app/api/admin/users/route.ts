@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { offsetPagination, pageSkip } from "@/lib/pagination";
 import type { NextRequest } from "next/server";
 import { TIER_LIMITS } from "@/lib/billing";
 
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: Object.keys(orderBy).length > 0 ? orderBy : undefined,
-      skip: (page - 1) * limit,
+      skip: pageSkip(page, limit),
       take: limit,
     }),
     prisma.user.count({ where }),
@@ -95,8 +96,6 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     users: result,
-    total,
-    page,
-    totalPages: Math.ceil(total / limit),
+    ...offsetPagination(page, limit, total),
   });
 }

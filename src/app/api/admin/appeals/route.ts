@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { DEFAULT_PAGE_SIZE, offsetPagination, pageSkip } from "@/lib/pagination";
 
 export async function GET(request: NextRequest) {
   const { error } = await requireAdmin();
@@ -9,8 +10,7 @@ export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const status = params.get("status") || "pending";
   const page = Math.max(1, parseInt(params.get("page") || "1", 10));
-  const limit = 20;
-  const skip = (page - 1) * limit;
+  const skip = pageSkip(page, DEFAULT_PAGE_SIZE);
 
   const where = status === "all" ? {} : { status };
 
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       where,
       orderBy: { createdAt: "desc" },
       skip,
-      take: limit,
+      take: DEFAULT_PAGE_SIZE,
       include: {
         song: {
           select: {
@@ -45,8 +45,6 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     appeals,
-    total,
-    page,
-    totalPages: Math.ceil(total / limit),
+    ...offsetPagination(page, DEFAULT_PAGE_SIZE, total),
   });
 }

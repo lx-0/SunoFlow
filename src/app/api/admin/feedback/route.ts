@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { DEFAULT_PAGE_SIZE, offsetPagination, pageSkip } from "@/lib/pagination";
 
 export async function GET(request: NextRequest) {
   const { error } = await requireAdmin();
@@ -10,8 +11,7 @@ export async function GET(request: NextRequest) {
   const category = params.get("category");
   const scoreParam = params.get("score");
   const page = Math.max(1, parseInt(params.get("page") || "1", 10));
-  const limit = 20;
-  const skip = (page - 1) * limit;
+  const skip = pageSkip(page, DEFAULT_PAGE_SIZE);
 
   const where: Record<string, unknown> = {};
   if (category) where.category = category;
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       where,
       orderBy: { createdAt: "desc" },
       skip,
-      take: limit,
+      take: DEFAULT_PAGE_SIZE,
       include: {
         user: { select: { id: true, name: true, email: true } },
       },
@@ -35,8 +35,6 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     feedbacks,
-    total,
-    page,
-    totalPages: Math.ceil(total / limit),
+    ...offsetPagination(page, DEFAULT_PAGE_SIZE, total),
   });
 }
