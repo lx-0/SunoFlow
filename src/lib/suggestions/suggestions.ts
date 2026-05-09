@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { cached, CacheTTL } from "@/lib/cache";
+import { tallyFeedback, comboKey } from "@/lib/feedback-tally";
 
 // ── Public types ───────────────────────────────────────────────────────────────
 
@@ -182,44 +183,25 @@ export async function getTrendingCombos(): Promise<TrendingCombo[]> {
         },
       });
 
-      const comboStats: Record<string, { likes: number; dislikes: number }> = {};
+      const flat = feedbackWithTags.map((fb) => ({
+        rating: fb.rating,
+        tags: fb.song.tags,
+      }));
 
-      for (const fb of feedbackWithTags) {
-        const rawTags = fb.song.tags;
-        if (!rawTags) continue;
-
-        const tags = rawTags
-          .split(",")
-          .map((t) => t.trim().toLowerCase())
-          .filter(Boolean);
-
-        if (tags.length === 0) continue;
-
-        const combo = [...tags].sort().join(", ");
-        if (!comboStats[combo]) comboStats[combo] = { likes: 0, dislikes: 0 };
-        if (fb.rating === "thumbs_up") comboStats[combo].likes++;
-        else comboStats[combo].dislikes++;
-      }
-
-      return Object.entries(comboStats)
-        .map(([combo, { likes, dislikes }]) => {
-          const total = likes + dislikes;
-          const likeRatio = total > 0 ? likes / total : 0;
-          return { combo, likes, dislikes, total, likeRatio };
-        })
-        .filter(({ total }) => total >= MIN_FEEDBACK_THRESHOLD)
-        .sort((a, b) => b.likeRatio - a.likeRatio || b.total - a.total)
-        .slice(0, MAX_TRENDING)
-        .map(({ combo, likes, total, likeRatio }) => ({
-          id: makeId("trending", combo),
-          combo,
-          label: makeLabelFromParts(combo, " + "),
-          stylePrompt: combo,
-          likes,
-          total,
-          score: Math.round(likeRatio * 10) / 10,
-          displayScore: `${(likeRatio * 5).toFixed(1)}/5`,
-        }));
+      return tallyFeedback(flat, (tags) => [comboKey(tags)], {
+        limit: MAX_TRENDING,
+        minTotal: MIN_FEEDBACK_THRESHOLD,
+        sortBy: "likeRatio",
+      }).map(({ key: combo, likes, total, likeRatio }) => ({
+        id: makeId("trending", combo),
+        combo,
+        label: makeLabelFromParts(combo, " + "),
+        stylePrompt: combo,
+        likes,
+        total,
+        score: Math.round(likeRatio * 10) / 10,
+        displayScore: `${(likeRatio * 5).toFixed(1)}/5`,
+      }));
     },
     CacheTTL.RECOMMENDATIONS,
   );

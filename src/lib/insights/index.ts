@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { mondayOfWeeksAgo } from "@/lib/analytics-data/dates";
+import { tallyFeedback, normalizeTags, comboKey } from "@/lib/feedback-tally";
 
 export interface TagStat {
   tag: string;
@@ -87,63 +88,21 @@ export function computeTagBreakdown(
   feedbackRows: FeedbackRow[],
   limit = 15,
 ): TagStat[] {
-  const stats: Record<string, { likes: number; dislikes: number }> = {};
-
-  for (const fb of feedbackRows) {
-    if (!fb.song.tags) continue;
-    for (const raw of fb.song.tags.split(",")) {
-      const tag = raw.trim().toLowerCase();
-      if (!tag) continue;
-      if (!stats[tag]) stats[tag] = { likes: 0, dislikes: 0 };
-      if (fb.rating === "thumbs_up") stats[tag].likes++;
-      else stats[tag].dislikes++;
-    }
-  }
-
-  return Object.entries(stats)
-    .map(([tag, { likes, dislikes }]) => ({
-      tag,
-      likes,
-      dislikes,
-      total: likes + dislikes,
-      likeRatio: likes + dislikes > 0 ? likes / (likes + dislikes) : 0,
-    }))
-    .filter(({ total }) => total >= 1)
-    .sort((a, b) => b.total - a.total)
-    .slice(0, limit);
+  const flat = feedbackRows.map((fb) => ({ rating: fb.rating, tags: fb.song.tags }));
+  return tallyFeedback(flat, normalizeTags, { limit, sortBy: "total" }).map(
+    ({ key, ...rest }) => ({ tag: key, ...rest }),
+  );
 }
 
 export function computeComboBreakdown(
   feedbackRows: FeedbackRow[],
   limit = 5,
 ): ComboStat[] {
-  const stats: Record<string, { likes: number; dislikes: number }> = {};
-
-  for (const fb of feedbackRows) {
-    if (!fb.song.tags) continue;
-    const combo = fb.song.tags
-      .split(",")
-      .map((t) => t.trim().toLowerCase())
-      .filter(Boolean)
-      .sort()
-      .join(", ");
-    if (!combo) continue;
-    if (!stats[combo]) stats[combo] = { likes: 0, dislikes: 0 };
-    if (fb.rating === "thumbs_up") stats[combo].likes++;
-    else stats[combo].dislikes++;
-  }
-
-  return Object.entries(stats)
-    .map(([combo, { likes, dislikes }]) => ({
-      combo,
-      likes,
-      dislikes,
-      total: likes + dislikes,
-      likeRatio: likes + dislikes > 0 ? likes / (likes + dislikes) : 0,
-    }))
-    .filter(({ total }) => total >= 1)
-    .sort((a, b) => b.likeRatio - a.likeRatio || b.total - a.total)
-    .slice(0, limit);
+  const flat = feedbackRows.map((fb) => ({ rating: fb.rating, tags: fb.song.tags }));
+  return tallyFeedback(flat, (tags) => [comboKey(tags)], {
+    limit,
+    sortBy: "likeRatio",
+  }).map(({ key, ...rest }) => ({ combo: key, ...rest }));
 }
 
 export function buildWeeklyTrend(
