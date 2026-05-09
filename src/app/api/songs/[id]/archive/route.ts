@@ -21,20 +21,21 @@ export const POST = authRoute<{ id: string }>(async (_request, { auth, params })
       data: { archivedAt: new Date(), isPublic: false },
     });
 
-    let playlist = await tx.playlist.findFirst({
-      where: { userId: auth.userId, isSmartPlaylist: true, smartPlaylistType: "archive" },
-    });
-
-    if (!playlist) {
-      playlist = await tx.playlist.create({
-        data: {
-          name: "Archive",
+    const playlist = await tx.playlist.upsert({
+      where: {
+        userId_smartPlaylistType: {
           userId: auth.userId,
-          isSmartPlaylist: true,
           smartPlaylistType: "archive",
         },
-      });
-    }
+      },
+      create: {
+        name: "Archive",
+        userId: auth.userId,
+        isSmartPlaylist: true,
+        smartPlaylistType: "archive",
+      },
+      update: {},
+    });
 
     const lastSong = await tx.playlistSong.findFirst({
       where: { playlistId: playlist.id },
