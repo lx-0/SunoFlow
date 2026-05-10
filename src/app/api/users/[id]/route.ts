@@ -3,9 +3,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { cached, cacheKey, CacheTTL, CacheControl } from "@/lib/cache";
 import { withTiming } from "@/lib/timing";
+import { isFollowing } from "@/lib/follows";
 
-// Public user data is the same for all viewers — cache it shared.
-// The isFollowing flag is fetched separately (per-viewer, not cached).
 async function getPublicUserData(userId: string) {
   return cached(
     cacheKey("user-profile", userId),
@@ -48,14 +47,7 @@ async function handleGET(
       );
     }
 
-    let isFollowing = false;
-    if (viewerId && viewerId !== id) {
-      const follow = await prisma.follow.findUnique({
-        where: { followerId_followingId: { followerId: viewerId, followingId: id } },
-        select: { id: true },
-      });
-      isFollowing = !!follow;
-    }
+    const viewerFollowing = viewerId ? await isFollowing(viewerId, id) : false;
 
     return NextResponse.json(
       {
@@ -66,7 +58,7 @@ async function handleGET(
         followersCount: user._count.followers,
         followingCount: user._count.following,
         publicSongsCount: user._count.songs,
-        isFollowing,
+        isFollowing: viewerFollowing,
       },
       { headers: { "Cache-Control": CacheControl.privateShort } }
     );
