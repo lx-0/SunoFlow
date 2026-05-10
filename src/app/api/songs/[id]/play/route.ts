@@ -1,17 +1,18 @@
 import { NextResponse } from "next/server";
-import { authRoute } from "@/lib/route-handler";
+import { authRoute, requireOwned } from "@/lib/route-handler";
+import { notFound } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { fetchFreshUrls } from "@/lib/sunoapi/refresh";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
-import { notFound } from "@/lib/api-error";
-
 const AUDIO_URL_TTL_MS = 12 * 24 * 60 * 60 * 1000;
 
 export const POST = authRoute<{ id: string }>(async (_request, { auth, params }) => {
-  const song = await prisma.song.findUnique({ where: { id: params.id } });
-  if (!song || song.userId !== auth.userId) {
-    return notFound("Song not found");
-  }
+  const { data: song, error } = requireOwned(
+    await prisma.song.findUnique({ where: { id: params.id } }),
+    auth.userId,
+    "Song",
+  );
+  if (error) return error;
 
   if (song.sunoJobId) {
     try {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authRoute } from "@/lib/route-handler";
+import { authRoute, requireOwned } from "@/lib/route-handler";
 import { generateSong } from "@/lib/sunoapi";
 import { prisma } from "@/lib/prisma";
 import { acquireRateLimitSlot } from "@/lib/rate-limit";
@@ -12,10 +12,12 @@ import { userFriendlyError } from "@/lib/generation";
 
 export const POST = authRoute<{ id: string }>(
   async (_request, { auth, params }) => {
-    const song = await prisma.song.findUnique({ where: { id: params.id } });
-    if (!song || song.userId !== auth.userId) {
-      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
-    }
+    const { data: song, error } = requireOwned(
+      await prisma.song.findUnique({ where: { id: params.id } }),
+      auth.userId,
+      "Song",
+    );
+    if (error) return error;
 
     if (song.generationStatus !== "failed") {
       return NextResponse.json(

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { resolveUser, requireAdmin } from "@/lib/auth";
 import { logServerError } from "@/lib/error-logger";
-import { badRequest, internalError, rateLimited } from "@/lib/api-error";
+import { badRequest, internalError, notFound, rateLimited } from "@/lib/api-error";
 import { parseQueryParams } from "@/lib/query-params";
 import { acquireAnonRateLimitSlot } from "@/lib/rate-limit";
 import type { Result } from "@/lib/result";
@@ -312,6 +312,23 @@ export function cronRoute(
       return internalError();
     }
   };
+}
+
+/**
+ * Verify that a fetched record belongs to the authenticated user.
+ * Returns the narrowed record on success, or a 404 error response.
+ * Combines null-check and userId comparison so callers never leak
+ * whether a resource exists to non-owners.
+ */
+export function requireOwned<T extends { userId: string }>(
+  record: T | null,
+  userId: string,
+  label = "Resource",
+): { data: T; error?: never } | { data?: never; error: NextResponse } {
+  if (!record || record.userId !== userId) {
+    return { error: notFound(`${label} not found`) };
+  }
+  return { data: record };
 }
 
 /**

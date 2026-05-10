@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authRoute } from "@/lib/route-handler";
+import { authRoute, requireOwned } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { getTaskStatus, isTerminalFailure } from "@/lib/sunoapi";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
@@ -12,10 +12,12 @@ const MAX_POLL_ATTEMPTS = 60;
 
 export const GET = authRoute<{ id: string }>(
   async (_request, { auth, params }) => {
-    const song = await prisma.song.findUnique({ where: { id: params.id } });
-    if (!song || song.userId !== auth.userId) {
-      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
-    }
+    const { data: song, error } = requireOwned(
+      await prisma.song.findUnique({ where: { id: params.id } }),
+      auth.userId,
+      "Song",
+    );
+    if (error) return error;
 
     if (song.generationStatus === "ready" || song.generationStatus === "failed") {
       return NextResponse.json({ song });

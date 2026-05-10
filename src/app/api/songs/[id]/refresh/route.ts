@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authRoute } from "@/lib/route-handler";
+import { authRoute, requireOwned } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { getTaskStatus } from "@/lib/sunoapi/status";
 import { SunoApiError } from "@/lib/sunoapi";
@@ -10,10 +10,12 @@ const CDN_URL_TTL_MS = 12 * 24 * 60 * 60 * 1000;
 
 export const POST = authRoute<{ id: string }>(
   async (_request, { auth, params }) => {
-    const song = await prisma.song.findUnique({ where: { id: params.id } });
-    if (!song || song.userId !== auth.userId) {
-      return NextResponse.json({ error: "Song not found", code: "NOT_FOUND" }, { status: 404 });
-    }
+    const { data: song, error } = requireOwned(
+      await prisma.song.findUnique({ where: { id: params.id } }),
+      auth.userId,
+      "Song",
+    );
+    if (error) return error;
 
     if (!song.sunoJobId) {
       return NextResponse.json(

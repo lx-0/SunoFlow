@@ -1,28 +1,20 @@
 import { NextResponse } from "next/server";
-import { resolveUser } from "@/lib/auth";
+import { authRoute, requireOwned } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { separateVocals } from "@/lib/sunoapi";
 import type { SeparationType } from "@/lib/sunoapi";
 import { mockSongs } from "@/lib/sunoapi/mock";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
-import { logServerError } from "@/lib/error-logger";
 import { executeGeneration, respondToGeneration } from "@/lib/generation";
 
-/** POST /api/songs/[id]/separate-vocals — separate vocals/instruments from a track */
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { userId, error: authError } = await resolveUser(request);
-
-    if (authError) return authError;
-    const { id: songId } = await params;
-
-    const song = await prisma.song.findUnique({ where: { id: songId } });
-    if (!song || song.userId !== userId) {
-      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
-    }
+export const POST = authRoute<{ id: string }>(
+  async (request, { auth, params }) => {
+    const { data: song, error } = requireOwned(
+      await prisma.song.findUnique({ where: { id: params.id } }),
+      auth.userId,
+      "Song",
+    );
+    if (error) return error;
 
     if (song.generationStatus !== "ready") {
       return NextResponse.json({ error: "Song must be fully generated before separating vocals.", code: "VALIDATION_ERROR" }, { status: 400 });
@@ -31,7 +23,7 @@ export async function POST(
     const body = await request.json();
     const separationType: SeparationType = body.type === "split_stem" ? "split_stem" : "separate_vocal";
 
-    const userApiKey = await resolveUserApiKey(userId);
+    const userApiKey = await resolveUserApiKey(auth.userId);
     const hasApiKey = !!(userApiKey || process.env.SUNOAPI_KEY);
 
     if (hasApiKey && (!song.sunoJobId || !song.sunoAudioId)) {
@@ -43,18 +35,18 @@ export async function POST(
     const mock = mockSongs[0];
 
     const outcome = await executeGeneration({
-      userId,
+      userId: auth.userId,
       action: "generate",
       songParams: {
         title,
         prompt: `Vocal separation of "${song.title || "Untitled"}"`,
         tags: song.tags,
         isInstrumental: false,
-        parentSongId: songId,
+        parentSongId: params.id,
       },
       apiCall: () => separateVocals(
         { taskId: song.sunoJobId!, audioId: song.sunoAudioId!, type: separationType },
-        userApiKey
+        userApiKey,
       ),
       mockFallback: {
         audioUrl: mock.audioUrl,
@@ -67,9 +59,7 @@ export async function POST(
       description: "separate-vocals",
     });
 
-    return respondToGeneration(outcome, { label: "separate-vocals-api", userId, route: `/api/songs/${songId}/separate-vocals` });
-  } catch (error) {
-    logServerError("separate-vocals-route", error, { route: "/api/songs/separate-vocals" });
-    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
-  }
-}
+    return respondToGeneration(outcome, { label: "separate-vocals-api", userId: auth.userId, route: `/api/songs/${params.id}/separate-vocals` });
+  },
+  { route: "/api/songs/[id]/separate-vocals" },
+);

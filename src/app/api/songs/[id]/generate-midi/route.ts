@@ -1,32 +1,24 @@
 import { NextResponse } from "next/server";
-import { resolveUser } from "@/lib/auth";
+import { authRoute, requireOwned } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { generateMidi } from "@/lib/sunoapi";
 import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
-import { logServerError } from "@/lib/error-logger";
 import { executeTransform, respondToTransform } from "@/lib/generation";
 
-/** POST /api/songs/[id]/generate-midi — extract MIDI from a track */
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { userId, error: authError } = await resolveUser(request);
-
-    if (authError) return authError;
-    const { id: songId } = await params;
-
-    const song = await prisma.song.findUnique({ where: { id: songId } });
-    if (!song || song.userId !== userId) {
-      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
-    }
+export const POST = authRoute<{ id: string }>(
+  async (_request, { auth, params }) => {
+    const { data: song, error } = requireOwned(
+      await prisma.song.findUnique({ where: { id: params.id } }),
+      auth.userId,
+      "Song",
+    );
+    if (error) return error;
 
     if (song.generationStatus !== "ready") {
       return NextResponse.json({ error: "Song must be fully generated before extracting MIDI.", code: "VALIDATION_ERROR" }, { status: 400 });
     }
 
-    const userApiKey = await resolveUserApiKey(userId);
+    const userApiKey = await resolveUserApiKey(auth.userId);
     const hasApiKey = !!(userApiKey || process.env.SUNOAPI_KEY);
 
     if (hasApiKey && (!song.sunoJobId || !song.sunoAudioId)) {
@@ -34,24 +26,22 @@ export async function POST(
     }
 
     const outcome = await executeTransform({
-      userId,
+      userId: auth.userId,
       action: "generate",
       apiCall: () => generateMidi(
         { taskId: song.sunoJobId!, audioId: song.sunoAudioId! },
-        userApiKey
+        userApiKey,
       ),
       hasApiKey,
-      mockTaskId: `mock-midi-${songId}`,
+      mockTaskId: `mock-midi-${params.id}`,
       fallbackErrorMessage: "MIDI generation failed. Please try again.",
     });
 
     return respondToTransform(
       outcome,
-      { label: "generate-midi-api", userId, route: `/api/songs/${songId}/generate-midi` },
-      { songId, format: "midi" },
+      { label: "generate-midi-api", userId: auth.userId, route: `/api/songs/${params.id}/generate-midi` },
+      { songId: params.id, format: "midi" },
     );
-  } catch (error) {
-    logServerError("generate-midi-route", error, { route: "/api/songs/generate-midi" });
-    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
-  }
-}
+  },
+  { route: "/api/songs/[id]/generate-midi" },
+);
