@@ -3,6 +3,7 @@ import type { Song, SongTag, Tag, Favorite } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logServerError } from "@/lib/error-logger";
 import { cursorPaginate } from "@/lib/pagination";
+import { resolveRootId } from "./variations";
 
 export { prepareSongDownload } from "./download";
 export type { DownloadFormat, DownloadSong, DownloadRequest, DownloadResult } from "./download";
@@ -12,6 +13,16 @@ export type { TagCount } from "./taxonomy";
 
 export { queryPublicSongs } from "./public";
 export type { PublicSongsQuery, PublicSongsResult, PublicSong, PublicSongSort } from "./public";
+
+export {
+  getVariationFamily,
+  createVariation,
+  normalizeVariationTags,
+  variationTitle,
+  resolveRootId,
+  MAX_VARIATIONS,
+} from "./variations";
+export type { VariationFamily, VariationInput } from "./variations";
 
 // ---------------------------------------------------------------------------
 // Discoverable filter — deep interface for external consumers
@@ -505,22 +516,7 @@ export async function getVariantFamily(
   songId: string,
   parentSongId: string | null
 ): Promise<PublicVariant[]> {
-  let rootId = songId;
-
-  if (parentSongId) {
-    rootId = parentSongId;
-    let current = await prisma.song.findUnique({
-      where: { id: rootId },
-      select: { parentSongId: true },
-    });
-    while (current?.parentSongId) {
-      rootId = current.parentSongId;
-      current = await prisma.song.findUnique({
-        where: { id: rootId },
-        select: { parentSongId: true },
-      });
-    }
-  }
+  const rootId = await resolveRootId(songId, parentSongId);
 
   return prisma.song.findMany({
     where: SongFilters.variantFamily(rootId),
