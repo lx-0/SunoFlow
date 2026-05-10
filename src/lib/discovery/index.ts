@@ -240,7 +240,9 @@ const PLAYLIST_DISCOVER_SELECT = {
   shareCount: true,
   createdAt: true,
   user: { select: { id: true, name: true, username: true } },
-  _count: { select: { songs: true } },
+  _count: {
+    select: { songs: { where: { song: { archivedAt: null } } } },
+  },
 } as const;
 
 type PlaylistDiscoverRow = Prisma.PlaylistGetPayload<{

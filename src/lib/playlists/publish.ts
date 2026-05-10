@@ -17,7 +17,11 @@ export async function togglePublish(
 ) {
   const playlist = await prisma.playlist.findFirst({
     where: ownerWhere(playlistId, userId),
-    include: { _count: { select: { songs: true } } },
+    include: {
+      _count: {
+        select: { songs: { where: { song: { archivedAt: null } } } },
+      },
+    },
   });
   if (!playlist) return Err.notFound();
 

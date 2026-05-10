@@ -53,7 +53,9 @@ const activitySelect = {
       name: true,
       slug: true,
       isPublic: true,
-      _count: { select: { songs: true } },
+      _count: {
+        select: { songs: { where: { song: { archivedAt: null } } } },
+      },
     },
   },
 } as const;

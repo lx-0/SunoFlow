@@ -212,7 +212,9 @@ export async function getInviteInfo(token: string) {
           id: true,
           name: true,
           description: true,
-          _count: { select: { songs: true } },
+          _count: {
+            select: { songs: { where: { song: { archivedAt: null } } } },
+          },
           user: { select: { name: true } },
         },
       },

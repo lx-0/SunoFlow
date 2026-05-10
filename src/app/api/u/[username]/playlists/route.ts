@@ -35,7 +35,9 @@ export async function GET(
           description: true,
           slug: true,
           createdAt: true,
-          _count: { select: { songs: true } },
+          _count: {
+            select: { songs: { where: { song: { archivedAt: null } } } },
+          },
           songs: {
             take: 1,
             orderBy: { position: "asc" },

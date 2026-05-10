@@ -18,7 +18,11 @@ export async function listPlaylists(userId: string) {
     () =>
       prisma.playlist.findMany({
         where: { userId },
-        include: { _count: { select: { songs: true } } },
+        include: {
+          _count: {
+            select: { songs: { where: { song: { archivedAt: null } } } },
+          },
+        },
         orderBy: { updatedAt: "desc" },
       }),
     CacheTTL.PLAYLIST,
@@ -43,7 +47,11 @@ export async function createPlaylist(
         : null,
       userId,
     },
-    include: { _count: { select: { songs: true } } },
+    include: {
+      _count: {
+        select: { songs: { where: { song: { archivedAt: null } } } },
+      },
+    },
   });
 
   invalidateByPrefix(cacheKey("playlists", userId));
@@ -68,7 +76,9 @@ export async function getPlaylist(playlistId: string, userId: string) {
           },
         },
       },
-      _count: { select: { songs: true } },
+      _count: {
+        select: { songs: { where: { song: { archivedAt: null } } } },
+      },
       collaborators: {
         where: { status: "accepted" },
         include: {
@@ -123,7 +133,11 @@ export async function updatePlaylist(
   const updated = await prisma.playlist.update({
     where: { id: playlist.id },
     data,
-    include: { _count: { select: { songs: true } } },
+    include: {
+      _count: {
+        select: { songs: { where: { song: { archivedAt: null } } } },
+      },
+    },
   });
 
   invalidateByPrefix(cacheKey("playlists", userId));

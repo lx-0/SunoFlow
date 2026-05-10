@@ -53,7 +53,9 @@ const PLAYLIST_HIT_SELECT = {
   id: true,
   name: true,
   description: true,
-  _count: { select: { songs: true } },
+  _count: {
+    select: { songs: { where: { song: { archivedAt: null } } } },
+  },
   createdAt: true,
 } satisfies Prisma.PlaylistSelect;
 
