@@ -7,6 +7,7 @@ export const GET = adminRoute(async () => {
   const testError = new Error("Sentry verification test — this error is intentional");
   testError.name = "SentryVerificationError";
 
+  // Manually capture so it shows up in Sentry even if global handler is disabled
   const eventId = Sentry.captureException(testError, {
     tags: { source: "sentry-test-endpoint" },
     level: "info",

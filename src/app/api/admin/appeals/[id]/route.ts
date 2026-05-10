@@ -5,7 +5,7 @@ import { logAdminAction } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { broadcast } from "@/lib/event-bus";
 import { invalidateByPrefix, cacheKey } from "@/lib/cache";
-import { badRequest, notFound } from "@/lib/api-error";
+import { conflict, notFound, ErrorCode } from "@/lib/api-error";
 
 const resolveAppealBody = z.object({
   action: z.enum(["approve", "reject"]),
@@ -28,7 +28,7 @@ export const PATCH = adminRoute<{ id: string }, ResolveAppealBody>(async (_reque
   }
 
   if (appeal.status !== "pending") {
-    return badRequest("Appeal has already been resolved");
+    return conflict("Appeal has already been resolved", ErrorCode.ALREADY_RESOLVED);
   }
 
   const newStatus = body.action === "approve" ? "approved" : "rejected";
