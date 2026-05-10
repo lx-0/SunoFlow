@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { analyzeUsage, buildDailyChart, getCreditCost } from "./calculate";
-import type { RawMonthlyUsage } from "./calculate";
+import { analyzeUsage, buildDailyChart, getCreditCost } from ".";
+import type { RawMonthlyUsage } from ".";
 
 describe("getCreditCost", () => {
   it("returns the cost for known actions", () => {
