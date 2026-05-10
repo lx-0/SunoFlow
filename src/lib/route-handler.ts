@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { resolveUser, requireAdmin } from "@/lib/auth";
 import { logServerError } from "@/lib/error-logger";
-import { badRequest, internalError } from "@/lib/api-error";
+import { badRequest, internalError, rateLimited } from "@/lib/api-error";
 import { parseQueryParams } from "@/lib/query-params";
+import { acquireAnonRateLimitSlot } from "@/lib/rate-limit";
 import type { Result } from "@/lib/result";
 
 export type AuthContext = {
@@ -14,6 +15,16 @@ export type AuthContext = {
 
 export type AdminContext = {
   adminId: string;
+};
+
+export type AnonContext = {
+  ip: string;
+};
+
+type RateLimitConfig = {
+  action: string;
+  limit: number;
+  windowMs: number;
 };
 
 type RouteOptions = {
@@ -189,6 +200,77 @@ export function adminRoute<
     } catch (error) {
       logServerError("admin-route-handler", error, {
         userId: user!.id,
+        route: options?.route ?? new URL(request.url).pathname,
+      });
+      return internalError();
+    }
+  };
+}
+
+function extractClientIp(request: NextRequest): string {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown"
+  );
+}
+
+/**
+ * Wrap a public (unauthenticated) route handler with IP-based rate limiting.
+ * Extracts client IP, enforces the rate limit, parses query params, and catches errors.
+ *
+ * Usage:
+ *   export const GET = anonRoute(async (request, { anon, query }) => {
+ *     // anon.ip is the client IP
+ *     // query is typed from the schema
+ *   }, { rateLimit: { action: "discover", limit: 30, windowMs: 60_000 }, query: discoverQuery });
+ */
+export function anonRoute<
+  P extends Record<string, string> = Record<string, never>,
+  Q = undefined,
+>(
+  handler: (
+    request: NextRequest,
+    ctx: { anon: AnonContext; params: P; query: Q }
+  ) => Promise<NextResponse>,
+  options: RouteOptions & { rateLimit: RateLimitConfig; query?: z.ZodType<Q> }
+) {
+  return async (
+    request: NextRequest,
+    segmentData?: SegmentData<P>
+  ): Promise<NextResponse> => {
+    const ip = extractClientIp(request);
+
+    const { acquired } = await acquireAnonRateLimitSlot(
+      ip,
+      options.rateLimit.action,
+      options.rateLimit.limit,
+      options.rateLimit.windowMs,
+    );
+    if (!acquired) {
+      return rateLimited("Too many requests. Try again later.", undefined, {
+        "Retry-After": String(Math.ceil(options.rateLimit.windowMs / 1000)),
+      });
+    }
+
+    try {
+      const params = segmentData?.params
+        ? await segmentData.params
+        : ({} as P);
+
+      let query: Q = undefined as Q;
+      if (options?.query) {
+        const parsed = parseQueryParams(
+          request.nextUrl.searchParams,
+          options.query,
+        );
+        if (parsed.error) return parsed.error;
+        query = parsed.data;
+      }
+
+      return await handler(request, { anon: { ip }, params, query });
+    } catch (error) {
+      logServerError("anon-route-handler", error, {
         route: options?.route ?? new URL(request.url).pathname,
       });
       return internalError();

@@ -1,19 +1,14 @@
 import { z } from "zod";
-import { NextRequest, NextResponse } from "next/server";
-import { logServerError } from "@/lib/error-logger";
+import { NextResponse } from "next/server";
 import { CacheControl } from "@/lib/cache";
-import { acquireAnonRateLimitSlot } from "@/lib/rate-limit";
 import { discoverSongs } from "@/lib/discovery";
+import { anonRoute } from "@/lib/route-handler";
 import {
-  parseQueryParams,
   zPageParam,
   zIntParam,
   zTrimmedParam,
   zEnumParam,
 } from "@/lib/query-params";
-
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX = 30;
 
 const discoverQuery = z.object({
   page: zPageParam(),
@@ -27,30 +22,8 @@ const discoverQuery = z.object({
   tempoMax: zIntParam,
 });
 
-export async function GET(request: NextRequest) {
-  try {
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      request.headers.get("x-real-ip") ||
-      "unknown";
-
-    const { acquired } = await acquireAnonRateLimitSlot(
-      ip,
-      "discover",
-      RATE_LIMIT_MAX,
-      RATE_LIMIT_WINDOW_MS,
-    );
-    if (!acquired) {
-      return NextResponse.json(
-        { error: "Too many requests", code: "RATE_LIMIT" },
-        { status: 429, headers: { "Retry-After": "60" } },
-      );
-    }
-
-    const parsed = parseQueryParams(request.nextUrl.searchParams, discoverQuery);
-    if (parsed.error) return parsed.error;
-    const query = parsed.data;
-
+export const GET = anonRoute(
+  async (_request, { query }) => {
     const result = await discoverSongs({
       sortBy: query.sortBy,
       tag: query.tag,
@@ -63,11 +36,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result, {
       headers: { "Cache-Control": CacheControl.publicShort },
     });
-  } catch (error) {
-    logServerError("songs-discover", error, { route: "/api/songs/discover" });
-    return NextResponse.json(
-      { error: "Internal server error", code: "INTERNAL_ERROR" },
-      { status: 500 },
-    );
-  }
-}
+  },
+  {
+    rateLimit: { action: "discover", limit: 30, windowMs: 60_000 },
+    query: discoverQuery,
+  },
+);

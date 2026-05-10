@@ -1,46 +1,27 @@
-import { NextRequest, NextResponse } from "next/server";
-import { logServerError } from "@/lib/error-logger";
+import { z } from "zod";
+import { NextResponse } from "next/server";
 import { CacheControl } from "@/lib/cache";
-import { rateLimited, internalError } from "@/lib/api-error";
-import { withTiming } from "@/lib/timing";
-import { acquireAnonRateLimitSlot } from "@/lib/rate-limit";
 import { discoverPlaylists } from "@/lib/discovery";
+import { anonRoute } from "@/lib/route-handler";
+import { zPageParam, zLimitParam, zTrimmedParam, zEnumParam } from "@/lib/query-params";
 
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX = 30;
+const playlistDiscoverQuery = z.object({
+  sort: zEnumParam(["trending", "recent", "popular"] as const, "trending"),
+  genre: zTrimmedParam,
+  page: zPageParam(),
+  limit: zLimitParam(20, 100),
+});
 
-async function handleGET(request: NextRequest) {
-  try {
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      request.headers.get("x-real-ip") ||
-      "unknown";
-
-    const { acquired } = await acquireAnonRateLimitSlot(ip, "playlist-discover", RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
-    if (!acquired) {
-      return rateLimited("Too many requests. Try again in a minute.", undefined, {
-        "Retry-After": "60",
-      });
-    }
-
-    const params = request.nextUrl.searchParams;
-    const pageParam = parseInt(params.get("page") || "", 10);
-    const page = !isNaN(pageParam) && pageParam >= 1 ? pageParam : 1;
-    const limitParam = parseInt(params.get("limit") || "", 10);
-    const limit = !isNaN(limitParam) && limitParam >= 1 && limitParam <= 100 ? limitParam : 20;
-    const sortParam = params.get("sort") || "trending";
-    const sort = (["trending", "recent", "popular"].includes(sortParam) ? sortParam : "trending") as "trending" | "recent" | "popular";
-    const genre = params.get("genre")?.trim() || undefined;
-
-    const result = await discoverPlaylists({ sort, genre, page, limit });
+export const GET = anonRoute(
+  async (_request, { query }) => {
+    const result = await discoverPlaylists(query);
 
     return NextResponse.json(result, {
       headers: { "Cache-Control": CacheControl.publicShort },
     });
-  } catch (error) {
-    logServerError("playlists-discover", error, { route: "/api/playlists/discover" });
-    return internalError();
-  }
-}
-
-export const GET = withTiming("/api/playlists/discover", handleGET);
+  },
+  {
+    rateLimit: { action: "playlist-discover", limit: 30, windowMs: 60_000 },
+    query: playlistDiscoverQuery,
+  },
+);
