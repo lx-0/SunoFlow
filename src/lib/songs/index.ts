@@ -17,12 +17,23 @@ export type { PublicSongsQuery, PublicSongsResult, PublicSong, PublicSongSort } 
 export {
   getVariationFamily,
   createVariation,
+  addVocals,
+  addInstrumental,
+  replaceSection,
+  extendSong,
   normalizeVariationTags,
   variationTitle,
   resolveRootId,
   MAX_VARIATIONS,
 } from "./variations";
-export type { VariationFamily, VariationInput } from "./variations";
+export type {
+  VariationFamily,
+  VariationInput,
+  AddVocalsInput,
+  AddInstrumentalInput,
+  ReplaceSectionInput,
+  ExtendSongInput,
+} from "./variations";
 
 // ---------------------------------------------------------------------------
 // Discoverable filter — deep interface for external consumers
