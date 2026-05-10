@@ -1,33 +1,24 @@
 import { NextResponse } from "next/server";
-import { resolveUser } from "@/lib/auth";
-import { resultResponse } from "@/lib/route-handler";
+import { authRoute, resultResponse } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { acquireRateLimitSlot } from "@/lib/rate-limit";
 import { prepareSongDownload } from "@/lib/songs";
 import type { DownloadFormat } from "@/lib/songs";
 
-const DOWNLOAD_RATE_LIMIT = 50; // per hour
+const DOWNLOAD_RATE_LIMIT = 50;
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { userId, error: authError } = await resolveUser(request);
-    if (authError) return authError;
-
-    const { id: songId } = await params;
-
+export const GET = authRoute<{ id: string }>(
+  async (request, { auth, params }) => {
     const [song, user] = await Promise.all([
-      prisma.song.findFirst({ where: { id: songId, userId: userId! } }),
-      prisma.user.findUnique({ where: { id: userId! }, select: { name: true } }),
+      prisma.song.findFirst({ where: { id: params.id, userId: auth.userId } }),
+      prisma.user.findUnique({ where: { id: auth.userId }, select: { name: true } }),
     ]);
 
     if (!song) {
       return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
-    const { acquired, status } = await acquireRateLimitSlot(userId!, "download");
+    const { acquired, status } = await acquireRateLimitSlot(auth.userId, "download");
     if (!acquired) {
       return NextResponse.json(
         {
@@ -39,19 +30,18 @@ export async function GET(
           status: 429,
           headers: {
             "Retry-After": Math.ceil(
-              (new Date(status.resetAt).getTime() - Date.now()) / 1000
+              (new Date(status.resetAt).getTime() - Date.now()) / 1000,
             ).toString(),
             "X-RateLimit-Limit": DOWNLOAD_RATE_LIMIT.toString(),
             "X-RateLimit-Remaining": "0",
             "X-RateLimit-Reset": status.resetAt,
           },
-        }
+        },
       );
     }
 
-    const url = new URL(request.url);
-    const requestedFormat = (url.searchParams.get("format") ?? "native") as DownloadFormat | "native";
-    const embedMetadata = url.searchParams.get("metadata") !== "false";
+    const requestedFormat = (request.nextUrl.searchParams.get("format") ?? "native") as DownloadFormat | "native";
+    const embedMetadata = request.nextUrl.searchParams.get("metadata") !== "false";
 
     const result = await prepareSongDownload({
       song,
@@ -70,11 +60,7 @@ export async function GET(
     headers.set("X-RateLimit-Remaining", status.remaining.toString());
     headers.set("X-RateLimit-Reset", status.resetAt);
 
-    return new Response(result.buffer, { status: 200, headers });
-  } catch {
-    return NextResponse.json(
-      { error: "Internal server error", code: "INTERNAL_ERROR" },
-      { status: 500 }
-    );
-  }
-}
+    return new NextResponse(result.buffer, { status: 200, headers });
+  },
+  { route: "/api/songs/[id]/download" },
+);

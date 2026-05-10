@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { NextRequest } from "next/server";
 import { GET } from "./route";
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
@@ -78,8 +79,8 @@ import { logServerError } from "@/lib/error-logger";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function makeRequest(): Request {
-  return new Request("http://localhost/api/songs/song-1/status");
+function makeRequest(): NextRequest {
+  return new NextRequest("http://localhost/api/songs/song-1/status");
 }
 
 function makeParams() {

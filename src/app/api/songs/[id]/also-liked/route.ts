@@ -1,30 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
-import { resolveUser } from "@/lib/auth";
-import { logServerError } from "@/lib/error-logger";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { authRoute } from "@/lib/route-handler";
 import { cached, cacheKey, CacheTTL } from "@/lib/cache";
 import { getAlsoLiked } from "@/lib/recommendations";
+import { zLimitParam } from "@/lib/query-params";
 
-const ALSO_LIKED_LIMIT = 8;
+const alsoLikedQuery = z.object({
+  limit: zLimitParam(8, 8),
+});
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { userId, error: authError } = await resolveUser(request);
-    if (authError) return authError;
-
-    const { id } = await params;
-    const limit = Math.min(
-      parseInt(request.nextUrl.searchParams.get("limit") || "8", 10) || 8,
-      ALSO_LIKED_LIMIT
-    );
-
-    const key = cacheKey("also-liked", userId, id, String(limit));
+export const GET = authRoute<{ id: string }, undefined, z.infer<typeof alsoLikedQuery>>(
+  async (_request, { auth, params, query }) => {
+    const key = cacheKey("also-liked", auth.userId, params.id, String(query.limit));
     const result = await cached(
       key,
-      () => getAlsoLiked(id, userId, limit),
-      CacheTTL.RECOMMENDATIONS
+      () => getAlsoLiked(params.id, auth.userId, query.limit),
+      CacheTTL.RECOMMENDATIONS,
     );
 
     if (result === null) {
@@ -32,11 +23,6 @@ export async function GET(
     }
 
     return NextResponse.json({ songs: result, total: result.length });
-  } catch (error) {
-    logServerError("also-liked", error, { route: "/api/songs/[id]/also-liked" });
-    return NextResponse.json(
-      { error: "Internal server error", code: "INTERNAL_ERROR" },
-      { status: 500 }
-    );
-  }
-}
+  },
+  { route: "/api/songs/[id]/also-liked", query: alsoLikedQuery },
+);
