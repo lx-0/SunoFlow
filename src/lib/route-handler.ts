@@ -3,6 +3,7 @@ import { z } from "zod";
 import { resolveUser, requireAdmin } from "@/lib/auth";
 import { logServerError } from "@/lib/error-logger";
 import { badRequest, internalError } from "@/lib/api-error";
+import { parseQueryParams } from "@/lib/query-params";
 import type { Result } from "@/lib/result";
 
 export type AuthContext = {
@@ -56,16 +57,22 @@ async function parseBody<B>(
  *   export const POST = authRoute(async (request, { auth, body }) => {
  *     body.name // typed string
  *   }, { body: z.object({ name: z.string().min(1) }) });
+ *
+ * Usage (with query validation):
+ *   export const GET = authRoute(async (request, { auth, query }) => {
+ *     query.page // typed number
+ *   }, { query: z.object({ page: zPageParam() }) });
  */
 export function authRoute<
   P extends Record<string, string> = Record<string, never>,
   B = undefined,
+  Q = undefined,
 >(
   handler: (
     request: NextRequest,
-    ctx: { auth: AuthContext; params: P; body: B }
+    ctx: { auth: AuthContext; params: P; body: B; query: Q }
   ) => Promise<NextResponse>,
-  options?: RouteOptions & { body?: z.ZodType<B> }
+  options?: RouteOptions & { body?: z.ZodType<B>; query?: z.ZodType<Q> }
 ) {
   return async (
     request: NextRequest,
@@ -86,6 +93,16 @@ export function authRoute<
         body = parsed.data;
       }
 
+      let query: Q = undefined as Q;
+      if (options?.query) {
+        const parsed = parseQueryParams(
+          request.nextUrl.searchParams,
+          options.query,
+        );
+        if (parsed.error) return parsed.error;
+        query = parsed.data;
+      }
+
       return await handler(request, {
         auth: {
           userId: result.userId,
@@ -94,6 +111,7 @@ export function authRoute<
         },
         params,
         body,
+        query,
       });
     } catch (error) {
       logServerError("route-handler", error, {
@@ -116,16 +134,22 @@ export function authRoute<
  *   export const POST = adminRoute(async (request, { admin, body }) => {
  *     body.title // typed string
  *   }, { body: z.object({ title: z.string() }) });
+ *
+ * Usage (with query validation):
+ *   export const GET = adminRoute(async (request, { admin, query }) => {
+ *     query.page // typed number
+ *   }, { query: z.object({ page: zPageParam() }) });
  */
 export function adminRoute<
   P extends Record<string, string> = Record<string, never>,
   B = undefined,
+  Q = undefined,
 >(
   handler: (
     request: NextRequest,
-    ctx: { admin: AdminContext; params: P; body: B }
+    ctx: { admin: AdminContext; params: P; body: B; query: Q }
   ) => Promise<NextResponse>,
-  options?: RouteOptions & { body?: z.ZodType<B> }
+  options?: RouteOptions & { body?: z.ZodType<B>; query?: z.ZodType<Q> }
 ) {
   return async (
     request: NextRequest,
@@ -146,10 +170,21 @@ export function adminRoute<
         body = parsed.data;
       }
 
+      let query: Q = undefined as Q;
+      if (options?.query) {
+        const parsed = parseQueryParams(
+          request.nextUrl.searchParams,
+          options.query,
+        );
+        if (parsed.error) return parsed.error;
+        query = parsed.data;
+      }
+
       return await handler(request, {
         admin: { adminId: user!.id },
         params,
         body,
+        query,
       });
     } catch (error) {
       logServerError("admin-route-handler", error, {

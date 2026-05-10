@@ -1,11 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { NextResponse } from "next/server";
 import { authRoute } from "@/lib/route-handler";
 import { buildActivityFeed } from "@/lib/feed";
+import { zPageParam } from "@/lib/query-params";
 
-export const GET = authRoute(async (request: NextRequest, { auth }) => {
-  const { searchParams } = new URL(request.url);
-  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
-
-  const result = await buildActivityFeed(auth.userId, page);
-  return NextResponse.json(result);
+const feedQuery = z.object({
+  page: zPageParam(),
 });
+
+export const GET = authRoute(
+  async (_request, { auth, query }) => {
+    const result = await buildActivityFeed(auth.userId, query.page);
+    return NextResponse.json(result);
+  },
+  { query: feedQuery },
+);

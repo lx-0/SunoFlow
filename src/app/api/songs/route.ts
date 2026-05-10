@@ -1,49 +1,68 @@
+import { z } from "zod";
 import { NextResponse } from "next/server";
 import { CacheControl } from "@/lib/cache";
 import { authRoute } from "@/lib/route-handler";
 import { querySongLibrary, type SortField } from "@/lib/songs";
+import {
+  zTrimmedParam,
+  zIntParam,
+  zCsvParam,
+  zBoolParam,
+  zCursorParam,
+  zEnumParam,
+} from "@/lib/query-params";
 
-export const GET = authRoute(async (request, { auth }) => {
-  const p = request.nextUrl.searchParams;
+const SORT_FIELDS: readonly SortField[] = [
+  "newest",
+  "oldest",
+  "highest_rated",
+  "most_played",
+  "recently_modified",
+  "title_az",
+];
 
-  const tagId = p.get("tagId") || "";
-  const tagIdsParam = p.get("tagIds") || "";
-  const tagIds = tagIdsParam
-    ? tagIdsParam.split(",").map((t) => t.trim()).filter(Boolean)
-    : tagId
-      ? [tagId]
-      : [];
+const songsQuery = z
+  .object({
+    q: zTrimmedParam,
+    status: zTrimmedParam,
+    minRating: zIntParam,
+    sortBy: zEnumParam(SORT_FIELDS, "newest"),
+    sortDir: z
+      .string()
+      .optional()
+      .transform(
+        (v): "asc" | "desc" | undefined =>
+          v === "asc" || v === "desc" ? v : undefined,
+      ),
+    dateFrom: zTrimmedParam,
+    dateTo: zTrimmedParam,
+    tagId: z.string().optional(),
+    tagIds: zCsvParam,
+    genre: zCsvParam,
+    mood: zCsvParam,
+    tempoMin: zIntParam,
+    tempoMax: zIntParam,
+    smartFilter: zTrimmedParam,
+    includeVariations: zBoolParam,
+    archived: zBoolParam,
+    limit: zIntParam,
+    cursor: zCursorParam,
+  })
+  .transform(({ q, tagId, tagIds, genre, mood, ...rest }) => ({
+    ...rest,
+    search: q,
+    tagIds: tagIds.length > 0 ? tagIds : tagId ? [tagId] : [],
+    genres: genre,
+    moods: mood,
+  }));
 
-  const parseIntSafe = (v: string | null) => {
-    const n = parseInt(v || "", 10);
-    return isNaN(n) ? undefined : n;
-  };
+export const GET = authRoute(
+  async (_request, { auth, query }) => {
+    const result = await querySongLibrary({ userId: auth.userId, ...query });
 
-  const splitCsv = (v: string | null) =>
-    v ? v.split(",").map((s) => s.trim()).filter(Boolean) : [];
-
-  const result = await querySongLibrary({
-    userId: auth.userId,
-    search: p.get("q")?.trim() || undefined,
-    status: p.get("status") || undefined,
-    minRating: parseIntSafe(p.get("minRating")),
-    sortBy: (p.get("sortBy") || "newest") as SortField,
-    sortDir: (p.get("sortDir") || undefined) as "asc" | "desc" | undefined,
-    dateFrom: p.get("dateFrom") || undefined,
-    dateTo: p.get("dateTo") || undefined,
-    tagIds,
-    genres: splitCsv(p.get("genre")),
-    moods: splitCsv(p.get("mood")),
-    tempoMin: parseIntSafe(p.get("tempoMin")),
-    tempoMax: parseIntSafe(p.get("tempoMax")),
-    smartFilter: p.get("smartFilter") || undefined,
-    includeVariations: p.get("includeVariations") === "true",
-    archived: p.get("archived") === "true",
-    limit: parseIntSafe(p.get("limit")),
-    cursor: p.get("cursor") || undefined,
-  });
-
-  return NextResponse.json(result, {
-    headers: { "Cache-Control": CacheControl.privateNoCache },
-  });
-}, { route: "/api/songs" });
+    return NextResponse.json(result, {
+      headers: { "Cache-Control": CacheControl.privateNoCache },
+    });
+  },
+  { route: "/api/songs", query: songsQuery },
+);
