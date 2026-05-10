@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { imageCache } from "@/lib/cache";
-import { fetchFreshUrls } from "@/lib/sunoapi/refresh";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
+import { fetchFreshUrls, resolveUserApiKey } from "@/lib/sunoapi";
 import { logger } from "@/lib/logger";
 
 const CDN_URL_TTL_MS = 12 * 24 * 60 * 60 * 1000;

@@ -47,12 +47,9 @@ vi.mock("@/lib/sunoapi", async () => {
   return {
     ...actual,
     getTaskStatus: vi.fn(),
+    resolveUserApiKey: vi.fn(),
   };
 });
-
-vi.mock("@/lib/sunoapi/resolve-key", () => ({
-  resolveUserApiKey: vi.fn(),
-}));
 
 vi.mock("@/lib/error-logger", () => ({
   logServerError: vi.fn(),
@@ -74,7 +71,7 @@ vi.mock("@/lib/song-completion", () => ({
 import { auth, resolveUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getTaskStatus } from "@/lib/sunoapi";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
+import { resolveUserApiKey } from "@/lib/sunoapi";
 import { logServerError } from "@/lib/error-logger";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

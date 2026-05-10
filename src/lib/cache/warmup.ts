@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { audioCache, imageCache } from "./file";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
-import { fetchFreshUrls } from "@/lib/sunoapi/refresh";
+import { resolveUserApiKey, fetchFreshUrls } from "@/lib/sunoapi";
 import { logger } from "@/lib/logger";
 
 const BATCH_SIZE = process.env.CACHE_WARMUP_BATCH_SIZE

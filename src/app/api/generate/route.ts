@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
-import { generateSong, SunoApiError, getRemainingCredits } from "@/lib/sunoapi";
-import { mockSongs } from "@/lib/sunoapi/mock";
-import { resolveUserApiKeyWithMode } from "@/lib/sunoapi/resolve-key";
+import {
+  generateSong,
+  SunoApiError,
+  getRemainingCredits,
+  mockSongs,
+  resolveUserApiKeyWithMode,
+} from "@/lib/sunoapi";
 import { logServerError } from "@/lib/error-logger";
 import { logger } from "@/lib/logger";
 import { SUNOAPI_KEY } from "@/lib/env";

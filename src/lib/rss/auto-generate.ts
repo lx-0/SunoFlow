@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { fetchFeed } from "./index";
-import { generateSong } from "@/lib/sunoapi";
-import { resolveUserApiKeyWithMode } from "@/lib/sunoapi/resolve-key";
+import { generateSong, resolveUserApiKeyWithMode } from "@/lib/sunoapi";
 import { checkCredits, deductCredits } from "@/lib/credits";
 import { logger } from "@/lib/logger";
 import { generateCoverArtVariants } from "@/lib/cover-art-generator";

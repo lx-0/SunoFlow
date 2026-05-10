@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateMashup } from "@/lib/sunoapi";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
+import { generateMashup, resolveUserApiKey } from "@/lib/sunoapi";
 import { canUseFeature, type SubscriptionTier } from "@/lib/feature-gates";
 import { executeGeneration, type GenerationOutcome } from "@/lib/generation";
 import { resolveTrackUrl, type TrackSource } from "./tracks";

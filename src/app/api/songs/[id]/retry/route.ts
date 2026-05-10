@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { authRoute, requireOwned } from "@/lib/route-handler";
-import { generateSong } from "@/lib/sunoapi";
+import { generateSong, resolveUserApiKey } from "@/lib/sunoapi";
 import { prisma } from "@/lib/prisma";
 import { acquireRateLimitSlot } from "@/lib/rate-limit";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 import { logServerError } from "@/lib/error-logger";
 import { invalidateByPrefix } from "@/lib/cache";
 import { SUNOAPI_KEY } from "@/lib/env";

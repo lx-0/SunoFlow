@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authRoute, requireOwned } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
-import { getMusicVideoDetail, SunoApiError } from "@/lib/sunoapi";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
+import { getMusicVideoDetail, SunoApiError, resolveUserApiKey } from "@/lib/sunoapi";
 import { logServerError } from "@/lib/error-logger";
 
 const querySchema = z.object({

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
+import { resolveUserApiKey } from "@/lib/sunoapi";
 import { proxyAudio } from "@/lib/audio";
 import { logger } from "@/lib/logger";
 

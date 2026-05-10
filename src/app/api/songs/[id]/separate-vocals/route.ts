@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { authRoute, requireOwned } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
-import { separateVocals } from "@/lib/sunoapi";
+import { separateVocals, mockSongs, resolveUserApiKey } from "@/lib/sunoapi";
 import type { SeparationType } from "@/lib/sunoapi";
-import { mockSongs } from "@/lib/sunoapi/mock";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 import { executeGeneration, respondToGeneration } from "@/lib/generation";
 
 export const POST = authRoute<{ id: string }>(

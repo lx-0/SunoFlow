@@ -1,6 +1,6 @@
 import { resolveUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
+import { resolveUserApiKey } from "@/lib/sunoapi";
 import { broadcast } from "@/lib/event-bus";
 import { pollToCompletion } from "@/lib/generation/completion";
 

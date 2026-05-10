@@ -1,11 +1,9 @@
 import { randomBytes } from "crypto";
 import * as Sentry from "@sentry/nextjs";
-import { generateSong } from "@/lib/sunoapi";
-import { resolveUserApiKeyWithMode } from "@/lib/sunoapi/resolve-key";
+import { generateSong, resolveUserApiKeyWithMode, mockSongs } from "@/lib/sunoapi";
 import { logServerError } from "@/lib/error-logger";
 import { logger } from "@/lib/logger";
 import { SUNOAPI_KEY } from "@/lib/env";
-import { mockSongs } from "@/lib/sunoapi/mock";
 import { checkCredits, getCreditCost } from "@/lib/credits";
 import { stripHtml } from "@/lib/sanitize";
 import { type Result, success, fail } from "@/lib/result";

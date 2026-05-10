@@ -1,9 +1,7 @@
 import type { Song } from "@prisma/client";
 import type { GenerationOutcome } from "@/lib/generation";
 import { prisma } from "@/lib/prisma";
-import { generateSong } from "@/lib/sunoapi";
-import { mockSongs } from "@/lib/sunoapi/mock";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
+import { generateSong, mockSongs, resolveUserApiKey } from "@/lib/sunoapi";
 import { executeGeneration } from "@/lib/generation";
 import { type Result, success, Err } from "@/lib/result";
 

@@ -1,9 +1,7 @@
 import type { GenerationQueueItem, Song } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { acquireRateLimitSlot, type RateLimitStatus } from "@/lib/rate-limit";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
-import { generateSong, SunoApiError, getRemainingCredits } from "@/lib/sunoapi";
-import { mockSongs } from "@/lib/sunoapi/mock";
+import { resolveUserApiKey, generateSong, SunoApiError, getRemainingCredits, mockSongs } from "@/lib/sunoapi";
 import { SUNOAPI_KEY } from "@/lib/env";
 import { logServerError } from "@/lib/error-logger";
 import { executeGeneration, userFriendlyError } from "@/lib/generation";

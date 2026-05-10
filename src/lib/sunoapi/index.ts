@@ -126,6 +126,15 @@ export { listSongs, getSongById, downloadSong } from "./songs";
 // File uploads
 export { uploadFileBase64, uploadFileFromUrl, uploadFileStream } from "./uploads";
 
+// Key resolution
+export { resolveUserApiKey, resolveUserApiKeyWithMode } from "./resolve-key";
+
+// URL refresh
+export { fetchFreshUrls } from "./refresh";
+
+// Mock data (dev/demo)
+export { mockSongs } from "./mock";
+
 // Convenience namespace
 import { generateSong, extendMusic } from "./create";
 import { uploadAndCover, uploadAndExtend, addVocals, addInstrumental, generateMashup, replaceSection } from "./upload-based";

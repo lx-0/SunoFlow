@@ -28,6 +28,7 @@ vi.mock("@/lib/sunoapi", () => ({
   uploadAndCover: vi.fn(),
   uploadAndExtend: vi.fn(),
   generateSong: vi.fn(),
+  resolveUserApiKey: vi.fn(),
   SunoApiError: class SunoApiError extends Error {
     status: number;
     details?: Record<string, unknown>;
@@ -37,10 +38,6 @@ vi.mock("@/lib/sunoapi", () => ({
       this.status = status;
     }
   },
-}));
-
-vi.mock("@/lib/sunoapi/resolve-key", () => ({
-  resolveUserApiKey: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -97,7 +94,7 @@ import {
   uploadAndExtend,
   SunoApiError,
 } from "@/lib/sunoapi";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
+import { resolveUserApiKey } from "@/lib/sunoapi";
 import { prisma } from "@/lib/prisma";
 import { logServerError } from "@/lib/error-logger";
 

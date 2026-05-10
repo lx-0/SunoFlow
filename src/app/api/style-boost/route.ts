@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { resolveUser } from "@/lib/auth";
-import { boostStyle, SunoApiError } from "@/lib/sunoapi";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
+import { boostStyle, SunoApiError, resolveUserApiKey } from "@/lib/sunoapi";
 import { logServerError } from "@/lib/error-logger";
 
 export async function POST(request: Request) {

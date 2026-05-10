@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { authRoute, requireOwned } from "@/lib/route-handler";
 import { notFound } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
-import { fetchFreshUrls } from "@/lib/sunoapi/refresh";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
+import { fetchFreshUrls, resolveUserApiKey } from "@/lib/sunoapi";
 const AUDIO_URL_TTL_MS = 12 * 24 * 60 * 60 * 1000;
 
 export const POST = authRoute<{ id: string }>(async (_request, { auth, params }) => {
