@@ -605,18 +605,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Keyboard shortcuts help modal */}
         <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
-        {/* Feedback button — bottom-right floating, visible when authenticated */}
-        {session?.user && (
-          <button
-            onClick={() => setFeedbackOpen(true)}
-            aria-label="Send feedback"
-            className="fixed bottom-20 right-4 md:bottom-6 z-30 flex items-center gap-2 px-3 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-full shadow-lg transition-colors"
-          >
-            <ChatBubbleLeftEllipsisIcon className="w-4 h-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Feedback</span>
-          </button>
-        )}
-
         {/* Feedback modal */}
         {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
 
