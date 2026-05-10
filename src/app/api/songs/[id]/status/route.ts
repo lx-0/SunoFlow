@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getTaskStatus, isTerminalFailure, resolveUserApiKey } from "@/lib/sunoapi";
 import { logServerError } from "@/lib/error-logger";
 import { broadcast } from "@/lib/event-bus";
-import { markFailedBySongId } from "@/lib/generation-queue";
+import { resolveBySongId } from "@/lib/generation-queue";
 import { handleSongSuccess, handleSongFailure } from "@/lib/song-completion";
 
 const MAX_POLL_ATTEMPTS = 60;
@@ -49,7 +49,7 @@ export const GET = authRoute<{ id: string }>(
         type: "generation_update",
         data: { songId: params.id, status: "failed", errorMessage: "Generation timed out" },
       });
-      await markFailedBySongId(params.id, "Generation timed out");
+      await resolveBySongId(params.id, { status: "failed", errorMessage: "Generation timed out" });
       broadcast(song.userId, { type: "queue_item_complete", data: { songId: params.id } });
       return NextResponse.json({ song: updated });
     }

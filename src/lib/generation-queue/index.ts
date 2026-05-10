@@ -157,71 +157,41 @@ export async function acquireNextItem(userId: string): Promise<AcquireResult> {
   });
   if (!next) return { status: "empty" };
 
-  await prisma.generationQueueItem.update({
-    where: { id: next.id },
-    data: { status: "processing" },
-  });
+  await updateItem({ id: next.id }, { status: "processing" });
 
   return { status: "acquired", item: { ...next, status: "processing" } };
 }
 
-export async function markProcessing(itemId: string): Promise<void> {
-  await prisma.generationQueueItem.update({
-    where: { id: itemId },
-    data: { status: "processing" },
+// Single internal helper for all queue-item state transitions.
+export function updateItem(
+  where: { id: string } | { songId: string; status: string },
+  data: Partial<Pick<GenerationQueueItem, "status" | "songId" | "errorMessage">>,
+): Promise<unknown> {
+  if ("id" in where) {
+    return prisma.generationQueueItem.update({ where: { id: where.id }, data });
+  }
+  return prisma.generationQueueItem.updateMany({
+    where: { songId: where.songId, status: where.status },
+    data,
   });
 }
 
-export async function markDone(itemId: string, songId: string): Promise<void> {
-  await prisma.generationQueueItem.update({
-    where: { id: itemId },
-    data: { status: "done", songId },
-  });
-}
+export type SongOutcome =
+  | { status: "done" }
+  | { status: "failed"; errorMessage: string };
 
-export async function linkSong(itemId: string, songId: string): Promise<void> {
-  await prisma.generationQueueItem.update({
-    where: { id: itemId },
-    data: { songId },
-  });
-}
-
-export async function markFailed(
-  itemId: string,
-  errorMessage: string,
-  songId?: string
-): Promise<void> {
-  await prisma.generationQueueItem.update({
-    where: { id: itemId },
-    data: { status: "failed", errorMessage, ...(songId && { songId }) },
-  });
-}
-
-export async function markPending(
-  itemId: string,
-  errorMessage?: string
-): Promise<void> {
-  await prisma.generationQueueItem.update({
-    where: { id: itemId },
-    data: { status: "pending", ...(errorMessage && { errorMessage }) },
-  });
-}
-
-export async function markDoneBySongId(songId: string): Promise<void> {
-  await prisma.generationQueueItem.updateMany({
-    where: { songId, status: "processing" },
-    data: { status: "done" },
-  });
-}
-
-export async function markFailedBySongId(
+export async function resolveBySongId(
   songId: string,
-  errorMessage: string
+  outcome: SongOutcome,
 ): Promise<void> {
-  await prisma.generationQueueItem.updateMany({
-    where: { songId, status: "processing" },
-    data: { status: "failed", errorMessage },
-  });
+  if (outcome.status === "done") {
+    await updateItem({ songId, status: "processing" }, { status: "done" });
+  } else {
+    await updateItem(
+      { songId, status: "processing" },
+      { status: "failed", errorMessage: outcome.errorMessage },
+    );
+  }
 }
 
 // ── Process-next orchestration ──────────────────────────────────────────
@@ -263,7 +233,7 @@ export async function processNextItem(userId: string): Promise<ProcessNextResult
 
   const { acquired, status: rateLimitStatus } = await acquireRateLimitSlot(userId);
   if (!acquired) {
-    await markPending(nextItem.id);
+    await updateItem({ id: nextItem.id }, { status: "pending" });
     return { outcome: "rate_limited", rateLimit: rateLimitStatus };
   }
 
@@ -297,12 +267,12 @@ export async function processNextItem(userId: string): Promise<ProcessNextResult
   });
 
   if (genOutcome.status === "denied") {
-    await markFailed(nextItem.id, "Generation denied");
+    await updateItem({ id: nextItem.id }, { status: "failed", errorMessage: "Generation denied" });
     return { outcome: "denied" };
   }
 
   if (genOutcome.status === "queued") {
-    await markPending(nextItem.id, "Re-queued: circuit still open");
+    await updateItem({ id: nextItem.id }, { status: "pending", errorMessage: "Re-queued: circuit still open" });
     return { outcome: "queued", message: genOutcome.message };
   }
 
@@ -313,7 +283,7 @@ export async function processNextItem(userId: string): Promise<ProcessNextResult
       params: { queueItemId: nextItem.id },
     });
     const { code, details } = userFriendlyError(genOutcome.rawError);
-    await markFailed(nextItem.id, genOutcome.error, genOutcome.song.id);
+    await updateItem({ id: nextItem.id }, { status: "failed", errorMessage: genOutcome.error, songId: genOutcome.song.id });
 
     let creditBalance: number | undefined;
     if (genOutcome.rawError instanceof SunoApiError && genOutcome.rawError.status === 402) {
@@ -334,9 +304,9 @@ export async function processNextItem(userId: string): Promise<ProcessNextResult
 
   const queueStatus = genOutcome.song.generationStatus === "ready" ? "done" as const : "processing" as const;
   if (queueStatus === "done") {
-    await markDone(nextItem.id, genOutcome.song.id);
+    await updateItem({ id: nextItem.id }, { status: "done", songId: genOutcome.song.id });
   } else {
-    await linkSong(nextItem.id, genOutcome.song.id);
+    await updateItem({ id: nextItem.id }, { songId: genOutcome.song.id });
   }
 
   return {

@@ -77,8 +77,8 @@ vi.mock("@/lib/circuit-breaker", () => ({
 
 vi.mock("@/lib/generation-queue", () => ({
   enqueueFromSpec: vi.fn().mockResolvedValue(undefined),
-  markDone: vi.fn().mockResolvedValue(undefined),
-  markFailed: vi.fn().mockResolvedValue(undefined),
+  updateItem: vi.fn().mockResolvedValue(undefined),
+  resolveBySongId: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/cover-art-generator", () => ({
