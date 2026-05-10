@@ -100,6 +100,7 @@ interface SongDetailViewProps {
   parentSongId?: string | null;
   parentSongTitle?: string | null;
   lyricsEdited?: string | null;
+  isArchived?: boolean;
 }
 
 // ─── Main SongDetailView ──────────────────────────────────────────────────────
@@ -122,6 +123,7 @@ export function SongDetailView({
   parentSongId = null,
   parentSongTitle = null,
   lyricsEdited = null,
+  isArchived: initialIsArchived = false,
 }: SongDetailViewProps) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -166,6 +168,11 @@ export function SongDetailView({
 
   // Report modal
   const [reportOpen, setReportOpen] = useState(false);
+
+  // Archive state
+  const [isArchived, setIsArchived] = useState(initialIsArchived);
+  const [archiving, setArchiving] = useState(false);
+  const [confirmArchiveOpen, setConfirmArchiveOpen] = useState(false);
 
   // Appeal state
   const [appealOpen, setAppealOpen] = useState(false);
@@ -397,6 +404,43 @@ export function SongDetailView({
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(url)}`;
     window.open(twitterUrl, "_blank", "noopener,noreferrer");
     track("song_shared", { songId: song.id, source: "song_detail", method: "twitter" });
+  }
+
+  async function handleArchive() {
+    setArchiving(true);
+    try {
+      const res = await fetch(`/api/songs/${song.id}/archive`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast(data.error || "Failed to archive song", "error");
+        return;
+      }
+      setIsArchived(true);
+      toast("Song archived", "success");
+      router.push("/library");
+    } catch {
+      toast("Failed to archive song", "error");
+    } finally {
+      setArchiving(false);
+    }
+  }
+
+  async function handleRestore() {
+    setArchiving(true);
+    try {
+      const res = await fetch(`/api/songs/${song.id}/restore`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast(data.error || "Failed to restore song", "error");
+        return;
+      }
+      setIsArchived(false);
+      toast("Song restored", "success");
+    } catch {
+      toast("Failed to restore song", "error");
+    } finally {
+      setArchiving(false);
+    }
   }
 
   async function handleCreateVariation(data: { prompt: string; tags: string; lyrics: string; title: string; makeInstrumental: boolean }) {
@@ -760,6 +804,10 @@ export function SongDetailView({
           addToQueue({ id: song.id, title: song.title, audioUrl: song.audioUrl!, imageUrl: coverImageUrl ?? null, duration: song.duration ?? null, lyrics: song.lyrics });
           toast("Added to queue", "success");
         }}
+        isArchived={isArchived}
+        archiving={archiving}
+        onArchive={() => setConfirmArchiveOpen(true)}
+        onRestore={handleRestore}
       />
 
       {/* Make public confirmation dialog */}
@@ -782,6 +830,33 @@ export function SongDetailView({
                 className="px-4 py-2 text-sm font-medium rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors"
               >
                 Make public
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Archive confirmation dialog */}
+      {confirmArchiveOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-archive-title">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4">
+            <h2 id="confirm-archive-title" className="text-lg font-semibold text-gray-900 dark:text-white">Archive this song?</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              It will be hidden from your library and playlists but can be restored from Archive.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmArchiveOpen(false)}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { setConfirmArchiveOpen(false); handleArchive(); }}
+                disabled={archiving}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
+              >
+                {archiving ? "Archiving…" : "Archive"}
               </button>
             </div>
           </div>
