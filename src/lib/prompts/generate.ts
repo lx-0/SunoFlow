@@ -1,8 +1,7 @@
 import type { PromptTemplate } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { fetchFeed } from "@/lib/rss";
-import { boostStyle } from "@/lib/sunoapi";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
+import { boostStyle, resolveUserApiKey } from "@/lib/sunoapi";
 import { rankItems, buildPromptFromItem } from "./build-prompt";
 
 const MAX_DAILY_PROMPTS = 5;

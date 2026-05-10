@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { authRoute, requireOwned } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
-import { getTaskStatus, isTerminalFailure } from "@/lib/sunoapi";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
+import { getTaskStatus, isTerminalFailure, resolveUserApiKey } from "@/lib/sunoapi";
 import { logServerError } from "@/lib/error-logger";
 import { broadcast } from "@/lib/event-bus";
 import { markFailedBySongId } from "@/lib/generation-queue";

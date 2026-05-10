@@ -3,8 +3,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { SongDetailView } from "@/components/SongDetailView";
 import { SongDetailSkeleton } from "@/components/Skeleton";
-import { sunoApi } from "@/lib/sunoapi";
-import { mockSongs } from "@/lib/sunoapi/mock";
+import { sunoApi, mockSongs } from "@/lib/sunoapi";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 

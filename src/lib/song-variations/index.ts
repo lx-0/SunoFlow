@@ -1,8 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { sanitizeText } from "@/lib/sanitize";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
-import { addVocals as sunoAddVocals, addInstrumental as sunoAddInstrumental, replaceSection as sunoReplaceSection } from "@/lib/sunoapi";
-import { mockSongs } from "@/lib/sunoapi/mock";
+import {
+  resolveUserApiKey,
+  addVocals as sunoAddVocals,
+  addInstrumental as sunoAddInstrumental,
+  replaceSection as sunoReplaceSection,
+  mockSongs,
+} from "@/lib/sunoapi";
 import { executeGeneration, type GenerationOutcome } from "@/lib/generation";
 
 const MAX_VARIATIONS = 5;

@@ -52,11 +52,8 @@ vi.mock("@/lib/credits", () => ({
 
 vi.mock("@/lib/sunoapi", () => ({
   generateSong: vi.fn(),
-  SunoApiError: class SunoApiError extends Error {},
-}));
-
-vi.mock("@/lib/sunoapi/resolve-key", () => ({
   resolveUserApiKeyWithMode: vi.fn(),
+  SunoApiError: class SunoApiError extends Error {},
 }));
 
 vi.mock("@/lib/sanitize", () => ({
@@ -68,7 +65,7 @@ vi.mock("@/lib/sanitize", () => ({
 import { prisma } from "@/lib/prisma";
 import { getMonthlyCreditUsage, recordCreditUsage, checkCredits, deductCredits } from "@/lib/credits";
 import { generateSong } from "@/lib/sunoapi";
-import { resolveUserApiKeyWithMode } from "@/lib/sunoapi/resolve-key";
+import { resolveUserApiKeyWithMode } from "@/lib/sunoapi";
 import { getTool } from "../registry";
 
 // Load tools (side-effects register them)

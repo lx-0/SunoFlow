@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { authRoute, requireOwned } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
-import { generateMidi } from "@/lib/sunoapi";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
+import { generateMidi, resolveUserApiKey } from "@/lib/sunoapi";
 import { executeTransform, respondToTransform } from "@/lib/generation";
 
 export const POST = authRoute<{ id: string }>(

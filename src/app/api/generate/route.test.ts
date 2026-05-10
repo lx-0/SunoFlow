@@ -29,17 +29,8 @@ vi.mock("@/lib/prisma", () => ({
 
 vi.mock("@/lib/sunoapi", () => ({
   generateSong: vi.fn(),
-  SunoApiError: class SunoApiError extends Error {
-    status: number;
-    constructor(status: number, message: string) {
-      super(message);
-      this.name = "SunoApiError";
-      this.status = status;
-    }
-  },
-}));
-
-vi.mock("@/lib/sunoapi/mock", () => ({
+  resolveUserApiKey: vi.fn(),
+  resolveUserApiKeyWithMode: vi.fn(),
   mockSongs: [
     {
       title: "Mock Song",
@@ -51,16 +42,19 @@ vi.mock("@/lib/sunoapi/mock", () => ({
       model: "V5",
     },
   ],
+  SunoApiError: class SunoApiError extends Error {
+    status: number;
+    constructor(status: number, message: string) {
+      super(message);
+      this.name = "SunoApiError";
+      this.status = status;
+    }
+  },
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
   acquireRateLimitSlot: vi.fn(),
   releaseRateLimitSlot: vi.fn(() => Promise.resolve()),
-}));
-
-vi.mock("@/lib/sunoapi/resolve-key", () => ({
-  resolveUserApiKey: vi.fn(),
-  resolveUserApiKeyWithMode: vi.fn(),
 }));
 
 vi.mock("@/lib/error-logger", () => ({
@@ -84,7 +78,7 @@ import { resolveUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateSong, SunoApiError } from "@/lib/sunoapi";
 import { acquireRateLimitSlot } from "@/lib/rate-limit";
-import { resolveUserApiKey, resolveUserApiKeyWithMode } from "@/lib/sunoapi/resolve-key";
+import { resolveUserApiKey, resolveUserApiKeyWithMode } from "@/lib/sunoapi";
 import { logServerError } from "@/lib/error-logger";
 import {
   getMonthlyCreditUsage,

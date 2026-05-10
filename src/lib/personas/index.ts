@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { generatePersona, getTaskStatus, SunoApiError } from "@/lib/sunoapi";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
+import { generatePersona, getTaskStatus, SunoApiError, resolveUserApiKey } from "@/lib/sunoapi";
 import { type Result, success, Err } from "@/lib/result";
 
 const MAX_PERSONAS = 50;

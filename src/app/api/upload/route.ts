@@ -5,8 +5,8 @@ import {
   uploadFileFromUrl,
   uploadAndCover,
   uploadAndExtend,
+  resolveUserApiKey,
 } from "@/lib/sunoapi";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
 import { logServerError } from "@/lib/error-logger";
 import { executeGeneration } from "@/lib/generation";
 

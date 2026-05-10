@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveUser } from "@/lib/auth";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
+import { resolveUserApiKey } from "@/lib/sunoapi";
 import { getSongById } from "@/lib/sunoapi/songs";
 import { SunoApiError } from "@/lib/sunoapi/errors";
 import { prisma } from "@/lib/prisma";

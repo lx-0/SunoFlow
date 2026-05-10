@@ -5,8 +5,7 @@
 
 import { registerTool } from "../registry";
 import { prisma } from "@/lib/prisma";
-import { extendMusic, SunoApiError } from "@/lib/sunoapi";
-import { resolveUserApiKeyWithMode } from "@/lib/sunoapi/resolve-key";
+import { extendMusic, SunoApiError, resolveUserApiKeyWithMode } from "@/lib/sunoapi";
 import { checkCredits, deductCredits } from "@/lib/credits";
 import { SUNOAPI_KEY } from "@/lib/env";
 import { stripHtml } from "@/lib/sanitize";

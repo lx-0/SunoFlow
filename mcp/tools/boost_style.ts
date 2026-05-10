@@ -4,8 +4,7 @@
  */
 
 import { registerTool } from "../registry";
-import { boostStyle, SunoApiError } from "@/lib/sunoapi";
-import { resolveUserApiKeyWithMode } from "@/lib/sunoapi/resolve-key";
+import { boostStyle, SunoApiError, resolveUserApiKeyWithMode } from "@/lib/sunoapi";
 import { checkCredits, deductCredits } from "@/lib/credits";
 import { stripHtml } from "@/lib/sanitize";
 

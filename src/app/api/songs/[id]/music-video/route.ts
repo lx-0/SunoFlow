@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { authRoute, requireOwned } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
-import { createMusicVideo } from "@/lib/sunoapi";
-import { resolveUserApiKey } from "@/lib/sunoapi/resolve-key";
+import { createMusicVideo, resolveUserApiKey } from "@/lib/sunoapi";
 import { executeTransform, respondToTransform } from "@/lib/generation";
 
 export const POST = authRoute<{ id: string }>(
