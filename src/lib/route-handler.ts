@@ -33,6 +33,10 @@ type RouteOptions = {
 
 type SegmentData<P> = { params: Promise<P> };
 
+// ---------------------------------------------------------------------------
+// Shared pipeline — concentrates params/body/query resolution and error handling
+// ---------------------------------------------------------------------------
+
 async function parseBody<B>(
   request: NextRequest,
   schema: z.ZodType<B>
@@ -54,26 +58,54 @@ async function parseBody<B>(
   return { data: result.data };
 }
 
-/**
- * Wrap an authenticated route handler. Resolves auth, catches unhandled errors,
- * and logs them with request context.
- *
- * Usage (no dynamic params):
- *   export const GET = authRoute(async (request, { auth }) => { ... });
- *
- * Usage (with dynamic params):
- *   export const GET = authRoute<{ id: string }>(async (request, { auth, params }) => { ... });
- *
- * Usage (with body validation):
- *   export const POST = authRoute(async (request, { auth, body }) => {
- *     body.name // typed string
- *   }, { body: z.object({ name: z.string().min(1) }) });
- *
- * Usage (with query validation):
- *   export const GET = authRoute(async (request, { auth, query }) => {
- *     query.page // typed number
- *   }, { query: z.object({ page: zPageParam() }) });
- */
+async function runPipeline<
+  P extends Record<string, string>,
+  B,
+  Q,
+>(
+  request: NextRequest,
+  segmentData: SegmentData<P> | undefined,
+  options: RouteOptions & { body?: z.ZodType<B>; query?: z.ZodType<Q> } | undefined,
+  logLabel: string,
+  logContext: Record<string, unknown>,
+  execute: (parsed: { params: P; body: B; query: Q }) => Promise<NextResponse>,
+): Promise<NextResponse> {
+  try {
+    const params = segmentData?.params
+      ? await segmentData.params
+      : ({} as P);
+
+    let body: B = undefined as B;
+    if (options?.body) {
+      const parsed = await parseBody(request, options.body);
+      if (parsed.error) return parsed.error;
+      body = parsed.data;
+    }
+
+    let query: Q = undefined as Q;
+    if (options?.query) {
+      const parsed = parseQueryParams(
+        request.nextUrl.searchParams,
+        options.query,
+      );
+      if (parsed.error) return parsed.error;
+      query = parsed.data;
+    }
+
+    return await execute({ params, body, query });
+  } catch (error) {
+    logServerError(logLabel, error, {
+      ...logContext,
+      route: options?.route ?? new URL(request.url).pathname,
+    });
+    return internalError();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public route wrappers — each handles only its auth strategy, then delegates
+// ---------------------------------------------------------------------------
+
 export function authRoute<
   P extends Record<string, string> = Record<string, never>,
   B = undefined,
@@ -92,65 +124,17 @@ export function authRoute<
     const result = await resolveUser(request);
     if (result.error) return result.error;
 
-    try {
-      const params = segmentData?.params
-        ? await segmentData.params
-        : ({} as P);
-
-      let body: B = undefined as B;
-      if (options?.body) {
-        const parsed = await parseBody(request, options.body);
-        if (parsed.error) return parsed.error;
-        body = parsed.data;
-      }
-
-      let query: Q = undefined as Q;
-      if (options?.query) {
-        const parsed = parseQueryParams(
-          request.nextUrl.searchParams,
-          options.query,
-        );
-        if (parsed.error) return parsed.error;
-        query = parsed.data;
-      }
-
-      return await handler(request, {
-        auth: {
-          userId: result.userId,
-          isApiKey: result.isApiKey,
-          isAdmin: result.isAdmin,
-        },
-        params,
-        body,
-        query,
-      });
-    } catch (error) {
-      logServerError("route-handler", error, {
-        userId: result.userId,
-        route: options?.route ?? new URL(request.url).pathname,
-      });
-      return internalError();
-    }
+    return runPipeline(
+      request, segmentData, options, "route-handler", { userId: result.userId },
+      ({ params, body, query }) =>
+        handler(request, {
+          auth: { userId: result.userId, isApiKey: result.isApiKey, isAdmin: result.isAdmin },
+          params, body, query,
+        }),
+    );
   };
 }
 
-/**
- * Wrap an admin route handler. Verifies admin access, catches unhandled errors.
- *
- * Usage:
- *   export const GET = adminRoute(async (request, { admin }) => { ... });
- *   export const PATCH = adminRoute<{ id: string }>(async (request, { admin, params }) => { ... });
- *
- * Usage (with body validation):
- *   export const POST = adminRoute(async (request, { admin, body }) => {
- *     body.title // typed string
- *   }, { body: z.object({ title: z.string() }) });
- *
- * Usage (with query validation):
- *   export const GET = adminRoute(async (request, { admin, query }) => {
- *     query.page // typed number
- *   }, { query: z.object({ page: zPageParam() }) });
- */
 export function adminRoute<
   P extends Record<string, string> = Record<string, never>,
   B = undefined,
@@ -169,41 +153,11 @@ export function adminRoute<
     const { error, user } = await requireAdmin();
     if (error) return error;
 
-    try {
-      const params = segmentData?.params
-        ? await segmentData.params
-        : ({} as P);
-
-      let body: B = undefined as B;
-      if (options?.body) {
-        const parsed = await parseBody(request, options.body);
-        if (parsed.error) return parsed.error;
-        body = parsed.data;
-      }
-
-      let query: Q = undefined as Q;
-      if (options?.query) {
-        const parsed = parseQueryParams(
-          request.nextUrl.searchParams,
-          options.query,
-        );
-        if (parsed.error) return parsed.error;
-        query = parsed.data;
-      }
-
-      return await handler(request, {
-        admin: { adminId: user!.id },
-        params,
-        body,
-        query,
-      });
-    } catch (error) {
-      logServerError("admin-route-handler", error, {
-        userId: user!.id,
-        route: options?.route ?? new URL(request.url).pathname,
-      });
-      return internalError();
-    }
+    return runPipeline(
+      request, segmentData, options, "admin-route-handler", { userId: user!.id },
+      ({ params, body, query }) =>
+        handler(request, { admin: { adminId: user!.id }, params, body, query }),
+    );
   };
 }
 
@@ -215,16 +169,6 @@ function extractClientIp(request: NextRequest): string {
   );
 }
 
-/**
- * Wrap a public (unauthenticated) route handler with IP-based rate limiting.
- * Extracts client IP, enforces the rate limit, parses query params, and catches errors.
- *
- * Usage:
- *   export const GET = anonRoute(async (request, { anon, query }) => {
- *     // anon.ip is the client IP
- *     // query is typed from the schema
- *   }, { rateLimit: { action: "discover", limit: 30, windowMs: 60_000 }, query: discoverQuery });
- */
 export function anonRoute<
   P extends Record<string, string> = Record<string, never>,
   Q = undefined,
@@ -253,41 +197,14 @@ export function anonRoute<
       });
     }
 
-    try {
-      const params = segmentData?.params
-        ? await segmentData.params
-        : ({} as P);
-
-      let query: Q = undefined as Q;
-      if (options?.query) {
-        const parsed = parseQueryParams(
-          request.nextUrl.searchParams,
-          options.query,
-        );
-        if (parsed.error) return parsed.error;
-        query = parsed.data;
-      }
-
-      return await handler(request, { anon: { ip }, params, query });
-    } catch (error) {
-      logServerError("anon-route-handler", error, {
-        route: options?.route ?? new URL(request.url).pathname,
-      });
-      return internalError();
-    }
+    return runPipeline(
+      request, segmentData, options, "anon-route-handler", {},
+      ({ params, query }) =>
+        handler(request, { anon: { ip }, params, query }),
+    );
   };
 }
 
-/**
- * Wrap a cron/webhook route handler. Validates CRON_SECRET bearer token,
- * catches unhandled errors, and logs them with route context.
- *
- * Usage:
- *   export const POST = cronRoute(async () => {
- *     const result = await doScheduledWork();
- *     return NextResponse.json(result);
- *   });
- */
 export function cronRoute(
   handler: (request: NextRequest) => Promise<NextResponse>,
   options?: RouteOptions
@@ -303,14 +220,10 @@ export function cronRoute(
       );
     }
 
-    try {
-      return await handler(request);
-    } catch (error) {
-      logServerError("cron-route-handler", error, {
-        route: options?.route ?? new URL(request.url).pathname,
-      });
-      return internalError();
-    }
+    return runPipeline(
+      request, undefined, options, "cron-route-handler", {},
+      () => handler(request),
+    );
   };
 }
 
