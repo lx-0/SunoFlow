@@ -16,7 +16,7 @@ export const GET = authRoute(async (_request, { auth }) => {
 });
 
 const createPresetBody = z.object({
-  name: z.string().min(1, "Name is required").max(100),
+  name: z.string().trim().min(1, "Name is required").max(100),
   title: z.string().nullish(),
   stylePrompt: z.string().nullish(),
   lyricsPrompt: z.string().nullish(),
@@ -37,7 +37,7 @@ export const POST = authRoute(async (_request, { auth, body }) => {
   const preset = await prisma.generationPreset.create({
     data: {
       userId: auth.userId,
-      name: body.name.trim(),
+      name: body.name,
       title: body.title?.trim() || null,
       stylePrompt: body.stylePrompt?.trim() || null,
       lyricsPrompt: body.lyricsPrompt?.trim() || null,

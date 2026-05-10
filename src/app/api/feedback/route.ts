@@ -33,7 +33,7 @@ export const POST = authRoute(async (request, { auth, body }) => {
       category: body.category,
       score: body.score ?? null,
       comment: sanitizedComment,
-      screenshotUrl: body.screenshotUrl?.trim()?.slice(0, 2000) || null,
+      screenshotUrl: body.screenshotUrl?.trim() || null,
       pageUrl: body.pageUrl.trim(),
       userAgent: userAgent?.slice(0, 500) ?? null,
     },
