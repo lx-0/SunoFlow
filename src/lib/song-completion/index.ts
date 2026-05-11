@@ -115,14 +115,42 @@ export async function handleSongSuccess(
     runSideEffect("broadcast-queue", () => {
       broadcast(song.userId, { type: "queue_item_complete", data: { songId: song.id } });
     }),
-    runSideEffect("cache-assets", () => {
-      cacheCompletionAssets(song, firstSong, alternates);
+    runSideEffect("cache-primary-audio", async () => {
+      if (firstSong.audioUrl && !audioCache.has(song.id)) {
+        await audioCache.downloadAndPut(song.id, firstSong.audioUrl);
+      }
+    }),
+    runSideEffect("cache-primary-image", async () => {
+      const coverUrl = firstSong.imageUrl || song.imageUrl;
+      if (coverUrl && !imageCache.has(song.id)) {
+        await imageCache.downloadAndPut(song.id, coverUrl);
+      }
+    }),
+    runSideEffect("cache-alternates", async () => {
+      for (const alt of alternates) {
+        if (alt.audioSource.audioUrl) {
+          await audioCache.downloadAndPut(alt.id, alt.audioSource.audioUrl);
+        }
+        if (alt.audioSource.imageUrl) {
+          await imageCache.downloadAndPut(alt.id, alt.audioSource.imageUrl);
+        }
+      }
     }),
     runSideEffect("invalidate-dashboard", () => {
       invalidateByPrefix(`dashboard-stats:${song.userId}`);
     }),
-    runSideEffect("track-activity", () => {
-      trackCompletionActivity(song.userId, song.id);
+    runSideEffect("record-activity", () => {
+      recordActivity({ userId: song.userId, type: "song_created", songId: song.id });
+    }),
+    runSideEffect("notify-followers", async () => {
+      await notifyFollowersOfNewSong(song.userId, song.id);
+    }),
+    runSideEffect("record-streak", async () => {
+      const newStreak = await recordDailyActivity(song.userId);
+      await checkStreakMilestones(song.userId, newStreak);
+    }),
+    runSideEffect("check-song-milestones", async () => {
+      await checkSongMilestones(song.userId);
     }),
     runSideEffect("notify-user", async () => {
       await notifyUser({
@@ -251,37 +279,3 @@ async function markSongFailed(
   await resolveBySongId(song.id, { status: "failed", errorMessage });
 }
 
-// ── Side-effect helpers ─────────────────────────────────────────────
-
-function cacheCompletionAssets(
-  song: SongRecord,
-  firstSong: CompletionSong,
-  alternates: AlternateSong[],
-): void {
-  if (firstSong.audioUrl && !audioCache.has(song.id)) {
-    audioCache.downloadAndPut(song.id, firstSong.audioUrl).catch(() => {});
-  }
-  const coverUrl = firstSong.imageUrl || song.imageUrl;
-  if (coverUrl && !imageCache.has(song.id)) {
-    imageCache.downloadAndPut(song.id, coverUrl).catch(() => {});
-  }
-
-  for (const alt of alternates) {
-    if (alt.audioSource.audioUrl) {
-      audioCache.downloadAndPut(alt.id, alt.audioSource.audioUrl).catch(() => {});
-    }
-    if (alt.audioSource.imageUrl) {
-      imageCache.downloadAndPut(alt.id, alt.audioSource.imageUrl).catch(() => {});
-    }
-  }
-}
-
-function trackCompletionActivity(userId: string, songId: string): void {
-  recordActivity({ userId, type: "song_created", songId });
-  notifyFollowersOfNewSong(userId, songId).catch(() => {});
-
-  recordDailyActivity(userId)
-    .then((newStreak) => checkStreakMilestones(userId, newStreak))
-    .catch(() => {});
-  checkSongMilestones(userId).catch(() => {});
-}
