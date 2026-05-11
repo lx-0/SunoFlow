@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { cosineSimilarity, computeCentroid, parseEmbeddingVector } from "@/lib/embeddings";
+import { computeCentroid, parseEmbeddingVector } from "@/lib/embeddings";
 import { gatherUserSignals } from "@/lib/user-signals";
 import { formatSong, SONG_SELECT_FIELDS, type RecommendationResult } from "./format";
+import { scoreByEmbedding } from "./embedding-search";
 
 const SIGNAL_SONGS_LIMIT = 30;
-const CANDIDATES_LIMIT = 500;
 
 export async function gatherSignalIds(userId: string): Promise<Set<string>> {
   const [signals, recentGenerated] = await Promise.all([
@@ -46,41 +46,20 @@ export async function rankCandidates(
   excludeIds: Set<string>,
   limit: number,
 ): Promise<RecommendationResult> {
-  const candidateEmbeddings = await prisma.songEmbedding.findMany({
-    where: {
-      song: {
-        userId,
-        generationStatus: "ready",
-        archivedAt: null,
-      },
-      songId: {
-        notIn: [...Array.from(signalIds), ...Array.from(excludeIds)],
-      },
+  const scored = await scoreByEmbedding(
+    queryVector,
+    {
+      song: { userId, generationStatus: "ready", archivedAt: null },
+      songId: { notIn: [...Array.from(signalIds), ...Array.from(excludeIds)] },
     },
-    select: {
-      songId: true,
-      embedding: true,
-    },
-    take: CANDIDATES_LIMIT,
-  });
+    limit,
+  );
 
-  if (candidateEmbeddings.length === 0) {
+  if (scored.length === 0) {
     return coldStartFallback(userId, excludeIds, limit);
   }
 
-  const scored = candidateEmbeddings
-    .map((e) => {
-      const vec = parseEmbeddingVector(e.embedding);
-      return {
-        songId: e.songId,
-        score: vec ? cosineSimilarity(queryVector, vec) : 0,
-      };
-    })
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
-
   const topIds = scored.map((s) => s.songId);
-
   const songs = await prisma.song.findMany({
     where: { id: { in: topIds } },
     select: SONG_SELECT_FIELDS,
