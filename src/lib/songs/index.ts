@@ -8,6 +8,12 @@ import { resolveRootId } from "./variations";
 export { prepareSongDownload } from "./download";
 export type { DownloadFormat, DownloadSong, DownloadRequest, DownloadResult } from "./download";
 
+export { findAccessibleSong, checkFavorite, addFavorite, removeFavorite, listFavorites } from "./favorites";
+export type { FavoriteStatus, FavoriteToggleResult, FavoriteSort, FavoritesQuery, FavoriteSong, FavoritesResult } from "./favorites";
+
+export { queryGenerations } from "./generation-history";
+export type { GenerationFilter, GenerationSummary, GenerationListResult } from "./generation-history";
+
 export { getTopGenres, getTopMoods } from "./taxonomy";
 export type { TagCount } from "./taxonomy";
 
