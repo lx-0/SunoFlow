@@ -4,22 +4,26 @@ import { authRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { stripHtml } from "@/lib/sanitize";
 import { notFound } from "@/lib/api-error";
+import {
+  buildEmailPreferencesUpdateData,
+  EMAIL_PREFERENCES_SELECT,
+  toEmailPreferencesResponse,
+} from "@/lib/profile/email-preferences";
+
+const SETTINGS_SELECT = {
+  id: true,
+  email: true,
+  name: true,
+  bio: true,
+  avatarUrl: true,
+  ...EMAIL_PREFERENCES_SELECT,
+} as const;
 
 export const GET = authRoute(async (_request, { auth }) => {
   const user = await prisma.user.findUnique({
     where: { id: auth.userId },
     select: {
-      id: true,
-      email: true,
-      name: true,
-      bio: true,
-      avatarUrl: true,
-      emailWelcome: true,
-      emailGenerationComplete: true,
-      emailDigestFrequency: true,
-      quietHoursEnabled: true,
-      quietHoursStart: true,
-      quietHoursEnd: true,
+      ...SETTINGS_SELECT,
       accounts: { select: { provider: true, type: true } },
     },
   });
@@ -30,7 +34,7 @@ export const GET = authRoute(async (_request, { auth }) => {
 
   const { accounts, ...rest } = user;
   return NextResponse.json({
-    ...rest,
+    ...toEmailPreferencesResponse(rest),
     connectedProviders: accounts.map((a: { provider: string; type: string }) => a.provider),
   });
 }, { route: "/api/settings" });
@@ -50,7 +54,7 @@ const updateSettingsBody = z
   .refine((data) => Object.keys(data).length > 0, "No fields to update");
 
 export const PATCH = authRoute(async (_request, { auth, body }) => {
-  const data: Record<string, unknown> = {};
+  const data: Record<string, unknown> = buildEmailPreferencesUpdateData(body);
 
   if (body.name !== undefined) {
     data.name = stripHtml(body.name).trim();
@@ -61,29 +65,10 @@ export const PATCH = authRoute(async (_request, { auth, body }) => {
   if (body.avatarUrl !== undefined) {
     data.avatarUrl = body.avatarUrl ? body.avatarUrl.trim() : null;
   }
-  if (body.emailWelcome !== undefined) data.emailWelcome = body.emailWelcome;
-  if (body.emailGenerationComplete !== undefined) data.emailGenerationComplete = body.emailGenerationComplete;
-  if (body.emailDigestFrequency !== undefined) data.emailDigestFrequency = body.emailDigestFrequency;
-  if (body.quietHoursEnabled !== undefined) data.quietHoursEnabled = body.quietHoursEnabled;
-  if (body.quietHoursStart !== undefined) data.quietHoursStart = body.quietHoursStart;
-  if (body.quietHoursEnd !== undefined) data.quietHoursEnd = body.quietHoursEnd;
-
   const user = await prisma.user.update({
     where: { id: auth.userId },
     data,
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      bio: true,
-      avatarUrl: true,
-      emailWelcome: true,
-      emailGenerationComplete: true,
-      emailDigestFrequency: true,
-      quietHoursEnabled: true,
-      quietHoursStart: true,
-      quietHoursEnd: true,
-    },
+    select: SETTINGS_SELECT,
   });
 
   return NextResponse.json(user);
