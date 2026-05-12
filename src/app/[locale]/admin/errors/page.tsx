@@ -47,6 +47,7 @@ function isErrorsResponse(value: unknown): value is ErrorsResponse {
 
 const SOURCE_COLORS: Record<string, string> = {
   "error-boundary": "bg-red-900/30 text-red-400",
+  "chunk-load-error": "bg-blue-900/30 text-blue-400",
   "unhandled-error": "bg-orange-900/30 text-orange-400",
   "unhandled-rejection": "bg-yellow-900/30 text-yellow-400",
 };
