@@ -12,7 +12,7 @@ vi.mock("@/lib/env", () => ({
 }));
 
 vi.mock("@/lib/auth", () => ({
-  auth: vi.fn(),
+  resolveUser: vi.fn(),
 }));
 
 vi.mock("bcryptjs", () => ({
@@ -31,7 +31,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-import { auth } from "@/lib/auth";
+import { resolveUser } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
@@ -45,8 +45,11 @@ function makeRequest(body: Record<string, unknown>) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(auth).mockResolvedValue({
-    user: { id: "user-1" },
+  vi.mocked(resolveUser).mockResolvedValue({
+    userId: "user-1",
+    isApiKey: false,
+    isAdmin: false,
+    error: null,
   } as never);
   vi.mocked(prisma.user.findUnique).mockResolvedValue({
     passwordHash: "stored-hash",
@@ -58,13 +61,18 @@ beforeEach(() => {
 
 describe("POST /api/profile/password", () => {
   it("returns 401 when session is missing", async () => {
-    vi.mocked(auth).mockResolvedValue(null as never);
+    vi.mocked(resolveUser).mockResolvedValue({
+      userId: null,
+      isApiKey: false,
+      isAdmin: false,
+      error: new Response(JSON.stringify({ error: "Unauthorized", code: "UNAUTHORIZED" }), { status: 401 }),
+    } as never);
 
     const res = await POST(makeRequest({
       currentPassword: "oldpass123",
       newPassword: "newpass123",
       confirmPassword: "newpass123",
-    }));
+    }), { params: Promise.resolve({}) });
 
     expect(res.status).toBe(401);
     const data = await res.json();
@@ -76,11 +84,11 @@ describe("POST /api/profile/password", () => {
       currentPassword: "",
       newPassword: "newpass123",
       confirmPassword: "newpass123",
-    }));
+    }), { params: Promise.resolve({}) });
 
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toBe("All fields are required");
+    expect(data.error).toContain("currentPassword");
     expect(data.code).toBe("VALIDATION_ERROR");
   });
 
@@ -89,7 +97,7 @@ describe("POST /api/profile/password", () => {
       currentPassword: "oldpass123",
       newPassword: "short",
       confirmPassword: "short",
-    }));
+    }), { params: Promise.resolve({}) });
 
     expect(res.status).toBe(400);
     const data = await res.json();
@@ -101,7 +109,7 @@ describe("POST /api/profile/password", () => {
       currentPassword: "oldpass123",
       newPassword: "newpass123",
       confirmPassword: "different123",
-    }));
+    }), { params: Promise.resolve({}) });
 
     expect(res.status).toBe(400);
     const data = await res.json();
@@ -115,7 +123,7 @@ describe("POST /api/profile/password", () => {
       currentPassword: "oldpass123",
       newPassword: "newpass123",
       confirmPassword: "newpass123",
-    }));
+    }), { params: Promise.resolve({}) });
 
     expect(res.status).toBe(404);
     const data = await res.json();
@@ -130,7 +138,7 @@ describe("POST /api/profile/password", () => {
       currentPassword: "wrongpass123",
       newPassword: "newpass123",
       confirmPassword: "newpass123",
-    }));
+    }), { params: Promise.resolve({}) });
 
     expect(res.status).toBe(400);
     const data = await res.json();
@@ -142,7 +150,7 @@ describe("POST /api/profile/password", () => {
       currentPassword: "oldpass123",
       newPassword: "newpass123",
       confirmPassword: "newpass123",
-    }));
+    }), { params: Promise.resolve({}) });
 
     expect(res.status).toBe(200);
     expect(prisma.user.update).toHaveBeenCalledWith({

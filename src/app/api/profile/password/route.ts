@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { auth } from "@/lib/auth";
-import { badRequest, notFound, unauthorized } from "@/lib/api-error";
+import { authRoute } from "@/lib/route-handler";
+import { badRequest, notFound } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 
 const bodySchema = z.object({
@@ -11,29 +11,8 @@ const bodySchema = z.object({
   confirmPassword: z.string().trim().min(1),
 });
 
-async function parseBody(request: Request) {
-  try {
-    const raw = await request.json();
-    const parsed = bodySchema.safeParse(raw);
-    if (!parsed.success) return { error: badRequest("All fields are required") } as const;
-    return { data: parsed.data } as const;
-  } catch {
-    return { error: badRequest("Invalid JSON body") } as const;
-  }
-}
-
-export async function POST(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return unauthorized();
-  }
-
-  const parsedBody = await parseBody(request);
-  if (parsedBody.error) {
-    return parsedBody.error;
-  }
-
-  const { currentPassword, newPassword, confirmPassword } = parsedBody.data;
+export const POST = authRoute<Record<string, never>, z.infer<typeof bodySchema>>(async (_request, { auth, body }) => {
+  const { currentPassword, newPassword, confirmPassword } = body;
 
   if (newPassword.length < 8) {
     return badRequest("New password must be at least 8 characters");
@@ -44,7 +23,7 @@ export async function POST(request: Request) {
   }
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: auth.userId },
     select: { passwordHash: true },
   });
 
@@ -59,9 +38,12 @@ export async function POST(request: Request) {
 
   const passwordHash = await bcrypt.hash(newPassword, 12);
   await prisma.user.update({
-    where: { id: session.user.id },
+    where: { id: auth.userId },
     data: { passwordHash },
   });
 
   return NextResponse.json({ success: true });
-}
+}, {
+  route: "/api/profile/password",
+  body: bodySchema,
+});
