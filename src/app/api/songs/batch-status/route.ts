@@ -7,7 +7,7 @@ const batchStatusQuery = z.object({
   batchId: z.string().min(1, "batchId query parameter is required"),
 });
 
-export const GET = authRoute<object, undefined, z.infer<typeof batchStatusQuery>>(async (_request, { auth, query }) => {
+export const GET = authRoute<Record<string, never>, undefined, z.infer<typeof batchStatusQuery>>(async (_request, { auth, query }) => {
   const batchId = query.batchId;
 
   const songs = await prisma.song.findMany({

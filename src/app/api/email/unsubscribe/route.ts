@@ -12,7 +12,7 @@ const unsubscribeQuery = z.object({
   type: z.string().optional(),
 });
 
-export const GET = publicRoute<object, undefined, z.infer<typeof unsubscribeQuery>>(async (request, { query }) => {
+export const GET = publicRoute<Record<string, never>, undefined, z.infer<typeof unsubscribeQuery>>(async (request, { query }) => {
   const token = query.token;
   const type = query.type as UnsubscribeType | undefined;
 
