@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { SongFilters, buildDiscoverableFilter } from "./filters";
+import { SongFilters } from "./filters";
+import { buildDiscoverableFilter } from "./discoverable-filter";
 
 describe("SongFilters.discoverable", () => {
   it("returns base filter for ready songs with audio", () => {

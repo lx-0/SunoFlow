@@ -1,19 +1,23 @@
-import { NextRequest, NextResponse } from "next/server";
-import { logger } from "@/lib/logger";
+import { NextResponse } from "next/server";
+import { z } from "zod";
 import { registerUser } from "@/lib/auth";
-import { errorFromResult, internalError, rateLimited } from "@/lib/api-error";
+import { errorFromResult, rateLimited } from "@/lib/api-error";
 import { getClientIp } from "@/lib/network";
+import { publicRoute } from "@/lib/route-handler";
 
-export async function POST(request: NextRequest) {
-  try {
+const registerBodySchema = z.object({
+  name: z.string().optional(),
+  email: z.string(),
+  password: z.string(),
+});
+
+export const POST = publicRoute(
+  async (request, { body }) => {
     const ip = getClientIp(request);
-
-    const { name, email, password } = await request.json();
-
     const result = await registerUser({
-      name,
-      email,
-      password,
+      name: body.name,
+      email: body.email,
+      password: body.password,
       ip,
       skipRateLimit: process.env.PLAYWRIGHT_TEST === "true",
     });
@@ -28,8 +32,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(result.user, { status: 201 });
-  } catch (err) {
-    logger.error({ err }, "register: error");
-    return internalError();
-  }
-}
+  },
+  {
+    route: "/api/register",
+    body: registerBodySchema,
+  },
+);

@@ -44,8 +44,9 @@ export type { SongLibraryQuery, SongLibraryResult, SortField } from "./library";
 export { SongSelect } from "./projections";
 export type { EnrichedSong } from "./projections";
 
-export { SongFilters, buildDiscoverableFilter } from "./filters";
-export type { DiscoverableFilterOptions } from "./filters";
+export { SongFilters } from "./filters";
+export { buildDiscoverableFilter } from "./discoverable-filter";
+export type { DiscoverableFilterOptions } from "./discoverable-filter";
 
 export { getVariantFamily, findUserSong } from "./lookups";
 export type { PublicVariant } from "./lookups";
