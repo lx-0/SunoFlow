@@ -1,10 +1,8 @@
 name: Deploy to Production
 
 on:
-  # Auto-deploy on push to main
+  # Release deploys via semantic tags
   push:
-    branches:
-      - main
     tags:
       - "v*.*.*"
 

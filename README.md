@@ -379,6 +379,11 @@ Migrations run automatically on container startup (`docker-entrypoint.sh`). To r
 DATABASE_URL="postgres://..." pnpm exec prisma migrate deploy
 ```
 
+Production startup uses strict migration safety by default. If `migrate deploy`
+fails, the container exits instead of serving against an unknown schema state.
+For emergency diagnostics only, you can temporarily set `MIGRATIONS_STRICT=false`
+to allow startup after a migration failure.
+
 To roll back a failed migration:
 
 ```bash

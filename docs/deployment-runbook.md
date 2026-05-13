@@ -144,6 +144,7 @@ All variables are set in Railway's **Variables** panel for each service/environm
 | `SUNOFLOW_DATABASE_URL` | Postgres connection string (used by Prisma CLI during migrations) |
 | `AUTH_SECRET` | NextAuth JWT signing secret. Generate with `npx auth secret`. Rotating this logs out all users. |
 | `AUTH_URL` | Public-facing app URL (e.g. `https://sunoflow.up.railway.app`). Must match exactly. |
+| `MIGRATIONS_STRICT` | Startup migration policy. Defaults to `true` in production and `false` in non-production. Keep `true` for normal deploy safety. |
 
 ### Music Generation
 
