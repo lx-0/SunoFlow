@@ -18,6 +18,11 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+vi.mock("@/lib/auth", () => ({
+  resolveUser: vi.fn(),
+  requireAdmin: vi.fn(),
+}));
+
 import { prisma } from "@/lib/prisma";
 
 describe("GET /api/health", () => {
