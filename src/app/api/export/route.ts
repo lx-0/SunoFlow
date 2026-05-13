@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { authRoute, resultResponse } from "@/lib/route-handler";
 import { exportUserData } from "@/lib/data-export";
 
-export const GET = authRoute(async (request, { auth }) => {
-  const { searchParams } = new URL(request.url);
+const exportQuery = z.object({
+  format: z.string().optional().default("json"),
+  type: z.string().optional().default("all"),
+});
+
+export const GET = authRoute(async (_request, { auth, query }) => {
   const result = await exportUserData(
     auth.userId,
-    searchParams.get("format") ?? "json",
-    searchParams.get("type") ?? "all",
+    query.format,
+    query.type,
   );
 
   if (!result.ok) return resultResponse(result);
@@ -19,4 +24,4 @@ export const GET = authRoute(async (request, { auth }) => {
       "Content-Disposition": `attachment; filename="${result.data.filename}"`,
     },
   });
-}, { route: "/api/export" });
+}, { route: "/api/export", query: exportQuery });
