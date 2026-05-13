@@ -126,6 +126,9 @@ describe("PUT /api/user/playback-state", () => {
           shuffleVersions: false,
           shuffle: false,
           muted: false,
+          eqGains: [0, 0, 0, 0, 0],
+          eqSpeed: 1,
+          eqPitch: 0,
         }),
         update: expect.objectContaining({
           songId: "song-1",
@@ -136,6 +139,9 @@ describe("PUT /api/user/playback-state", () => {
           shuffleVersions: false,
           shuffle: false,
           muted: false,
+          eqGains: [0, 0, 0, 0, 0],
+          eqSpeed: 1,
+          eqPitch: 0,
         }),
       })
     );
