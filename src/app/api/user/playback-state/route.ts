@@ -7,15 +7,12 @@ import { prisma } from "@/lib/prisma";
 const putPlaybackStateBody = z.object({
   songId: z.string().min(1, "songId is required"),
   position: z.number().min(0, "position must be a non-negative number"),
-  queue: z.array(z.unknown(), "queue must be an array"),
+  queue: z.array(z.any()),
   volume: z.number().optional(),
   shuffleVersions: z.boolean().optional(),
   shuffle: z.boolean().optional(),
   repeat: z.enum(["off", "repeat-all", "repeat-one"]).optional(),
   muted: z.boolean().optional(),
-  eqGains: z.array(z.number()).optional(),
-  eqSpeed: z.number().optional(),
-  eqPitch: z.number().optional(),
 });
 
 export const GET = authRoute(async (_request, { auth }) => {
@@ -72,9 +69,6 @@ export const PUT = authRoute(async (_request, { auth, body }) => {
       shuffle: body.shuffle === true,
       repeat: body.repeat ?? "off",
       muted: body.muted === true,
-      eqGains: validEqGains,
-      eqSpeed: validEqSpeed,
-      eqPitch: validEqPitch,
     },
     update: {
       songId: body.songId,
@@ -85,9 +79,6 @@ export const PUT = authRoute(async (_request, { auth, body }) => {
       shuffle: body.shuffle === true,
       repeat: body.repeat ?? "off",
       muted: body.muted === true,
-      eqGains: validEqGains,
-      eqSpeed: validEqSpeed,
-      eqPitch: validEqPitch,
     },
   });
 
