@@ -192,3 +192,5 @@ describe("POST /api/register — malformed input and XSS edge cases", () => {
     expect(typeof data.code).toBe("string");
   });
 });
+
+// CI trigger commit after rebase conflict resolution.
