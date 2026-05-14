@@ -12,43 +12,21 @@ import {
 import { useSession } from "next-auth/react";
 import { proxiedAudioUrl } from "@/lib/audio-cdn";
 import { track } from "@/lib/analytics";
+import {
+  loadPlaybackState,
+  savePlaybackState,
+  type QueueSong as PlaybackQueueSong,
+  type RepeatMode as PersistedRepeatMode,
+} from "@/components/queue/playback-state";
 
 // ─── Playback state persistence ───────────────────────────────────────────────
 
 const SYNC_DEBOUNCE_MS = 12_000; // save every ~12s of activity
 
-function savePlaybackState(
-  songId: string,
-  position: number,
-  queue: QueueSong[],
-  volume: number,
-  shuffleVersions: boolean,
-  shuffle: boolean,
-  repeat: string,
-  muted: boolean,
-  eqGains?: number[],
-  eqSpeed?: number,
-  eqPitch?: number
-) {
-  fetch("/api/user/playback-state", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ songId, position, queue, volume, shuffleVersions, shuffle, repeat, muted, eqGains, eqSpeed, eqPitch }),
-  }).catch(() => {});
-}
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface QueueSong {
-  id: string;
-  title: string | null;
-  audioUrl: string;
-  imageUrl: string | null;
-  duration: number | null;
-  lyrics?: string | null;
-}
-
-export type RepeatMode = "off" | "repeat-all" | "repeat-one";
+export type QueueSong = PlaybackQueueSong;
+export type RepeatMode = PersistedRepeatMode;
 
 export interface RadioParams {
   mood: string | null;
@@ -270,7 +248,17 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
       syncTimerRef.current = setTimeout(() => {
         const eq = eqSettingsRef.current;
-        savePlaybackState(songId, position, syncQueue, volumeRef.current, shuffleVersionsRef.current, shuffleRef.current, repeatRef.current, mutedRef.current, eq.gains, eq.speed, eq.pitch);
+        savePlaybackState({
+          songId,
+          position,
+          queue: syncQueue,
+          volume: volumeRef.current,
+          shuffleVersions: shuffleVersionsRef.current,
+          shuffle: shuffleRef.current,
+          repeat: repeatRef.current,
+          muted: mutedRef.current,
+          eqSettings: { gains: eq.gains, speed: eq.speed, pitch: eq.pitch },
+        });
       }, SYNC_DEBOUNCE_MS);
     },
     []
@@ -947,80 +935,52 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     if (sessionStatus !== "authenticated" || hasRestoredRef.current) return;
     hasRestoredRef.current = true;
 
-    fetch("/api/user/playback-state")
-      .then((r) => r.json())
-      .then((data) => {
-        if (!data.state?.song?.audioUrl) return;
-        const { song, position, queue: savedQueue, volume: savedVol, shuffleVersions: savedShuffleVersions, shuffle: savedShuffle, repeat: savedRepeat, muted: savedMuted, eqGains: savedEqGains, eqSpeed: savedEqSpeed, eqPitch: savedEqPitch } = data.state;
+    loadPlaybackState()
+      .then((restored) => {
+        if (!restored) return;
         const audio = audioRef.current;
         if (!audio) return;
 
-        // Build a queue from saved state
-        const restoreQueue: QueueSong[] =
-          Array.isArray(savedQueue) && savedQueue.length > 0
-            ? savedQueue
-            : [
-                {
-                  id: song.id,
-                  title: song.title,
-                  audioUrl: song.audioUrl,
-                  imageUrl: song.imageUrl,
-                  duration: song.duration,
-                  lyrics: song.lyrics,
-                },
-              ];
-
-        const startIdx = restoreQueue.findIndex((s: QueueSong) => s.id === song.id);
-        const idx = startIdx >= 0 ? startIdx : 0;
-
         // Load the queue state without auto-playing
-        originalQueueRef.current = restoreQueue;
-        setQueue(restoreQueue);
-        setCurrentIndex(idx);
+        originalQueueRef.current = restored.queue;
+        setQueue(restored.queue);
+        setCurrentIndex(restored.currentIndex);
         setPlaylistSource("Resume");
-        setDuration(restoreQueue[idx].duration ?? 0);
+        setDuration(restored.duration);
 
         // Set the audio source but don't play
         audio.autoplay = false;
-        audio.src = proxiedAudioUrl(restoreQueue[idx].id);
+        audio.src = restored.initialSrc;
 
         // Restore shuffleVersions
-        if (savedShuffleVersions === true) {
+        if (restored.shuffleVersions) {
           setShuffleVersions(true);
         }
 
         // Restore shuffle, repeat, muted
-        if (savedShuffle === true) {
+        if (restored.shuffle) {
           setShuffle(true);
         }
-        if (savedRepeat && ["repeat-all", "repeat-one"].includes(savedRepeat)) {
-          setRepeat(savedRepeat as RepeatMode);
-        }
-        if (savedMuted === true) {
+        setRepeat(restored.repeat);
+        if (restored.muted) {
           setMuted(true);
         }
 
         // Restore volume
-        const vol = typeof savedVol === "number" ? savedVol : 1;
-        setVolumeState(vol);
-        volumeRef.current = vol;
-        audio.volume = vol;
+        setVolumeState(restored.volume);
+        volumeRef.current = restored.volume;
+        audio.volume = restored.volume;
 
         // Restore EQ settings for AudioEQContext to pick up
-        if (Array.isArray(savedEqGains) && savedEqGains.length === 5) {
-          const eq = {
-            gains: savedEqGains as number[],
-            speed: typeof savedEqSpeed === "number" ? savedEqSpeed : 1,
-            pitch: typeof savedEqPitch === "number" ? savedEqPitch : 0,
-          };
-          eqSettingsRef.current = eq;
-          setRestoredEQ(eq);
+        if (restored.eqSettings) {
+          eqSettingsRef.current = restored.eqSettings;
+          setRestoredEQ(restored.eqSettings);
         }
 
         // Seek to saved position after audio loads
-        if (position > 0 && song.duration) {
+        if (restored.position > 0 && restored.duration > 0) {
           const handleCanPlay = () => {
-            audio.currentTime = position;
+            audio.currentTime = restored.position;
             audio.removeEventListener("canplay", handleCanPlay);
           };
           audio.addEventListener("canplay", handleCanPlay);

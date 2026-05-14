@@ -1,21 +1,17 @@
 import { NextResponse } from "next/server";
-import { resolveUser } from "@/lib/auth";
+import { z } from "zod";
+import { authRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
-import { badRequest } from "@/lib/api-error";
 
-export async function GET(request: Request) {
-  const { userId, error: authError } = await resolveUser(request);
-  if (authError) return authError;
+const batchStatusQuery = z.object({
+  batchId: z.string().min(1, "batchId query parameter is required"),
+});
 
-  const { searchParams } = new URL(request.url);
-  const batchId = searchParams.get("batchId");
-
-  if (!batchId || typeof batchId !== "string") {
-    return badRequest("batchId query parameter is required");
-  }
+export const GET = authRoute<Record<string, never>, undefined, z.infer<typeof batchStatusQuery>>(async (_request, { auth, query }) => {
+  const batchId = query.batchId;
 
   const songs = await prisma.song.findMany({
-    where: { batchId, userId },
+    where: { batchId, userId: auth.userId },
     select: {
       id: true,
       title: true,
@@ -65,4 +61,4 @@ export async function GET(request: Request) {
       failed,
     },
   });
-}
+}, { route: "/api/songs/batch-status", query: batchStatusQuery });

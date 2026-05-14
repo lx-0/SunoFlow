@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { SUNOAPI_KEY } from "@/lib/env";
 import { onCircuitClose } from "@/lib/circuit-breaker";
 import { executeCore, type SongParams } from "@/lib/generation/core";
-import { updateItem } from ".";
+import { updateItem } from "./repository";
 
 const DRAIN_BATCH_SIZE = 5;
 

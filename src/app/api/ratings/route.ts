@@ -5,9 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { invalidateByPrefix } from "@/lib/cache";
 import { notFound } from "@/lib/api-error";
 
-export const GET = authRoute(async (request, { auth }) => {
-  const { searchParams } = new URL(request.url);
-  const songId = searchParams.get("songId");
+const ratingsQuery = z.object({
+  songId: z.string().optional(),
+});
+
+export const GET = authRoute(async (_request, { auth, query }) => {
+  const songId = query.songId;
 
   const where: { userId: string; songId?: string } = { userId: auth.userId };
   if (songId) {
@@ -27,7 +30,7 @@ export const GET = authRoute(async (request, { auth }) => {
   });
 
   return NextResponse.json({ ratings });
-}, { route: "/api/ratings" });
+}, { route: "/api/ratings", query: ratingsQuery });
 
 const createRatingBody = z.object({
   songId: z.string().min(1, "songId is required"),

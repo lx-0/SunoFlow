@@ -97,6 +97,7 @@ export function GenerateForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rateLimit, setRateLimit] = useState<RateLimitStatus | null>(null);
   const [promptError, setPromptError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Template state
@@ -553,6 +554,7 @@ export function GenerateForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (isSubmitting) return;
+    setSubmitError(null);
 
     // Client-side inline validation before hitting the server
     const promptValue = customMode ? lyrics : stylePrompt;
@@ -594,6 +596,7 @@ export function GenerateForm() {
         });
       } catch (fetchErr) {
         const msg = clientFetchErrorMessage(fetchErr);
+        setSubmitError(msg);
         toast(msg, "error", { label: "Retry", onClick: () => handleSubmit(e) });
         return;
       }
@@ -605,15 +608,21 @@ export function GenerateForm() {
           const resetAt = data.details?.resetAt ?? data.details?.rateLimit?.resetAt;
           const resetTime = new Date(resetAt);
           const minutesLeft = Math.ceil((resetTime.getTime() - Date.now()) / 60000);
-          toast(`Rate limit reached. Try again in ${minutesLeft} minute${minutesLeft === 1 ? "" : "s"}.`, "error");
+          const message = `Rate limit reached. Try again in ${minutesLeft} minute${minutesLeft === 1 ? "" : "s"}.`;
+          setSubmitError(message);
+          toast(message, "error");
           if (data.details?.rateLimit) setRateLimit(data.details.rateLimit);
         } else if (res.status >= 500) {
-          toast(data.error ?? "Generation service unavailable. Please try again.", "error", {
+          const message = data.error ?? "Generation failed. Please try again.";
+          setSubmitError(message);
+          toast(message, "error", {
             label: "Retry",
             onClick: () => handleSubmit(e),
           });
         } else {
-          toast(data.error ?? "Generation failed. Please try again.", "error");
+          const message = data.error ?? "Generation failed. Please try again.";
+          setSubmitError(message);
+          toast(message, "error");
         }
         return;
       }
@@ -631,16 +640,20 @@ export function GenerateForm() {
       const songTitle = song?.title ?? data.title ?? (title || null);
 
       if (data.error) {
+        setSubmitError(data.error);
         toast(data.error, "error");
         return;
       }
 
+      setSubmitError(null);
       toast("Song generation started!", "success");
       track("song_generation_requested", { mode: customMode ? "custom" : "style", instrumental });
       trackSong(songId, songTitle);
       fetchCredits();
     } catch {
-      toast("Network error. Please check your connection and try again.", "error", {
+      const message = "Network error. Please check your connection and try again.";
+      setSubmitError(message);
+      toast(message, "error", {
         label: "Retry",
         onClick: () => handleSubmit(e),
       });
@@ -1597,6 +1610,11 @@ export function GenerateForm() {
             Queue{queueTotalActive > 0 ? ` (${queueTotalActive})` : ""}
           </button>
         </div>
+        {submitError && (
+          <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+            {submitError}
+          </p>
+        )}
       </form>
 
       {/* Upgrade modal — shown when user has no credits and tries to generate */}

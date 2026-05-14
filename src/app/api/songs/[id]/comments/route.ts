@@ -1,18 +1,27 @@
-import { authRoute, resultResponse } from "@/lib/route-handler";
+import { z } from "zod";
+import { authRoute, publicRoute, resultResponse } from "@/lib/route-handler";
 import { listComments, createComment } from "@/lib/comments";
+import { zPageParam } from "@/lib/query-params";
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
-  const { searchParams } = new URL(request.url);
-  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
+const listCommentsQuery = z.object({
+  page: zPageParam(1),
+});
 
-  return resultResponse(await listComments(id, page));
-}
+const createCommentBody = z.object({
+  body: z.string().min(1, "Comment body must be 1–500 characters").max(500),
+  timestamp: z.unknown().optional(),
+});
 
-export const POST = authRoute<{ id: string }>(async (request, { auth, params }) => {
-  const body = await request.json();
-  return resultResponse(await createComment(params.id, auth.userId, body), { status: 201 });
-}, { route: "/api/songs/[id]/comments" });
+export const GET = publicRoute<{ id: string }, undefined, z.infer<typeof listCommentsQuery>>(
+  async (_request, { params, query }) => {
+    return resultResponse(await listComments(params.id, query.page));
+  },
+  { route: "/api/songs/[id]/comments", query: listCommentsQuery },
+);
+
+export const POST = authRoute<{ id: string }, z.infer<typeof createCommentBody>>(
+  async (_request, { auth, params, body }) => {
+    return resultResponse(await createComment(params.id, auth.userId, body), { status: 201 });
+  },
+  { route: "/api/songs/[id]/comments", body: createCommentBody },
+);
