@@ -8,6 +8,8 @@ type SunoErrorMappingOptions = {
   fallbackMessage?: string;
 };
 
+export type MapSunoApiErrorOptions = SunoErrorMappingOptions;
+
 export function mapSunoApiError(
   error: SunoApiError,
   options: SunoErrorMappingOptions = {},
