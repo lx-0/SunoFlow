@@ -13,100 +13,30 @@ import { useSession } from "next-auth/react";
 import { proxiedAudioUrl } from "@/lib/audio-cdn";
 import { track } from "@/lib/analytics";
 import {
+  type QueueContextValue,
+  type QueueSong,
+  type RadioParams,
+  type RepeatMode,
+} from "@/components/queue/queue-context-types";
+import {
   buildPlayQueue,
   insertAfterCurrent,
   removeFromQueueState,
   reorderQueueState,
   toggleShuffleQueue,
 } from "@/components/queue/queue-ops";
+import { useMediaSession } from "@/components/queue/use-media-session";
+import { usePlaybackRecovery } from "@/components/queue/use-playback-recovery";
 import {
   loadPlaybackState,
   savePlaybackState,
-  type QueueSong as PlaybackQueueSong,
-  type RepeatMode as PersistedRepeatMode,
 } from "@/components/queue/playback-state";
 
 // ─── Playback state persistence ───────────────────────────────────────────────
 
 const SYNC_DEBOUNCE_MS = 12_000; // save every ~12s of activity
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export type QueueSong = PlaybackQueueSong;
-export type RepeatMode = PersistedRepeatMode;
-
-export interface RadioParams {
-  mood: string | null;
-  genre: string | null;
-  tempoMin?: number | null;
-  tempoMax?: number | null;
-  seedSongId?: string | null;
-}
-
-interface QueueState {
-  /** Songs in play order (shuffled if shuffle is on) */
-  queue: QueueSong[];
-  /** Current index in queue (-1 = nothing playing) */
-  currentIndex: number;
-  isPlaying: boolean;
-  /** True while audio is buffering / waiting for data */
-  isBuffering: boolean;
-  currentTime: number;
-  duration: number;
-  shuffle: boolean;
-  repeat: RepeatMode;
-  volume: number;
-  muted: boolean;
-  /** Source label shown in player, e.g. playlist or library name */
-  playlistSource: string | null;
-  /** Active radio session params, or null when not in radio mode */
-  radioState: RadioParams | null;
-  /** True while radio is fetching more songs */
-  isRadioLoading: boolean;
-  /** When true, advancing songs picks a random version (remix/extension) */
-  shuffleVersions: boolean;
-  /** The version currently playing (null when shuffleVersions is off or song has no variations) */
-  activeVersion: QueueSong | null;
-}
-
-interface QueueActions {
-  /** Replace queue with songs and start playing from given index */
-  playQueue: (songs: QueueSong[], startIndex?: number, source?: string) => void;
-  /** Toggle play/pause for a specific song. If not in queue, plays it solo. */
-  togglePlay: (song?: QueueSong) => void;
-  /** Insert song immediately after the current track */
-  playNext: (song: QueueSong) => void;
-  /** Append song to the end of the queue */
-  addToQueue: (song: QueueSong) => void;
-  /** Remove a track at a given queue index */
-  removeFromQueue: (index: number) => void;
-  /** Move a track from one index to another */
-  reorderQueue: (fromIndex: number, toIndex: number) => void;
-  skipNext: () => void;
-  skipPrev: () => void;
-  seek: (fraction: number) => void;
-  toggleShuffle: () => void;
-  cycleRepeat: () => void;
-  clearQueue: () => void;
-  setVolume: (volume: number) => void;
-  toggleMute: () => void;
-  /** Returns the underlying HTMLAudioElement (for Web Audio API integration) */
-  getAudioElement: () => HTMLAudioElement | null;
-  /** Start a mood-based radio session */
-  startRadio: (params: RadioParams) => Promise<void>;
-  /** Stop the radio session and return to normal mode */
-  stopRadio: () => void;
-  /** Mark a song as disliked — excludes it from future radio fetches */
-  radioThumbsDown: (songId: string) => void;
-  /** Toggle shuffle-across-versions mode */
-  toggleShuffleVersions: () => void;
-  /** Ref for AudioEQContext to write current EQ settings into — included in playback saves */
-  eqSettingsRef: React.MutableRefObject<{ gains: number[]; speed: number; pitch: number }>;
-  /** EQ settings restored from database on session resume (null until loaded) */
-  restoredEQ: { gains: number[]; speed: number; pitch: number } | null;
-}
-
-type QueueContextValue = QueueState & QueueActions;
+export type { QueueSong, RepeatMode, RadioParams } from "@/components/queue/queue-context-types";
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
@@ -787,93 +717,20 @@ export function QueueProvider({ children }: { children: ReactNode }) {
 
   radioRefillRef.current = radioRefill;
 
-  // ─── Visibility change recovery for background playback ────────────────
-  useEffect(() => {
-    const onVisibilityChange = () => {
-      if (!document.hidden && pendingPlayRef.current && hasUserGestureRef.current) {
-        const audio = audioRef.current;
-        if (audio && audio.src && audio.paused) {
-          audio.play()
-            .then(() => { pendingPlayRef.current = false; })
-            .catch(() => {});
-        }
-      }
-    };
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
-  }, []);
-
-  // ─── Resume pending playback on first user gesture ─────────────────────
-  useEffect(() => {
-    const onGesture = () => {
-      hasUserGestureRef.current = true;
-      if (pendingPlayRef.current) {
-        const audio = audioRef.current;
-        if (audio && audio.src && audio.paused) {
-          audio.play()
-            .then(() => { pendingPlayRef.current = false; })
-            .catch(() => {});
-        }
-      }
-      document.removeEventListener("click", onGesture);
-      document.removeEventListener("touchstart", onGesture);
-      document.removeEventListener("keydown", onGesture);
-    };
-    document.addEventListener("click", onGesture);
-    document.addEventListener("touchstart", onGesture);
-    document.addEventListener("keydown", onGesture);
-    return () => {
-      document.removeEventListener("click", onGesture);
-      document.removeEventListener("touchstart", onGesture);
-      document.removeEventListener("keydown", onGesture);
-    };
-  }, []);
-
-  // ─── Media Session API — action handlers (registered once) ─────────────
-  useEffect(() => {
-    if (!("mediaSession" in navigator)) return;
-
-    navigator.mediaSession.setActionHandler("play", () => {
-      audioRef.current?.play().catch(() => {});
-    });
-    navigator.mediaSession.setActionHandler("pause", () => {
-      audioRef.current?.pause();
-    });
-    navigator.mediaSession.setActionHandler("nexttrack", () => {
-      skipNextRef.current();
-    });
-    navigator.mediaSession.setActionHandler("previoustrack", () => {
-      skipPrevRef.current();
-    });
-    navigator.mediaSession.setActionHandler("seekto", (details) => {
-      const audio = audioRef.current;
-      if (audio && details.seekTime != null) {
-        audio.currentTime = details.seekTime;
-      }
-    });
-  }, []);
-
-  // ─── Media Session API — metadata (updates when song changes) ──────────
-  useEffect(() => {
-    if (!("mediaSession" in navigator)) return;
-    const song = currentIndex >= 0 ? queue[currentIndex] : null;
-    const displaySong = activeVersion ?? song;
-    if (!displaySong) return;
-
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: displaySong.title ?? "Untitled",
-      artist: "SunoFlow",
-      artwork: displaySong.imageUrl
-        ? [{ src: displaySong.imageUrl, sizes: "512x512", type: "image/jpeg" }]
-        : [],
-    });
-  }, [queue, currentIndex, activeVersion]);
-
-  // ─── Media Session API — playback state ────────────────────────────────
-  useEffect(() => {
-    if (!("mediaSession" in navigator)) return;
-    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
-  }, [isPlaying]);
+  usePlaybackRecovery({
+    audioRef,
+    pendingPlayRef,
+    hasUserGestureRef,
+  });
+  useMediaSession({
+    isPlaying,
+    queue,
+    currentIndex,
+    activeVersion,
+    audioRef,
+    skipNextRef,
+    skipPrevRef,
+  });
 
   // ─── Auto-restore saved playback state on mount ────────────────────────
   const hasRestoredRef = useRef(false);
