@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authRoute } from "@/lib/route-handler";
-import { resolveUserApiKey, listSongs, SunoApiError } from "@/lib/sunoapi";
+import { listSongs } from "@/lib/sunoapi";
 import { prisma } from "@/lib/prisma";
-import { logServerError } from "@/lib/error-logger";
-import { apiError, internalError, ErrorCode } from "@/lib/api-error";
 import { CacheControl } from "@/lib/cache";
 import { zLimitParam, zPageParam } from "@/lib/query-params";
-import { mapSunoApiError } from "@/lib/suno-api-error";
+import { handleSunoRouteError, resolveRequiredSunoApiKey } from "@/lib/suno-route";
 
 const sunoSongsQuerySchema = z.object({
   page: zPageParam(1),
@@ -16,9 +14,9 @@ const sunoSongsQuerySchema = z.object({
 
 export const GET = authRoute(async (_request, { auth, query }) => {
   try {
-    const apiKey = await resolveUserApiKey(auth.userId);
-    if (!apiKey) {
-      return apiError("No Suno API key configured", ErrorCode.VALIDATION_ERROR, 400);
+    const apiKey = await resolveRequiredSunoApiKey(auth.userId);
+    if (apiKey instanceof Response) {
+      return apiKey;
     }
 
     const remoteSongs = await listSongs(apiKey);
@@ -63,15 +61,15 @@ export const GET = authRoute(async (_request, { auth, query }) => {
       { headers: { "Cache-Control": CacheControl.privateNoCache } }
     );
   } catch (error) {
-    if (error instanceof SunoApiError) {
-      return mapSunoApiError(error, {
+    return handleSunoRouteError(error, {
+      logLabel: "suno-songs-list",
+      route: "/api/suno/songs",
+      mapOptions: {
         notFoundMessage: "Song listing is not supported by the current API provider (sunoapi.org). This endpoint does not exist in their API.",
         notFoundStatus: 501,
         includeRawMessageOnFallback: true,
         fallbackMessage: "Unable to fetch songs from Suno. Please check your API key and try again.",
-      });
-    }
-    logServerError("suno-songs-list", error, { route: "/api/suno/songs" });
-    return internalError();
+      },
+    });
   }
 }, { query: sunoSongsQuerySchema, route: "/api/suno/songs" });
