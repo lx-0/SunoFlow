@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "./route";
+import { NextRequest } from "next/server";
 
 vi.mock("@/lib/env", () => ({
   get DATABASE_URL() { return "postgres://test:test@localhost:5432/test"; },
@@ -33,7 +34,7 @@ import { prisma } from "@/lib/prisma";
 const SONG_ID = "song-gen-1";
 
 function makeRequest() {
-  return new Request(`http://localhost/api/songs/${SONG_ID}/cover-art/generate`, {
+  return new NextRequest(`http://localhost/api/songs/${SONG_ID}/cover-art/generate`, {
     method: "POST",
   });
 }
