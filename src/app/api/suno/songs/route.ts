@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authRoute } from "@/lib/route-handler";
-import { resolveUserApiKey, listSongs, SunoApiError } from "@/lib/sunoapi";
+import { listSongs } from "@/lib/sunoapi";
 import { prisma } from "@/lib/prisma";
-import { logServerError } from "@/lib/error-logger";
-import { apiError, internalError, ErrorCode } from "@/lib/api-error";
 import { CacheControl } from "@/lib/cache";
 import { zLimitParam, zPageParam } from "@/lib/query-params";
+import { handleSunoRouteError, resolveRequiredSunoApiKey } from "@/lib/suno-route";
 
 const sunoSongsQuerySchema = z.object({
   page: zPageParam(1),
@@ -15,9 +14,9 @@ const sunoSongsQuerySchema = z.object({
 
 export const GET = authRoute(async (_request, { auth, query }) => {
   try {
-    const apiKey = await resolveUserApiKey(auth.userId);
-    if (!apiKey) {
-      return apiError("No Suno API key configured", ErrorCode.VALIDATION_ERROR, 400);
+    const apiKey = await resolveRequiredSunoApiKey(auth.userId);
+    if (apiKey instanceof Response) {
+      return apiKey;
     }
 
     const remoteSongs = await listSongs(apiKey);
@@ -62,28 +61,15 @@ export const GET = authRoute(async (_request, { auth, query }) => {
       { headers: { "Cache-Control": CacheControl.privateNoCache } }
     );
   } catch (error) {
-    if (error instanceof SunoApiError) {
-      if (error.status === 401) {
-        return apiError("Invalid Suno API key", ErrorCode.SUNO_AUTH_ERROR, 401);
-      }
-      if (error.status === 404) {
-        return apiError(
-          "Song listing is not supported by the current API provider (sunoapi.org). This endpoint does not exist in their API.",
-          ErrorCode.SUNO_API_ERROR,
-          501
-        );
-      }
-      if (error.status === 429) {
-        return apiError("Suno API rate limit exceeded. Please try again later.", ErrorCode.SUNO_RATE_LIMIT, 429);
-      }
-      if (error.status >= 500) {
-        return apiError("Suno API is temporarily unavailable. Please try again later.", ErrorCode.SUNO_API_ERROR, 502);
-      }
-      const fallback = "Unable to fetch songs from Suno. Please check your API key and try again.";
-      const msg = error.message && error.message !== "No message available" ? error.message : fallback;
-      return apiError(msg, ErrorCode.SUNO_API_ERROR, 502);
-    }
-    logServerError("suno-songs-list", error, { route: "/api/suno/songs" });
-    return internalError();
+    return handleSunoRouteError(error, {
+      logLabel: "suno-songs-list",
+      route: "/api/suno/songs",
+      mapOptions: {
+        notFoundMessage: "Song listing is not supported by the current API provider (sunoapi.org). This endpoint does not exist in their API.",
+        notFoundStatus: 501,
+        includeRawMessageOnFallback: true,
+        fallbackMessage: "Unable to fetch songs from Suno. Please check your API key and try again.",
+      },
+    });
   }
 }, { query: sunoSongsQuerySchema, route: "/api/suno/songs" });

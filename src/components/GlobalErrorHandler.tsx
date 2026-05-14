@@ -9,6 +9,10 @@ import { logError } from "@/lib/error-logger";
  * silently logged without surfacing a toast to the user.
  */
 export function isBenignError(error: unknown, message?: string): boolean {
+  // Some browser/library cancellation paths reject promises with no payload.
+  // Treat these as non-actionable to avoid noisy runtime toasts.
+  if (error == null && (message == null || message.trim() === "")) return true;
+
   const msg =
     (error instanceof Error ? error.message : undefined) ?? message ?? "";
   const name = error instanceof Error ? error.name : "";
@@ -21,6 +25,9 @@ export function isBenignError(error: unknown, message?: string): boolean {
   // that should not surface as user-visible runtime errors.
   if (name === "AbortError") return true;
   if (msg.includes("The play() request was interrupted")) return true;
+  // Browser cross-origin script errors often omit useful stack/message details.
+  // They are tracked separately and are not actionable from client runtime patrol.
+  if (msg === "Script error.") return true;
 
   return false;
 }

@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authRoute } from "@/lib/route-handler";
-import { resolveUserApiKey, getSongById, SunoApiError } from "@/lib/sunoapi";
+import { getSongById, SunoApiError } from "@/lib/sunoapi";
 import { prisma } from "@/lib/prisma";
-import { logServerError } from "@/lib/error-logger";
-import { apiError, internalError, ErrorCode } from "@/lib/api-error";
+import { handleSunoRouteError, resolveRequiredSunoApiKey } from "@/lib/suno-route";
 
 const MAX_BATCH_SIZE = 20;
 
@@ -14,9 +13,9 @@ const importSongsBodySchema = z.object({
 
 export const POST = authRoute(async (_request, { auth, body }) => {
   try {
-    const apiKey = await resolveUserApiKey(auth.userId);
-    if (!apiKey) {
-      return apiError("No Suno API key configured", ErrorCode.VALIDATION_ERROR, 400);
+    const apiKey = await resolveRequiredSunoApiKey(auth.userId);
+    if (apiKey instanceof Response) {
+      return apiKey;
     }
 
     const existing = await prisma.song.findMany({
@@ -68,20 +67,12 @@ export const POST = authRoute(async (_request, { auth, body }) => {
 
     return NextResponse.json({ imported, skipped, errors });
   } catch (error) {
-    if (error instanceof SunoApiError) {
-      if (error.status === 401) {
-        return apiError("Invalid Suno API key", ErrorCode.SUNO_AUTH_ERROR, 401);
-      }
-      if (error.status === 429) {
-        return apiError(
-          "Suno API rate limit exceeded. Please try again later.",
-          ErrorCode.SUNO_RATE_LIMIT,
-          429
-        );
-      }
-      return apiError(error.message, ErrorCode.SUNO_API_ERROR, 502);
-    }
-    logServerError("suno-import", error, { route: "/api/suno/import" });
-    return internalError();
+    return handleSunoRouteError(error, {
+      logLabel: "suno-import",
+      route: "/api/suno/import",
+      mapOptions: {
+        includeRawMessageOnFallback: true,
+      },
+    });
   }
 }, { body: importSongsBodySchema, route: "/api/suno/import" });

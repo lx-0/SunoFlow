@@ -1,22 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import { resolveUser } from "@/lib/auth";
+import { NextRequest } from "next/server";
+import { authRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { resolveUserApiKey } from "@/lib/sunoapi";
 import { proxyAudio } from "@/lib/audio";
-import { logger } from "@/lib/logger";
+import { notFound } from "@/lib/api-error";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ songId: string }> },
-) {
-  try {
-    const { userId, error: authError } = await resolveUser(request);
-    if (authError) return authError;
-
-    const { songId } = await params;
+export const GET = authRoute<{ songId: string }>(
+  async (request: NextRequest, { auth, params }) => {
+    const { songId } = params;
 
     const song = await prisma.song.findFirst({
-      where: { id: songId, userId },
+      where: { id: songId, userId: auth.userId },
       select: {
         audioUrl: true,
         audioUrlExpiresAt: true,
@@ -26,14 +20,7 @@ export async function GET(
     });
 
     if (!song?.audioUrl) {
-      return NextResponse.json(
-        {
-          error: "Not found",
-          code: "NOT_FOUND",
-          detail: { hasJobId: !!song?.sunoJobId },
-        },
-        { status: 404 },
-      );
+      return notFound("Not found");
     }
 
     return proxyAudio({
@@ -42,15 +29,10 @@ export async function GET(
       audioUrlExpiresAt: song.audioUrlExpiresAt,
       sunoJobId: song.sunoJobId,
       sunoAudioId: song.sunoAudioId,
-      resolveApiKey: () => resolveUserApiKey(userId),
+      resolveApiKey: () => resolveUserApiKey(auth.userId),
       rangeHeader: request.headers.get("range"),
       cacheControl: "private",
     });
-  } catch (err) {
-    logger.error({ err }, "audio proxy: unhandled error");
-    return NextResponse.json(
-      { error: "Internal server error", code: "INTERNAL_ERROR" },
-      { status: 500 },
-    );
-  }
-}
+  },
+  { route: "/api/audio/[songId]" },
+);

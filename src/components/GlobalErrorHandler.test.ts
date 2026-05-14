@@ -16,6 +16,16 @@ describe("isBenignError", () => {
     ).toBe(true);
   });
 
+  it("returns true for generic cross-origin script errors", () => {
+    expect(isBenignError(undefined, "Script error.")).toBe(true);
+  });
+
+  it("returns true for empty rejection payloads", () => {
+    expect(isBenignError(undefined)).toBe(true);
+    expect(isBenignError(null)).toBe(true);
+    expect(isBenignError(undefined, "")).toBe(true);
+  });
+
   it("returns false for actionable errors", () => {
     expect(isBenignError(new Error("TypeError: Cannot read properties of undefined"))).toBe(
       false,
