@@ -18,6 +18,8 @@ import { prisma } from "@/lib/prisma";
 import { POST } from "./route";
 
 describe("POST /api/error-report", () => {
+  const seg = { params: Promise.resolve({}) } as never;
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -40,7 +42,7 @@ describe("POST /api/error-report", () => {
       }),
     });
 
-    const res = await POST(req as never);
+    const res = await POST(req as never, seg);
     const payload = await res.json();
 
     expect(res.status).toBe(200);
@@ -59,7 +61,7 @@ describe("POST /api/error-report", () => {
       }),
     });
 
-    const res = await POST(req as never);
+    const res = await POST(req as never, seg);
     const payload = await res.json();
 
     expect(res.status).toBe(400);

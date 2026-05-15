@@ -1,5 +1,6 @@
 import type { GenerationQueueItem } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { Err, success } from "@/lib/result";
 import type {
   AcquireResult,
   AddItemParams,
@@ -25,7 +26,7 @@ export async function addItem(
   });
 
   if (pendingCount >= MAX_QUEUE_SIZE) {
-    return { ok: false, code: "QUEUE_FULL", message: `Queue is full (max ${MAX_QUEUE_SIZE} items)` };
+    return Err.limitReached(`Queue is full (max ${MAX_QUEUE_SIZE} items)`);
   }
 
   const lastItem = await prisma.generationQueueItem.findFirst({
@@ -47,7 +48,7 @@ export async function addItem(
     },
   });
 
-  return { ok: true, item };
+  return success({ item });
 }
 
 export async function enqueueFromSpec(
@@ -79,7 +80,7 @@ export async function cancelItem(userId: string, itemId: string): Promise<Cancel
     where: { id: itemId, userId },
   });
 
-  if (!item) return { ok: false, code: "NOT_FOUND" };
+  if (!item) return Err.notFound("Not found");
 
   if (item.status === "processing") {
     await prisma.generationQueueItem.update({
@@ -90,7 +91,7 @@ export async function cancelItem(userId: string, itemId: string): Promise<Cancel
     await prisma.generationQueueItem.delete({ where: { id: itemId } });
   }
 
-  return { ok: true };
+  return success({ success: true as const });
 }
 
 export async function reorderItems(userId: string, orderedIds: string[]): Promise<void> {

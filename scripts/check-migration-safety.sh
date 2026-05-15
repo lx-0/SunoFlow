@@ -41,7 +41,8 @@ echo "PASS: all migration directories contain migration.sql"
 
 # 3) Heuristic guardrail for destructive SQL ops.
 # Allow explicit opt-in by placing '-- approved-destructive' in the migration file.
-destructive_pattern='\\b(DROP[[:space:]]+TABLE|DROP[[:space:]]+COLUMN|TRUNCATE[[:space:]]+TABLE|DELETE[[:space:]]+FROM)\\b'
+# Keep the pattern simple and grep-compatible (ERE); avoid \b token pitfalls.
+destructive_pattern='DROP[[:space:]]+TABLE|DROP[[:space:]]+COLUMN|TRUNCATE([[:space:]]+TABLE)?|DELETE[[:space:]]+FROM'
 found=0
 while IFS= read -r -d '' file; do
   if grep -Eiq "$destructive_pattern" "$file"; then

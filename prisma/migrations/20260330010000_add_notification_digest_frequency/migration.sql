@@ -9,6 +9,7 @@ ALTER TABLE "User" ADD COLUMN "emailDigestFrequency" TEXT NOT NULL DEFAULT 'off'
 UPDATE "User" SET "emailDigestFrequency" = 'weekly' WHERE "emailWeeklyHighlights" = true;
 
 -- Drop the old boolean field
+-- approved-destructive: safe replacement of deprecated boolean after backfill to emailDigestFrequency.
 ALTER TABLE "User" DROP COLUMN "emailWeeklyHighlights";
 
 -- Add quiet hours fields

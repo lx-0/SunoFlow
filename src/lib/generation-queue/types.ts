@@ -1,5 +1,6 @@
 import type { GenerationQueueItem, Song } from "@prisma/client";
 import type { RateLimitStatus } from "@/lib/rate-limit";
+import type { Result } from "@/lib/result";
 
 export const MAX_QUEUE_SIZE = 10;
 
@@ -11,13 +12,9 @@ export interface AddItemParams {
   personaId?: string | null;
 }
 
-export type AddItemResult =
-  | { ok: true; item: GenerationQueueItem }
-  | { ok: false; code: "QUEUE_FULL"; message: string };
+export type AddItemResult = Result<{ item: GenerationQueueItem }>;
 
-export type CancelResult =
-  | { ok: true }
-  | { ok: false; code: "NOT_FOUND" };
+export type CancelResult = Result<{ success: true }>;
 
 export type AcquireResult =
   | { status: "acquired"; item: GenerationQueueItem }

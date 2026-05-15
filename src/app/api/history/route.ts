@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
 import { authRoute } from "@/lib/route-handler";
-import { badRequest, notFound } from "@/lib/api-error";
+import { notFound } from "@/lib/api-error";
 import { zLimitParam, zCursorParam } from "@/lib/query-params";
 import { listPlayHistory, recordPlay, clearHistory } from "@/lib/history";
+import { recordHistoryRequestSchema } from "@/lib/history/request";
 
 const historyQuery = z.object({
   limit: zLimitParam(20, 50),
@@ -19,14 +20,8 @@ export const GET = authRoute(
 );
 
 export const POST = authRoute(
-  async (request, { auth }) => {
-    const body = await request.json();
+  async (_request, { auth, body }) => {
     const { songId } = body;
-
-    if (!songId || typeof songId !== "string") {
-      return badRequest("songId is required");
-    }
-
     const result = await recordPlay(auth.userId, songId);
 
     switch (result.status) {
@@ -38,7 +33,7 @@ export const POST = authRoute(
         return NextResponse.json({ entry: result.entry }, { status: 201 });
     }
   },
-  { route: "/api/history" },
+  { route: "/api/history", body: recordHistoryRequestSchema },
 );
 
 export const DELETE = authRoute(

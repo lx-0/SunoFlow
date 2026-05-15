@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
       const message = err instanceof Error ? err.message : "Unknown error";
       return `Webhook signature verification failed: ${message}`;
     },
-    onDuplicate: (event) => {
+    onDuplicate: () => {
       return NextResponse.json({ received: true, duplicate: true });
     },
     onHandleEvent: async (event) => {
