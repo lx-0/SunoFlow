@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { authRoute } from "@/lib/route-handler";
 import { listItems, addItem } from "@/lib/generation-queue";
-import {
-  GENERATION_PROMPT_MAX_LENGTH,
-  GENERATION_PROMPT_MAX_MESSAGE,
-  GENERATION_PROMPT_REQUIRED_MESSAGE,
-  GENERATION_STYLE_MAX_LENGTH,
-  GENERATION_TITLE_MAX_LENGTH,
-} from "@/lib/generation/params";
+import { generateSongRequestSchema } from "@/lib/generation/request";
 
 export const GET = authRoute(async (_request, { auth }) => {
   const items = await listItems(auth.userId);
@@ -27,15 +20,5 @@ export const POST = authRoute(async (_request, { auth, body }) => {
   return NextResponse.json({ item: result.item }, { status: 201 });
 }, {
   route: "/api/generation-queue",
-  body: z.object({
-    prompt: z
-      .string()
-      .trim()
-      .min(1, GENERATION_PROMPT_REQUIRED_MESSAGE)
-      .max(GENERATION_PROMPT_MAX_LENGTH, GENERATION_PROMPT_MAX_MESSAGE),
-    title: z.string().max(GENERATION_TITLE_MAX_LENGTH).optional(),
-    tags: z.string().max(GENERATION_STYLE_MAX_LENGTH).optional(),
-    makeInstrumental: z.boolean().optional(),
-    personaId: z.string().optional(),
-  }),
+  body: generateSongRequestSchema,
 });

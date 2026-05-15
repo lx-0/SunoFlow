@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { resolveUser, requireAdmin } from "@/lib/auth";
 import { getClientIp } from "@/lib/network";
-import { notFound, rateLimited } from "@/lib/api-error";
+import { rateLimited } from "@/lib/api-error";
 import { acquireAnonRateLimitSlot } from "@/lib/rate-limit";
-import type { Result } from "@/lib/result";
 import {
   runRoutePipeline,
   type RouteOptions,
+  type RoutePipelineOptions,
+  type RouteSchemas,
   type SegmentData,
 } from "@/lib/route-pipeline";
+export { requireOwned, resultResponse } from "@/lib/route-response";
 
 export type AuthContext = {
   userId: string;
@@ -37,6 +38,72 @@ type RateLimitConfig = {
   windowMs: number;
 };
 
+type PipelineCtx<P extends Record<string, string>, B, Q> = {
+  params: P;
+  body: B;
+  query: Q;
+};
+
+type PreflightResult<TContext> =
+  | { context: TContext; error?: never }
+  | { context?: never; error: Response };
+
+function executeWithPipeline<
+  P extends Record<string, string>,
+  B,
+  Q,
+>(
+  request: NextRequest,
+  segmentData: SegmentData<P>,
+  options: RoutePipelineOptions<B, Q> | undefined,
+  logLabel: string,
+  logContext: Record<string, unknown>,
+  handler: (ctx: PipelineCtx<P, B, Q>) => Promise<Response>,
+): Promise<Response> {
+  return runRoutePipeline(
+    request,
+    segmentData,
+    options,
+    logLabel,
+    logContext,
+    handler,
+  );
+}
+
+function createRouteWrapper<
+  P extends Record<string, string>,
+  B,
+  Q,
+  TContext,
+>(
+  preflight: (request: NextRequest) => Promise<PreflightResult<TContext>>,
+  execute: (
+    request: NextRequest,
+    context: TContext,
+    parsed: PipelineCtx<P, B, Q>,
+  ) => Promise<Response>,
+  options: RoutePipelineOptions<B, Q> | undefined,
+  logLabel: string,
+  getLogContext: (context: TContext) => Record<string, unknown>,
+) {
+  return async (
+    request: NextRequest,
+    segmentData: SegmentData<P>
+  ): Promise<Response> => {
+    const preflightResult = await preflight(request);
+    if (preflightResult.error) return preflightResult.error;
+
+    return executeWithPipeline(
+      request,
+      segmentData,
+      options,
+      logLabel,
+      getLogContext(preflightResult.context),
+      (parsed) => execute(request, preflightResult.context, parsed),
+    );
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Public route wrappers — each handles only its auth strategy, then delegates
 // ---------------------------------------------------------------------------
@@ -50,24 +117,26 @@ export function authRoute<
     request: NextRequest,
     ctx: { auth: AuthContext; params: P; body: B; query: Q }
   ) => Promise<Response>,
-  options?: RouteOptions & { body?: z.ZodType<B>; query?: z.ZodType<Q> }
+  options?: RoutePipelineOptions<B, Q>
 ) {
-  return async (
-    request: NextRequest,
-    segmentData: SegmentData<P>
-  ): Promise<Response> => {
-    const result = await resolveUser(request);
-    if (result.error) return result.error;
-
-    return runRoutePipeline(
-      request, segmentData, options, "route-handler", { userId: result.userId },
-      ({ params, body, query }) =>
-        handler(request, {
-          auth: { userId: result.userId, isApiKey: result.isApiKey, isAdmin: result.isAdmin },
-          params, body, query,
-        }),
-    );
-  };
+  return createRouteWrapper<P, B, Q, AuthContext>(
+    async (request) => {
+      const result = await resolveUser(request);
+      if (result.error) return { error: result.error };
+      return {
+        context: {
+          userId: result.userId,
+          isApiKey: result.isApiKey,
+          isAdmin: result.isAdmin,
+        },
+      };
+    },
+    (request, auth, { params, body, query }) =>
+      handler(request, { auth, params, body, query }),
+    options,
+    "route-handler",
+    (auth) => ({ userId: auth.userId }),
+  );
 }
 
 export function optionalAuthRoute<
@@ -79,23 +148,27 @@ export function optionalAuthRoute<
     request: NextRequest,
     ctx: { auth: OptionalAuthContext; params: P; body: B; query: Q }
   ) => Promise<Response>,
-  options?: RouteOptions & { body?: z.ZodType<B>; query?: z.ZodType<Q> }
+  options?: RoutePipelineOptions<B, Q>
 ) {
-  return async (
-    request: NextRequest,
-    segmentData: SegmentData<P>
-  ): Promise<Response> => {
-    const result = await resolveUser(request);
-    const auth: OptionalAuthContext = result.error
-      ? { userId: null, isApiKey: false, isAdmin: false }
-      : { userId: result.userId, isApiKey: result.isApiKey, isAdmin: result.isAdmin };
-
-    return runRoutePipeline(
-      request, segmentData, options, "optional-auth-route-handler", { userId: auth.userId },
-      ({ params, body, query }) =>
-        handler(request, { auth, params, body, query }),
-    );
-  };
+  return createRouteWrapper<P, B, Q, OptionalAuthContext>(
+    async (request) => {
+      const result = await resolveUser(request);
+      return {
+        context: result.error
+          ? { userId: null, isApiKey: false, isAdmin: false }
+          : {
+              userId: result.userId,
+              isApiKey: result.isApiKey,
+              isAdmin: result.isAdmin,
+            },
+      };
+    },
+    (request, auth, { params, body, query }) =>
+      handler(request, { auth, params, body, query }),
+    options,
+    "optional-auth-route-handler",
+    (auth) => ({ userId: auth.userId }),
+  );
 }
 
 export function publicRoute<
@@ -107,18 +180,16 @@ export function publicRoute<
     request: NextRequest,
     ctx: { params: P; body: B; query: Q }
   ) => Promise<Response>,
-  options?: RouteOptions & { body?: z.ZodType<B>; query?: z.ZodType<Q> }
+  options?: RoutePipelineOptions<B, Q>
 ) {
-  return async (
-    request: NextRequest,
-    segmentData: SegmentData<P>
-  ): Promise<Response> => {
-    return runRoutePipeline(
-      request, segmentData, options, "public-route-handler", {},
-      ({ params, body, query }) =>
-        handler(request, { params, body, query }),
-    );
-  };
+  return createRouteWrapper<P, B, Q, null>(
+    async () => ({ context: null }),
+    (request, _unused, { params, body, query }) =>
+      handler(request, { params, body, query }),
+    options,
+    "public-route-handler",
+    () => ({}),
+  );
 }
 
 export function adminRoute<
@@ -130,21 +201,20 @@ export function adminRoute<
     request: NextRequest,
     ctx: { admin: AdminContext; params: P; body: B; query: Q }
   ) => Promise<Response>,
-  options?: RouteOptions & { body?: z.ZodType<B>; query?: z.ZodType<Q> }
+  options?: RoutePipelineOptions<B, Q>
 ) {
-  return async (
-    request: NextRequest,
-    segmentData: SegmentData<P>
-  ): Promise<Response> => {
-    const { error, user } = await requireAdmin();
-    if (error) return error;
-
-    return runRoutePipeline(
-      request, segmentData, options, "admin-route-handler", { userId: user!.id },
-      ({ params, body, query }) =>
-        handler(request, { admin: { adminId: user!.id }, params, body, query }),
-    );
-  };
+  return createRouteWrapper<P, B, Q, AdminContext>(
+    async () => {
+      const { error, user } = await requireAdmin();
+      if (error) return { error };
+      return { context: { adminId: user!.id } };
+    },
+    (request, admin, { params, body, query }) =>
+      handler(request, { admin, params, body, query }),
+    options,
+    "admin-route-handler",
+    (admin) => ({ userId: admin.adminId }),
+  );
 }
 
 export function anonRoute<
@@ -155,32 +225,32 @@ export function anonRoute<
     request: NextRequest,
     ctx: { anon: AnonContext; params: P; query: Q }
   ) => Promise<Response>,
-  options: RouteOptions & { rateLimit: RateLimitConfig; query?: z.ZodType<Q> }
+  options: RouteOptions & RouteSchemas<never, Q> & { rateLimit: RateLimitConfig }
 ) {
-  return async (
-    request: NextRequest,
-    segmentData: SegmentData<P>
-  ): Promise<Response> => {
-    const ip = getClientIp(request);
-
-    const { acquired } = await acquireAnonRateLimitSlot(
-      ip,
-      options.rateLimit.action,
-      options.rateLimit.limit,
-      options.rateLimit.windowMs,
-    );
-    if (!acquired) {
-      return rateLimited("Too many requests. Try again later.", undefined, {
-        "Retry-After": String(Math.ceil(options.rateLimit.windowMs / 1000)),
-      });
-    }
-
-    return runRoutePipeline(
-      request, segmentData, options, "anon-route-handler", {},
-      ({ params, query }) =>
-        handler(request, { anon: { ip }, params, query }),
-    );
-  };
+  return createRouteWrapper<P, never, Q, AnonContext>(
+    async (request) => {
+      const ip = getClientIp(request);
+      const { acquired } = await acquireAnonRateLimitSlot(
+        ip,
+        options.rateLimit.action,
+        options.rateLimit.limit,
+        options.rateLimit.windowMs,
+      );
+      if (!acquired) {
+        return {
+          error: rateLimited("Too many requests. Try again later.", undefined, {
+            "Retry-After": String(Math.ceil(options.rateLimit.windowMs / 1000)),
+          }),
+        };
+      }
+      return { context: { ip } };
+    },
+    (request, anon, { params, query }) =>
+      handler(request, { anon, params, query }),
+    options,
+    "anon-route-handler",
+    () => ({}),
+  );
 }
 
 export function cronRoute(
@@ -203,38 +273,4 @@ export function cronRoute(
       () => handler(request),
     );
   };
-}
-
-/**
- * Verify that a fetched record belongs to the authenticated user.
- * Returns the narrowed record on success, or a 404 error response.
- * Combines null-check and userId comparison so callers never leak
- * whether a resource exists to non-owners.
- */
-export function requireOwned<T extends { userId: string }>(
-  record: T | null,
-  userId: string,
-  label = "Resource",
-): { data: T; error?: never } | { data?: never; error: NextResponse } {
-  if (!record || record.userId !== userId) {
-    return { error: notFound(`${label} not found`) };
-  }
-  return { data: record };
-}
-
-/**
- * Convert a Result<T> into a NextResponse. Centralises the
- * ok / error → JSON mapping that was previously duplicated in 35+ routes.
- */
-export function resultResponse<T>(
-  result: Result<T>,
-  options?: { status?: number; headers?: HeadersInit },
-): NextResponse {
-  if (!result.ok) {
-    return NextResponse.json(
-      { error: result.error, code: result.code },
-      { status: result.status },
-    );
-  }
-  return NextResponse.json(result.data, options);
 }
