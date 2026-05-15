@@ -19,7 +19,14 @@ import {
   fetchPromptTemplates,
   fetchRateLimitStatus,
   fetchStyleTemplateList,
+  deletePreset,
+  deletePromptTemplate,
   fetchTrendingStyleCombos,
+  autoFillGenerationFields,
+  boostStylePrompt,
+  generateLyricsFromPrompt,
+  savePreset,
+  savePromptTemplate,
 } from "./generate-form/api";
 import type { GenerationPreset, PersonaOption, PromptSuggestion, PromptTemplate, RateLimitStatus, StyleTemplate } from "./generate-form/types";
 import { GenerationProgress } from "./GenerationProgress";
@@ -267,13 +274,8 @@ export function GenerateForm() {
     if (isBoosting || !stylePrompt.trim()) return;
     setIsBoosting(true);
     try {
-      const res = await fetch("/api/style-boost", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: stylePrompt.trim() }),
-      });
-      const data = await res.json();
-      if (res.ok && data.result) {
+      const data = await boostStylePrompt(stylePrompt.trim());
+      if (data.ok && data.result) {
         setStylePrompt(data.result);
         toast("Style enhanced!", "success");
       } else {
@@ -290,13 +292,8 @@ export function GenerateForm() {
     if (isGeneratingLyrics || !lyricsPrompt.trim()) return;
     setIsGeneratingLyrics(true);
     try {
-      const res = await fetch("/api/lyrics/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: lyricsPrompt.trim() }),
-      });
-      const data = await res.json();
-      if (res.ok && data.lyrics) {
+      const data = await generateLyricsFromPrompt(lyricsPrompt.trim());
+      if (data.ok && data.lyrics) {
         setGeneratedLyrics(data.lyrics);
         toast("Lyrics generated!", "success");
       } else {
@@ -320,13 +317,8 @@ export function GenerateForm() {
     if (isAutoGenerating || !autoPrompt.trim()) return;
     setIsAutoGenerating(true);
     try {
-      const res = await fetch("/api/generate/auto", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: autoPrompt.trim() }),
-      });
-      const data = await res.json();
-      if (res.ok) {
+      const data = await autoFillGenerationFields(autoPrompt.trim());
+      if (data.ok) {
         if (data.title) setTitle(data.title);
         if (data.style) setStylePrompt(data.style);
         if (data.lyricsPrompt) {
@@ -358,18 +350,13 @@ export function GenerateForm() {
   }
 
   async function deleteTemplate(templateId: string) {
-    try {
-      const res = await fetch(`/api/prompt-templates/${templateId}`, { method: "DELETE" });
-      if (res.ok) {
-        setTemplates((prev) => prev.filter((t) => t.id !== templateId));
-        toast("Template deleted", "success");
-      } else {
-        const data = await res.json();
-        toast(data.error ?? "Failed to delete template", "error");
-      }
-    } catch {
-      toast("Failed to delete template", "error");
+    const { ok, error } = await deletePromptTemplate(templateId);
+    if (ok) {
+      setTemplates((prev) => prev.filter((t) => t.id !== templateId));
+      toast("Template deleted", "success");
+      return;
     }
+    toast(error ?? "Failed to delete template", "error");
   }
 
   async function saveAsTemplate() {
@@ -385,27 +372,23 @@ export function GenerateForm() {
 
     setIsSavingTemplate(true);
     try {
-      const res = await fetch("/api/prompt-templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: templateName.trim(),
-          prompt: prompt.trim(),
-          style: stylePrompt.trim() || null,
-          category: templateCategory.trim() || null,
-          isInstrumental: instrumental,
-        }),
+      const result = await savePromptTemplate({
+        name: templateName.trim(),
+        prompt: prompt.trim(),
+        style: stylePrompt.trim() || null,
+        category: templateCategory.trim() || null,
+        isInstrumental: instrumental,
       });
-      const data = await res.json();
-      if (res.ok) {
-        setTemplates((prev) => [...prev, data.template]);
+
+      if (result.ok && result.template) {
+        setTemplates((prev) => [...prev, result.template!]);
         setShowSaveDialog(false);
         setTemplateName("");
         setTemplateCategory("");
         fetchTemplates();
-        toast(`Template "${data.template.name}" saved!`, "success");
+        toast(`Template "${result.template.name}" saved!`, "success");
       } else {
-        toast(data.error ?? "Failed to save template", "error");
+        toast(result.error ?? "Failed to save template", "error");
       }
     } catch {
       toast("Failed to save template", "error");
@@ -431,19 +414,14 @@ export function GenerateForm() {
     toast(`Applied suggestion`, "success");
   }
 
-  async function deletePreset(presetId: string) {
-    try {
-      const res = await fetch(`/api/presets/${presetId}`, { method: "DELETE" });
-      if (res.ok) {
-        setPresets((prev) => prev.filter((p) => p.id !== presetId));
-        toast("Preset deleted", "success");
-      } else {
-        const data = await res.json();
-        toast(data.error ?? "Failed to delete preset", "error");
-      }
-    } catch {
-      toast("Failed to delete preset", "error");
+  async function handleDeletePreset(presetId: string) {
+    const { ok, error } = await deletePreset(presetId);
+    if (ok) {
+      setPresets((prev) => prev.filter((p) => p.id !== presetId));
+      toast("Preset deleted", "success");
+      return;
     }
+    toast(error ?? "Failed to delete preset", "error");
   }
 
   async function saveAsPreset() {
@@ -458,26 +436,22 @@ export function GenerateForm() {
 
     setIsSavingPreset(true);
     try {
-      const res = await fetch("/api/presets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: presetName.trim(),
-          title: title.trim() || null,
-          stylePrompt: stylePrompt.trim() || null,
-          lyricsPrompt: customMode ? lyrics.trim() || null : null,
-          isInstrumental: instrumental,
-          customMode,
-        }),
+      const result = await savePreset({
+        name: presetName.trim(),
+        title: title.trim() || null,
+        stylePrompt: stylePrompt.trim() || null,
+        lyricsPrompt: customMode ? lyrics.trim() || null : null,
+        isInstrumental: instrumental,
+        customMode,
       });
-      const data = await res.json();
-      if (res.ok) {
-        setPresets((prev) => [data.preset, ...prev]);
+
+      if (result.ok && result.preset) {
+        setPresets((prev) => [result.preset!, ...prev]);
         setShowPresetSaveDialog(false);
         setPresetName("");
-        toast(`Preset "${data.preset.name}" saved!`, "success");
+        toast(`Preset "${result.preset.name}" saved!`, "success");
       } else {
-        toast(data.error ?? "Failed to save preset", "error");
+        toast(result.error ?? "Failed to save preset", "error");
       }
     } catch {
       toast("Failed to save preset", "error");
@@ -961,7 +935,7 @@ export function GenerateForm() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => deletePreset(p.id)}
+                    onClick={() => handleDeletePreset(p.id)}
                     className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
                     aria-label="Delete preset"
                     title="Delete preset"
