@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { logServerError, logError } from "./error-logger";
 
 // Mock pino logger so tests don't write to stdout and we can assert calls
 vi.mock("@/lib/logger", () => ({
@@ -18,7 +17,13 @@ vi.mock("@/lib/logger", () => ({
   })),
 }));
 
+vi.mock("@sentry/nextjs", () => ({
+  captureException: vi.fn(),
+}));
+
+import { logServerError, logError } from "./error-logger";
 import { logger } from "@/lib/logger";
+import * as Sentry from "@sentry/nextjs";
 
 describe("logServerError", () => {
   beforeEach(() => {
@@ -71,6 +76,84 @@ describe("logServerError", () => {
     const loggedObj = call[0] as Record<string, unknown>;
     const params = loggedObj.params as Record<string, unknown>;
     expect(params).toHaveProperty("prompt");
+  });
+
+  it("forwards source + route as Sentry tags", () => {
+    logServerError("song-stale-recover-error", new Error("boom"), {
+      route: "/api/songs",
+      userId: "user-1",
+    });
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+    const opts = vi.mocked(Sentry.captureException).mock.calls[0][1] as
+      | { tags?: Record<string, string>; extra?: Record<string, unknown> }
+      | undefined;
+    expect(opts?.tags).toMatchObject({
+      source: "song-stale-recover-error",
+      route: "/api/songs",
+      userId: "user-1",
+    });
+  });
+
+  it("auto-promotes songId + sunoJobId from params to Sentry tags", () => {
+    logServerError("song-stale-recover-error", new Error("x"), {
+      route: "/api/songs",
+      params: { songId: "abc123", sunoJobId: "task-xyz", pollCount: 5 },
+    });
+    const opts = vi.mocked(Sentry.captureException).mock.calls[0][1] as
+      | { tags?: Record<string, string>; extra?: Record<string, unknown> }
+      | undefined;
+    expect(opts?.tags).toMatchObject({
+      songId: "abc123",
+      sunoJobId: "task-xyz",
+    });
+    // non-indexable param (pollCount) stays in extra, not tags
+    expect(opts?.tags).not.toHaveProperty("pollCount");
+    expect((opts?.extra as { params?: Record<string, unknown> } | undefined)?.params).toMatchObject({
+      pollCount: 5,
+    });
+  });
+
+  it("skips empty / overlong / non-string indexable param values", () => {
+    logServerError("src", new Error("x"), {
+      route: "/api/songs",
+      params: { songId: "", sunoJobId: 12345, playlistId: "x".repeat(300) },
+    });
+    const opts = vi.mocked(Sentry.captureException).mock.calls[0][1] as
+      | { tags?: Record<string, string>; extra?: Record<string, unknown> }
+      | undefined;
+    expect(opts?.tags).not.toHaveProperty("songId");
+    expect(opts?.tags).not.toHaveProperty("sunoJobId");
+    expect(opts?.tags).not.toHaveProperty("playlistId");
+  });
+
+  it("accepts explicit tags via context.tags", () => {
+    logServerError("src", new Error("x"), {
+      route: "/api/songs",
+      tags: { kind: "regression", region: "eu-west" },
+    });
+    const opts = vi.mocked(Sentry.captureException).mock.calls[0][1] as
+      | { tags?: Record<string, string>; extra?: Record<string, unknown> }
+      | undefined;
+    expect(opts?.tags).toMatchObject({
+      kind: "regression",
+      region: "eu-west",
+    });
+  });
+
+  it("keeps params + correlationId + userId in Sentry extra", () => {
+    logServerError("src", new Error("x"), {
+      route: "/api/songs",
+      userId: "user-1",
+      params: { songId: "abc", note: "anything" },
+      correlationId: "fixed-id",
+    });
+    const opts = vi.mocked(Sentry.captureException).mock.calls[0][1] as
+      | { tags?: Record<string, string>; extra?: Record<string, unknown> }
+      | undefined;
+    const extra = opts?.extra ?? {};
+    expect(extra.correlationId).toBe("fixed-id");
+    expect(extra.userId).toBe("user-1");
+    expect(extra.params).toMatchObject({ songId: "abc", note: "anything" });
   });
 });
 

@@ -60,6 +60,26 @@ export function logError(
   }
 }
 
+// Keys in `params` that are auto-promoted to Sentry tags so the value is
+// searchable in the GlitchTip UI (issue list, filter, list_issues MCP).
+// Tag values have a ~200-char limit and a per-event tag count limit, so this
+// list is intentionally small and stable. Other params still ride in `extra`.
+const INDEXED_PARAM_KEYS = ["songId", "sunoJobId", "playlistId", "stemId", "feedId"] as const;
+
+function promoteParamsToTags(
+  params: Record<string, unknown> | undefined,
+): Record<string, string> {
+  if (!params) return {};
+  const tags: Record<string, string> = {};
+  for (const key of INDEXED_PARAM_KEYS) {
+    const v = params[key];
+    if (typeof v === "string" && v.length > 0 && v.length <= 200) {
+      tags[key] = v;
+    }
+  }
+  return tags;
+}
+
 /**
  * Structured server-side error logger with request context.
  * Generates a correlation ID for each log entry to aid debugging.
@@ -75,6 +95,7 @@ export function logServerError(
     route: string;
     params?: Record<string, unknown>;
     correlationId?: string;
+    tags?: Record<string, string | undefined>;
   }
 ): string {
   const correlationId =
@@ -95,13 +116,25 @@ export function logServerError(
     "server-error"
   );
 
+  const tags: Record<string, string> = {
+    source,
+    route: context.route,
+    ...(context.userId ? { userId: context.userId } : {}),
+    ...promoteParamsToTags(context.params),
+  };
+  if (context.tags) {
+    for (const [k, v] of Object.entries(context.tags)) {
+      if (typeof v === "string" && v.length > 0 && v.length <= 200) tags[k] = v;
+    }
+  }
+
   // Mirror to Sentry/GlitchTip so server-side errors are visible alongside
   // their client-side counterparts. Sentry.init is a no-op without a DSN, so
   // captureException is also a no-op when tracking is disabled.
   Sentry.captureException(
     error instanceof Error ? error : new Error(String(error)),
     {
-      tags: { source, route: context.route },
+      tags,
       extra: {
         correlationId,
         userId: context.userId ?? "unknown",
