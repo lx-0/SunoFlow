@@ -2,13 +2,27 @@
  * Next.js instrumentation hook.
  *
  * Runs once when the server starts (not per-request). Used to:
- *   1. Start the background job scheduler
- *   2. Register a SIGTERM handler for graceful shutdown
+ *   1. Initialize Sentry/GlitchTip per runtime (nodejs vs edge)
+ *   2. Start the background job scheduler
+ *   3. Register a SIGTERM handler for graceful shutdown
  *
- * Docs: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation
+ * Docs:
+ *   https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation
+ *   https://docs.sentry.io/platforms/javascript/guides/nextjs/
  */
 
 export async function register() {
+  // Sentry server/edge runtime init. The dedicated config files only invoke
+  // Sentry.init() when their DSN env var is set, so this is a no-op when
+  // tracking is disabled. Without these imports, sentry.server.config.ts is
+  // never executed and 100% of server-side errors silently bypass Sentry.
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    await import("../sentry.server.config");
+  }
+  if (process.env.NEXT_RUNTIME === "edge") {
+    await import("../sentry.edge.config");
+  }
+
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
   const { registerAllJobs } = await import("@/lib/jobs");
@@ -29,3 +43,8 @@ export async function register() {
     proc.exit(0);
   });
 }
+
+// Required for Next.js 15 to forward RSC + route-handler errors into Sentry.
+// Without this export, server-side React errors and unhandled exceptions
+// from Route Handlers are not captured even when Sentry.init has run.
+export { captureRequestError as onRequestError } from "@sentry/nextjs";
