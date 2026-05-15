@@ -23,8 +23,14 @@ if [ -z "$SUNOFLOW_DATABASE_URL" ] && [ -n "$DATABASE_URL" ]; then
   export SUNOFLOW_DATABASE_URL="$DATABASE_URL"
 fi
 
+# Backward-compat: older Railway environments may still have NEXTAUTH_SECRET.
+if [ -z "$AUTH_SECRET" ] && [ -n "$NEXTAUTH_SECRET" ]; then
+  echo "AUTH_SECRET not set — falling back to NEXTAUTH_SECRET"
+  export AUTH_SECRET="$NEXTAUTH_SECRET"
+fi
+
 # Diagnostic: confirm required env vars are present (values redacted)
-for var in SUNOFLOW_DATABASE_URL DATABASE_URL AUTH_SECRET; do
+for var in SUNOFLOW_DATABASE_URL DATABASE_URL AUTH_SECRET NEXTAUTH_SECRET; do
   eval val=\$$var
   if [ -n "$val" ]; then
     echo "  $var = [set]"

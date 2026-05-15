@@ -42,7 +42,11 @@ export const DATABASE_URL = required("DATABASE_URL");
  *  DATABASE_URL is auto-injected for linked Postgres; accept it as fallback. */
 export const SUNOFLOW_DATABASE_URL =
   process.env.SUNOFLOW_DATABASE_URL || DATABASE_URL;
-export const AUTH_SECRET = required("AUTH_SECRET");
+/** Backward-compat: accept NEXTAUTH_SECRET when AUTH_SECRET is not set. */
+export const AUTH_SECRET =
+  process.env.AUTH_SECRET ||
+  process.env.NEXTAUTH_SECRET ||
+  required("AUTH_SECRET");
 export const NEXTAUTH_URL = optional("NEXTAUTH_URL", "http://localhost:3000");
 
 // --- Optional with defaults ---
