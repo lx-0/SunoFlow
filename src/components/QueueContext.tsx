@@ -134,6 +134,18 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   const skipPrevRef = useRef<() => void>(() => {});
   const hasUserGestureRef = useRef(false);
 
+  // Monotonic counter incremented on every transition that changes the
+  // currently-loaded audio source. Async paths (CDN-error refresh,
+  // playable-versions fetch, deferred canplay handlers) capture the
+  // generation at dispatch time and abort if it no longer matches —
+  // prevents stale fetches from clobbering audio.src after the user has
+  // already moved to a different song.
+  const loadGenerationRef = useRef(0);
+  const bumpLoadGeneration = useCallback(() => {
+    loadGenerationRef.current += 1;
+    return loadGenerationRef.current;
+  }, []);
+
   const trackPlayRef = useRef(trackPlay);
   queueRef.current = queue;
   currentIndexRef.current = currentIndex;
@@ -211,6 +223,8 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     const audio = audioRef.current;
     if (!audio) return;
 
+    const generation = bumpLoadGeneration();
+
     setCurrentIndex(index);
     setCurrentTime(0);
     setDuration(song.duration ?? 0);
@@ -222,6 +236,9 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     }
 
     const loadAndPlay = (target: QueueSong) => {
+      // Bail if a newer transition has started since this load was scheduled.
+      if (loadGenerationRef.current !== generation) return;
+
       // Installed PWAs are allowed to autoplay. Setting this before changing
       // src lets the browser auto-start the next track without a play() call,
       // which avoids NotAllowedError on mobile during song transitions.
@@ -233,6 +250,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       const onCanPlayOnce = () => {
         audio.removeEventListener("canplay", onCanPlayOnce);
         pendingCanPlayRef.current = null;
+        if (loadGenerationRef.current !== generation) return;
         if (audio.paused) {
           audio.play()
             .then(() => { pendingPlayRef.current = false; })
@@ -268,6 +286,9 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    // The fetch may have raced with a newer transition — abort if so.
+    if (loadGenerationRef.current !== generation) return;
+
     if (versions && versions.length > 1) {
       const picked = versions[Math.floor(Math.random() * versions.length)];
       setActiveVersion(picked);
@@ -278,7 +299,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       loadAndPlay(song);
       trackPlayRef.current(song.id);
     }
-  }, [retryPlay]);
+  }, [retryPlay, bumpLoadGeneration]);
 
   resolveAndPlayRef.current = resolveAndPlay;
 
@@ -320,9 +341,12 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       // If this also fails, give up — no further retries to avoid 429 cascades.
       if (currentSong && !cdnFallbackRef.current.has(currentSong.id)) {
         cdnFallbackRef.current.add(currentSong.id);
+        const generation = loadGenerationRef.current;
         fetch(`/api/songs/${currentSong.id}/play`, { method: "POST" })
           .then((res) => (res.ok ? res.json() : Promise.reject()))
           .then((data) => {
+            // Bail if the user has moved to a different song while we waited.
+            if (loadGenerationRef.current !== generation) return;
             if (!data?.audioUrl) {
               setIsBuffering(false);
               setIsPlaying(false);
@@ -335,6 +359,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
             });
           })
           .catch(() => {
+            if (loadGenerationRef.current !== generation) return;
             setIsBuffering(false);
             setIsPlaying(false);
           });
@@ -422,12 +447,13 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       setCurrentTime(0);
       setDuration(playOrder[playIdx].duration ?? 0);
       audio.pause();
+      bumpLoadGeneration();
       audio.src = getAudioSrc(playOrder[playIdx]);
       retryPlay(audio);
       trackPlay(playOrder[playIdx].id);
       scheduleSyncRef.current?.(playOrder[playIdx].id, 0, playOrder);
     },
-    [shuffle, trackPlay, retryPlay]
+    [shuffle, trackPlay, retryPlay, bumpLoadGeneration]
   );
 
   const togglePlay = useCallback(
@@ -461,6 +487,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       if (idx >= 0) {
         setCurrentIndex(idx);
         audio.pause();
+        bumpLoadGeneration();
         audio.src = getAudioSrc(queue[idx]);
         setCurrentTime(0);
         setDuration(queue[idx].duration ?? 0);
@@ -471,7 +498,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       // Not in queue — play as solo
       playQueue([song], 0);
     },
-    [isPlaying, currentIndex, queue, playQueue]
+    [isPlaying, currentIndex, queue, playQueue, bumpLoadGeneration]
   );
 
   const skipNext = useCallback(() => {
@@ -694,8 +721,11 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     const params = radioStateRef.current;
     if (!params) return;
     const excludeIds = Array.from(radioExcludedIds.current);
+    const generation = loadGenerationRef.current;
     fetchRadioSongs(params, excludeIds).then((songs) => {
       if (songs.length === 0) return;
+      // Bail if the user has moved to manual playback in the meantime.
+      if (loadGenerationRef.current !== generation) return;
       songs.forEach((s) => radioExcludedIds.current.add(s.id));
       const audio = audioRef.current;
       setQueue((prev) => {
@@ -704,6 +734,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
         if (currentIndexRef.current < 0 && merged.length > 0 && audio) {
           const firstNew = prev.length;
           setCurrentIndex(firstNew);
+          bumpLoadGeneration();
           audio.src = getAudioSrc(merged[firstNew]);
           setCurrentTime(0);
           setDuration(merged[firstNew].duration ?? 0);
@@ -713,7 +744,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
         return merged;
       });
     });
-  }, [fetchRadioSongs, retryPlay]);
+  }, [fetchRadioSongs, retryPlay, bumpLoadGeneration]);
 
   radioRefillRef.current = radioRefill;
 
@@ -744,6 +775,10 @@ export function QueueProvider({ children }: { children: ReactNode }) {
         const audio = audioRef.current;
         if (!audio) return;
 
+        // If the user interacted before the restore resolved, abandon — we
+        // must not clobber their newly-chosen playback.
+        if (loadGenerationRef.current !== 0) return;
+
         // Load the queue state without auto-playing
         originalQueueRef.current = restored.queue;
         setQueue(restored.queue);
@@ -753,6 +788,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
 
         // Set the audio source but don't play
         audio.autoplay = false;
+        const restoreGeneration = bumpLoadGeneration();
         audio.src = restored.initialSrc;
 
         // Restore shuffleVersions
@@ -783,14 +819,16 @@ export function QueueProvider({ children }: { children: ReactNode }) {
         // Seek to saved position after audio loads
         if (restored.position > 0 && restored.duration > 0) {
           const handleCanPlay = () => {
-            audio.currentTime = restored.position;
             audio.removeEventListener("canplay", handleCanPlay);
+            // Don't seek into a different song the user picked while we waited.
+            if (loadGenerationRef.current !== restoreGeneration) return;
+            audio.currentTime = restored.position;
           };
           audio.addEventListener("canplay", handleCanPlay);
         }
       })
       .catch(() => {});
-  }, [sessionStatus]);
+  }, [sessionStatus, bumpLoadGeneration]);
 
   // ─── Volume ─────────────────────────────────────────────────────────────
 
