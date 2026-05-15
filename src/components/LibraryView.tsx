@@ -42,6 +42,8 @@ import { LibraryToolbar } from "./LibraryToolbar";
 import { useDebounce } from "@/hooks/useDebounce";
 import { HighlightText } from "./HighlightText";
 import { songToQueueSong } from "@/lib/song-mappers";
+import { useSongsList, type SongsFilters } from "@/hooks/useSongsList";
+import { useTagsList } from "@/hooks/useTagsList";
 
 // Re-export SongListItemProps as SongRowProps for SwipableSongRow compatibility
 type SongRowProps = SongListItemProps;
@@ -563,12 +565,10 @@ export function LibraryView({
   }, [exportMenuOpen]);
 
   // ─── Fetch user tags for filter ───────────────────────────────────────────
+  const tagsQuery = useTagsList();
   useEffect(() => {
-    fetch("/api/tags")
-      .then((r) => r.json())
-      .then((data) => { if (data.tags) setAvailableTags(data.tags); })
-      .catch(() => {});
-  }, []);
+    if (tagsQuery.data) setAvailableTags(tagsQuery.data);
+  }, [tagsQuery.data]);
 
   // ─── Sync filters → URL params ───────────────────────────────────────────
   const hasAnyFilter = !!(debouncedSearch || statusFilter || ratingFilter || dateFrom || dateTo || tagFilter.length > 0 || smartFilter || sortBy !== "newest" || genreFilter.length > 0 || moodFilter.length > 0 || tempoMin || tempoMax || includeVariations);
@@ -597,113 +597,64 @@ export function LibraryView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, smartFilter, genreFilter, moodFilter, tempoMin, tempoMax, includeVariations, enableServerSearch]);
 
-  // ─── Build filter query string (shared by initial fetch and load-more) ───
-  function buildFilterParams(): URLSearchParams {
-    const params = new URLSearchParams();
-    params.set("limit", "100");
-    if (debouncedSearch) params.set("q", debouncedSearch);
-    if (statusFilter) params.set("status", statusFilter);
-    if (ratingFilter) params.set("minRating", ratingFilter);
-    if (dateFrom) params.set("dateFrom", dateFrom);
-    if (dateTo) params.set("dateTo", dateTo);
-    if (sortBy) params.set("sortBy", sortBy);
-    if (tagFilter.length > 0) params.set("tagIds", tagFilter.join(","));
-    if (smartFilter === "archived") {
-      params.set("archived", "true");
-    } else if (smartFilter) {
-      params.set("smartFilter", smartFilter);
-    }
-    if (genreFilter.length > 0) params.set("genre", genreFilter.join(","));
-    if (moodFilter.length > 0) params.set("mood", moodFilter.join(","));
-    if (tempoMin) params.set("tempoMin", tempoMin);
-    if (tempoMax) params.set("tempoMax", tempoMax);
-    if (includeVariations) params.set("includeVariations", "true");
-    return params;
-  }
+  // ─── Songs query (filter change, load-more, refresh, pending-poll) ───────
+  // One useInfiniteQuery replaces four hand-rolled fetch sites. React Query
+  // dedupes concurrent requests, cancels stale fetches on key change, and
+  // refetches on focus/reconnect — all of which the previous code did wrong.
+  const songsFilters: SongsFilters = useMemo(() => ({
+    q: debouncedSearch || undefined,
+    status: statusFilter || undefined,
+    minRating: ratingFilter || undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+    sortBy: sortBy || undefined,
+    tagIds: tagFilter.length > 0 ? tagFilter : undefined,
+    smartFilter: smartFilter && smartFilter !== "archived" ? smartFilter : undefined,
+    archived: smartFilter === "archived" || undefined,
+    genre: genreFilter.length > 0 ? genreFilter : undefined,
+    mood: moodFilter.length > 0 ? moodFilter : undefined,
+    tempoMin: tempoMin || undefined,
+    tempoMax: tempoMax || undefined,
+    includeVariations: includeVariations || undefined,
+  }), [debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, smartFilter, genreFilter, moodFilter, tempoMin, tempoMax, includeVariations]);
 
-  // ─── Fetch songs from API when filters change ────────────────────────────
+  const songsQuery = useSongsList(songsFilters, {
+    enabled: enableServerSearch,
+    pollWhilePending: enableServerSearch,
+  });
+
+  // Sync query data → local songs state. Local state is preserved so
+  // optimistic mutations (favorite toggle, retry, batch ops) keep working
+  // via setSongs without needing to reshape the infinite-query cache.
   useEffect(() => {
-    if (!enableServerSearch) return;
+    if (!songsQuery.data) return;
+    const allSongs = songsQuery.data.pages.flatMap((p) => p.songs);
+    setSongs(allSongs);
+    const lastPage = songsQuery.data.pages.at(-1);
+    setNextCursor(lastPage?.nextCursor ?? null);
+    setTotalSongs(lastPage?.total ?? allSongs.length);
+  }, [songsQuery.data]);
 
-    const params = buildFilterParams();
+  // Spinner while we have no data for the current filter set; cached data
+  // for previously-seen filters appears instantly without a flash.
+  useEffect(() => {
+    setLoading(songsQuery.isPending && songs.length === 0);
+  }, [songsQuery.isPending, songs.length]);
 
-    let cancelled = false;
-    setLoading(true);
-    setNextCursor(null);
+  useEffect(() => {
+    setLoadingMore(songsQuery.isFetchingNextPage);
+  }, [songsQuery.isFetchingNextPage]);
 
-    fetch(`/api/songs?${params.toString()}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (!cancelled && data.songs) {
-          setSongs(data.songs);
-          setNextCursor(data.nextCursor ?? null);
-          setTotalSongs(data.total ?? data.songs.length);
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, smartFilter, genreFilter, moodFilter, tempoMin, tempoMax, includeVariations, enableServerSearch]);
-
-  // ─── Load more (next page) ──────────────────────────────────────────────
   const handleLoadMore = useCallback(() => {
-    if (!nextCursor || loadingMore) return;
+    if (!songsQuery.hasNextPage || songsQuery.isFetchingNextPage) return;
+    songsQuery.fetchNextPage();
+  }, [songsQuery]);
 
-    const params = buildFilterParams();
-    params.set("cursor", nextCursor);
-
-    setLoadingMore(true);
-
-    fetch(`/api/songs?${params.toString()}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.songs) {
-          setSongs((prev) => [...prev, ...data.songs]);
-          setNextCursor(data.nextCursor ?? null);
-          setTotalSongs(data.total ?? totalSongs);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoadingMore(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nextCursor, loadingMore, debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, smartFilter, genreFilter, moodFilter, tempoMin, tempoMax, includeVariations]);
-
-  // ─── Pull-to-refresh: re-fetch songs with current filters ─────────────────
+  // Pull-to-refresh just calls refetch — React Query handles the rest.
   const handleLibraryRefreshRef = useRef<() => Promise<void>>(async () => {});
   const handleLibraryRefresh = useCallback(async () => {
-    const params = new URLSearchParams();
-    params.set("limit", "100");
-    if (debouncedSearch) params.set("q", debouncedSearch);
-    if (statusFilter) params.set("status", statusFilter);
-    if (ratingFilter) params.set("minRating", ratingFilter);
-    if (dateFrom) params.set("dateFrom", dateFrom);
-    if (dateTo) params.set("dateTo", dateTo);
-    if (sortBy) params.set("sortBy", sortBy);
-    if (tagFilter.length > 0) params.set("tagIds", tagFilter.join(","));
-    if (smartFilter === "archived") {
-      params.set("archived", "true");
-    } else if (smartFilter) {
-      params.set("smartFilter", smartFilter);
-    }
-    if (genreFilter.length > 0) params.set("genre", genreFilter.join(","));
-    if (moodFilter.length > 0) params.set("mood", moodFilter.join(","));
-    if (tempoMin) params.set("tempoMin", tempoMin);
-    if (tempoMax) params.set("tempoMax", tempoMax);
-    if (includeVariations) params.set("includeVariations", "true");
-    try {
-      const data = await fetch(`/api/songs?${params.toString()}`).then((r) => r.json());
-      if (data.songs) {
-        setSongs(data.songs);
-        setNextCursor(data.nextCursor ?? null);
-        setTotalSongs(data.total ?? data.songs.length);
-      }
-    } catch { /* swallow network errors */ }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, smartFilter, genreFilter, moodFilter, tempoMin, tempoMax, includeVariations]);
+    await songsQuery.refetch();
+  }, [songsQuery]);
 
   useEffect(() => { handleLibraryRefreshRef.current = handleLibraryRefresh; }, [handleLibraryRefresh]);
 
@@ -777,29 +728,6 @@ export function LibraryView({
   const handleSongUpdate = useCallback((updated: Song) => {
     setSongs((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
   }, []);
-
-  // ─── Auto-refresh list when pending songs exist ─────────────────────────
-  // Re-fetches every 30s while any song is pending so newly completed songs
-  // appear without a manual page reload.
-  const hasPending = songs.some((s) => s.generationStatus === "pending");
-  useEffect(() => {
-    if (!enableServerSearch || !hasPending) return;
-    const interval = setInterval(() => {
-      const params = buildFilterParams();
-      fetch(`/api/songs?${params.toString()}`)
-        .then((res) => res.ok ? res.json() : null)
-        .then((data) => {
-          if (data?.songs) {
-            setSongs(data.songs);
-            setNextCursor(data.nextCursor ?? null);
-            setTotalSongs(data.total ?? data.songs.length);
-          }
-        })
-        .catch(() => {});
-    }, 30_000);
-    return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasPending, enableServerSearch]);
 
   async function handleTogglePlay(song: Song) {
     // If the song is already active, just toggle without re-loading
