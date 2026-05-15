@@ -44,7 +44,13 @@ export async function generateMetadata({
       statusBarStyle: "default",
     },
     icons: {
+      icon: [
+        { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+        { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+        { url: "/icons/icon.svg", type: "image/svg+xml" },
+      ],
       apple: [
+        { url: "/icons/apple-touch-icon-180.png", sizes: "180x180", type: "image/png" },
         { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
         { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
       ],
