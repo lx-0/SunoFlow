@@ -1,8 +1,9 @@
 import { authRoute, resultResponse } from "@/lib/route-handler";
 import { togglePublish } from "@/lib/playlists";
 import { togglePublishBody } from "@/lib/playlists/schemas";
+import { z } from "zod";
 
-export const PATCH = authRoute<{ id: string }>(
+export const PATCH = authRoute<{ id: string }, z.infer<typeof togglePublishBody>>(
   async (_request, { auth, params, body }) =>
     resultResponse(await togglePublish(params.id, auth.userId, body.genre)),
   {

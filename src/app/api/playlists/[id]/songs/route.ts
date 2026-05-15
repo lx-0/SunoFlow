@@ -1,8 +1,9 @@
 import { authRoute, resultResponse } from "@/lib/route-handler";
 import { addSong } from "@/lib/playlists";
 import { addPlaylistSongBody } from "@/lib/playlists/schemas";
+import { z } from "zod";
 
-export const POST = authRoute<{ id: string }>(async (_request, { auth, params, body }) => {
+export const POST = authRoute<{ id: string }, z.infer<typeof addPlaylistSongBody>>(async (_request, { auth, params, body }) => {
   return resultResponse(await addSong(params.id, auth.userId, body.songId), { status: 201 });
 }, {
   route: "/api/playlists/[id]/songs",

@@ -2,6 +2,7 @@ import { authRoute, resultResponse } from "@/lib/route-handler";
 import { CacheControl } from "@/lib/cache";
 import { getPlaylist, updatePlaylist, deletePlaylist } from "@/lib/playlists";
 import { updatePlaylistBody } from "@/lib/playlists/schemas";
+import { z } from "zod";
 
 export const GET = authRoute<{ id: string }>(async (_request, { auth, params }) => {
   return resultResponse(await getPlaylist(params.id, auth.userId), {
@@ -9,7 +10,7 @@ export const GET = authRoute<{ id: string }>(async (_request, { auth, params }) 
   });
 }, { route: "/api/playlists/[id]" });
 
-export const PATCH = authRoute<{ id: string }>(async (_request, { auth, params, body }) => {
+export const PATCH = authRoute<{ id: string }, z.infer<typeof updatePlaylistBody>>(async (_request, { auth, params, body }) => {
   return resultResponse(await updatePlaylist(params.id, auth.userId, body));
 }, {
   route: "/api/playlists/[id]",

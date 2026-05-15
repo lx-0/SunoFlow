@@ -21,6 +21,6 @@ const createPlaylistBody = z.object({
     .optional(),
 });
 
-export const POST = authRoute(async (_request, { auth, body }) => {
+export const POST = authRoute<Record<string, never>, z.infer<typeof createPlaylistBody>>(async (_request, { auth, body }) => {
   return resultResponse(await createPlaylist(auth.userId, body), { status: 201 });
 }, { route: "/api/playlists", body: createPlaylistBody });
