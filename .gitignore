@@ -53,5 +53,5 @@ prisma.config.ts
 .audio-cache/
 
 # Tmp files
-# ~*.md
-# ~*/
+~*.md
+~*/
