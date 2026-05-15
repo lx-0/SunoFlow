@@ -496,6 +496,11 @@ export function GenerationHistoryView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nextCursor, loadingMore, activeFilter, sortKey, debouncedQuery, dateFrom, dateTo]);
 
+  // Merge a server-shaped song into local state by id (immutable replacement).
+  const mergeSongUpdate = useCallback((update: Partial<GenerationEntry> & { id: string }) => {
+    setSongs((prev) => prev.map((s) => (s.id === update.id ? { ...s, ...update } : s)));
+  }, []);
+
   // Retry failed
   async function handleRetry(entry: GenerationEntry) {
     if (retryingId) return;
@@ -512,14 +517,61 @@ export function GenerationHistoryView({
         }
         return;
       }
-      toast("Retry started! Song is regenerating.", "success");
-      router.refresh();
+      // Backend may return 200 with data.error set when Suno itself rejected
+      // the request — song stays "failed" with a new errorMessage. Reflect
+      // that in local state instead of pretending it succeeded.
+      if (data.song) {
+        mergeSongUpdate(data.song);
+      }
+      if (data.error) {
+        toast(data.error, "error");
+      } else {
+        toast("Retry started! Song is regenerating.", "success");
+      }
     } catch {
       toast("Network error. Please check your connection.", "error");
     } finally {
       setRetryingId(null);
     }
   }
+
+  // Poll pending songs so the user sees the pending → ready/failed transition
+  // without having to refresh the page manually.
+  const pendingKey = songs
+    .filter((s) => s.generationStatus === "pending")
+    .map((s) => s.id)
+    .sort()
+    .join(",");
+
+  useEffect(() => {
+    if (!pendingKey) return;
+    const ids = pendingKey.split(",");
+    let cancelled = false;
+
+    const tick = async () => {
+      const results = await Promise.allSettled(
+        ids.map(async (id) => {
+          const res = await fetch(`/api/songs/${id}/status`);
+          if (!res.ok) throw new Error(`status ${res.status}`);
+          const data = (await res.json()) as { song?: Partial<GenerationEntry> & { id: string } };
+          return data.song;
+        }),
+      );
+      if (cancelled) return;
+      for (const r of results) {
+        if (r.status === "fulfilled" && r.value) {
+          mergeSongUpdate(r.value);
+        }
+      }
+    };
+
+    void tick();
+    const interval = setInterval(tick, 4000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [pendingKey, mergeSongUpdate]);
 
   // Save prompt as preset
   async function handleSavePrompt(entry: GenerationEntry) {
