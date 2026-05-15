@@ -1,7 +1,7 @@
 ---
 project: SunoFlow
 slug: SunoFlow
-last_updated: 2026-05-15T15:00:00Z
+last_updated: 2026-05-15T17:55:00Z
 current_milestone: none
 active_slice: none
 active_task: none
@@ -27,10 +27,16 @@ The user decides:
 
 (Empty — no T##-SUMMARY.md yet. Will populate once `ytstack:plan-milestone` + `summarize-task` start running.)
 
-## Recent commits (snapshot at init, 2026-05-15)
+## Recent commits (2026-05-15 evening)
 
-- `f9ce935` fix(docker): declare NEXT_PUBLIC_SENTRY_DSN as build ARG
-- `fbae46a` fix(observability): wire Sentry server runtime + onRequestError + logServerError
-- `c66bc2f` perf(analytics): defer PostHog init to requestIdleCallback
-- `7511d20` fix(player): guard async audio paths with a load-generation token
-- `45023a6` perf(audio): move waveform peak math into a Web Worker
+- `23116cc` fix(test): use BigInt() instead of literal suffix in active-users tests
+- `d31671c` test(active-users): cover count, list, and daily helpers
+- `ab1fa19` fix(observability): correct active-user signal, streak triggers, failed-song archival
+- `5579658` fix(deploy): wire NEXT_PUBLIC_BUILD_ID through CI → Railway → Docker build
+- `0d1fbfd` chore: initialise ytstack (brownfield import)
+- `7ef992f` fix(auth): honor ADMIN_EMAILS in requireAdmin server-route guard
+- `b78deb7` feat(sw): per-deploy cache busting + safer auto-reload UX
+
+## Active background tasks
+
+- `b3ckyynwu` — `gh run watch 25927179799` (CI for `23116cc`). On success, ~5min Railway build, then verify `/api/admin/metrics` returns Activity-based `activeUsers7d/30d` and confirm streak advances on next play.

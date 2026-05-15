@@ -43,3 +43,14 @@ C) Two routines (PM triage + Engineer execution).
 **Chose:** A
 **Reason:** PM has GITHUB_TOKEN wired, can label/comment/close on GitHub and create SUNAA sub-issues assigned to Engineer in one heartbeat. Two routines double the cron load with no clarity gain. Scheduled MWF 10:00 Amsterdam (matches existing PM routines).
 **Reference:** Paperclip routine `868b6885-5995-466c-b5ec-8adcc083ce06` ([memory](~/.claude/projects/-Users-alex-Sync-home-alex-Code-WebDev-projects-lx-0-SunoFlow/memory/project_sunoflow_paperclip_company.md))
+
+## 2026-05-15: Active-user signal sourced from `Activity ∪ PlayHistory`, not `User.lastLoginAt`
+
+**Context:** Single-user audit (alex) revealed that `lastLoginAt` was 20 days stale despite continuous activity. NextAuth `session.strategy="jwt"` only writes `lastLoginAt` on a fresh sign-in (Credentials `authorize()` or OAuth-first-use branch of the `jwt` callback). With the default 30d JWT TTL, `activeUsers7d/30d` admin metrics, the analytics dashboard daily-active series, the hourly snapshot job, and the weekly email-digest targeting all systematically undercount reality.
+**Options considered:**
+A) Throttled `lastLoginAt` write in the `jwt` callback on every authenticated request (rewrites semantics, every API call potentially does a DB write).
+B) New `lastSeenAt` field updated by JWT throttle (cleanest separation, requires migration + backfill).
+C) Switch metric/targeting queries to a UNION over `Activity.createdAt` and `PlayHistory.playedAt` (no schema change, no extra writes).
+**Chose:** C
+**Reason:** No migration, no per-request write, and the union covers the real "did anything" surface (create/favorite/playlist via Activity + listening via PlayHistory). `lastLoginAt` retains its honest "last sign-in" semantic for display in admin/profile UI. Helper at `src/lib/active-users/index.ts` (`countActiveUsers`, `listActiveUserIds`, `dailyActiveUserCounts`). Five sites switched: `admin/metrics`, `admin/stats`, `analytics-data/admin-dashboard`, `jobs/index` (hourly snapshot), `jobs/email-digest`. Tested in `index.test.ts`.
+**Reference:** Commits `ab1fa19`, `d31671c`, `23116cc`. Audit conversation: see `.ytstack/STATE.md` for the broader 4-bug cluster discovered in the same session (streak-trigger gap, failed-song archival, RateLimitEntry cleanup).
