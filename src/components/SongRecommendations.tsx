@@ -114,7 +114,7 @@ export function RecommendationSection({ songId, type, title }: RecommendationSec
             <SongRowSkeleton />
           </>
         ) : (
-          songs!.map((song) => <SongRow key={song.id} song={song} />)
+          (songs ?? []).map((song) => <SongRow key={song.id} song={song} />)
         )}
       </div>
     </div>
