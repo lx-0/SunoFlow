@@ -19,6 +19,7 @@ import type {
   OptionalAuthContext,
   RateLimitConfig,
 } from "@/lib/route-handler/types";
+import type { PipelineCtx } from "@/lib/route-handler/types";
 
 export { requireOwned, resultResponse } from "@/lib/route-response";
 export type {
@@ -28,6 +29,43 @@ export type {
   OptionalAuthContext,
   RateLimitConfig,
 } from "@/lib/route-handler/types";
+
+type RouteDescriptor<
+  P extends Record<string, string>,
+  B,
+  Q,
+  TContext,
+  THandlerContext,
+> = {
+  preflight: (request: NextRequest) => Promise<{ context: TContext; error?: Response }>;
+  toHandlerContext: (context: TContext, parsed: PipelineCtx<P, B, Q>) => THandlerContext;
+  logLabel: string;
+  getLogContext: (context: TContext) => Record<string, unknown>;
+};
+
+function createPreflightRoute<
+  P extends Record<string, string>,
+  B,
+  Q,
+  TContext,
+  THandlerContext,
+>(
+  descriptor: RouteDescriptor<P, B, Q, TContext, THandlerContext>,
+  handler: (
+    request: NextRequest,
+    ctx: THandlerContext,
+  ) => Promise<Response>,
+  options?: RoutePipelineOptions<B, Q>,
+) {
+  return createRouteWrapper<P, B, Q, TContext>(
+    descriptor.preflight,
+    (request, context, parsed) =>
+      handler(request, descriptor.toHandlerContext(context, parsed)),
+    options,
+    descriptor.logLabel,
+    descriptor.getLogContext,
+  );
+}
 
 export function authRoute<
   P extends Record<string, string> = Record<string, never>,
@@ -40,13 +78,20 @@ export function authRoute<
   ) => Promise<Response>,
   options?: RoutePipelineOptions<B, Q>,
 ) {
-  return createRouteWrapper<P, B, Q, AuthContext>(
-    authPreflight,
-    (request, auth, { params, body, query }) =>
-      handler(request, { auth, params, body, query }),
+  return createPreflightRoute<P, B, Q, AuthContext, { auth: AuthContext; params: P; body: B; query: Q }>(
+    {
+      preflight: authPreflight,
+      toHandlerContext: (auth, { params, body, query }) => ({
+        auth,
+        params,
+        body,
+        query,
+      }),
+      logLabel: "route-handler",
+      getLogContext: (auth) => ({ userId: auth.userId }),
+    },
+    handler,
     options,
-    "route-handler",
-    (auth) => ({ userId: auth.userId }),
   );
 }
 
@@ -61,13 +106,26 @@ export function optionalAuthRoute<
   ) => Promise<Response>,
   options?: RoutePipelineOptions<B, Q>,
 ) {
-  return createRouteWrapper<P, B, Q, OptionalAuthContext>(
-    optionalAuthPreflight,
-    (request, auth, { params, body, query }) =>
-      handler(request, { auth, params, body, query }),
+  return createPreflightRoute<
+    P,
+    B,
+    Q,
+    OptionalAuthContext,
+    { auth: OptionalAuthContext; params: P; body: B; query: Q }
+  >(
+    {
+      preflight: optionalAuthPreflight,
+      toHandlerContext: (auth, { params, body, query }) => ({
+        auth,
+        params,
+        body,
+        query,
+      }),
+      logLabel: "optional-auth-route-handler",
+      getLogContext: (auth) => ({ userId: auth.userId }),
+    },
+    handler,
     options,
-    "optional-auth-route-handler",
-    (auth) => ({ userId: auth.userId }),
   );
 }
 
@@ -82,13 +140,19 @@ export function publicRoute<
   ) => Promise<Response>,
   options?: RoutePipelineOptions<B, Q>,
 ) {
-  return createRouteWrapper<P, B, Q, null>(
-    async () => ({ context: null }),
-    (request, _unused, { params, body, query }) =>
-      handler(request, { params, body, query }),
+  return createPreflightRoute<P, B, Q, null, { params: P; body: B; query: Q }>(
+    {
+      preflight: async () => ({ context: null }),
+      toHandlerContext: (_unused, { params, body, query }) => ({
+        params,
+        body,
+        query,
+      }),
+      logLabel: "public-route-handler",
+      getLogContext: () => ({}),
+    },
+    handler,
     options,
-    "public-route-handler",
-    () => ({}),
   );
 }
 
@@ -103,13 +167,20 @@ export function adminRoute<
   ) => Promise<Response>,
   options?: RoutePipelineOptions<B, Q>,
 ) {
-  return createRouteWrapper<P, B, Q, AdminContext>(
-    async () => adminPreflight(),
-    (request, admin, { params, body, query }) =>
-      handler(request, { admin, params, body, query }),
+  return createPreflightRoute<P, B, Q, AdminContext, { admin: AdminContext; params: P; body: B; query: Q }>(
+    {
+      preflight: async () => adminPreflight(),
+      toHandlerContext: (admin, { params, body, query }) => ({
+        admin,
+        params,
+        body,
+        query,
+      }),
+      logLabel: "admin-route-handler",
+      getLogContext: (admin) => ({ userId: admin.adminId }),
+    },
+    handler,
     options,
-    "admin-route-handler",
-    (admin) => ({ userId: admin.adminId }),
   );
 }
 
@@ -123,12 +194,15 @@ export function anonRoute<
   ) => Promise<Response>,
   options: RouteOptions & RouteSchemas<never, Q> & { rateLimit: RateLimitConfig },
 ) {
-  return createRouteWrapper<P, never, Q, AnonContext>(
-    async (request) => anonPreflight(request, options.rateLimit),
-    (request, anon, { params, query }) => handler(request, { anon, params, query }),
+  return createPreflightRoute<P, never, Q, AnonContext, { anon: AnonContext; params: P; query: Q }>(
+    {
+      preflight: async (request) => anonPreflight(request, options.rateLimit),
+      toHandlerContext: (anon, { params, query }) => ({ anon, params, query }),
+      logLabel: "anon-route-handler",
+      getLogContext: () => ({}),
+    },
+    handler,
     options,
-    "anon-route-handler",
-    () => ({}),
   );
 }
 
