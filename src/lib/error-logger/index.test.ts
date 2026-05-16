@@ -21,7 +21,7 @@ vi.mock("@sentry/nextjs", () => ({
   captureException: vi.fn(),
 }));
 
-import { logServerError, logError } from "./error-logger";
+import { logServerError, logError } from "./index";
 import { logger } from "@/lib/logger";
 import * as Sentry from "@sentry/nextjs";
 
@@ -157,30 +157,83 @@ describe("logServerError", () => {
   });
 });
 
-describe("logError", () => {
+describe("logError (client)", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
     vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    // logError is "use client" — it assumes window/navigator/fetch exist.
+    // Stub a minimal browser-like global so the test runner (Node) doesn't
+    // ReferenceError.
+    fetchSpy = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+    vi.stubGlobal("window", { location: { href: "https://example.test/page", pathname: "/page" } });
+    vi.stubGlobal("navigator", { userAgent: "test-agent" });
+    vi.stubGlobal("fetch", fetchSpy);
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
-  it("logs an error (server-side uses structured logger)", () => {
+  it("writes a structured entry to console.error", () => {
     logError("component", new Error("client error"));
-    // Server-side: pino logger.error; client-side: console.error
-    // In vitest (Node.js), typeof window === "undefined", so logger.error is used
-    expect(logger.error).toHaveBeenCalled();
+    expect(console.error).toHaveBeenCalledWith(
+      "[SunoFlow Error]",
+      expect.objectContaining({ source: "component" }),
+    );
   });
 
-  it("handles non-Error objects", () => {
+  it("POSTs the error to /api/error-report with message + stack + source", () => {
+    logError("component", new Error("client error"));
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/error-report",
+      expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining('"source":"component"'),
+      }),
+    );
+  });
+
+  it("captures the error to Sentry with a 'source' tag", () => {
+    logError("component", new Error("client error"));
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+    const opts = vi.mocked(Sentry.captureException).mock.calls[0][1] as
+      | { tags?: Record<string, string>; extra?: Record<string, unknown> }
+      | undefined;
+    expect(opts?.tags).toMatchObject({ source: "component" });
+  });
+
+  it("handles non-Error objects by wrapping them in Error", () => {
     logError("component", "plain string error");
-    expect(logger.error).toHaveBeenCalled();
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.any(Object),
+    );
   });
 
-  it("accepts optional route", () => {
+  it("falls back to window.location.pathname when no route override is provided", () => {
+    logError("component", new Error("err"));
+    const opts = vi.mocked(Sentry.captureException).mock.calls[0][1] as
+      | { extra?: { route?: string } }
+      | undefined;
+    expect(opts?.extra?.route).toBe("/page");
+  });
+
+  it("uses the explicit route argument when provided", () => {
     logError("component", new Error("err"), "/dashboard");
-    expect(logger.error).toHaveBeenCalled();
+    const opts = vi.mocked(Sentry.captureException).mock.calls[0][1] as
+      | { extra?: { route?: string } }
+      | undefined;
+    expect(opts?.extra?.route).toBe("/dashboard");
+  });
+
+  it("swallows fetch failures silently (console.error + Sentry must still fire)", async () => {
+    fetchSpy.mockRejectedValueOnce(new Error("offline"));
+    logError("component", new Error("err"));
+    expect(console.error).toHaveBeenCalled();
+    expect(Sentry.captureException).toHaveBeenCalled();
   });
 });
