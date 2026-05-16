@@ -11,7 +11,6 @@ import {
 } from "react";
 import { useSession } from "next-auth/react";
 import { proxiedAudioUrl } from "@/lib/audio-cdn";
-import { track } from "@/lib/analytics";
 import {
   type QueueContextValue,
   type QueueSong,
@@ -29,12 +28,9 @@ import { useMediaSession } from "@/components/queue/use-media-session";
 import { usePlaybackRecovery } from "@/components/queue/use-playback-recovery";
 import {
   loadPlaybackState,
-  savePlaybackState,
 } from "@/components/queue/playback-state";
-
-// ─── Playback state persistence ───────────────────────────────────────────────
-
-const SYNC_DEBOUNCE_MS = 12_000; // save every ~12s of activity
+import { usePlaybackTracking } from "@/components/queue/use-playback-tracking";
+import { usePlaybackSync } from "@/components/queue/use-playback-sync";
 
 export type { QueueSong, RepeatMode, RadioParams } from "@/components/queue/queue-context-types";
 
@@ -58,33 +54,9 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   const originalQueueRef = useRef<QueueSong[]>([]);
 
   // Debounce timer for server-side playback state sync
-  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Refs for sync (avoid stale closures in debounce callback)
   const volumeRef = useRef(1);
 
   const scheduleSyncRef = useRef<((songId: string, position: number, queue: QueueSong[]) => void) | null>(null);
-
-  // Track play counts — fire-and-forget POST to avoid double-counting on pause/resume
-  const lastTrackedSongRef = useRef<string | null>(null);
-  // History timer — log to play history after 5 seconds of a song starting
-  const historyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const trackPlay = useCallback((songId: string) => {
-    if (lastTrackedSongRef.current === songId) return;
-    lastTrackedSongRef.current = songId;
-    fetch(`/api/songs/${songId}/play`, { method: "POST" }).catch(() => {});
-    track("song_played");
-    // Cancel any pending history log for a previous song
-    if (historyTimerRef.current) clearTimeout(historyTimerRef.current);
-    // Schedule history log after 5 seconds
-    historyTimerRef.current = setTimeout(() => {
-      fetch("/api/history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songId }),
-      }).catch(() => {});
-    }, 5_000);
-  }, []);
 
   const [queue, setQueue] = useState<QueueSong[]>([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
@@ -103,6 +75,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   const [activeVersion, setActiveVersion] = useState<QueueSong | null>(null);
   const [restoredEQ, setRestoredEQ] = useState<{ gains: number[]; speed: number; pitch: number } | null>(null);
   const eqSettingsRef = useRef({ gains: [0, 0, 0, 0, 0], speed: 1, pitch: 0 });
+  const { trackPlay, clearHistoryTimer } = usePlaybackTracking();
 
   // Ref versions for use in callbacks without stale closures
   const radioStateRef = useRef<RadioParams | null>(null);
@@ -156,6 +129,15 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   volumeRef.current = volume;
   shuffleVersionsRef.current = shuffleVersions;
 
+  const { scheduleSync, clearSyncTimer } = usePlaybackSync({
+    volumeRef,
+    shuffleVersionsRef,
+    shuffleRef,
+    repeatRef,
+    mutedRef,
+    eqSettingsRef,
+  });
+
   // Retry audio.play() with exponential backoff — only for transient play()
   // rejections (AbortError when a new load interrupts play). Source/network
   // errors are handled by the <audio> "error" event, not here.
@@ -180,27 +162,6 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       });
   }, []);
 
-  // Debounced sync function — schedule a save of current playback state
-  const scheduleSync = useCallback(
-    (songId: string, position: number, syncQueue: QueueSong[]) => {
-      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
-      syncTimerRef.current = setTimeout(() => {
-        const eq = eqSettingsRef.current;
-        savePlaybackState({
-          songId,
-          position,
-          queue: syncQueue,
-          volume: volumeRef.current,
-          shuffleVersions: shuffleVersionsRef.current,
-          shuffle: shuffleRef.current,
-          repeat: repeatRef.current,
-          muted: mutedRef.current,
-          eqSettings: { gains: eq.gains, speed: eq.speed, pitch: eq.pitch },
-        });
-      }, SYNC_DEBOUNCE_MS);
-    },
-    []
-  );
   scheduleSyncRef.current = scheduleSync;
 
   /**
@@ -628,14 +589,8 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       audio.pause();
       audio.src = "";
     }
-    if (historyTimerRef.current) {
-      clearTimeout(historyTimerRef.current);
-      historyTimerRef.current = null;
-    }
-    if (syncTimerRef.current) {
-      clearTimeout(syncTimerRef.current);
-      syncTimerRef.current = null;
-    }
+    clearHistoryTimer();
+    clearSyncTimer();
     setQueue([]);
     setCurrentIndex(-1);
     setIsPlaying(false);
@@ -647,7 +602,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     originalQueueRef.current = [];
     setActiveVersion(null);
     versionCacheRef.current = new Map();
-  }, []);
+  }, [clearHistoryTimer, clearSyncTimer]);
 
   // ─── Radio actions ─────────────────────────────────────────────────────────
 
