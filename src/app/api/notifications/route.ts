@@ -3,11 +3,10 @@ import { NextResponse } from "next/server";
 import { authRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { CacheControl, cached, cacheKey } from "@/lib/cache";
-import { badRequest } from "@/lib/api-error";
-import { createNotification, NOTIFICATION_TYPES } from "@/lib/notifications";
-import type { NotificationType } from "@/lib/notifications";
+import { createNotification } from "@/lib/notifications";
 import { zLimitParam, zCursorParam } from "@/lib/query-params";
 import { cursorPaginate } from "@/lib/pagination";
+import { createNotificationRequestSchema } from "@/lib/notifications/request";
 
 const notificationsQuery = z.object({
   limit: zLimitParam(20, 100),
@@ -43,22 +42,12 @@ export const GET = authRoute(
 );
 
 export const POST = authRoute(
-  async (request, { auth }) => {
-    const body = await request.json();
+  async (_request, { auth, body }) => {
     const { type, title, message, href, songId } = body;
-
-    if (
-      !type ||
-      !title ||
-      !message ||
-      !(NOTIFICATION_TYPES as readonly string[]).includes(type)
-    ) {
-      return badRequest("Invalid input");
-    }
 
     const notification = await createNotification({
       userId: auth.userId,
-      type: type as NotificationType,
+      type,
       title,
       message,
       href: href || null,
@@ -67,5 +56,5 @@ export const POST = authRoute(
 
     return NextResponse.json({ notification }, { status: 201 });
   },
-  { route: "/api/notifications" },
+  { route: "/api/notifications", body: createNotificationRequestSchema },
 );

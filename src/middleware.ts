@@ -72,7 +72,8 @@ function generateCorrelationId(): string {
 
 async function resolveContext(request: NextRequest): Promise<MiddlewareContext> {
   const secureCookie = process.env.AUTH_URL?.startsWith("https://") ?? false;
-  const token = await getToken({ req: request, secret: process.env.AUTH_SECRET, secureCookie });
+  const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+  const token = await getToken({ req: request, secret: authSecret, secureCookie });
   const { pathname } = request.nextUrl;
   const pathnameWithoutLocale = stripLocalePrefix(pathname);
   const method = request.method;

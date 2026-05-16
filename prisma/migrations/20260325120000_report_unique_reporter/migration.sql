@@ -1,6 +1,7 @@
 -- AddUniqueConstraint
 -- Prevents the same user from filing duplicate reports on the same song.
 -- Duplicate rows (if any) are de-duplicated by keeping the oldest report per pair.
+-- approved-destructive: dedup step is required before adding unique index.
 
 DELETE FROM "Report" r1
 USING "Report" r2

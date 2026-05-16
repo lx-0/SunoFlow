@@ -5,6 +5,7 @@
 
 */
 -- DropIndex
+-- approved-destructive: this migration intentionally removes the obsolete Song.searchVector column/index.
 DROP INDEX "Song_searchVector_idx";
 
 -- AlterTable

@@ -2,25 +2,11 @@ import { NextResponse } from "next/server";
 import { logServerError } from "@/lib/error-logger";
 import { generationOutcomeToResponse } from "@/lib/generation/http-response";
 import { authRoute } from "@/lib/route-handler";
-import { executeMashup, type TrackSource } from "@/lib/mashup";
+import { executeMashup } from "@/lib/mashup";
+import { mashupRequestSchema } from "@/lib/mashup/request";
 
-export const POST = authRoute(async (request, { auth }) => {
-  const body = await request.json();
-  const { trackA, trackB, title, prompt, style, instrumental } = body as {
-    trackA: TrackSource;
-    trackB: TrackSource;
-    title?: string;
-    prompt?: string;
-    style?: string;
-    instrumental?: boolean;
-  };
-
-  if (!trackA || !trackB) {
-    return NextResponse.json(
-      { error: "Two tracks are required for a mashup", code: "VALIDATION_ERROR" },
-      { status: 400 },
-    );
-  }
+export const POST = authRoute(async (_request, { auth, body }) => {
+  const { trackA, trackB, title, prompt, style, instrumental } = body;
 
   const outcome = await executeMashup({
     userId: auth.userId,
@@ -43,4 +29,4 @@ export const POST = authRoute(async (request, { auth }) => {
     arrayFormat: true,
     includeServiceUnavailableCode: false,
   }) as NextResponse;
-}, { route: "/api/mashup" });
+}, { route: "/api/mashup", body: mashupRequestSchema });

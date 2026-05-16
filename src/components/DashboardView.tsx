@@ -361,7 +361,7 @@ export function DashboardView({ userName }: { userName?: string | null }) {
                 <RecentSongSkeleton />
               </>
             ) : (
-              dailySongs!.map((song) => (
+              (dailySongs ?? []).map((song) => (
                 <Link
                   key={song.id}
                   href={`/library/${song.id}`}
