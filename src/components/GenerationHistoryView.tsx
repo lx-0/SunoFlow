@@ -19,6 +19,7 @@ import { BookmarkIcon as BookmarkSolidIcon } from "@heroicons/react/24/solid";
 import { useToast } from "./Toast";
 import { useQueue, type QueueSong } from "./QueueContext";
 import Image from "next/image";
+import { retrySong, pollSongStatus, mergeSongIntoList } from "./generation-history/retry-client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -496,30 +497,70 @@ export function GenerationHistoryView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nextCursor, loadingMore, activeFilter, sortKey, debouncedQuery, dateFrom, dateTo]);
 
-  // Retry failed
+  // Merge a server-shaped song into local state by id (immutable replacement).
+  const mergeSongUpdate = useCallback((update: Partial<GenerationEntry> & { id: string }) => {
+    setSongs((prev) => mergeSongIntoList(prev, update));
+  }, []);
+
   async function handleRetry(entry: GenerationEntry) {
     if (retryingId) return;
     setRetryingId(entry.id);
-    try {
-      const res = await fetch(`/api/songs/${entry.id}/retry`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        if (res.status === 429 && data.resetAt) {
-          const mins = Math.ceil((new Date(data.resetAt).getTime() - Date.now()) / 60000);
-          toast(`Rate limit reached. Try again in ${mins} minute${mins === 1 ? "" : "s"}.`, "error");
-        } else {
-          toast(data.error ?? "Retry failed. Please try again.", "error");
-        }
-        return;
-      }
-      toast("Retry started! Song is regenerating.", "success");
-      router.refresh();
-    } catch {
-      toast("Network error. Please check your connection.", "error");
-    } finally {
-      setRetryingId(null);
+    const result = await retrySong(entry.id, { fetch });
+    switch (result.kind) {
+      case "ok":
+        mergeSongUpdate(result.song as Partial<GenerationEntry> & { id: string });
+        toast("Retry started! Song is regenerating.", "success");
+        break;
+      case "soft-error":
+        if (result.song) mergeSongUpdate(result.song as Partial<GenerationEntry> & { id: string });
+        toast(result.message, "error");
+        break;
+      case "rate-limit":
+        toast(
+          `Rate limit reached. Try again in ${result.minutesUntilReset} minute${result.minutesUntilReset === 1 ? "" : "s"}.`,
+          "error",
+        );
+        break;
+      case "error":
+        toast(result.message, "error");
+        break;
+      case "network-error":
+        toast("Network error. Please check your connection.", "error");
+        break;
     }
+    setRetryingId(null);
   }
+
+  // Poll pending songs so the user sees the pending → ready/failed transition
+  // without having to refresh the page manually.
+  const pendingKey = songs
+    .filter((s) => s.generationStatus === "pending")
+    .map((s) => s.id)
+    .sort()
+    .join(",");
+
+  useEffect(() => {
+    if (!pendingKey) return;
+    const ids = pendingKey.split(",");
+    let cancelled = false;
+
+    const tick = async () => {
+      const results = await Promise.all(ids.map((id) => pollSongStatus(id, { fetch })));
+      if (cancelled) return;
+      for (const r of results) {
+        if (r.kind === "ok") {
+          mergeSongUpdate(r.song as Partial<GenerationEntry> & { id: string });
+        }
+      }
+    };
+
+    void tick();
+    const interval = setInterval(tick, 4000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [pendingKey, mergeSongUpdate]);
 
   // Save prompt as preset
   async function handleSavePrompt(entry: GenerationEntry) {
