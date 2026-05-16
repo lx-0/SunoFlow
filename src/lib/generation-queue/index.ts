@@ -14,11 +14,10 @@ export type {
 export {
   listItems,
   addItem,
-  enqueueFromSpec,
   cancelItem,
   reorderItems,
   acquireNextItem,
-  updateItem,
+  updateItemById,
   resolveBySongId,
 } from "./repository";
 export { processNextItem } from "./process-next";

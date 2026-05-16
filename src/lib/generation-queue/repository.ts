@@ -51,30 +51,6 @@ export async function addItem(
   return success({ item });
 }
 
-export async function enqueueFromSpec(
-  userId: string,
-  params: { prompt: string; title: string | null; tags: string | null; isInstrumental: boolean; personaId?: string | null }
-): Promise<void> {
-  const maxPos = await prisma.generationQueueItem.aggregate({
-    _max: { position: true },
-    where: { userId, status: "pending" },
-  });
-  const position = (maxPos._max.position ?? 0) + 1;
-
-  await prisma.generationQueueItem.create({
-    data: {
-      userId,
-      prompt: params.prompt,
-      title: params.title ?? null,
-      tags: params.tags ?? null,
-      makeInstrumental: params.isInstrumental,
-      personaId: params.personaId ?? null,
-      status: "pending",
-      position,
-    },
-  });
-}
-
 export async function cancelItem(userId: string, itemId: string): Promise<CancelResult> {
   const item = await prisma.generationQueueItem.findFirst({
     where: { id: itemId, userId },
@@ -125,34 +101,43 @@ export async function acquireNextItem(userId: string): Promise<AcquireResult> {
   });
   if (!next) return { status: "empty" };
 
-  await updateItem({ id: next.id }, { status: "processing" });
+  await updateItemById(next.id, { status: "processing" });
 
   return { status: "acquired", item: { ...next, status: "processing" } };
 }
 
-export function updateItem(
-  where: { id: string } | { songId: string; status: string },
+/**
+ * Update a queue item by its primary key. The canonical way for the
+ * workflow (drain, process-next, acquireNextItem) to advance an item's
+ * status. Callers know the item id because they just acquired or
+ * enqueued it.
+ */
+export function updateItemById(
+  itemId: string,
   data: Partial<Pick<GenerationQueueItem, "status" | "songId" | "errorMessage">>,
 ): Promise<unknown> {
-  if ("id" in where) {
-    return prisma.generationQueueItem.update({ where: { id: where.id }, data });
-  }
-  return prisma.generationQueueItem.updateMany({
-    where: { songId: where.songId, status: where.status },
-    data,
-  });
+  return prisma.generationQueueItem.update({ where: { id: itemId }, data });
 }
 
+/**
+ * Find the in-flight queue item for a song (matched by songId AND
+ * status=processing) and close it. Called from the song-completion
+ * side-effect chain where the only handle we have is the songId.
+ *
+ * If no row matches (e.g. the song wasn't enqueued; was generated
+ * directly via /api/generate), this is a silent no-op.
+ */
 export async function resolveBySongId(
   songId: string,
   outcome: SongOutcome,
 ): Promise<void> {
-  if (outcome.status === "done") {
-    await updateItem({ songId, status: "processing" }, { status: "done" });
-  } else {
-    await updateItem(
-      { songId, status: "processing" },
-      { status: "failed", errorMessage: outcome.errorMessage },
-    );
-  }
+  const data: Partial<Pick<GenerationQueueItem, "status" | "errorMessage">> =
+    outcome.status === "done"
+      ? { status: "done" }
+      : { status: "failed", errorMessage: outcome.errorMessage };
+
+  await prisma.generationQueueItem.updateMany({
+    where: { songId, status: "processing" },
+    data,
+  });
 }

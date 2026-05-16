@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { SUNOAPI_KEY } from "@/lib/env";
 import { onCircuitClose } from "@/lib/circuit-breaker";
 import { executeCore, type SongParams } from "@/lib/generation/core";
-import { updateItem } from "./repository";
+import { updateItemById } from "./repository";
 
 const DRAIN_BATCH_SIZE = 5;
 
@@ -25,7 +25,7 @@ export async function drainQueuedItems(): Promise<void> {
   logger.info({ count: items.length }, "generation: draining queued items");
 
   for (const item of items) {
-    await updateItem({ id: item.id }, { status: "processing" });
+    await updateItemById(item.id, { status: "processing" });
 
     const songParams: SongParams = {
       title: item.title ?? null,
@@ -56,7 +56,7 @@ export async function drainQueuedItems(): Promise<void> {
 
     switch (outcome.status) {
       case "created":
-        await updateItem({ id: item.id }, { status: "done", songId: outcome.song.id });
+        await updateItemById(item.id, { status: "done", songId: outcome.song.id });
         logger.info(
           { queueItemId: item.id, songId: outcome.song.id },
           "generation: queued item processed"
@@ -64,7 +64,7 @@ export async function drainQueuedItems(): Promise<void> {
         break;
 
       case "circuit_open":
-        await updateItem({ id: item.id }, { status: "pending" });
+        await updateItemById(item.id, { status: "pending" });
         logger.warn(
           { queueItemId: item.id },
           "generation: circuit opened during drain — stopping"
@@ -76,7 +76,7 @@ export async function drainQueuedItems(): Promise<void> {
           { queueItemId: item.id, err: outcome.rawError },
           "generation: queued item failed"
         );
-        await updateItem({ id: item.id }, { status: "failed", errorMessage: outcome.errorMessage, songId: outcome.song.id }).catch(
+        await updateItemById(item.id, { status: "failed", errorMessage: outcome.errorMessage, songId: outcome.song.id }).catch(
           (updateErr) => {
             logger.error(
               { queueItemId: item.id, updateErr },

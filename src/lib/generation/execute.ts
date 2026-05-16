@@ -81,8 +81,31 @@ export async function executeGeneration(spec: GenerationSpec): Promise<Generatio
 async function enqueueGeneration(spec: GenerationSpec): Promise<GenerationOutcome> {
   logger.warn({ userId: spec.userId }, "generation: circuit open — queuing request");
 
-  const { enqueueFromSpec } = await import("@/lib/generation-queue");
-  await enqueueFromSpec(spec.userId, spec.songParams);
+  const { addItem } = await import("@/lib/generation-queue");
+  const result = await addItem(spec.userId, {
+    prompt: spec.songParams.prompt,
+    title: spec.songParams.title,
+    tags: spec.songParams.tags,
+    makeInstrumental: spec.songParams.isInstrumental,
+    personaId: spec.songParams.personaId ?? null,
+  });
+
+  if (!result.ok) {
+    logger.warn(
+      { userId: spec.userId, errorCode: result.code },
+      "generation: circuit open AND queue full — rejecting request",
+    );
+    return {
+      status: "denied",
+      response: new Response(
+        JSON.stringify({
+          error: "Music generation is temporarily unavailable and the retry queue is full. Please try again later.",
+          code: "QUEUE_FULL",
+        }),
+        { status: 503, headers: { "Content-Type": "application/json" } },
+      ),
+    };
+  }
 
   return {
     status: "queued",

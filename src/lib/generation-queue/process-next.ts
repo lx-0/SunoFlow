@@ -3,7 +3,7 @@ import { resolveUserApiKey, generateSong, SunoApiError, getRemainingCredits, moc
 import { SUNOAPI_KEY } from "@/lib/env";
 import { logServerError } from "@/lib/error-logger";
 import { executeGeneration, userFriendlyError } from "@/lib/generation";
-import { acquireNextItem, updateItem } from "./repository";
+import { acquireNextItem, updateItemById } from "./repository";
 import type { ProcessNextResult } from "./types";
 
 export async function processNextItem(userId: string): Promise<ProcessNextResult> {
@@ -18,7 +18,7 @@ export async function processNextItem(userId: string): Promise<ProcessNextResult
 
   const { acquired, status: rateLimitStatus } = await acquireRateLimitSlot(userId);
   if (!acquired) {
-    await updateItem({ id: nextItem.id }, { status: "pending" });
+    await updateItemById(nextItem.id, { status: "pending" });
     return { outcome: "rate_limited", rateLimit: rateLimitStatus };
   }
 
@@ -52,12 +52,12 @@ export async function processNextItem(userId: string): Promise<ProcessNextResult
   });
 
   if (genOutcome.status === "denied") {
-    await updateItem({ id: nextItem.id }, { status: "failed", errorMessage: "Generation denied" });
+    await updateItemById(nextItem.id, { status: "failed", errorMessage: "Generation denied" });
     return { outcome: "denied" };
   }
 
   if (genOutcome.status === "queued") {
-    await updateItem({ id: nextItem.id }, { status: "pending", errorMessage: "Re-queued: circuit still open" });
+    await updateItemById(nextItem.id, { status: "pending", errorMessage: "Re-queued: circuit still open" });
     return { outcome: "queued", message: genOutcome.message };
   }
 
@@ -68,7 +68,7 @@ export async function processNextItem(userId: string): Promise<ProcessNextResult
       params: { queueItemId: nextItem.id },
     });
     const { code, details } = userFriendlyError(genOutcome.rawError);
-    await updateItem({ id: nextItem.id }, { status: "failed", errorMessage: genOutcome.error, songId: genOutcome.song.id });
+    await updateItemById(nextItem.id, { status: "failed", errorMessage: genOutcome.error, songId: genOutcome.song.id });
 
     let creditBalance: number | undefined;
     if (genOutcome.rawError instanceof SunoApiError && genOutcome.rawError.status === 402) {
@@ -89,9 +89,9 @@ export async function processNextItem(userId: string): Promise<ProcessNextResult
 
   const queueStatus = genOutcome.song.generationStatus === "ready" ? "done" as const : "processing" as const;
   if (queueStatus === "done") {
-    await updateItem({ id: nextItem.id }, { status: "done", songId: genOutcome.song.id });
+    await updateItemById(nextItem.id, { status: "done", songId: genOutcome.song.id });
   } else {
-    await updateItem({ id: nextItem.id }, { songId: genOutcome.song.id });
+    await updateItemById(nextItem.id, { songId: genOutcome.song.id });
   }
 
   return {
