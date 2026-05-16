@@ -44,6 +44,61 @@ type RouteFactoryConfig<TContext, TPreflightContext = TContext> = {
   getLogContext: (context: TContext) => Record<string, unknown>;
 };
 
+type ParsedRouteContext<P extends Record<string, string>, B, Q> = {
+  params: P;
+  body: B;
+  query: Q;
+};
+
+type RouteContextWithAuth<
+  TAuthContext,
+  P extends Record<string, string>,
+  B,
+  Q,
+> = { auth: TAuthContext } & ParsedRouteContext<P, B, Q>;
+
+function withParsedContext<P extends Record<string, string>, B, Q>(
+  parsed: PipelineCtx<P, B, Q>,
+): ParsedRouteContext<P, B, Q> {
+  return {
+    params: parsed.params,
+    body: parsed.body,
+    query: parsed.query,
+  };
+}
+
+function withAuthParsedContext<
+  K extends "auth" | "admin" | "anon",
+  TAuthContext,
+  P extends Record<string, string>,
+  B,
+  Q,
+>(
+  key: K,
+  authContext: TAuthContext,
+  parsed: PipelineCtx<P, B, Q>,
+): Record<K, TAuthContext> & ParsedRouteContext<P, B, Q> {
+  return {
+    [key]: authContext,
+    ...withParsedContext(parsed),
+  } as Record<K, TAuthContext> & ParsedRouteContext<P, B, Q>;
+}
+
+function createRouteDescriptor<
+  P extends Record<string, string>,
+  B,
+  Q,
+  TContext,
+  THandlerContext,
+>(
+  preflight: (request: NextRequest) => Promise<PreflightResult<TContext>>,
+  toHandlerContext: (context: TContext, parsed: PipelineCtx<P, B, Q>) => THandlerContext,
+  logLabel: string,
+  getLogContext: (context: TContext) => Record<string, unknown>,
+): RouteDescriptor<P, B, Q, TContext, THandlerContext> {
+  return { preflight, toHandlerContext, logLabel, getLogContext };
+}
+
 function createPreflightRoute<
   P extends Record<string, string>,
   B,
