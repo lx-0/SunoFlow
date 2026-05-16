@@ -1,13 +1,17 @@
-import { recordActivity } from "@/lib/activity";
-import { invalidateByPrefix, audioCache, imageCache } from "@/lib/cache";
+import { invalidateByPrefix } from "@/lib/cache";
 import { logServerError } from "@/lib/error-logger";
 import { broadcast } from "@/lib/event-bus";
 import { resolveBySongId } from "@/lib/generation-queue";
 import { logger } from "@/lib/logger";
-import { notifyFollowersOfNewSong, notifyUser } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { buildFailedTransition, readyTransition } from "@/lib/songs/lifecycle";
-import { recordDailyActivity, checkSongMilestones, checkStreakMilestones } from "@/lib/streaks";
+import {
+  broadcastSongReady,
+  cacheSongAssets,
+  notifyAboutReadySong,
+  recordSongReadyEngagement,
+  type SongReadyContext,
+} from "./song-ready-events";
 
 const USER_CONTENT_REJECT_PATTERNS = [
   /artist name/i,
@@ -50,14 +54,14 @@ export interface SongRecord {
   pollCount: number;
 }
 
-interface PersistedSong {
+export interface PersistedSong {
   id: string;
   title: string | null;
   audioUrl: string | null;
   imageUrl: string | null;
 }
 
-interface AlternateSong {
+export interface AlternateSong {
   id: string;
   parentSongId: string;
   title: string | null;
@@ -85,99 +89,27 @@ export async function handleSongSuccess(
   const alternates = await createAlternateSongs(song, completionSongs);
   await markQueueItemDone(song.id);
 
+  const ctx: SongReadyContext = { song, updated, firstSong, alternates };
   const sideEffectErrors: string[] = [];
 
-  const runSideEffect = async (name: string, fn: () => void | Promise<void>) => {
+  const run = async (name: string, fn: () => void | Promise<void>) => {
     try {
       await fn();
     } catch (err) {
       sideEffectErrors.push(name);
-      logger.error({ err, songId: song.id, userId: song.userId, sideEffect: name }, "song-completion: side effect failed");
+      logger.error(
+        { err, songId: song.id, userId: song.userId, sideEffect: name },
+        "song-completion: side effect failed",
+      );
     }
   };
 
-  await Promise.allSettled([
-    runSideEffect("broadcast-alternates", () => {
-      for (const alt of alternates) {
-        broadcast(song.userId, {
-          type: "generation_update",
-          data: {
-            songId: alt.id,
-            parentSongId: alt.parentSongId,
-            status: "ready",
-            title: alt.title,
-            audioUrl: alt.audioUrl,
-            imageUrl: alt.imageUrl,
-          },
-        });
-      }
-    }),
-    runSideEffect("broadcast-primary", () => {
-      broadcast(song.userId, {
-        type: "generation_update",
-        data: {
-          songId: song.id,
-          status: "ready",
-          title: updated.title,
-          audioUrl: updated.audioUrl,
-          imageUrl: updated.imageUrl,
-          alternateCount: alternates.length,
-        },
-      });
-    }),
-    runSideEffect("broadcast-queue", () => {
-      broadcast(song.userId, { type: "queue_item_complete", data: { songId: song.id } });
-    }),
-    runSideEffect("cache-primary-audio", async () => {
-      if (firstSong.audioUrl && !audioCache.has(song.id)) {
-        await audioCache.downloadAndPut(song.id, firstSong.audioUrl);
-      }
-    }),
-    runSideEffect("cache-primary-image", async () => {
-      const coverUrl = firstSong.imageUrl || song.imageUrl;
-      if (coverUrl && !imageCache.has(song.id)) {
-        await imageCache.downloadAndPut(song.id, coverUrl);
-      }
-    }),
-    runSideEffect("cache-alternates", async () => {
-      await Promise.all(
-        alternates.flatMap((alt) => [
-          alt.audioSource.audioUrl
-            ? audioCache.downloadAndPut(alt.id, alt.audioSource.audioUrl)
-            : null,
-          alt.audioSource.imageUrl
-            ? imageCache.downloadAndPut(alt.id, alt.audioSource.imageUrl)
-            : null,
-        ].filter(Boolean))
-      );
-    }),
-    runSideEffect("invalidate-dashboard", () => {
-      invalidateByPrefix(`dashboard-stats:${song.userId}`);
-    }),
-    runSideEffect("record-activity", async () => {
-      await recordActivity({ userId: song.userId, type: "song_created", songId: song.id });
-    }),
-    runSideEffect("notify-followers", async () => {
-      await notifyFollowersOfNewSong(song.userId, song.id);
-    }),
-    runSideEffect("record-streak", async () => {
-      const newStreak = await recordDailyActivity(song.userId);
-      await checkStreakMilestones(song.userId, newStreak);
-    }),
-    runSideEffect("check-song-milestones", async () => {
-      await checkSongMilestones(song.userId);
-    }),
-    runSideEffect("notify-user", async () => {
-      await notifyUser({
-        userId: song.userId,
-        type: "generation_complete",
-        title: "Your song is ready!",
-        message: `"${updated.title || "Untitled"}" has finished generating`,
-        href: "/library",
-        songId: song.id,
-        push: { tag: `generation-complete-${song.id}` },
-      });
-    }),
+  await Promise.all([
+    run("broadcast", () => broadcastSongReady(ctx)),
+    run("cache-assets", () => cacheSongAssets(ctx)),
+    run("engagement", () => recordSongReadyEngagement(ctx)),
+    run("notify", () => notifyAboutReadySong(ctx)),
+    run("invalidate-dashboard", () => invalidateByPrefix(`dashboard-stats:${song.userId}`)),
   ]);
 
   return { persisted: true, sideEffectErrors };
