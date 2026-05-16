@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { invalidateByPrefix } from "@/lib/cache";
 import { logServerError } from "@/lib/error-logger";
 import { broadcast } from "@/lib/event-bus";
@@ -84,6 +85,25 @@ export async function handleSongSuccess(
   if (completionSongs.length === 0) return { persisted: false, sideEffectErrors: [] };
 
   const firstSong = completionSongs[0];
+
+  // Single-flight guard. Three pathways can call handleSongSuccess
+  // concurrently for the same song: the SSE pollToCompletion loop, the
+  // client-side `/api/songs/[id]/status` poll, and the stale-pending
+  // recovery sweep. If a concurrent handler already flipped this row to
+  // `ready` with the same primary clip, skip — running the alternates
+  // creation + broadcasts + notifications twice causes a unique-constraint
+  // collision on `Song.sunoJobId` (GlitchTip Issue 5) and double
+  // notifications. The lookup is TOCTOU-racy by definition; the
+  // createAlternateSongs P2002 handler below is the second line of defence.
+  if (firstSong.id) {
+    const current = await prisma.song.findUnique({
+      where: { id: song.id },
+      select: { generationStatus: true, sunoAudioId: true },
+    });
+    if (current?.generationStatus === "ready" && current.sunoAudioId === firstSong.id) {
+      return { persisted: false, sideEffectErrors: [] };
+    }
+  }
 
   const updated = await persistSongCompletion(song, firstSong);
   const alternates = await createAlternateSongs(song, completionSongs);
@@ -190,34 +210,70 @@ async function createAlternateSongs(
 
   for (let i = 1; i < completionSongs.length; i++) {
     const extra = completionSongs[i];
-    const created = await prisma.song.create({
-      data: {
-        userId: song.userId,
-        sunoJobId: extra.id || null,
-        sunoAudioId: extra.id || null,
-        title: extra.title || song.title,
-        prompt: song.prompt,
-        tags: extra.tags || song.tags,
-        audioUrl: extra.audioUrl || null,
-        audioUrlExpiresAt: extra.audioUrl ? cdnUrlExpiresAt : null,
-        imageUrl: extra.imageUrl || null,
-        imageUrlExpiresAt: extra.imageUrl ? cdnUrlExpiresAt : null,
-        duration: extra.duration ?? null,
-        lyrics: extra.lyrics || null,
-        sunoModel: extra.model || null,
-        isInstrumental: song.isInstrumental,
-        generationStatus: "ready",
+    const sunoJobId = extra.id || null;
+    try {
+      const created = await prisma.song.create({
+        data: {
+          userId: song.userId,
+          sunoJobId,
+          sunoAudioId: sunoJobId,
+          title: extra.title || song.title,
+          prompt: song.prompt,
+          tags: extra.tags || song.tags,
+          audioUrl: extra.audioUrl || null,
+          audioUrlExpiresAt: extra.audioUrl ? cdnUrlExpiresAt : null,
+          imageUrl: extra.imageUrl || null,
+          imageUrlExpiresAt: extra.imageUrl ? cdnUrlExpiresAt : null,
+          duration: extra.duration ?? null,
+          lyrics: extra.lyrics || null,
+          sunoModel: extra.model || null,
+          isInstrumental: song.isInstrumental,
+          generationStatus: "ready",
+          parentSongId: song.id,
+        },
+      });
+      alternates.push({
+        id: created.id,
         parentSongId: song.id,
-      },
-    });
-    alternates.push({
-      id: created.id,
-      parentSongId: song.id,
-      title: created.title,
-      audioUrl: created.audioUrl,
-      imageUrl: created.imageUrl,
-      audioSource: extra,
-    });
+        title: created.title,
+        audioUrl: created.audioUrl,
+        imageUrl: created.imageUrl,
+        audioSource: extra,
+      });
+    } catch (err) {
+      // P2002 = unique constraint failure. The alternate's sunoJobId is
+      // already in the DB — most likely because a concurrent handler (SSE
+      // poll + client status poll + stale-pending recovery can all fire
+      // handleSongSuccess for the same parent) created it microseconds
+      // earlier. Look up the existing row and return its shape so
+      // downstream broadcasts + cache writes still see the alternate.
+      if (
+        sunoJobId &&
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === "P2002"
+      ) {
+        const existing = await prisma.song.findUnique({
+          where: { sunoJobId },
+          select: { id: true, title: true, audioUrl: true, imageUrl: true },
+        });
+        if (existing) {
+          logger.info(
+            { songId: song.id, sunoJobId, altId: existing.id },
+            "song-completion: alternate-create race resolved by lookup",
+          );
+          alternates.push({
+            id: existing.id,
+            parentSongId: song.id,
+            title: existing.title,
+            audioUrl: existing.audioUrl,
+            imageUrl: existing.imageUrl,
+            audioSource: extra,
+          });
+          continue;
+        }
+      }
+      throw err;
+    }
   }
 
   return alternates;

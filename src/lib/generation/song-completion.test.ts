@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { Prisma } from "@prisma/client";
 
 vi.mock("@/lib/env", () => ({
   get DATABASE_URL() { return "postgres://test:test@localhost:5432/test"; },
@@ -24,8 +25,8 @@ vi.mock("@/lib/event-bus", () => ({ broadcast: vi.fn() }));
 vi.mock("@/lib/error-logger", () => ({ logServerError: vi.fn() }));
 vi.mock("@/lib/cache", () => ({
   invalidateByPrefix: vi.fn(),
-  audioCache: { has: vi.fn().mockReturnValue(true), downloadAndPut: vi.fn() },
-  imageCache: { has: vi.fn().mockReturnValue(true), downloadAndPut: vi.fn() },
+  audioCache: { has: vi.fn().mockReturnValue(true), downloadAndPut: vi.fn().mockResolvedValue(undefined) },
+  imageCache: { has: vi.fn().mockReturnValue(true), downloadAndPut: vi.fn().mockResolvedValue(undefined) },
 }));
 vi.mock("@/lib/notifications", () => ({
   notifyFollowersOfNewSong: vi.fn().mockResolvedValue(undefined),
@@ -91,6 +92,79 @@ describe("handleSongSuccess persistence", () => {
     const result = await handleSongSuccess(baseRecord, []);
     expect(result.persisted).toBe(false);
     expect(prisma.song.update).not.toHaveBeenCalled();
+  });
+
+  it("single-flight: skips when the parent is already ready with the same primary clip", async () => {
+    vi.mocked(prisma.song.findUnique).mockResolvedValue({
+      generationStatus: "ready",
+      sunoAudioId: "clip-A",
+    } as never);
+    const result = await handleSongSuccess(baseRecord, [
+      { id: "clip-A", audioUrl: "https://example.com/a.mp3", title: "Title" },
+    ]);
+    expect(result.persisted).toBe(false);
+    expect(prisma.song.update).not.toHaveBeenCalled();
+    expect(prisma.song.create).not.toHaveBeenCalled();
+  });
+
+  it("still runs when the parent is ready with a DIFFERENT primary clip (e.g. retry)", async () => {
+    vi.mocked(prisma.song.findUnique).mockResolvedValue({
+      generationStatus: "ready",
+      sunoAudioId: "clip-OLD",
+    } as never);
+    await handleSongSuccess(baseRecord, [
+      { id: "clip-NEW", audioUrl: "https://example.com/a.mp3", title: "Title" },
+    ]);
+    expect(prisma.song.update).toHaveBeenCalled();
+  });
+
+  it("createAlternateSongs: P2002 on a duplicate sunoJobId falls back to lookup", async () => {
+    // First call: parent's status check (not ready → proceed)
+    vi.mocked(prisma.song.findUnique)
+      .mockResolvedValueOnce({ generationStatus: "pending", sunoAudioId: null } as never)
+      // Second call: lookup of the existing alternate after P2002
+      .mockResolvedValueOnce({
+        id: "alt-existing",
+        title: "Alt 2",
+        audioUrl: "https://example.com/alt2.mp3",
+        imageUrl: null,
+      } as never);
+
+    const p2002 = new Prisma.PrismaClientKnownRequestError(
+      "Unique constraint failed on the fields: (`sunoJobId`)",
+      { code: "P2002", clientVersion: "5.22.0" },
+    );
+    vi.mocked(prisma.song.create).mockRejectedValueOnce(p2002);
+
+    const result = await handleSongSuccess(baseRecord, [
+      { id: "clip-A", audioUrl: "https://example.com/a.mp3", title: "Title" },
+      { id: "clip-B", audioUrl: "https://example.com/alt2.mp3", title: "Alt 2" },
+    ]);
+
+    expect(result.persisted).toBe(true);
+    // No sideEffectError logged for the alternate-create — the race was
+    // resolved gracefully via findUnique.
+    expect(result.sideEffectErrors).toEqual([]);
+  });
+
+  it("createAlternateSongs: non-P2002 errors still propagate", async () => {
+    vi.mocked(prisma.song.findUnique).mockResolvedValueOnce({
+      generationStatus: "pending",
+      sunoAudioId: null,
+    } as never);
+
+    const otherErr = new Prisma.PrismaClientKnownRequestError(
+      "Foreign key violation",
+      { code: "P2003", clientVersion: "5.22.0" },
+    );
+    vi.mocked(prisma.song.create).mockRejectedValueOnce(otherErr);
+
+    await expect(
+      handleSongSuccess(baseRecord, [
+        { id: "clip-A", audioUrl: "https://example.com/a.mp3", title: "Title" },
+        { id: "clip-B", audioUrl: "https://example.com/alt2.mp3", title: "Alt 2" },
+      ]),
+    ).rejects.toThrow();
   });
 });
 
