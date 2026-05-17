@@ -209,13 +209,71 @@ function buildResponse(request: NextRequest, ctx: MiddlewareContext): NextRespon
 }
 
 // ---------------------------------------------------------------------------
+// Concern: strip leaked upstream port from self-redirects
+//
+// Behind a reverse proxy (Railway, Vercel, etc.) the public origin is
+// terminated at the edge on port 443, but the container listens on an
+// arbitrary internal port (e.g. $PORT=8080). Next.js builds absolute redirect
+// URLs from req.headers.host, which can include that internal port. The
+// browser then follows the Location to a port the edge does not expose →
+// connection refused → white screen.
+//
+// Detection of "behind a proxy" is purely header-based (x-forwarded-host).
+// In local dev no such header is set, so we leave Location untouched and
+// localhost:3000 redirects keep working.
+// ---------------------------------------------------------------------------
+
+function getCanonicalOrigin(
+  request: NextRequest,
+): { host: string; proto: string } | null {
+  const fwdHost = request.headers.get("x-forwarded-host");
+  if (!fwdHost) return null;
+  const proto = (request.headers.get("x-forwarded-proto") ?? "https")
+    .split(",")[0]
+    .trim();
+  const host = fwdHost.split(",")[0].trim().split(":")[0];
+  if (!host) return null;
+  return { host, proto };
+}
+
+function normalizeRedirectLocation(
+  response: NextResponse,
+  request: NextRequest,
+): NextResponse {
+  const location = response.headers.get("location");
+  if (!location) return response;
+
+  const canonical = getCanonicalOrigin(request);
+  if (!canonical) return response;
+
+  let url: URL;
+  try {
+    url = new URL(location, `${canonical.proto}://${canonical.host}`);
+  } catch {
+    return response;
+  }
+
+  const isSelfHost =
+    url.hostname === canonical.host ||
+    url.hostname === request.nextUrl.hostname;
+  if (!isSelfHost) return response;
+
+  url.protocol = `${canonical.proto}:`;
+  url.host = canonical.host;
+  url.port = "";
+
+  response.headers.set("location", url.toString());
+  return response;
+}
+
+// ---------------------------------------------------------------------------
 // Pipeline
 // ---------------------------------------------------------------------------
 
 export async function middleware(request: NextRequest) {
   const ctx = await resolveContext(request);
 
-  return (
+  const response =
     checkBodySize(request, ctx) ??
     applyRequestRateLimits({
       pathname: ctx.pathname,
@@ -227,8 +285,9 @@ export async function middleware(request: NextRequest) {
     }) ??
     enforceAuth(request, ctx) ??
     handleCorsPreflight(ctx) ??
-    buildResponse(request, ctx)
-  );
+    buildResponse(request, ctx);
+
+  return normalizeRedirectLocation(response, request);
 }
 
 export const config = {
