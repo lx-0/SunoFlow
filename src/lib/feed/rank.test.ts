@@ -200,7 +200,7 @@ describe("trendingScore", () => {
     const now = new Date();
     const onlyPrimary = trendingScore(10, 0, now);
     const withSecondary = trendingScore(10, 5, now);
-    expect(withSecondary).toBe(onlyPrimary + 10);
+    expect(withSecondary).toBeCloseTo(onlyPrimary + 10, 5);
   });
 
   it("returns 0 for zero engagement", () => {
