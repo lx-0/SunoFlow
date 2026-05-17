@@ -1,0 +1,149 @@
+export type LibraryBatchAction =
+  | "favorite"
+  | "unfavorite"
+  | "delete"
+  | "restore"
+  | "permanent_delete"
+  | "make_public"
+  | "make_private"
+  | "tag"
+  | "add_to_playlist";
+
+interface SongsBatchPayload {
+  action: LibraryBatchAction;
+  songIds: string[];
+  tagId?: string;
+  playlistId?: string;
+}
+
+interface SongsBatchResponse {
+  affected?: number;
+  error?: string;
+}
+
+interface PlaylistsResponse {
+  playlists?: Array<{
+    id: string;
+    name: string;
+    _count?: { songs?: number };
+  }>;
+}
+
+export interface LibraryPlaylistOption {
+  id: string;
+  name: string;
+  _count: { songs: number };
+}
+
+export interface LibraryPlaylistCreatePayload {
+  name: string;
+  description?: string;
+}
+
+export interface LibraryPlaylist {
+  id: string;
+  name: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+  _count: { songs: number };
+}
+
+interface PlaylistAddResponse {
+  error?: string;
+}
+
+interface CreatePlaylistResponse {
+  playlist?: LibraryPlaylist;
+  error?: string;
+}
+
+export async function runSongsBatchAction(
+  payload: SongsBatchPayload
+): Promise<{ ok: true; affected: number } | { ok: false; error: string }> {
+  try {
+    const res = await fetch("/api/songs/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = (await res.json().catch(() => ({}))) as SongsBatchResponse;
+    if (!res.ok) {
+      return { ok: false, error: data.error || "Batch operation failed" };
+    }
+    return { ok: true, affected: data.affected ?? payload.songIds.length };
+  } catch {
+    return { ok: false, error: "Batch operation failed" };
+  }
+}
+
+export async function fetchPlaylistOptions(): Promise<LibraryPlaylistOption[]> {
+  try {
+    const res = await fetch("/api/playlists");
+    if (!res.ok) return [];
+    const data = (await res.json().catch(() => ({}))) as PlaylistsResponse;
+    return (data.playlists ?? []).map((pl) => ({
+      id: pl.id,
+      name: pl.name,
+      _count: { songs: pl._count?.songs ?? 0 },
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function addSongToPlaylist(
+  playlistId: string,
+  songId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const res = await fetch(`/api/playlists/${playlistId}/songs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ songId }),
+    });
+    const data = (await res.json().catch(() => ({}))) as PlaylistAddResponse;
+    if (!res.ok) {
+      return { ok: false, error: data.error || "Failed to add to playlist" };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Failed to add to playlist" };
+  }
+}
+
+export async function createPlaylist(
+  payload: LibraryPlaylistCreatePayload
+): Promise<{ ok: true; playlist: LibraryPlaylist } | { ok: false; error: string }> {
+  try {
+    const res = await fetch("/api/playlists", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = (await res.json().catch(() => ({}))) as CreatePlaylistResponse;
+    if (!res.ok) {
+      return { ok: false, error: data.error || "Failed to create playlist" };
+    }
+    if (!data.playlist) {
+      return { ok: false, error: "Invalid create playlist response" };
+    }
+    return { ok: true, playlist: data.playlist };
+  } catch {
+    return { ok: false, error: "Failed to create playlist" };
+  }
+}
+
+export async function deletePlaylist(
+  playlistId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const res = await fetch(`/api/playlists/${playlistId}`, { method: "DELETE" });
+    if (!res.ok) {
+      return { ok: false, error: "Failed to delete playlist" };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Failed to delete playlist" };
+  }
+}

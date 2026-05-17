@@ -15,6 +15,7 @@ import {
 import { useToast } from "./Toast";
 import { track } from "@/lib/analytics";
 import { InAppFeedbackWidget, hasFeedbackBeenSubmitted } from "./InAppFeedbackWidget";
+import { createPlaylist, deletePlaylist, type LibraryPlaylist } from "@/lib/songs/library-client";
 
 interface PlaylistItem {
   id: string;
@@ -65,7 +66,7 @@ export function PlaylistsView({
   playlists: initialPlaylists,
   smartPlaylists = [],
 }: {
-  playlists: PlaylistItem[];
+  playlists: LibraryPlaylist[];
   smartPlaylists?: SmartPlaylistItem[];
 }) {
   const { toast } = useToast();
@@ -84,30 +85,23 @@ export function PlaylistsView({
 
     setCreating(true);
     try {
-      const res = await fetch("/api/playlists", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newName.trim(),
-          description: newDesc.trim() || undefined,
-        }),
+      const result = await createPlaylist({
+        name: newName.trim(),
+        description: newDesc.trim() || undefined,
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        toast(data.error || "Failed to create playlist", "error");
+      if (!result.ok) {
+        toast(result.error, "error");
         return;
       }
 
-      const data = await res.json();
-      setPlaylists((prev) => [data.playlist, ...prev]);
+      setPlaylists((prev) => [result.playlist, ...prev]);
       setNewName("");
       setNewDesc("");
       setShowCreate(false);
       track("playlist_created");
       toast("Playlist created", "success");
-      if (!hasFeedbackBeenSubmitted("playlist_creation", data.playlist.id)) {
-        setFeedbackPlaylistId(data.playlist.id);
+      if (!hasFeedbackBeenSubmitted("playlist_creation", result.playlist.id)) {
+        setFeedbackPlaylistId(result.playlist.id);
       }
     } catch {
       toast("Failed to create playlist", "error");
@@ -120,9 +114,9 @@ export function PlaylistsView({
     setConfirmDeleteId(null);
     setDeletingId(id);
     try {
-      const res = await fetch(`/api/playlists/${id}`, { method: "DELETE" });
-      if (!res.ok) {
-        toast("Failed to delete playlist", "error");
+      const result = await deletePlaylist(id);
+      if (!result.ok) {
+        toast(result.error, "error");
         return;
       }
       setPlaylists((prev) => prev.filter((p) => p.id !== id));

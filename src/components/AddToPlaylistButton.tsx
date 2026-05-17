@@ -7,12 +7,11 @@ import { PlusIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 import { useToast } from "./Toast";
 import { track } from "@/lib/analytics";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
-
-interface PlaylistOption {
-  id: string;
-  name: string;
-  _count: { songs: number };
-}
+import {
+  addSongToPlaylist,
+  fetchPlaylistOptions,
+  type LibraryPlaylistOption,
+} from "@/lib/songs/library-client";
 
 interface AddToPlaylistButtonProps {
   songId: string;
@@ -29,7 +28,7 @@ export function AddToPlaylistButton({
   const { data: session } = useSession();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const [playlists, setPlaylists] = useState<PlaylistOption[]>([]);
+  const [playlists, setPlaylists] = useState<LibraryPlaylistOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -41,11 +40,7 @@ export function AddToPlaylistButton({
     if (!open) {
       setLoading(true);
       try {
-        const res = await fetch("/api/playlists");
-        if (res.ok) {
-          const data = await res.json();
-          setPlaylists(data.playlists ?? []);
-        }
+        setPlaylists(await fetchPlaylistOptions());
       } finally {
         setLoading(false);
       }
@@ -55,14 +50,9 @@ export function AddToPlaylistButton({
   async function handleAdd(playlistId: string) {
     setAdding(playlistId);
     try {
-      const res = await fetch(`/api/playlists/${playlistId}/songs`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songId }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        toast(data.error ?? "Failed to add to playlist", "error");
+      const result = await addSongToPlaylist(playlistId, songId);
+      if (!result.ok) {
+        toast(result.error, "error");
       } else {
         track("playlist_song_added", { playlistId });
         toast("Added to playlist", "success");

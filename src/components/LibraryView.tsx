@@ -45,6 +45,11 @@ import { HighlightText } from "./HighlightText";
 import { songToQueueSong } from "@/lib/song-mappers";
 import { useSongsList, type SongsFilters } from "@/hooks/useSongsList";
 import { useTagsList } from "@/hooks/useTagsList";
+import {
+  fetchPlaylistOptions,
+  runSongsBatchAction,
+  type LibraryBatchAction,
+} from "@/lib/songs/library-client";
 
 // Re-export SongListItemProps as SongRowProps for SwipableSongRow compatibility
 type SongRowProps = SongListItemProps;
@@ -891,7 +896,7 @@ export function LibraryView({
     setLastSelectedIndex(null);
   }
 
-  type BatchActionType = "favorite" | "unfavorite" | "delete" | "restore" | "permanent_delete" | "make_public" | "make_private";
+  type BatchActionType = Exclude<LibraryBatchAction, "tag" | "add_to_playlist">;
 
   async function handleBatchAction(action: BatchActionType) {
     if (selectedSongIds.size === 0) return;
@@ -909,20 +914,12 @@ export function LibraryView({
     setBatchLoading(true);
 
     try {
-      const res = await fetch("/api/songs/batch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, songIds }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        toast(data.error || "Batch operation failed", "error");
+      const result = await runSongsBatchAction({ action, songIds });
+      if (!result.ok) {
+        toast(result.error, "error");
         return;
       }
-
-      const data = await res.json();
-      const count = data.affected;
+      const count = result.affected;
 
       if (action === "favorite") {
         setSongs((prev) =>
@@ -973,14 +970,9 @@ export function LibraryView({
     }
 
     try {
-      const res = await fetch("/api/songs/batch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, songIds: [song.id] }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        toast(data.error || "Action failed", "error");
+      const result = await runSongsBatchAction({ action, songIds: [song.id] });
+      if (!result.ok) {
+        toast(result.error, "error");
         return;
       }
       if (action === "delete") {
@@ -1000,14 +992,12 @@ export function LibraryView({
     const { song } = pendingMenuDelete;
     setMenuDeleteLoading(true);
     try {
-      const res = await fetch("/api/songs/batch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "permanent_delete", songIds: [song.id] }),
+      const result = await runSongsBatchAction({
+        action: "permanent_delete",
+        songIds: [song.id],
       });
-      if (!res.ok) {
-        const data = await res.json();
-        toast(data.error || "Delete failed", "error");
+      if (!result.ok) {
+        toast(result.error || "Delete failed", "error");
         return;
       }
       setSongs((prev) => prev.filter((s) => s.id !== song.id));
@@ -1049,18 +1039,16 @@ export function LibraryView({
     if (selectedSongIds.size === 0) return;
     setBatchTagLoading(true);
     try {
-      const res = await fetch("/api/songs/batch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "tag", songIds: Array.from(selectedSongIds), tagId }),
+      const result = await runSongsBatchAction({
+        action: "tag",
+        songIds: Array.from(selectedSongIds),
+        tagId,
       });
-      if (!res.ok) {
-        const data = await res.json();
-        toast(data.error || "Batch tag failed", "error");
+      if (!result.ok) {
+        toast(result.error || "Batch tag failed", "error");
         return;
       }
-      const data = await res.json();
-      toast(`Tagged ${data.affected} song${data.affected !== 1 ? "s" : ""}`, "success");
+      toast(`Tagged ${result.affected} song${result.affected !== 1 ? "s" : ""}`, "success");
       clearSelection();
       // Refresh songs to show updated tags
       router.refresh();
@@ -1076,18 +1064,16 @@ export function LibraryView({
     if (selectedSongIds.size === 0) return;
     setBatchPlaylistLoading(true);
     try {
-      const res = await fetch("/api/songs/batch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "add_to_playlist", songIds: Array.from(selectedSongIds), playlistId }),
+      const result = await runSongsBatchAction({
+        action: "add_to_playlist",
+        songIds: Array.from(selectedSongIds),
+        playlistId,
       });
-      if (!res.ok) {
-        const data = await res.json();
-        toast(data.error || "Batch add to playlist failed", "error");
+      if (!result.ok) {
+        toast(result.error || "Batch add to playlist failed", "error");
         return;
       }
-      const data = await res.json();
-      toast(`Added ${data.affected} song${data.affected !== 1 ? "s" : ""} to playlist`, "success");
+      toast(`Added ${result.affected} song${result.affected !== 1 ? "s" : ""} to playlist`, "success");
       clearSelection();
     } catch {
       toast("Batch add to playlist failed", "error");
@@ -1098,13 +1084,10 @@ export function LibraryView({
 
   async function openBatchPlaylistMenu() {
     setShowBatchPlaylistMenu(true);
-    try {
-      const res = await fetch("/api/playlists");
-      if (res.ok) {
-        const data = await res.json();
-        setBatchPlaylists(data.playlists);
-      }
-    } catch { /* ignore */ }
+    const playlists = await fetchPlaylistOptions();
+    if (playlists.length > 0) {
+      setBatchPlaylists(playlists);
+    }
   }
 
   async function handleBatchDownload(fmt: AudioFormat = batchDownloadFormat) {
