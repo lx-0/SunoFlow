@@ -40,7 +40,7 @@ export default defineConfig({
     : {
         command:
           process.env.CI
-            ? `test -f .next/BUILD_ID || pnpm build; PLAYWRIGHT_TEST=true NODE_ENV=production PORT=${playwrightPort} pnpm start`
+            ? `test -f .next/BUILD_ID || pnpm build; PLAYWRIGHT_TEST=true NODE_ENV=production PORT=${playwrightPort} node .next/standalone/server.js`
             : `PLAYWRIGHT_TEST=true NODE_ENV=development PORT=${playwrightPort} pnpm dev`,
         url: baseURL,
         reuseExistingServer: !process.env.CI,
