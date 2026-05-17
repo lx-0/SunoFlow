@@ -33,10 +33,24 @@ jobs:
           echo "Triggered by: ${{ github.actor }}"
           echo "Event: ${{ github.event_name }}"
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
       - name: Migration safety check
+        env:
+          SUNOFLOW_DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
         run: bash scripts/check-migration-safety.sh
 
       - name: Set build identifier on Railway
