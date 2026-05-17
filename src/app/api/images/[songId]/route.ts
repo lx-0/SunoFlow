@@ -24,7 +24,15 @@ export const GET = publicRoute<{ songId: string }>(async (_request, { params }) 
 
   const song = await prisma.song.findUnique({
     where: { id: songId },
-    select: { imageUrl: true, imageUrlIsCustom: true, isPublic: true, sunoJobId: true, sunoAudioId: true, userId: true },
+    select: {
+      imageUrl: true,
+      imageUrlIsCustom: true,
+      isPublic: true,
+      sunoJobId: true,
+      sunoAudioId: true,
+      userId: true,
+      parentSong: { select: { sunoJobId: true } },
+    },
   });
 
   if (!song?.imageUrl) {
@@ -45,10 +53,11 @@ export const GET = publicRoute<{ songId: string }>(async (_request, { params }) 
     });
   }
 
-  if (song.sunoJobId && !song.imageUrlIsCustom) {
+  const refreshTaskId = song.parentSong?.sunoJobId ?? song.sunoJobId;
+  if (refreshTaskId && !song.imageUrlIsCustom) {
     try {
       const userApiKey = await resolveUserApiKey(song.userId);
-      const fresh = await fetchFreshUrls(song.sunoJobId, userApiKey, song.sunoAudioId ?? undefined);
+      const fresh = await fetchFreshUrls(refreshTaskId, userApiKey, song.sunoAudioId ?? undefined);
       if (fresh?.imageUrl) {
         await prisma.song.update({
           where: { id: songId },

@@ -16,6 +16,7 @@ export const GET = authRoute<{ songId: string }>(
         audioUrlExpiresAt: true,
         sunoJobId: true,
         sunoAudioId: true,
+        parentSong: { select: { sunoJobId: true } },
       },
     });
 
@@ -29,6 +30,7 @@ export const GET = authRoute<{ songId: string }>(
       audioUrlExpiresAt: song.audioUrlExpiresAt,
       sunoJobId: song.sunoJobId,
       sunoAudioId: song.sunoAudioId,
+      parentSunoJobId: song.parentSong?.sunoJobId ?? null,
       resolveApiKey: () => resolveUserApiKey(auth.userId),
       rangeHeader: request.headers.get("range"),
       cacheControl: "private",

@@ -15,6 +15,7 @@ export const GET = publicRoute<{ songId: string }>(async (request, { params }) =
       sunoJobId: true,
       sunoAudioId: true,
       userId: true,
+      parentSong: { select: { sunoJobId: true } },
     },
   });
 
@@ -28,6 +29,7 @@ export const GET = publicRoute<{ songId: string }>(async (request, { params }) =
     audioUrlExpiresAt: song.audioUrlExpiresAt,
     sunoJobId: song.sunoJobId,
     sunoAudioId: song.sunoAudioId,
+    parentSunoJobId: song.parentSong?.sunoJobId ?? null,
     resolveApiKey: () => resolveUserApiKey(song.userId),
     rangeHeader: request.headers.get("range"),
     cacheControl: "public",

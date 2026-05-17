@@ -13,6 +13,12 @@ export interface AudioProxyParams {
   audioUrlExpiresAt: Date | null;
   sunoJobId: string | null;
   sunoAudioId: string | null;
+  /**
+   * Parent song's sunoJobId. For alternates, the local `sunoJobId` is a
+   * clip-UUID, not a real Suno task-id, so record-info lookups must be
+   * keyed by the parent's task-id instead.
+   */
+  parentSunoJobId?: string | null;
   resolveApiKey: () => Promise<string | undefined>;
   rangeHeader: string | null;
   cacheControl: "public" | "private";
@@ -24,10 +30,12 @@ export async function proxyAudio(params: AudioProxyParams): Promise<Response> {
     audioUrlExpiresAt,
     sunoJobId,
     sunoAudioId,
+    parentSunoJobId,
     resolveApiKey,
     rangeHeader,
     cacheControl,
   } = params;
+  const refreshTaskId = parentSunoJobId ?? sunoJobId;
 
   if (audioCache.has(songId)) {
     return serveCached(songId, rangeHeader, cacheControl);
@@ -38,11 +46,11 @@ export async function proxyAudio(params: AudioProxyParams): Promise<Response> {
   const now = Date.now();
 
   const tryRefresh = async (): Promise<boolean> => {
-    if (!sunoJobId) return false;
+    if (!refreshTaskId) return false;
     try {
       const apiKey = await resolveApiKey();
       const fresh = await fetchFreshUrls(
-        sunoJobId,
+        refreshTaskId,
         apiKey,
         sunoAudioId ?? undefined,
       );
@@ -88,13 +96,13 @@ export async function proxyAudio(params: AudioProxyParams): Promise<Response> {
       {
         error: "Failed to fetch audio from origin",
         code: "UPSTREAM_ERROR",
-        detail: { refreshed, hasJobId: !!sunoJobId, urlExpired: isExpired },
+        detail: { refreshed, hasJobId: !!refreshTaskId, urlExpired: isExpired },
       },
       { status: 502 },
     );
   }
 
-  if (!upstream.ok && !refreshed && sunoJobId) {
+  if (!upstream.ok && !refreshed && refreshTaskId) {
     logger.warn(
       { songId, status: upstream.status },
       "audio proxy: upstream failed, forcing refresh",
@@ -129,7 +137,7 @@ export async function proxyAudio(params: AudioProxyParams): Promise<Response> {
         detail: {
           refreshed,
           upstreamStatus: upstream.status,
-          hasJobId: !!sunoJobId,
+          hasJobId: !!refreshTaskId,
           urlExpired: isExpired,
         },
       },

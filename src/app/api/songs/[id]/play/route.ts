@@ -7,16 +7,20 @@ const AUDIO_URL_TTL_MS = 12 * 24 * 60 * 60 * 1000;
 
 export const POST = authRoute<{ id: string }>(async (_request, { auth, params }) => {
   const { data: song, error } = requireOwned(
-    await prisma.song.findUnique({ where: { id: params.id } }),
+    await prisma.song.findUnique({
+      where: { id: params.id },
+      include: { parentSong: { select: { sunoJobId: true } } },
+    }),
     auth.userId,
     "Song",
   );
   if (error) return error;
 
-  if (song.sunoJobId) {
+  const refreshTaskId = song.parentSong?.sunoJobId ?? song.sunoJobId;
+  if (refreshTaskId) {
     try {
       const userApiKey = await resolveUserApiKey(auth.userId);
-      const fresh = await fetchFreshUrls(song.sunoJobId, userApiKey, song.sunoAudioId ?? undefined);
+      const fresh = await fetchFreshUrls(refreshTaskId, userApiKey, song.sunoAudioId ?? undefined);
       if (fresh?.audioUrl) {
         await prisma.song.update({
           where: { id: params.id },

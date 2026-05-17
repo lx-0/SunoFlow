@@ -36,10 +36,15 @@ export async function fetchFreshUrls(
         data?: { response?: { sunoData?: Record<string, unknown>[] } };
       };
       const clips = json.data?.response?.sunoData ?? [];
-      const match = clips.find((c) => {
+      const hasUrl = (c: Record<string, unknown>): boolean => {
         const url = (c.sourceAudioUrl as string) || (c.source_audio_url as string) || (c.audio_url as string) || (c.audioUrl as string);
-        return typeof url === "string" && url;
-      });
+        return typeof url === "string" && !!url;
+      };
+      // When sunoAudioId is provided, pick the matching clip — picking
+      // clips[0] returns the sibling's URL for alternates that share a task.
+      const match = sunoAudioId
+        ? clips.find((c) => c.id === sunoAudioId && hasUrl(c))
+        : clips.find(hasUrl);
       if (match) {
         const urls = extractUrls(match);
         if (urls) return urls;
