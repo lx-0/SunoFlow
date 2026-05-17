@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { fillDailySeries, mondayOfWeeksAgo } from "./index";
+import { fillDailySeries, getDateRangeMeta, mondayOfWeeksAgo, parseDateRange } from "./index";
 
 describe("fillDailySeries", () => {
   it("fills gaps with zero counts", () => {
@@ -44,5 +44,26 @@ describe("mondayOfWeeksAgo", () => {
   it("defaults to current date when no reference provided", () => {
     const result = mondayOfWeeksAgo(0);
     expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe("getDateRangeMeta", () => {
+  it("returns dense-window metadata for 7d", () => {
+    const meta = getDateRangeMeta("7d");
+    expect(meta.days).toBe(7);
+    const msDiff = Date.now() - meta.sinceDate.getTime();
+    expect(msDiff).toBeGreaterThanOrEqual(6 * 24 * 60 * 60 * 1000);
+    expect(msDiff).toBeLessThanOrEqual(8 * 24 * 60 * 60 * 1000);
+  });
+
+  it("returns open-ended metadata for all", () => {
+    const meta = getDateRangeMeta("all");
+    expect(meta.days).toBeNull();
+    expect(meta.sinceDate.toISOString()).toBe("1970-01-01T00:00:00.000Z");
+  });
+
+  it("keeps parseDateRange aligned with metadata", () => {
+    const range = "90d";
+    expect(parseDateRange(range).getTime()).toBe(getDateRangeMeta(range).sinceDate.getTime());
   });
 });

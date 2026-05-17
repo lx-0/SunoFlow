@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { parseDateRange, startOfToday, dateRangeStart } from "@/lib/date-series";
+import { getDateRangeMeta, startOfToday, dateRangeStart, fillDailySeries } from "@/lib/date-series";
 import { countGenres } from "@/lib/tags";
 import { countActiveUsers, dailyActiveUserCounts } from "@/lib/active-users";
 
@@ -22,7 +22,7 @@ export interface AdminAnalytics {
 }
 
 export async function getAdminAnalytics(range: string): Promise<AdminAnalytics> {
-  const sinceDate = parseDateRange(range);
+  const { sinceDate, days } = getDateRangeMeta(range);
   const todayStart = startOfToday();
   const sevenDaysAgo = dateRangeStart(7);
 
@@ -78,10 +78,19 @@ export async function getAdminAnalytics(range: string): Promise<AdminAnalytics> 
     generationsToday,
     activeUsersWeek,
     range,
-    dailyGenerations: dailyGenerations.map((row) => ({
-      date: new Date(row.date).toISOString().split("T")[0],
-      count: Number(row.count),
-    })),
+    dailyGenerations:
+      days === null
+        ? dailyGenerations.map((row) => ({
+            date: new Date(row.date).toISOString().slice(0, 10),
+            count: Number(row.count),
+          }))
+        : fillDailySeries(
+            dailyGenerations.map((row) => ({
+              date: new Date(row.date).toISOString().slice(0, 10),
+              count: row.count,
+            })),
+            days,
+          ),
     dailyActiveUsers,
     popularGenres: countGenres(allSongsForGenres, 10),
     topCreators: topCreators.map((c) => ({
