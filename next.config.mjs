@@ -32,7 +32,9 @@ const buildId =
   `dev-${Date.now()}`;
 
 const nextConfig = {
-  output: "standalone",
+  // E2E_BUILD disables standalone so `next start` works in CI E2E without
+  // needing the standalone server setup (Prisma binary paths, static copy).
+  output: process.env.E2E_BUILD ? undefined : "standalone",
   // Enable gzip/brotli compression for all responses
   compress: true,
   serverExternalPackages: ["@prisma/client", "bcryptjs", "node-cron"],

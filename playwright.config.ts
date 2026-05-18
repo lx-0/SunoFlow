@@ -5,7 +5,7 @@ const baseHost = process.env.PLAYWRIGHT_HOST ?? "127.0.0.1";
 const baseURL = process.env.BASE_URL ?? `http://${baseHost}:${playwrightPort}`;
 const chromiumExecutablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
 const ciWebServerCommand =
-  `PLAYWRIGHT_TEST=true NODE_ENV=development PORT=${playwrightPort} HOSTNAME=${baseHost} pnpm dev`;
+  `PLAYWRIGHT_TEST=true NODE_ENV=production PORT=${playwrightPort} HOSTNAME=${baseHost} pnpm start`;
 const localWebServerCommand =
   `PLAYWRIGHT_TEST=true NODE_ENV=development PORT=${playwrightPort} HOSTNAME=${baseHost} pnpm dev`;
 
@@ -46,7 +46,7 @@ export default defineConfig({
         command: process.env.CI ? ciWebServerCommand : localWebServerCommand,
         url: baseURL,
         reuseExistingServer: !process.env.CI,
-        // Allow 3 minutes for initial dev server startup + first compilation in CI
-        timeout: 180 * 1000,
+        // Allow 2 minutes for initial server startup
+        timeout: 120 * 1000,
       },
 });
