@@ -22,7 +22,7 @@ test.describe("Playlists — List & Create", () => {
 
     await expect(page.locator("h1").first()).toContainText("Playlists");
     await expect(
-      page.getByText("No playlists yet")
+      page.getByText("No playlists yet").first()
     ).toBeVisible({ timeout: 5000 });
   });
 

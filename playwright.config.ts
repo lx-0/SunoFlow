@@ -41,7 +41,7 @@ export default defineConfig({
         // CI is more stable against the built app than next dev (fewer transient
         // restarts/connection refusals during long E2E runs).
         command: process.env.CI
-          ? `PLAYWRIGHT_TEST=true NODE_ENV=production PORT=${playwrightPort} pnpm start`
+          ? `PLAYWRIGHT_TEST=true NODE_ENV=production PORT=${playwrightPort} node .next/standalone/server.js`
           : `PLAYWRIGHT_TEST=true NODE_ENV=development PORT=${playwrightPort} pnpm dev`,
         url: baseURL,
         reuseExistingServer: !process.env.CI,
