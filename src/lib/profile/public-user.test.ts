@@ -114,7 +114,7 @@ describe("getPublicUserProfileByUsername", () => {
       imageUrl: "cover",
       audioUrl: "audio",
       duration: 120,
-      tags: ["pop"],
+      tags: "pop",
       publicSlug: "track",
     } as never);
     vi.mocked(prisma.song.aggregate).mockResolvedValue({ _sum: { playCount: 42 } } as never);
