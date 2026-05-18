@@ -236,4 +236,26 @@ describe("logError (client)", () => {
     expect(console.error).toHaveBeenCalled();
     expect(Sentry.captureException).toHaveBeenCalled();
   });
+
+  it("does not throw when Sentry.captureException throws on client", () => {
+    vi.mocked(Sentry.captureException).mockImplementationOnce(() => {
+      throw new Error("sentry-down");
+    });
+    expect(() => logError("component", new Error("err"))).not.toThrow();
+  });
+});
+
+describe("logServerError (resilience)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("does not throw when Sentry.captureException throws on server", () => {
+    vi.mocked(Sentry.captureException).mockImplementationOnce(() => {
+      throw new Error("sentry-down");
+    });
+    expect(() =>
+      logServerError("server-component", new Error("err"), { route: "/api/test" }),
+    ).not.toThrow();
+  });
 });

@@ -1,22 +1,17 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { publicRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_PAGE_SIZE, offsetPagination, pageSkip } from "@/lib/pagination";
 import { buildDiscoverableFilter } from "@/lib/songs";
-import { zPageParam } from "@/lib/query-params";
-import { errorFromResult } from "@/lib/api-error";
-import { resolveUserIdByUsername } from "@/lib/profile";
+import { pageQuery, resolveRouteUsernameOrResponse } from "../route-shared";
 
-const pageQuery = z.object({ page: zPageParam() });
-
-export const GET = publicRoute<{ username: string }, undefined, z.infer<typeof pageQuery>>(
+export const GET = publicRoute<{ username: string }, undefined, { page: number }>(
   async (_request, { params, query }) => {
-    const userResult = await resolveUserIdByUsername(params.username);
-    if (!userResult.ok) return errorFromResult(userResult);
+    const user = await resolveRouteUsernameOrResponse(params.username);
+    if ("status" in user) return user;
 
     const where = {
-      userId: userResult.data.id,
+      userId: user.userId,
       song: buildDiscoverableFilter(),
     };
 

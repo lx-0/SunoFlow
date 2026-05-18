@@ -42,11 +42,15 @@ export function logError(source: string, error: unknown, route?: string): void {
 
   console.error("[SunoFlow Error]", entry);
   reportToServer(source, error, route);
-  Sentry.captureException(
-    error instanceof Error ? error : new Error(String(error)),
-    {
-      tags: { source },
-      extra: { route: entry.route },
-    },
-  );
+  try {
+    Sentry.captureException(
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        tags: { source },
+        extra: { route: entry.route },
+      },
+    );
+  } catch {
+    // Keep runtime patrol non-fatal even if telemetry SDK throws.
+  }
 }
