@@ -111,6 +111,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   const skipNextRef = useRef<() => void>(() => {});
   const skipPrevRef = useRef<() => void>(() => {});
   const hasUserGestureRef = useRef(false);
+  const retryPlayRef = useRef<(audio: HTMLAudioElement, retriesLeft?: number, delay?: number) => void>(() => {});
 
   // Monotonic counter incremented on every transition that changes the
   // currently-loaded audio source. Async paths (CDN-error refresh,
@@ -147,7 +148,11 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   // rejections (AbortError when a new load interrupts play). Source/network
   // errors are handled by the <audio> "error" event, not here.
   const retryPlay = useCallback((audio: HTMLAudioElement, retriesLeft = 3, delay = 300) => {
-    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    if (audioRef.current !== audio) return;
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
     if (!hasUserGestureRef.current) {
       pendingPlayRef.current = true;
       return;
@@ -160,12 +165,15 @@ export function QueueProvider({ children }: { children: ReactNode }) {
           return;
         }
         if (err.name === "AbortError" && retriesLeft > 0) {
-          retryTimerRef.current = setTimeout(() => retryPlay(audio, retriesLeft - 1, delay * 2), delay);
+          retryTimerRef.current = setTimeout(() => {
+            retryPlayRef.current(audio, retriesLeft - 1, delay * 2);
+          }, delay);
           return;
         }
         pendingPlayRef.current = true;
       });
   }, []);
+  retryPlayRef.current = retryPlay;
 
   scheduleSyncRef.current = scheduleSync;
 
