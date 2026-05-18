@@ -29,6 +29,7 @@ import {
 import { HeartIcon as HeartOutlineIcon, HandThumbUpIcon as HandThumbUpOutlineIcon, HandThumbDownIcon as HandThumbDownOutlineIcon, DocumentDuplicateIcon } from "@heroicons/react/24/outline";
 import { useOfflineCache } from "@/hooks/useOfflineCache";
 import { useSongStems } from "@/hooks/useSongStems";
+import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 import type { SunoSong } from "@/lib/sunoapi";
 import { getRating, type SongRating } from "@/lib/ratings";
 import { useToast } from "./Toast";
@@ -181,6 +182,7 @@ export function SongDetailView({
   const [appealSubmitting, setAppealSubmitting] = useState(false);
   const [appealStatus, setAppealStatus] = useState<"none" | "pending" | "approved" | "rejected">("none");
   const appealDialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocusTrap(appealDialogRef, appealOpen, () => setAppealOpen(false));
 
   const handleSubmitAppeal = async () => {
     if (appealReason.trim().length < 10) return;
@@ -274,19 +276,6 @@ export function SongDetailView({
       .catch(() => {});
     return () => { cancelled = true; };
   }, [song.id]);
-
-  useEffect(() => {
-    if (!appealOpen) return;
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setAppealOpen(false);
-    };
-    document.addEventListener("keydown", handleEscape);
-    const firstFocusable = appealDialogRef.current?.querySelector<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    firstFocusable?.focus();
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [appealOpen]);
 
   async function handleThumbsFeedback(value: "thumbs_up" | "thumbs_down") {
     if (savingThumbs) return;
@@ -765,6 +754,7 @@ export function SongDetailView({
             role="dialog"
             aria-modal="true"
             aria-labelledby="appeal-modal-title"
+            tabIndex={-1}
             className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >

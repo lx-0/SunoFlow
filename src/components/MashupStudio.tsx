@@ -12,6 +12,7 @@ import Image from "next/image";
 import { useToast } from "./Toast";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { GenerationProgress } from "./GenerationProgress";
+import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 
 type TrackSourceType = "library" | "upload" | "url";
 
@@ -95,6 +96,7 @@ function SongPickerModal({
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocusTrap(dialogRef, open, onClose);
 
   useEffect(() => {
     if (!open) return;
@@ -107,42 +109,6 @@ function SongPickerModal({
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [open]);
-
-  useEffect(() => {
-    if (!open || !dialogRef.current) return;
-
-    const dialogEl = dialogRef.current;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-        return;
-      }
-
-      if (event.key !== "Tab") return;
-      const focusable = dialogEl.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
-      );
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    const firstFocusable = dialogEl.querySelector<HTMLElement>(
-      'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
-    );
-    firstFocusable?.focus();
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
 
   const filtered = songs.filter((s) => {
     if (!search.trim()) return true;
@@ -166,6 +132,7 @@ function SongPickerModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="song-picker-title"
+        tabIndex={-1}
         className="relative w-full max-w-lg max-h-[70vh] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl flex flex-col"
       >
         {/* Header */}

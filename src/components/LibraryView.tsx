@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useMemo } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -47,6 +47,7 @@ import {
 import { SongGridCard } from "./library/song-grid-card";
 import { SwipableSongRow } from "./library/swipable-song-row";
 import type { SongListItemProps } from "./SongListItem";
+import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 
 type SongRowProps = SongListItemProps;
 
@@ -67,54 +68,6 @@ function toDownloadable(song: Song) {
     audioUrl: song.audioUrl ?? "",
     tags: song.tags ?? undefined,
   };
-}
-
-function useDialogFocusTrap(
-  containerRef: React.RefObject<HTMLElement | null>,
-  open: boolean,
-  onClose: () => void
-) {
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent) => {
-      if (!containerRef.current) return;
-
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-        return;
-      }
-
-      if (event.key !== "Tab") return;
-
-      const focusable = containerRef.current.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
-      );
-      if (focusable.length === 0) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey) {
-        if (document.activeElement === first) {
-          event.preventDefault();
-          last.focus();
-        }
-      } else if (document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    },
-    [containerRef, onClose]
-  );
-
-  useEffect(() => {
-    if (!open) return;
-    const firstFocusable = containerRef.current?.querySelector<HTMLElement>(
-      'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
-    );
-    firstFocusable?.focus();
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open, containerRef, handleKeyDown]);
 }
 
 // ─── Compact grid card for grid view ──────────────────────────────────────────
@@ -1485,6 +1438,7 @@ export function LibraryView({
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="delete-dialog-title">
           <div
             ref={batchDeleteDialogRef}
+            tabIndex={-1}
             className="bg-white dark:bg-gray-900 w-full sm:rounded-2xl rounded-t-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 sm:mx-4 sm:max-w-sm"
           >
             <h3 id="delete-dialog-title" className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -1529,6 +1483,7 @@ export function LibraryView({
         >
           <div
             ref={pendingDeleteDialogRef}
+            tabIndex={-1}
             className="bg-white dark:bg-gray-900 w-full sm:rounded-2xl rounded-t-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 sm:mx-4 sm:max-w-sm"
           >
             <h3 id="menu-delete-dialog-title" className="text-lg font-semibold text-gray-900 dark:text-white">
