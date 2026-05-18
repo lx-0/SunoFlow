@@ -149,7 +149,10 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   // errors are handled by the <audio> "error" event, not here.
   const retryPlay = useCallback((audio: HTMLAudioElement, retriesLeft = 3, delay = 300) => {
     if (audioRef.current !== audio) return;
-    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
     if (!hasUserGestureRef.current) {
       pendingPlayRef.current = true;
       return;

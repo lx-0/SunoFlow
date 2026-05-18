@@ -1,18 +1,15 @@
 import { NextResponse } from "next/server";
 import { errorFromResult, type ApiFailureResult } from "@/lib/api-error";
 
-export function respondWithResult<
-  TResult extends { ok: boolean },
-  TBody,
->(
-  result: TResult,
-  mapSuccess: (success: Extract<TResult, { ok: true }>) => TBody,
+type SuccessResult = { ok: true };
+
+export function respondWithResult<TSuccess extends SuccessResult, TBody>(
+  result: TSuccess | ApiFailureResult,
+  mapSuccess: (success: TSuccess) => TBody,
 ): NextResponse {
   if (!result.ok) {
-    return errorFromResult(result as unknown as ApiFailureResult);
+    return errorFromResult(result);
   }
 
-  return NextResponse.json(
-    mapSuccess(result as Extract<TResult, { ok: true }>),
-  );
+  return NextResponse.json(mapSuccess(result));
 }
