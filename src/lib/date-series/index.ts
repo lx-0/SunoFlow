@@ -24,16 +24,21 @@ export function dateRangeStart(days: number): Date {
 }
 
 export function parseDateRange(range: string): Date {
-  const now = new Date();
+  return getDateRangeMeta(range).sinceDate;
+}
+
+export function getDateRangeMeta(range: string): { sinceDate: Date; days: number | null } {
   switch (range) {
     case "7d":
-      return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      return { sinceDate: dateRangeStart(7), days: 7 };
+    case "30d":
+      return { sinceDate: dateRangeStart(30), days: 30 };
     case "90d":
-      return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      return { sinceDate: dateRangeStart(90), days: 90 };
     case "all":
-      return new Date(0);
+      return { sinceDate: new Date(0), days: null };
     default:
-      return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      return { sinceDate: dateRangeStart(30), days: 30 };
   }
 }
 

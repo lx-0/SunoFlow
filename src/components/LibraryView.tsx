@@ -5,8 +5,6 @@ import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
-  PlayIcon,
-  PauseIcon,
   MusicalNoteIcon,
   ArrowDownTrayIcon,
   HeartIcon,
@@ -26,7 +24,6 @@ import {
   ChevronDownIcon,
 } from "@heroicons/react/24/outline";
 import { PlayIcon as PlayOutlineIcon } from "@heroicons/react/24/outline";
-import Image from "next/image";
 import type { Song } from "@prisma/client";
 import { downloadSongFile } from "@/lib/download";
 import { exportAsZip, exportAsM3U, type ExportableSong, type AudioFormat } from "@/lib/export";
@@ -34,14 +31,11 @@ import { useToast } from "./Toast";
 import { useQueue, type QueueSong } from "./QueueContext";
 import { RecentlyPlayed } from "./RecentlyPlayed";
 import { LowCreditsBanner } from "./LowCreditsBanner";
-import { ShareButton } from "./ShareButton";
 import { useOfflineCache } from "@/hooks/useOfflineCache";
 import { formatBytes } from "@/lib/cache/offline";
-import { SongListItem, type SongListItemProps } from "./SongListItem";
 import { LibraryToolbar } from "./LibraryToolbar";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
-import { HighlightText } from "./HighlightText";
 import { songToQueueSong } from "@/lib/song-mappers";
 import { useSongsList, type SongsFilters } from "@/hooks/useSongsList";
 import { useTagsList } from "@/hooks/useTagsList";
@@ -50,6 +44,9 @@ import {
   runSongsBatchAction,
   type LibraryBatchAction,
 } from "@/lib/songs/library-client";
+import { SongGridCard } from "./library/song-grid-card";
+import { SwipableSongRow } from "./library/swipable-song-row";
+import type { SongListItemProps } from "./SongListItem";
 
 // Re-export SongListItemProps as SongRowProps for SwipableSongRow compatibility
 type SongRowProps = SongListItemProps;
@@ -76,136 +73,6 @@ function toDownloadable(song: Song) {
 
 // ─── Compact grid card for grid view ──────────────────────────────────────────
 
-interface SongGridCardProps {
-  song: Song;
-  isActive: boolean;
-  isPlaying: boolean;
-  isSelected: boolean;
-  selectionMode: boolean;
-  searchQuery?: string;
-  priority?: boolean;
-  onTogglePlay: (song: Song) => void;
-  onToggleFavorite: (song: Song) => void;
-  onToggleSelect: (songId: string) => void;
-  onLongPress: (songId: string) => void;
-}
-
-function SongGridCard({ song, isActive, isPlaying, isSelected, selectionMode, searchQuery = "", priority = false, onTogglePlay, onToggleFavorite, onToggleSelect, onLongPress }: SongGridCardProps) {
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
-  function handleTouchStart(e: React.TouchEvent) {
-    const t = e.touches[0];
-    touchStartPos.current = { x: t.clientX, y: t.clientY };
-    longPressTimer.current = setTimeout(() => { onLongPress(song.id); }, 500);
-  }
-  function handleTouchMove(e: React.TouchEvent) {
-    if (!touchStartPos.current || !longPressTimer.current) return;
-    const t = e.touches[0];
-    if (Math.abs(t.clientX - touchStartPos.current.x) > 10 || Math.abs(t.clientY - touchStartPos.current.y) > 10) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  }
-  function handleTouchEnd() {
-    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
-    touchStartPos.current = null;
-  }
-
-  return (
-    <li
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchEnd}
-      className={`group relative bg-white dark:bg-gray-900 rounded-xl border overflow-hidden transition-colors ${
-        isSelected
-          ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30"
-          : "border-gray-200 dark:border-gray-800 hover:border-violet-300 dark:hover:border-violet-700"
-      }`}
-    >
-      {/* Selection checkbox overlay */}
-      <button
-        onClick={() => onToggleSelect(song.id)}
-        aria-label={isSelected ? "Deselect song" : "Select song"}
-        className={`absolute top-2 left-2 z-10 w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
-          selectionMode ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-        } ${isSelected ? "bg-violet-600 border-violet-600 text-white" : "border-white bg-black/20 hover:border-violet-400"}`}
-      >
-        {isSelected && <CheckIcon className="w-4 h-4" />}
-      </button>
-
-      {/* Cover image */}
-      <div className="relative aspect-square bg-gray-100 dark:bg-gray-800">
-        {song.imageUrl ? (
-          <Image
-            src={song.imageUrl}
-            alt={song.title ?? "Song cover"}
-            fill
-            className="object-cover"
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            priority={priority}
-            loading={priority ? "eager" : "lazy"}
-            placeholder="blur"
-            blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHZpZXdCb3g9IjAgMCAxMCAxMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiM3YzNhZWQiIGZpbGwtb3BhY2l0eT0iMC4yIi8+PC9zdmc+"
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <MusicalNoteIcon className="w-10 h-10 text-gray-300 dark:text-gray-700" aria-hidden="true" />
-          </div>
-        )}
-
-        {/* Play button overlay */}
-        <button
-          onClick={() => onTogglePlay(song)}
-          aria-label={isActive && isPlaying ? "Pause" : "Play"}
-          className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors"
-        >
-          <span className={`flex items-center justify-center w-12 h-12 rounded-full bg-white/90 shadow-lg transition-opacity ${isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
-            {isActive && isPlaying ? (
-              <PauseIcon className="w-6 h-6 text-violet-600" />
-            ) : (
-              <PlayIcon className="w-6 h-6 text-violet-600 ml-0.5" />
-            )}
-          </span>
-        </button>
-
-        {/* Playing indicator bars */}
-        {isActive && isPlaying && (
-          <div className="absolute bottom-2 left-2 flex items-end gap-0.5" aria-hidden="true">
-            {[1, 2, 3].map((i) => (
-              <span key={i} className="w-1 bg-violet-400 rounded-full animate-pulse" style={{ height: `${8 + i * 4}px`, animationDelay: `${i * 0.1}s` }} />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Info row */}
-      <div className="px-3 py-2 flex items-center justify-between gap-2">
-        <Link href={`/library/${song.id}`} className="text-sm font-medium text-gray-900 dark:text-white truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors min-w-0">
-          <HighlightText text={song.title ?? "Untitled"} query={searchQuery} />
-        </Link>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <ShareButton
-            song={song}
-            source="library_grid"
-            className="text-gray-400 hover:text-violet-500 transition-colors"
-          />
-          <button
-            onClick={() => onToggleFavorite(song)}
-            aria-label={(song as Song & { isFavorite?: boolean }).isFavorite ? "Remove from favorites" : "Add to favorites"}
-            className="flex-shrink-0 text-gray-400 hover:text-red-500 transition-colors"
-          >
-            {(song as Song & { isFavorite?: boolean }).isFavorite ? (
-              <HeartIcon className="w-4 h-4 text-red-500" />
-            ) : (
-              <HeartOutlineIcon className="w-4 h-4" />
-            )}
-          </button>
-        </div>
-      </div>
-    </li>
-  );
-}
 
 interface LibraryViewProps {
   initialSongs: Song[];
@@ -213,196 +80,6 @@ interface LibraryViewProps {
   enableServerSearch?: boolean;
 }
 
-// ─── SwipableSongRow ──────────────────────────────────────────────────────────
-// Wraps SongListItem with mobile swipe gestures:
-//   Swipe left  → reveals quick-action panel (share / download / delete)
-//   Swipe right → triggers play
-// Only active on touch (pointer: coarse) devices; falls back to SongListItem on desktop.
-
-function SwipableSongRow(props: SongRowProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [offset, setOffset] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-
-  const isOpen = useRef(false);
-  const startX = useRef(0);
-  const startY = useRef(0);
-  const startBase = useRef(0);
-  const directionLocked = useRef<"horizontal" | "vertical" | null>(null);
-
-  // Stable refs for callbacks so the effect doesn't need to re-register
-  const onTogglePlayRef = useRef(props.onTogglePlay);
-  const initialSongRef = useRef(props.initialSong);
-  const onSingleArchiveRef = useRef(props.onSingleArchive);
-  const onDownloadRef = useRef(props.onDownload);
-  useEffect(() => { onTogglePlayRef.current = props.onTogglePlay; }, [props.onTogglePlay]);
-  useEffect(() => { initialSongRef.current = props.initialSong; }, [props.initialSong]);
-  useEffect(() => { onSingleArchiveRef.current = props.onSingleArchive; }, [props.onSingleArchive]);
-  useEffect(() => { onDownloadRef.current = props.onDownload; }, [props.onDownload]);
-
-  const REVEAL_WIDTH = 156; // 3 × 52 px action buttons
-  const SNAP_THRESHOLD = 60;
-
-  function vibrate(ms = 10) {
-    try { navigator.vibrate?.(ms); } catch { /* Vibration API not available */ }
-  }
-
-  useEffect(() => {
-    // Disable gestures on non-touch (desktop pointer) devices
-    if (!window.matchMedia("(pointer: coarse)").matches) return;
-
-    const el = containerRef.current;
-    if (!el) return;
-
-    function handleTouchStart(e: TouchEvent) {
-      startX.current = e.touches[0].clientX;
-      startY.current = e.touches[0].clientY;
-      startBase.current = isOpen.current ? -REVEAL_WIDTH : 0;
-      directionLocked.current = null;
-      setIsDragging(true);
-    }
-
-    function handleTouchMove(e: TouchEvent) {
-      const dx = e.touches[0].clientX - startX.current;
-      const dy = e.touches[0].clientY - startY.current;
-
-      if (directionLocked.current === null) {
-        if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
-          directionLocked.current = Math.abs(dx) > Math.abs(dy) ? "horizontal" : "vertical";
-        }
-        return;
-      }
-
-      if (directionLocked.current !== "horizontal") return;
-
-      const newOffset = Math.max(-REVEAL_WIDTH, Math.min(REVEAL_WIDTH, startBase.current + dx));
-      setOffset(newOffset);
-    }
-
-    function handleTouchEnd() {
-      setIsDragging(false);
-      directionLocked.current = null;
-
-      setOffset((currentOffset) => {
-        const dx = currentOffset - startBase.current;
-        const wasOpen = isOpen.current;
-
-        if (!wasOpen) {
-          if (dx >= SNAP_THRESHOLD) {
-            // Swipe right → play
-            onTogglePlayRef.current(initialSongRef.current);
-            vibrate(15);
-            return 0;
-          } else if (dx <= -SNAP_THRESHOLD) {
-            // Swipe left → snap open to reveal actions
-            vibrate(10);
-            isOpen.current = true;
-            return -REVEAL_WIDTH;
-          }
-          return 0;
-        } else {
-          // Card is open — swipe right enough to close
-          if (dx >= SNAP_THRESHOLD) {
-            isOpen.current = false;
-            return 0;
-          }
-          return -REVEAL_WIDTH;
-        }
-      });
-    }
-
-    el.addEventListener("touchstart", handleTouchStart, { passive: true });
-    el.addEventListener("touchmove", handleTouchMove, { passive: true });
-    el.addEventListener("touchend", handleTouchEnd, { passive: true });
-
-    return () => {
-      el.removeEventListener("touchstart", handleTouchStart);
-      el.removeEventListener("touchmove", handleTouchMove);
-      el.removeEventListener("touchend", handleTouchEnd);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Intentionally empty — all mutable state accessed via refs
-
-  const song = props.initialSong;
-  const hasAudio = Boolean(song.audioUrl) && song.generationStatus !== "pending";
-
-  function handleQuickShare() {
-    setOffset(0);
-    isOpen.current = false;
-    vibrate(10);
-    const shareUrl = `${window.location.origin}/library/${song.id}`;
-    if (navigator.share) {
-      navigator.share({ title: song.title ?? "Song", url: shareUrl }).catch(() => {});
-    } else {
-      navigator.clipboard?.writeText(shareUrl).catch(() => {});
-    }
-  }
-
-  function handleQuickDownload() {
-    setOffset(0);
-    isOpen.current = false;
-    vibrate(10);
-    onDownloadRef.current(song);
-  }
-
-  function handleQuickDelete() {
-    setOffset(0);
-    isOpen.current = false;
-    vibrate(15);
-    onSingleArchiveRef.current(song);
-  }
-
-  return (
-    <div ref={containerRef} className="relative overflow-hidden rounded-xl">
-      {/* Quick-action panel (hidden behind, revealed on swipe-left) */}
-      <div
-        className="absolute inset-y-0 right-0 flex items-stretch"
-        style={{ width: REVEAL_WIDTH }}
-        aria-hidden="true"
-      >
-        <button
-          onClick={handleQuickShare}
-          className="flex-1 flex flex-col items-center justify-center gap-1 bg-blue-500 text-white active:bg-blue-600 transition-colors"
-          aria-label="Share song"
-          tabIndex={-1}
-        >
-          <ArrowUpOnSquareStackIcon className="w-5 h-5" />
-          <span className="text-[10px] font-medium">Share</span>
-        </button>
-        <button
-          onClick={handleQuickDownload}
-          disabled={!hasAudio}
-          className="flex-1 flex flex-col items-center justify-center gap-1 bg-violet-600 text-white active:bg-violet-700 disabled:opacity-40 transition-colors"
-          aria-label="Download song"
-          tabIndex={-1}
-        >
-          <ArrowDownTrayIcon className="w-5 h-5" />
-          <span className="text-[10px] font-medium">Save</span>
-        </button>
-        <button
-          onClick={handleQuickDelete}
-          className="flex-1 flex flex-col items-center justify-center gap-1 bg-red-500 text-white active:bg-red-600 transition-colors"
-          aria-label="Archive song"
-          tabIndex={-1}
-        >
-          <TrashIcon className="w-5 h-5" />
-          <span className="text-[10px] font-medium">Delete</span>
-        </button>
-      </div>
-
-      {/* Foreground: the song card — translates on swipe */}
-      <div
-        style={{
-          transform: `translateX(${offset}px)`,
-          transition: isDragging ? "none" : "transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
-        }}
-        onClick={offset !== 0 ? (e) => { e.stopPropagation(); setOffset(0); isOpen.current = false; } : undefined}
-      >
-        <SongListItem {...props} />
-      </div>
-    </div>
-  );
-}
 
 export function LibraryView({
   initialSongs,

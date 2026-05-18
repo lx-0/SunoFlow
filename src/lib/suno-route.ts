@@ -11,6 +11,17 @@ export async function resolveRequiredSunoApiKey(userId: string): Promise<string 
   return apiKey;
 }
 
+export async function withRequiredSunoApiKey<T>(
+  userId: string,
+  run: (apiKey: string) => Promise<T | Response>
+): Promise<T | Response> {
+  const apiKey = await resolveRequiredSunoApiKey(userId);
+  if (apiKey instanceof Response) {
+    return apiKey;
+  }
+  return run(apiKey);
+}
+
 export function handleSunoRouteError(
   error: unknown,
   config: {

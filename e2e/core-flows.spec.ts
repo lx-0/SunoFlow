@@ -264,10 +264,17 @@ test.describe("Navigation", () => {
   });
 
   test("unauthenticated user is redirected to login", async ({ page }) => {
-    // Navigate to a protected page without being logged in
-    await page.goto("/generate");
-
-    // Should be redirected to login
-    await expect(page).toHaveURL(/\/login/, { timeout: 5000 });
+    // Use the request API (no browser navigation) to verify the server redirects
+    // unauthenticated requests. Browser-level page.goto() to protected routes
+    // can fail with ERR_CONNECTION_REFUSED in CI when following auth redirects;
+    // this approach matches how auth.spec.ts tests the same invariant.
+    const res = await page.request.get("/generate", {
+      maxRedirects: 0,
+      failOnStatusCode: false,
+    });
+    expect(res.status()).toBeGreaterThanOrEqual(300);
+    expect(res.status()).toBeLessThan(400);
+    const location = res.headers()["location"] ?? "";
+    expect(location).toMatch(/login/);
   });
 });

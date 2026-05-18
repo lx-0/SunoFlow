@@ -4,18 +4,14 @@ import { publicRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_PAGE_SIZE, offsetPagination, pageSkip } from "@/lib/pagination";
 import { buildDiscoverableFilter } from "@/lib/songs";
-import { zPageParam } from "@/lib/query-params";
-import { errorFromResult } from "@/lib/api-error";
-import { resolveUserIdByUsername } from "@/lib/profile";
-
-const pageQuery = z.object({ page: zPageParam() });
+import { pageQuery, resolveRouteUsernameOrResponse } from "../route-shared";
 
 export const GET = publicRoute<{ username: string }, undefined, z.infer<typeof pageQuery>>(
   async (_request, { params, query }) => {
-    const userResult = await resolveUserIdByUsername(params.username);
-    if (!userResult.ok) return errorFromResult(userResult);
+    const user = await resolveRouteUsernameOrResponse(params.username);
+    if ("status" in user) return user;
 
-    const where = { ...buildDiscoverableFilter(), userId: userResult.data.id };
+    const where = { ...buildDiscoverableFilter(), userId: user.userId };
 
     const [songs, total] = await Promise.all([
       prisma.song.findMany({

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { dateRangeStart, fillDailySeries } from "@/lib/date-series";
+import { fillDailySeries, getDateRangeMeta } from "@/lib/date-series";
 
 interface SongSummary {
   id: string;
@@ -32,8 +32,8 @@ const EMPTY_OVERVIEW: UserOverview = {
 };
 
 export async function getUserOverview(userId: string): Promise<UserOverview> {
-  const start7d = dateRangeStart(7);
-  const start30d = dateRangeStart(30);
+  const { sinceDate: start7d } = getDateRangeMeta("7d");
+  const { sinceDate: start30d } = getDateRangeMeta("30d");
 
   const userSongs = await prisma.song.findMany({
     where: { userId, generationStatus: "ready" },

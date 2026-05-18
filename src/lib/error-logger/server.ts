@@ -84,17 +84,21 @@ export function logServerError(
   // Mirror to Sentry/GlitchTip so server-side errors are visible alongside
   // their client-side counterparts. Sentry.init is a no-op without a DSN, so
   // captureException is also a no-op when tracking is disabled.
-  Sentry.captureException(
-    error instanceof Error ? error : new Error(String(error)),
-    {
-      tags,
-      extra: {
-        correlationId,
-        userId: context.userId ?? "unknown",
-        params: context.params ?? {},
+  try {
+    Sentry.captureException(
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        tags,
+        extra: {
+          correlationId,
+          userId: context.userId ?? "unknown",
+          params: context.params ?? {},
+        },
       },
-    },
-  );
+    );
+  } catch {
+    // Keep request handling resilient if telemetry capture throws unexpectedly.
+  }
 
   return correlationId;
 }

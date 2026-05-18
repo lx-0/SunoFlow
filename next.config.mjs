@@ -32,7 +32,11 @@ const buildId =
   `dev-${Date.now()}`;
 
 const nextConfig = {
-  output: "standalone",
+  // PLAYWRIGHT_TEST disables standalone so `next start` works in CI E2E without
+  // needing the standalone server setup (Prisma binary paths, static copy).
+  // The flag is set in playwright.config.ts's ciWebServerCommand so it applies
+  // at server startup time, not just build time.
+  output: process.env.PLAYWRIGHT_TEST === "true" ? undefined : "standalone",
   // Enable gzip/brotli compression for all responses
   compress: true,
   serverExternalPackages: ["@prisma/client", "bcryptjs", "node-cron"],

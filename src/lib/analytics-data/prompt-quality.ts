@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { parseDateRange, dateRangeStart, mondayOfWeeksAgo } from "@/lib/date-series";
+import { getDateRangeMeta, dateRangeStart, mondayOfWeeksAgo } from "@/lib/date-series";
 
 interface FeedbackStat {
   likes: number;
@@ -23,7 +23,7 @@ function buildFeedbackStat(likes: number, dislikes: number, plays: number): Feed
 }
 
 export async function getPromptQuality(range: string): Promise<PromptQualityAnalysis> {
-  const sinceDate = parseDateRange(range);
+  const { sinceDate } = getDateRangeMeta(range);
 
   const feedbackWithTags = await prisma.generationFeedback.findMany({
     where: { createdAt: { gte: sinceDate } },
@@ -87,7 +87,7 @@ export async function getPromptQuality(range: string): Promise<PromptQualityAnal
     .sort((a, b) => a.likeRatio - b.likeRatio || b.total - a.total)
     .slice(0, 10);
 
-  const twelveWeeksAgo = dateRangeStart(84);
+  const twelveWeeksAgo = dateRangeStart(12 * 7);
   const weeklyRaw = await prisma.$queryRaw<
     Array<{ week: Date; likes: bigint; dislikes: bigint }>
   >`

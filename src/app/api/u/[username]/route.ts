@@ -1,7 +1,30 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { optionalAuthRoute } from "@/lib/route-handler";
 import { notFound } from "@/lib/api-error";
+import { prisma } from "@/lib/prisma";
+
+type FeaturedSongPayload = {
+  id: string;
+  title: string | null;
+  imageUrl: string | null;
+  audioUrl: string | null;
+  duration: number | null;
+  tags: string | null;
+  publicSlug: string | null;
+};
+
+function normalizeFeaturedSong(song: FeaturedSongPayload) {
+  return {
+    id: song.id,
+    title: song.title ?? "Untitled",
+    imageUrl: song.imageUrl,
+    audioUrl: song.audioUrl,
+    duration: song.duration,
+    tags: song.tags,
+    publicSlug: song.publicSlug,
+  };
+}
+
 
 export const GET = optionalAuthRoute<{ username: string }>(async (_request, { auth, params }) => {
   const viewerId = auth.userId;
@@ -90,7 +113,7 @@ export const GET = optionalAuthRoute<{ username: string }>(async (_request, { au
     followingCount: user._count.following,
     publicSongsCount: user._count.songs,
     totalPlays: playStats._sum.playCount ?? 0,
-    featuredSong,
+    featuredSong: featuredSong ? normalizeFeaturedSong(featuredSong) : null,
     isFollowing,
   });
 }, { route: "/api/u/[username]" });

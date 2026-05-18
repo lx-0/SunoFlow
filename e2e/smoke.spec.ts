@@ -7,6 +7,10 @@ test("homepage loads successfully", async ({ page }) => {
 });
 
 test("/generate page loads and renders content", async ({ page }) => {
+  // Must be authenticated — middleware redirects unauthenticated browsers to /login,
+  // and browser navigation to protected routes fails with ERR_CONNECTION_REFUSED in CI.
+  const { email } = getSharedUser();
+  await loginViaUI(page, email, DEFAULT_PASSWORD);
   const response = await page.goto("/generate");
   expect(response?.status()).toBe(200);
   // Should render page content (not crash with blank screen)
@@ -14,6 +18,9 @@ test("/generate page loads and renders content", async ({ page }) => {
 });
 
 test("/mashup page loads without crash", async ({ page }) => {
+  // Must be authenticated — see /generate test above for rationale.
+  const { email } = getSharedUser();
+  await loginViaUI(page, email, DEFAULT_PASSWORD);
   const response = await page.goto("/mashup");
   expect(response?.status()).toBe(200);
   await expect(page.locator("body")).not.toBeEmpty();

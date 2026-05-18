@@ -3,20 +3,16 @@ import { z } from "zod";
 import { publicRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_PAGE_SIZE, offsetPagination, pageSkip } from "@/lib/pagination";
-import { zPageParam } from "@/lib/query-params";
-import { errorFromResult } from "@/lib/api-error";
-import { resolveUserIdByUsername } from "@/lib/profile";
-
-const pageQuery = z.object({ page: zPageParam() });
+import { pageQuery, resolveRouteUsernameOrResponse } from "../route-shared";
 
 export const GET = publicRoute<{ username: string }, undefined, z.infer<typeof pageQuery>>(
   async (_request, { params, query }) => {
-    const userResult = await resolveUserIdByUsername(params.username);
-    if (!userResult.ok) return errorFromResult(userResult);
+    const user = await resolveRouteUsernameOrResponse(params.username);
+    if ("status" in user) return user;
 
     const [playlists, total] = await Promise.all([
       prisma.playlist.findMany({
-        where: { userId: userResult.data.id, isPublic: true },
+        where: { userId: user.userId, isPublic: true },
         orderBy: { updatedAt: "desc" },
         skip: pageSkip(query.page, DEFAULT_PAGE_SIZE),
         take: DEFAULT_PAGE_SIZE,
@@ -39,7 +35,7 @@ export const GET = publicRoute<{ username: string }, undefined, z.infer<typeof p
         },
       }),
       prisma.playlist.count({
-        where: { userId: userResult.data.id, isPublic: true },
+        where: { userId: user.userId, isPublic: true },
       }),
     ]);
 

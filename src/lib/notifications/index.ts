@@ -1,10 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { broadcast } from "@/lib/event-bus";
 import { invalidateByPrefix, cacheKey } from "@/lib/cache";
-import { sendPushToUser } from "@/lib/push";
-import { logger } from "@/lib/logger";
 import { NOTIFICATION_CHANNELS } from "@/lib/notifications/channels";
 import { type NotificationType } from "@/lib/notifications/types";
+import {
+  buildPreferenceSelect,
+  fetchUserPreferences,
+  dispatchPush,
+  dispatchEmail,
+} from "@/lib/notifications/delivery";
 
 export type CreateNotificationParams = {
   userId: string;
@@ -68,69 +72,22 @@ export async function notifyUser(params: NotifyUserParams) {
   const wantEmail = params.email !== false && !!channels.email;
   if (!wantPush && !wantEmail) return notification;
 
-  const selectFields: Record<string, boolean> = {};
-  if (wantPush && channels.push) selectFields[channels.push.prefField] = true;
-  if (wantEmail && channels.email) {
-    selectFields[channels.email.prefField] = true;
-    selectFields.email = true;
-    selectFields.unsubscribeToken = true;
+  const userPrefs = await fetchUserPreferences(
+    params.userId,
+    buildPreferenceSelect(channels, wantPush, wantEmail),
+  );
+  if (!userPrefs) return notification;
+
+  if (wantPush) {
+    dispatchPush(params, channels, userPrefs);
   }
 
-  let userPrefs: Record<string, unknown> | null = null;
-  try {
-    userPrefs = (await prisma.user.findUnique({
-      where: { id: params.userId },
-      select: selectFields,
-    })) as Record<string, unknown> | null;
-  } catch (err) {
-    logger.error({ err, userId: params.userId }, "notifyUser: failed to fetch user preferences");
-    return notification;
-  }
-
-  if (wantPush && channels.push) {
-    const pushAllowed = userPrefs?.[channels.push.prefField] !== false;
-    if (pushAllowed) {
-      sendPushToUser(params.userId, {
-        title: params.title,
-        body: params.message,
-        url: params.href ?? "/",
-        tag: typeof params.push === "object" ? params.push.tag : undefined,
-      }).catch(() => {});
-    }
-  }
-
-  if (wantEmail && channels.email && userPrefs?.email) {
-    const emailAllowed = userPrefs[channels.email.prefField] !== false;
-    if (emailAllowed) {
-      const email = userPrefs.email as string;
-      let unsubToken = userPrefs.unsubscribeToken as string | null;
-      if (!unsubToken) {
-        unsubToken = crypto.randomUUID();
-        await prisma.user
-          .update({
-            where: { id: params.userId },
-            data: { unsubscribeToken: unsubToken },
-          })
-          .catch(() => {});
-      }
-      channels.email
-        .send({ songId: params.songId, title: params.title, message: params.message }, email, unsubToken)
-        .catch((err) =>
-          logger.error(
-            { userId: params.userId, type: params.type, err },
-            "notifyUser: email send failed",
-          ),
-        );
-    }
+  if (wantEmail) {
+    await dispatchEmail(params, channels, userPrefs);
   }
 
   return notification;
 }
-
-// ---------------------------------------------------------------------------
-// Low-credit notification (absorbed from credits module — notification
-// deduplication and message formatting belong here, not in accounting).
-// ---------------------------------------------------------------------------
 
 const LOW_CREDIT_THRESHOLD_TYPE: NotificationType = "low_credits";
 
