@@ -228,3 +228,49 @@ C) Generate signed URLs for media so middleware can validate without a cookie.
 **Reason:** A is the smallest correct change. The route handlers were already enforcing auth correctly — the middleware was just hiding the proper 401 response behind a 307-HTML redirect. Authenticated routes now return `401 application/json` (verified live in prod) which the audio element treats as a clean error → triggers our retry / fallback. B is hacky and doesn't help the share-page case. C is overkill for the current threat model (no rate-limit or cost-driven need to gate at the edge).
 **Reference:** `src/middleware.ts` (`PUBLIC_PATHS`). KNOWLEDGE.md "Lessons learned" — media-proxy in PUBLIC_PATHS. Commit `f3423bc` / `0.2.2`.
 
+
+## 2026-05-18: D15 -- Naming-Drift Resolution (Pre-M002) (M001-S03-T03 D15)
+
+**Context:** M001-GENERATE-INVENTORY §1.1 hat Naming-Drift zwischen Form und API dokumentiert: Form `stylePrompt` vs API `tags` vs Helper `style` (3 Namen, ein Konzept); Form `lyrics` vs API `prompt` (semantischer Mismatch, "prompt" ist API-Lingo aber im Form heisst es "Lyrics"). M002 Generate-Refactor wird beide Felder anfassen. Eine Decision muss VOR Refactor stehen, sonst manifestieren die Drifts in den neuen Sub-Components weiter.
+
+**Options considered:**
+A) Form-vocab gewinnt: `stylePrompt` + `lyrics` ueberall. API umbenennen via Zod-key-rename + Migration der API-Konsumenten.
+B) API-vocab gewinnt: `tags` + `prompt` ueberall. Form-State-Variablen umbenennen. UI-Label "Lyrics" bleibt -- nur Code-internal `prompt`.
+C) Drift akzeptieren mit Code-Comment: "form uses A, API uses B".
+
+**Chose:** **B** (with caveat).
+
+**Reason:** API-Schema ist Source-of-Truth fuer Generate-Domain (per FEATURE-MAP §3 "load-bearing flow"). External-API-Konsumenten via `/api/v1/*` koennen Form-Namen nicht sehen -- aber Code-Maintainer der GenerateForm anfasst muss zwischen Form-Vocab und API-Vocab uebersetzen. **B macht den Code-Pfad konsistent: API → Code internal → Form state. Nur UI-Label bleibt user-friendly ("Lyrics" statt "Prompt").** A wuerde API-Konsumenten brechen; C ist Drift die wieder kostet. Konkret in M002: `stylePrompt`-useState wird `style`-useState (matched `lib/generation/params.ts` constants). `lyrics`-useState wird `prompt`-useState. UI-Label bleibt "Lyrics" (mehr UX-friendly als "Prompt" fuer den Songtext-Input).
+
+**Reference:** `.ytstack/M001-GENERATE-INVENTORY.md` §1.1, `.ytstack/M001-GENERATE-REDESIGN.md` §7.3. M002-Pre-Refactor.
+
+## 2026-05-18: D16 -- Folge-Milestones Sequence Order (M001-S03-T03 D16)
+
+**Context:** M001 hat 13 IA-Decisions (D2-D14) produziert die in M002+ implementiert werden. Sequenz-Order ist nicht beliebig -- Dependencies (god-object-Touches, Bookmark-Risks, Lerneffekt) bestimmen Reihenfolge.
+
+**Options considered:**
+A) Alle 13 Decisions in einem grossen M002 implementieren -- maximal parallel, maximales Risiko.
+B) Decision-by-decision, eine M### pro Decision -- minimal parallel, sehr granulare Milestones (13+ Milestones).
+C) Geclustert nach Dependency + Risk: M002 Generate-Refactor (god-object-First), M003+M004 IA-Konsolidierung Phase 1+2, M005 Cleanup, M006+M007 als GO/NO-GO Engineering-Passes.
+
+**Chose:** **C**
+
+**Reason:** A hat zu viel Hot-File-Konflikt-Risiko (4 god-objects gleichzeitig touchen). B fragmentiert die Decisions zu sehr -- z.B. D4-D5 Discover-Cluster sind eine Architektur-Einheit, in 4 Milestones zu splitten ist Theater. C cluster nach 3 Kriterien: (1) was hat fertigen Plan (M002 first), (2) was hat shared Files (M003 alle AppShell-Touches), (3) was ist Risk-vs-Benefit-Decision (M006+M007 GO/NO-GO). Detail in `.ytstack/M001-FOLLOWUP-ROADMAP.md`.
+
+**Reference:** `.ytstack/M001-FOLLOWUP-ROADMAP.md` "Sequence Rationale" section.
+
+
+## 2026-05-18: D17 -- Migration-Strategy: Feature-Flags + permanent 301-Redirects (M001-S03-T04 D17)
+
+**Context:** M001 hat 13 Decisions (D2-D14) plus D15+D16 produziert. Implementation in M002-M004 ueber 7-10 Wochen sequenziell. Migration-Strategie muss vor M002-Start formal sein -- sonst werden Rollback-Pfade ad-hoc improvisiert.
+
+**Options considered:**
+A) Hard-Cutover (no flags) -- schnell, hohe Risk-Klasse, Rollback teuer.
+B) Feature-Flags fuer alle Refactors + permanent 301-Redirects fuer alle URL-Aenderungen.
+C) Feature-Flags nur fuer Hot-File-Touches (M002, M006) + 301-Redirects + Hard-Cutover fuer Low-Risk-Aenderungen.
+
+**Chose:** **B** (with carve-out for M005-M007).
+
+**Reason:** Konkret: M002 (Generate-Refactor, Hot-File 44 commits, god-object) braucht zwingend Feature-Flag mit 5%→50%→100% rollout. M003 (frontend tab-hub) profitiert von Flag fuer 1-Wochen-Soak. M004 (URL-renamings) wird per 301-Redirect migriert, neue /authoring Hub bekommt eigenes Flag. M005 (delete-only), M006/M007 (engineering-pass, behavior-equivalent) brauchen KEIN Flag -- gehen durch Test-Coverage + Verification-PR-Checklist. **301-Redirects sind permanent** (LOW maintenance cost, schuetzt Bookmarks + Shortcuts + Embed-URLs). Details in `.ytstack/M001-MIGRATION-STRATEGY.md`.
+
+**Reference:** `.ytstack/M001-MIGRATION-STRATEGY.md`, IA-MAP §8.
