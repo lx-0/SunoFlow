@@ -9,6 +9,9 @@ export interface RssItem {
   topics?: string[];
   suggestedStyle?: string;
   excerpt?: string;
+  /** Inline feed content was a truncated summary (had a read-more marker) and
+   *  must be backfilled by following the article link. */
+  truncated?: boolean;
 }
 
 export interface FeedResult {

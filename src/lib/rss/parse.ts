@@ -38,6 +38,28 @@ export function stripTags(text: string): string {
   return strip(strip(text));
 }
 
+// Bracketed read-more links that German/English feeds append to summaries.
+// tagesschau ships "[<a href>mehr</a>]" inside <content:encoded>; after tags are
+// stripped the literal "[ mehr ]" survives. These are UI artifacts, never body text.
+const READ_MORE_MARKER =
+  /\[\s*(?:mehr(?:\s+lesen)?|weiterlesen|read\s*more|more|continue\s*reading|…|\.\.\.)\s*\]/gi;
+// A summary cut mid-thought ends with a dangling ellipsis. Only treat a
+// trailing one as truncation — a mid-sentence "…" is legitimate prose.
+const TRAILING_ELLIPSIS = /\s*(?:…|\.\.\.)\s*$/;
+
+export function hasReadMoreMarker(text: string): boolean {
+  READ_MORE_MARKER.lastIndex = 0;
+  return READ_MORE_MARKER.test(text) || TRAILING_ELLIPSIS.test(text);
+}
+
+export function stripReadMoreMarker(text: string): string {
+  return text
+    .replace(READ_MORE_MARKER, "")
+    .replace(TRAILING_ELLIPSIS, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function extractAtomLink(itemXml: string): string {
   const match = itemXml.match(
     /<link[^>]+href=["']([^"']+)["'][^>]*\/?>/i

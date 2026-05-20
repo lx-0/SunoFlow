@@ -4,6 +4,8 @@ import {
   stripCDATA,
   stripTags,
   extractAtomLink,
+  hasReadMoreMarker,
+  stripReadMoreMarker,
 } from "./parse";
 import { enrichItem } from "./enrich";
 import { extractArticleContent } from "./extract-article";
@@ -11,30 +13,65 @@ import type { RssItem, FeedResult } from "./types";
 
 export type { RssItem, FeedResult };
 
+// Below this, inline feed content is too short to be a real article body even
+// without an explicit truncation marker — follow the link anyway.
 const CONTENT_THRESHOLD = 200;
-const MAX_ARTICLE_FETCHES = 5;
+// Cover every displayed item (feeds are sliced to 20), not just the first 5.
+const MAX_ARTICLE_FETCHES = 20;
+// Cap simultaneous outbound article fetches per feed to stay a good citizen.
+const FETCH_CONCURRENCY = 6;
+// Hard ceiling on how long article backfill may delay the feed response.
+// Whatever hasn't resolved by then keeps its (marker-stripped) summary.
+const ENRICH_BUDGET_MS = 9000;
+
+// An item needs its full article fetched when the inline feed content is a
+// truncated summary (read-more marker) or simply too short to be a real body.
+function needsFullArticle(item: RssItem): boolean {
+  if (!item.link) return false;
+  if (item.truncated) return true;
+  const inlineLength = (item.content || item.description || "").length;
+  return inlineLength < CONTENT_THRESHOLD;
+}
 
 async function enrichWithFullArticle(items: RssItem[]): Promise<RssItem[]> {
-  const toEnrich = items.slice(0, MAX_ARTICLE_FETCHES);
-  const passThrough = items.slice(MAX_ARTICLE_FETCHES);
+  const result = [...items];
+  const targets = result
+    .map((item, index) => ({ item, index }))
+    .filter(({ index }) => index < MAX_ARTICLE_FETCHES)
+    .filter(({ item }) => needsFullArticle(item));
 
-  const enriched = await Promise.all(
-    toEnrich.map(async (item) => {
-      const inlineLength = (item.content || item.description || "").length;
-      if (inlineLength >= CONTENT_THRESHOLD || !item.link) return item;
+  if (targets.length === 0) return result;
 
-      const article = await extractArticleContent(item.link);
-      if (!article) return item;
+  const deadline = Date.now() + ENRICH_BUDGET_MS;
 
-      return {
-        ...item,
-        content: article.slice(0, 5000),
-        description: article.slice(0, 800),
-      };
-    })
-  );
+  const run = async () => {
+    for (let i = 0; i < targets.length; i += FETCH_CONCURRENCY) {
+      if (Date.now() >= deadline) break;
+      const batch = targets.slice(i, i + FETCH_CONCURRENCY);
+      await Promise.all(
+        batch.map(async ({ item, index }) => {
+          const article = await extractArticleContent(item.link!);
+          if (!article) return;
+          result[index] = {
+            ...item,
+            content: article.slice(0, 5000),
+            description: article.slice(0, 800),
+            truncated: false,
+          };
+        })
+      );
+    }
+  };
 
-  return [...enriched, ...passThrough];
+  // `result` is mutated in place as fetches resolve, so racing the batch loop
+  // against a hard deadline returns partial progress without ever hanging the
+  // feed — slow articles simply keep their marker-stripped summary.
+  await Promise.race([
+    run(),
+    new Promise<void>((resolve) => setTimeout(resolve, ENRICH_BUDGET_MS)),
+  ]);
+
+  return result;
 }
 
 export async function fetchFeed(url: string): Promise<FeedResult> {
@@ -69,11 +106,13 @@ export async function fetchFeed(url: string): Promise<FeedResult> {
         const rawContent =
           extractTagContent(entry, "content") ||
           extractTagContent(entry, "summary");
-        const fullText = stripTags(rawContent);
+        const rawText = stripTags(rawContent);
+        const truncated = hasReadMoreMarker(rawText);
+        const fullText = stripReadMoreMarker(rawText);
         const description = fullText.slice(0, 800);
         const content = fullText.slice(0, 5000);
         const link = extractAtomLink(entry) || extractTagContent(entry, "id");
-        return { title, description, content, link, source: feedTitle };
+        return { title, description, content, link, source: feedTitle, truncated };
       });
     } else {
       const channelMatch = xml.match(
@@ -97,12 +136,14 @@ export async function fetchFeed(url: string): Promise<FeedResult> {
           extractTagContent(item, "encoded");
         const rawDescription = contentEncoded ||
           stripCDATA(extractTagContent(item, "description"));
-        const fullText = stripTags(rawDescription);
+        const rawText = stripTags(rawDescription);
+        const truncated = hasReadMoreMarker(rawText);
+        const fullText = stripReadMoreMarker(rawText);
         const description = fullText.slice(0, 800);
         const content = fullText.slice(0, 5000);
         const link = extractTagContent(item, "link");
         const pubDate = extractTagContent(item, "pubDate");
-        return { title, description, content, link, source: feedTitle, pubDate };
+        return { title, description, content, link, source: feedTitle, pubDate, truncated };
       });
     }
 

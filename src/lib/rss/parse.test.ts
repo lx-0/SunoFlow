@@ -6,6 +6,8 @@ import {
   decodeHtmlEntities,
   stripTags,
   extractAtomLink,
+  stripReadMoreMarker,
+  hasReadMoreMarker,
 } from "./parse";
 
 describe("stripCDATA", () => {
@@ -62,6 +64,70 @@ describe("extractAllTagContent", () => {
   it("extracts all occurrences of a tag", () => {
     const xml = "<item>first</item><item>second</item>";
     expect(extractAllTagContent(xml, "item")).toEqual(["first", "second"]);
+  });
+});
+
+describe("stripReadMoreMarker", () => {
+  it("removes the tagesschau '[ mehr ]' marker left after stripping the anchor tag", () => {
+    expect(stripReadMoreMarker("Ein Ehepaar soll spioniert haben.[ mehr ]")).toBe(
+      "Ein Ehepaar soll spioniert haben."
+    );
+  });
+
+  it("removes '[mehr]' without inner spaces", () => {
+    expect(stripReadMoreMarker("Kurztext.[mehr]")).toBe("Kurztext.");
+  });
+
+  it("removes German 'Weiterlesen' read-more markers", () => {
+    expect(stripReadMoreMarker("Zusammenfassung. [Weiterlesen]")).toBe("Zusammenfassung.");
+  });
+
+  it("removes English read-more markers", () => {
+    expect(stripReadMoreMarker("Summary text. [read more]")).toBe("Summary text.");
+  });
+
+  it("removes a trailing ellipsis (summary cut mid-thought)", () => {
+    expect(stripReadMoreMarker("Die Verhandlungen gehen weiter…")).toBe(
+      "Die Verhandlungen gehen weiter"
+    );
+    expect(stripReadMoreMarker("Die Verhandlungen gehen weiter...")).toBe(
+      "Die Verhandlungen gehen weiter"
+    );
+  });
+
+  it("leaves clean article text untouched", () => {
+    expect(stripReadMoreMarker("Full article body without any marker.")).toBe(
+      "Full article body without any marker."
+    );
+  });
+
+  it("does not remove the word 'mehr' in normal prose", () => {
+    expect(stripReadMoreMarker("Es gab mehr Festnahmen als erwartet.")).toBe(
+      "Es gab mehr Festnahmen als erwartet."
+    );
+  });
+});
+
+describe("hasReadMoreMarker", () => {
+  it("detects the '[ mehr ]' marker", () => {
+    expect(hasReadMoreMarker("Ein Ehepaar soll spioniert haben.[ mehr ]")).toBe(true);
+  });
+
+  it("returns false for clean text", () => {
+    expect(hasReadMoreMarker("Full article body without any marker.")).toBe(false);
+  });
+
+  it("returns false for the bare word 'mehr'", () => {
+    expect(hasReadMoreMarker("Es gab mehr Festnahmen.")).toBe(false);
+  });
+
+  it("detects a trailing ellipsis as truncation", () => {
+    expect(hasReadMoreMarker("Die Verhandlungen gehen weiter…")).toBe(true);
+    expect(hasReadMoreMarker("Die Verhandlungen gehen weiter...")).toBe(true);
+  });
+
+  it("does not treat a mid-sentence ellipsis as truncation", () => {
+    expect(hasReadMoreMarker("Er zögerte … dann stimmte er zu.")).toBe(false);
   });
 });
 
