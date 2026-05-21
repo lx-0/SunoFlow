@@ -85,7 +85,7 @@ function NavBar() {
             href="/register"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white transition-colors"
           >
-            Get Started Free
+            Have an invite? Sign up
           </Link>
         </div>
       </div>
@@ -106,9 +106,9 @@ function HeroSection() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 mb-6">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 mb-6">
           <SparklesIcon className="w-3.5 h-3.5" />
-          Free early access — all features included
+          Private beta · invite-only · work in progress
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-6 leading-tight">
@@ -129,7 +129,7 @@ function HeroSection() {
             href="/register"
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-base font-semibold bg-violet-600 hover:bg-violet-700 text-white transition-colors shadow-lg shadow-violet-600/25"
           >
-            Get Started — it&apos;s free
+            Have an invite? Sign up
           </Link>
           <Link
             href="/login"
@@ -140,7 +140,7 @@ function HeroSection() {
         </div>
 
         <p className="mt-4 text-sm text-gray-500 dark:text-gray-500">
-          Free during beta · No credit card required
+          Private beta · invite-only · actively in development
         </p>
       </div>
     </section>
@@ -190,15 +190,15 @@ function FreeBetaBanner() {
         <div className="rounded-3xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30 p-10 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-violet-100 dark:bg-violet-900/60 text-violet-700 dark:text-violet-300 mb-6">
             <SparklesIcon className="w-3.5 h-3.5" />
-            Early Access
+            Private beta
           </div>
 
           <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
-            Free during beta
+            Free during the beta
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-400 mb-8 max-w-xl mx-auto">
-            SunoFlow is free for all early users. Get full access to every feature — no tiers, no
-            limits, no credit card needed.
+            SunoFlow is in active development and currently open to invited users only. Early access
+            is free — no tiers, no credit card. Expect rough edges while we build.
           </p>
 
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left max-w-md mx-auto mb-10">
@@ -210,12 +210,20 @@ function FreeBetaBanner() {
             ))}
           </ul>
 
-          <Link
-            href="/register"
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-base font-semibold bg-violet-600 hover:bg-violet-700 text-white transition-colors shadow-lg shadow-violet-600/20"
-          >
-            Join for free
-          </Link>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/register"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-base font-semibold bg-violet-600 hover:bg-violet-700 text-white transition-colors shadow-lg shadow-violet-600/20"
+            >
+              Have an invite? Sign up
+            </Link>
+            <a
+              href="mailto:hello@sunoflow.app?subject=SunoFlow%20invite%20request"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-base font-semibold border border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300 hover:bg-violet-100/50 dark:hover:bg-violet-900/30 transition-colors"
+            >
+              Request access
+            </a>
+          </div>
         </div>
       </div>
     </section>
