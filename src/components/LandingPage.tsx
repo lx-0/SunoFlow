@@ -222,44 +222,6 @@ function FreeBetaBanner() {
   );
 }
 
-interface SocialProofSectionProps {
-  stats: { songs: number; users: number };
-}
-
-function SocialProofSection({ stats }: SocialProofSectionProps) {
-  return (
-    <section className="py-16 bg-gradient-to-r from-violet-600 to-indigo-600">
-      <div className="max-w-4xl mx-auto px-4 text-center">
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-10">
-          Trusted by creators worldwide
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-12">
-          <div>
-            <div className="text-5xl font-extrabold text-white mb-2">
-              {stats.songs.toLocaleString()}+
-            </div>
-            <div className="text-violet-200 text-base font-medium">Songs generated</div>
-          </div>
-          <div>
-            <div className="text-5xl font-extrabold text-white mb-2">
-              {stats.users.toLocaleString()}+
-            </div>
-            <div className="text-violet-200 text-base font-medium">Early creators</div>
-          </div>
-        </div>
-
-        <Link
-          href="/register"
-          className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-base font-semibold bg-white text-violet-700 hover:bg-gray-50 transition-colors shadow-lg"
-        >
-          Join {stats.users.toLocaleString()}+ early users — it&apos;s free
-        </Link>
-      </div>
-    </section>
-  );
-}
-
 function FooterSection() {
   return (
     <footer className="border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 py-12">
@@ -295,11 +257,7 @@ function FooterSection() {
 // Main component
 // ─────────────────────────────────────────────────────────
 
-interface LandingPageProps {
-  stats?: { songs: number; users: number };
-}
-
-export function LandingPage({ stats = { songs: 10000, users: 2500 } }: LandingPageProps) {
+export function LandingPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white">
       <NavBar />
@@ -307,7 +265,6 @@ export function LandingPage({ stats = { songs: 10000, users: 2500 } }: LandingPa
         <HeroSection />
         <FeaturesSection />
         <FreeBetaBanner />
-        <SocialProofSection stats={stats} />
       </main>
       <FooterSection />
     </div>

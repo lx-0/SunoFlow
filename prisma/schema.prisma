@@ -112,6 +112,7 @@ model User {
   milestones           UserMilestone[]
   pushSubscriptions    PushSubscription[]
   styleTemplates       StyleTemplate[]
+  usedInviteCode       InviteCode?            @relation("InviteCodeUsedBy")
 
   @@index([lastLoginAt])
   @@index([createdAt])
@@ -617,6 +618,21 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// Single-use invite codes that gate self-serve registration during closed beta.
+model InviteCode {
+  id           String    @id @default(cuid())
+  code         String    @unique
+  note         String?
+  expiresAt    DateTime?
+  usedAt       DateTime?
+  usedByUserId String?   @unique
+  usedByUser   User?     @relation("InviteCodeUsedBy", fields: [usedByUserId], references: [id], onDelete: SetNull)
+  createdById  String?
+  createdAt    DateTime  @default(now())
+
+  @@index([createdAt])
 }
 
 model Comment {

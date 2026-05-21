@@ -16,6 +16,7 @@ import {
   PresentationChartLineIcon,
   ScaleIcon,
   ServerStackIcon,
+  TicketIcon,
 } from "@heroicons/react/24/outline";
 
 const adminNav = [
@@ -24,6 +25,7 @@ const adminNav = [
   { label: "Analytics", href: "/admin/analytics", icon: ChartPieIcon },
   { label: "Metrics", href: "/admin/metrics", icon: PresentationChartLineIcon },
   { label: "Users", href: "/admin/users", icon: UsersIcon },
+  { label: "Invite Codes", href: "/admin/invite-codes", icon: TicketIcon },
   { label: "Content", href: "/admin/content", icon: MusicalNoteIcon },
   { label: "Moderation", href: "/admin/moderation", icon: ShieldExclamationIcon, badge: "reports" as const },
   { label: "Reports", href: "/admin/reports", icon: FlagIcon },

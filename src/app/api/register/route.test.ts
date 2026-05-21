@@ -28,6 +28,11 @@ vi.mock("@/lib/prisma", () => ({
     user: {
       findUnique: vi.fn(),
       create: vi.fn(),
+      delete: vi.fn().mockResolvedValue({ id: "user-1" }),
+    },
+    inviteCode: {
+      findUnique: vi.fn(),
+      updateMany: vi.fn(),
     },
     subscription: {
       findUnique: vi.fn().mockResolvedValue(null),
@@ -79,7 +84,16 @@ beforeEach(() => {
     email: "test@example.com",
     name: "Test User",
   } as never);
+  // Default: a valid, unused invite code that claims successfully.
+  vi.mocked(prisma.inviteCode.findUnique).mockResolvedValue({
+    id: "invite-1",
+    usedByUserId: null,
+    expiresAt: null,
+  } as never);
+  vi.mocked(prisma.inviteCode.updateMany).mockResolvedValue({ count: 1 } as never);
 });
+
+const VALID_CODE = "TEST-CODE";
 
 describe("POST /api/register", () => {
   it("creates a user successfully", async () => {
@@ -87,12 +101,19 @@ describe("POST /api/register", () => {
       email: "test@example.com",
       password: "password123",
       name: "Test User",
+      inviteCode: VALID_CODE,
     }), seg);
 
     expect(res.status).toBe(201);
     const data = await res.json();
     expect(data.email).toBe("test@example.com");
     expect(sendVerificationEmail).toHaveBeenCalledTimes(1);
+    expect(prisma.inviteCode.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "invite-1", usedByUserId: null },
+        data: expect.objectContaining({ usedByUserId: "user-1" }),
+      }),
+    );
   });
 
   it("auto-verifies admin email registrations", async () => {
@@ -198,6 +219,7 @@ describe("POST /api/register — malformed input and XSS edge cases", () => {
       email: "xss-test@example.com",
       password: "password123",
       name: '<script>alert("xss")</script>Alice',
+      inviteCode: VALID_CODE,
     }), seg);
 
     expect(res.status).toBe(201);
@@ -218,6 +240,101 @@ describe("POST /api/register — malformed input and XSS edge cases", () => {
     expect(data).toHaveProperty("code");
     expect(typeof data.error).toBe("string");
     expect(typeof data.code).toBe("string");
+  });
+});
+
+describe("POST /api/register — invite code gating", () => {
+  it("returns 403 INVITE_REQUIRED when no code is supplied", async () => {
+    const res = await POST(makeRequest({
+      email: "noinvite@example.com",
+      password: "password123",
+    }), seg);
+
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.code).toBe("INVITE_REQUIRED");
+    expect(prisma.user.create).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 INVALID_INVITE when the code does not exist", async () => {
+    vi.mocked(prisma.inviteCode.findUnique).mockResolvedValue(null);
+
+    const res = await POST(makeRequest({
+      email: "bad@example.com",
+      password: "password123",
+      inviteCode: "NOPE-NOPE",
+    }), seg);
+
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.code).toBe("INVALID_INVITE");
+    expect(prisma.user.create).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 INVALID_INVITE when the code is already used", async () => {
+    vi.mocked(prisma.inviteCode.findUnique).mockResolvedValue({
+      id: "invite-used",
+      usedByUserId: "someone-else",
+      expiresAt: null,
+    } as never);
+
+    const res = await POST(makeRequest({
+      email: "used@example.com",
+      password: "password123",
+      inviteCode: VALID_CODE,
+    }), seg);
+
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("INVALID_INVITE");
+  });
+
+  it("returns 403 INVALID_INVITE when the code is expired", async () => {
+    vi.mocked(prisma.inviteCode.findUnique).mockResolvedValue({
+      id: "invite-expired",
+      usedByUserId: null,
+      expiresAt: new Date(Date.now() - 1000),
+    } as never);
+
+    const res = await POST(makeRequest({
+      email: "expired@example.com",
+      password: "password123",
+      inviteCode: VALID_CODE,
+    }), seg);
+
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("INVALID_INVITE");
+  });
+
+  it("rolls back the user and returns 403 when the code is claimed in a race", async () => {
+    vi.mocked(prisma.inviteCode.updateMany).mockResolvedValue({ count: 0 } as never);
+
+    const res = await POST(makeRequest({
+      email: "race@example.com",
+      password: "password123",
+      inviteCode: VALID_CODE,
+    }), seg);
+
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("INVALID_INVITE");
+    expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: "user-1" } });
+  });
+
+  it("lets admin emails register without an invite code", async () => {
+    process.env.ADMIN_EMAILS = "admin@example.com";
+    vi.mocked(prisma.user.create).mockResolvedValue({
+      id: "admin-1",
+      email: "admin@example.com",
+      name: "Admin",
+    } as never);
+
+    const res = await POST(makeRequest({
+      email: "admin@example.com",
+      password: "password123",
+    }), seg);
+
+    expect(res.status).toBe(201);
+    expect(prisma.inviteCode.findUnique).not.toHaveBeenCalled();
+    expect(prisma.inviteCode.updateMany).not.toHaveBeenCalled();
   });
 });
 

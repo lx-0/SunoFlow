@@ -9,6 +9,7 @@ const registerBodySchema = z.object({
   name: z.string().optional(),
   email: z.string(),
   password: z.string(),
+  inviteCode: z.string().optional(),
 });
 
 export const POST = publicRoute(
@@ -18,6 +19,7 @@ export const POST = publicRoute(
       name: body.name,
       email: body.email,
       password: body.password,
+      inviteCode: body.inviteCode,
       ip,
       skipRateLimit: process.env.PLAYWRIGHT_TEST === "true",
     });

@@ -11,6 +11,7 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleEnabled, setGoogleEnabled] = useState(false);
@@ -22,6 +23,11 @@ export default function RegisterPage() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("invite");
+    if (fromUrl) setInviteCode(fromUrl);
+  }, []);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -30,7 +36,7 @@ export default function RegisterPage() {
     const res = await fetch("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, inviteCode }),
     });
 
     if (!res.ok) {
@@ -52,7 +58,9 @@ export default function RegisterPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-violet-400">SunoFlow</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">Create your account</p>
+          <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
+            SunoFlow is invite-only during beta — enter your invite code to create an account.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -61,6 +69,23 @@ export default function RegisterPage() {
               {error}
             </div>
           )}
+
+          <div>
+            <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Invite code
+            </label>
+            <input
+              id="inviteCode"
+              type="text"
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)}
+              required
+              autoComplete="off"
+              autoCapitalize="characters"
+              className="w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-base tracking-wider uppercase"
+              placeholder="XXXX-XXXX"
+            />
+          </div>
 
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

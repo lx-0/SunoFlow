@@ -7,6 +7,7 @@ import { ensureFreeSubscription } from "@/lib/billing";
 import { acquireAnonRateLimitSlot } from "@/lib/rate-limit";
 import { isAdminEmail } from "@/lib/auth/admin";
 import { createVerificationToken } from "@/lib/auth/tokens";
+import { validateInviteCode } from "@/lib/auth/invite";
 
 const REGISTER_LIMIT = 5;
 const REGISTER_WINDOW_MS = 15 * 60 * 1000;
@@ -16,6 +17,7 @@ export interface RegisterInput {
   email: string;
   password: string;
   ip: string;
+  inviteCode?: string;
   skipRateLimit?: boolean;
 }
 
@@ -24,7 +26,7 @@ export type RegisterResult =
   | { ok: false; error: string; code: string; status: number; rateLimitStatus?: { limit: number; remaining: number; resetAt: string } };
 
 export async function registerUser(input: RegisterInput): Promise<RegisterResult> {
-  const { name, email, password, ip, skipRateLimit } = input;
+  const { name, email, password, ip, inviteCode, skipRateLimit } = input;
 
   if (!skipRateLimit) {
     const { acquired, status: rlStatus } = await acquireAnonRateLimitSlot(
@@ -66,8 +68,22 @@ export async function registerUser(input: RegisterInput): Promise<RegisterResult
     return { ok: false, error: "Email already registered", code: "CONFLICT", status: 409 };
   }
 
+  // Closed beta: registration requires a valid single-use invite code.
+  // Admin emails bypass the gate so the operator can always bootstrap.
+  const isAdmin = isAdminEmail(email);
+  let inviteCodeId: string | null = null;
+  if (!isAdmin) {
+    const invite = await validateInviteCode(inviteCode);
+    if (!invite.ok) {
+      return invite.reason === "missing"
+        ? { ok: false, error: "An invite code is required to register.", code: "INVITE_REQUIRED", status: 403 }
+        : { ok: false, error: "This invite code is invalid or has already been used.", code: "INVALID_INVITE", status: 403 };
+    }
+    inviteCodeId = invite.id;
+  }
+
   const passwordHash = await bcrypt.hash(password, 12);
-  const shouldAutoVerify = isAdminEmail(email);
+  const shouldAutoVerify = isAdmin;
   const verificationToken = shouldAutoVerify ? null : createVerificationToken();
   const sanitizedName = name ? stripHtml(name).trim() || null : null;
 
@@ -80,6 +96,21 @@ export async function registerUser(input: RegisterInput): Promise<RegisterResult
       emailVerified: shouldAutoVerify ? new Date() : null,
     },
   });
+
+  // Claim the invite code atomically; the guard rejects a code consumed by a
+  // concurrent registration between validation and claim.
+  if (inviteCodeId) {
+    const claim = await prisma.inviteCode.updateMany({
+      where: { id: inviteCodeId, usedByUserId: null },
+      data: { usedByUserId: user.id, usedAt: new Date() },
+    });
+    if (claim.count === 0) {
+      await prisma.user.delete({ where: { id: user.id } }).catch((err) =>
+        logger.error({ userId: user.id, err }, "register: failed to roll back user after invite race"),
+      );
+      return { ok: false, error: "This invite code is invalid or has already been used.", code: "INVALID_INVITE", status: 403 };
+    }
+  }
 
   if (verificationToken) {
     await sendVerificationEmail(email, verificationToken);

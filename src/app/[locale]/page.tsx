@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { LandingPage } from "@/components/LandingPage";
 import { safeJsonLd } from "@/lib/json-ld";
 
@@ -36,22 +35,6 @@ const websiteJsonLd = {
     "Generate, manage, and share AI-crafted music. SunoFlow brings your library, inspiration feeds, and creative tools into one seamless workspace.",
 };
 
-async function getLandingStats() {
-  try {
-    const [songs, users] = await Promise.all([
-      prisma.song.count({ where: { generationStatus: "ready" } }),
-      prisma.user.count(),
-    ]);
-    // Round down to nearest clean number for display
-    return {
-      songs: Math.max(songs, 10000),
-      users: Math.max(users, 2500),
-    };
-  } catch {
-    return { songs: 10000, users: 2500 };
-  }
-}
-
 export default async function HomePage() {
   const session = await auth();
 
@@ -60,15 +43,13 @@ export default async function HomePage() {
     redirect("/library");
   }
 
-  const stats = await getLandingStats();
-
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteJsonLd) }}
       />
-      <LandingPage stats={stats} />
+      <LandingPage />
     </>
   );
 }
