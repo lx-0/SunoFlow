@@ -305,3 +305,19 @@ C) Both — eager with higher cap plus lazy fallback at click.
 **Reason:** User wants full article text everywhere it's consumed, not just at click. The decisive design rule: **inline content length is not a proxy for "is this the full article"** — a marker-bearing summary can exceed any length threshold. Enrichment now triggers on `RssItem.truncated` (a read-more marker / trailing-ellipsis detected during parse) **OR** `inlineLength < threshold`, never length alone. Markers are stripped at the parse layer (`hasReadMoreMarker` / `stripReadMoreMarker`) so even un-enrichable items (e.g. tagesschau `/video/*` pages with no `<article>` body) fall back to a clean, marker-free summary. Eager-all is made safe by per-feed concurrency cap (6) and a hard 9 s enrichment time budget raced against the batch loop, so the feed response never hangs — slow articles simply keep their summary. Fix sits at the `fetchFeed` seam so all consumers benefit.
 
 **Reference:** `src/lib/rss/{parse,index,types}.ts`; commit `b040ee6` / `0.2.3`; KNOWLEDGE.md → Gotchas ("German news RSS `<content:encoded>` is NOT the article body").
+
+## 2026-05-21: Registration is invite-only (closed beta) via single-use codes
+
+**Context:** The landing page presented SunoFlow as a launched public product (fabricated social-proof stats — "Trusted by creators worldwide", `Math.max(users, 2500)` flooring ~2 real users to "2,500+" — and open self-serve signup) while the app is heavy WIP with a handful of users. User wanted the marketing fiction removed AND registration restricted to selected people.
+
+**Options considered:**
+A) Close registration entirely — no self-serve, operator creates accounts manually. Zero schema, but no delegation.
+B) Email allowlist — only listed addresses may register. Lightweight, reuses the admin-email pattern, but no per-person tracking.
+C) Single-use invite codes — `InviteCode` table, code required at `/register`, operator generates + hands out codes.
+D) Full waitlist — landing captures emails, operator approves → invite mail. Largest build.
+
+**Chose:** **C** (single-use codes), with admin-email bypass; **Google-OAuth gate deferred**.
+
+**Reason:** User picked invite codes for per-person control without the waitlist build. Design points: (1) `InviteCode` model is single-use (`usedByUserId @unique`, nullable `expiresAt`), claimed atomically via a guarded `updateMany` with user-rollback on a lost race. (2) `isAdminEmail()` (the `ADMIN_EMAILS` env identity) **bypasses** the gate so the operator can always bootstrap. (3) The PrismaAdapter would auto-create a user on first Google login, bypassing the code — but user confirmed `AUTH_GOOGLE_ID/SECRET` are unset in prod (provider inactive), so we did **not** add a `signIn` callback to block new OAuth users. If Google is ever enabled, that gate becomes required (block sign-in when no existing user matches the email). (4) Codes are generated/listed/copied via a new admin UI (`/admin/invite-codes` + `GET/POST /api/admin/invite-codes`). Separately, the landing page was reframed from launch-marketing to an honest "private beta · invite-only · WIP" voice (badge, CTAs "Have an invite? Sign up" / "Request access" mailto, beta-banner copy dropping the false "no limits" claim).
+
+**Reference:** `src/lib/auth/{invite,register}.ts`, `src/app/api/admin/invite-codes/route.ts`, `src/app/[locale]/admin/invite-codes/page.tsx`, `src/components/LandingPage.tsx`; migration `20260521120000_add_invite_code`; commits `7e155c9` (gate) + landing reframe; KNOWLEDGE.md → Gotchas ("registration gate must bypass under `PLAYWRIGHT_TEST`").

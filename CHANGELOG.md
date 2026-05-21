@@ -2,6 +2,30 @@
 
 All notable changes to this project. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the version numbers follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] — 2026-05-21
+
+Closed the beta: registration is now invite-only, and the landing page no longer pretends to be a launched public product. Driven by reality — the app is heavy WIP with a handful of real users, so the fabricated social proof and open signup were misleading.
+
+### Added
+
+- **Invite-only registration (single-use codes).** `/register` now requires a valid invite code. New `InviteCode` model (single-use: `usedByUserId @unique`, optional `expiresAt`), validated and claimed atomically with a guarded `updateMany` + user-rollback on a lost race. Admin emails (`ADMIN_EMAILS`) bypass the gate for bootstrapping. Code field on the register form prefills from `?invite=`.
+  - `src/lib/auth/invite.ts` (generate/normalize/validate), `src/lib/auth/register.ts` (gate + claim), `src/app/api/register/route.ts` (`inviteCode` in body), `src/app/[locale]/register/page.tsx` (UI).
+  - Migration `20260521120000_add_invite_code` (applied on prod boot, verified in deploy logs).
+- **Admin invite-code management.** Generate (count/note/expiry), list with status (available/used/expired), and copy codes at `/admin/invite-codes` (`GET/POST /api/admin/invite-codes`, `adminRoute`), plus an AdminShell nav link.
+
+### Changed
+
+- **Landing page reframed from launch-marketing to honest private beta.** Hero badge → "Private beta · invite-only · work in progress"; CTAs → "Have an invite? Sign up" + "Request access" (mailto); beta-banner copy rewritten and the false "no limits" claim dropped.
+
+### Removed
+
+- **Fabricated social proof.** Deleted the "Trusted by creators worldwide" section and the `getLandingStats()` engine that floored ~2 real users/songs to "2,500+ / 10,000+" via `Math.max`. The homepage no longer queries the DB for vanity stats.
+
+### Notes
+
+- Google-OAuth signup gate **deferred** — `AUTH_GOOGLE_ID/SECRET` are unset in prod (provider inactive), so the PrismaAdapter auto-create hole is not reachable. If Google is enabled later, a `signIn` callback blocking new OAuth users becomes required (see DECISIONS.md 2026-05-21).
+- **Verification:** `tsc` clean, register unit tests 19/19 (incl. new invite-gate cases), `pnpm build` green, CI green with `prisma migrate deploy` against real Postgres. E2E unblocked via a `PLAYWRIGHT_TEST` bypass on the invite gate.
+
 ## [0.2.3] — 2026-05-21
 
 Inspire feed fed the song generator truncated RSS summaries with a literal `[ mehr ]` artifact instead of real article text.
