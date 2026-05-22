@@ -23,6 +23,10 @@ function paginationMeta(page: number, limit: number, total: number) {
   return { ...offsetPagination(page, limit, total), limit };
 }
 
+function asIsoDate(value: Date | null | undefined) {
+  return value ? value.toISOString() : null;
+}
+
 // ── Song Trending / Popular ─────────────────────────────────────────────────
 
 export interface TrendingSongsQuery {
@@ -47,7 +51,7 @@ function formatTrendingSong(s: SongPublicRow, score: number) {
     duration: s.duration,
     playCount: s.playCount,
     publicSlug: s.publicSlug,
-    createdAt: s.createdAt,
+    createdAt: asIsoDate(s.createdAt),
     score,
     creatorDisplayName: s.user.name || s.user.username || "Anonymous",
     creatorUsername: s.user.username || null,
@@ -170,7 +174,7 @@ export async function discoverSongs(q: DiscoverSongsQuery) {
           break;
       }
 
-      const [results, count] = await Promise.all([
+    const [results, count] = await Promise.all([
         prisma.song.findMany({
           where,
           orderBy,
@@ -181,7 +185,13 @@ export async function discoverSongs(q: DiscoverSongsQuery) {
         prisma.song.count({ where }),
       ]);
 
-      return { songs: results, total: count };
+      return {
+        songs: results.map((song) => ({
+          ...song,
+          createdAt: asIsoDate(song.createdAt),
+        })),
+        total: count,
+      };
     },
     CacheTTL.DISCOVER,
   );
@@ -190,6 +200,15 @@ export async function discoverSongs(q: DiscoverSongsQuery) {
     songs,
     pagination: paginationMeta(q.page, DEFAULT_PAGE_SIZE, total),
   };
+}
+
+export async function getInitialBrowseSongs() {
+  const { songs, pagination } = await discoverSongs({
+    sortBy: "newest",
+    page: 1,
+  });
+
+  return { songs, pagination };
 }
 
 // ── Playlist Discovery ──────────────────────────────────────────────────────
@@ -229,9 +248,9 @@ function formatPlaylist(p: PlaylistDiscoverRow) {
     genre: p.genre,
     slug: p.slug,
     songCount: p._count.songs,
-    publishedAt: p.publishedAt,
+    publishedAt: asIsoDate(p.publishedAt),
     playCount: p.playCount,
-    createdAt: p.createdAt,
+    createdAt: asIsoDate(p.createdAt),
     creatorDisplayName: p.user.name || p.user.username || "Anonymous",
     creatorUsername: p.user.username || null,
   };
