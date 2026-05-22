@@ -23,8 +23,8 @@ function paginationMeta(page: number, limit: number, total: number) {
   return { ...offsetPagination(page, limit, total), limit };
 }
 
-function asIsoDate(value: Date | null | undefined) {
-  return value ? value.toISOString() : null;
+function asIsoDate(value: Date | null | undefined): string {
+  return value ? value.toISOString() : "";
 }
 
 // ── Song Trending / Popular ─────────────────────────────────────────────────
