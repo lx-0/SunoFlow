@@ -129,6 +129,54 @@ export async function updateSongVisibility(
   });
 }
 
+export async function updateSongMetadata(
+  songId: string,
+  userId: string,
+  input: { visibility?: "public" | "private"; title?: string },
+): Promise<Result<{ visibility: string; isPublic: boolean; publicSlug: string | null; title: string | null }>> {
+  if (input.visibility === undefined && input.title === undefined) {
+    return Err.validation("At least one field must be provided");
+  }
+
+  const song = await findOwnedSong(userId, songId);
+  if (!song) return Err.notFound();
+
+  const data: Record<string, unknown> = {};
+
+  if (input.visibility !== undefined) {
+    if (input.visibility !== "public" && input.visibility !== "private") {
+      return Err.validation("visibility must be 'public' or 'private'");
+    }
+
+    const isPublic = input.visibility === "public";
+    data.isPublic = isPublic;
+    if (isPublic && !song.publicSlug) {
+      data.publicSlug = ensurePublicSlug(song.publicSlug);
+    }
+  }
+
+  if (input.title !== undefined) {
+    const { value, error } = sanitizeText(input.title, "title");
+    if (error) return Err.validation(error);
+    data.title = value || null;
+  }
+
+  const updated = await prisma.song.update({
+    where: { id: song.id },
+    data,
+  });
+
+  invalidatePublicSongCache(updated.publicSlug);
+  invalidateSongDashboardCache(userId);
+
+  return success({
+    visibility: updated.isPublic ? "public" : "private",
+    isPublic: updated.isPublic,
+    publicSlug: updated.publicSlug,
+    title: updated.title,
+  });
+}
+
 export async function toggleSongShare(songId: string, userId: string) {
   const song = await findOwnedSong(userId, songId);
   if (!song) return Err.notFound();
