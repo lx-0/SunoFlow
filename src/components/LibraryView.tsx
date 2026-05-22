@@ -51,6 +51,7 @@ import {
   parseLibraryFilterUrlState,
   toLibraryFilterSearchParams,
 } from "./library/filter-url-state";
+import { toggleSelectAll, toggleSelection } from "./library/selection";
 
 // ─── Playlist option type (used for batch operations) ─────────────────────────
 
@@ -534,35 +535,23 @@ export function LibraryView({
   // ─── Selection handlers ──────────────────────────────────────────────────
 
   function handleToggleSelect(songId: string, shiftKey: boolean) {
-    setSelectedSongIds((prev) => {
-      const next = new Set(prev);
-      const songIndex = songs.findIndex((s) => s.id === songId);
-
-      if (shiftKey && lastSelectedIndex !== null && songIndex !== -1) {
-        const start = Math.min(lastSelectedIndex, songIndex);
-        const end = Math.max(lastSelectedIndex, songIndex);
-        for (let i = start; i <= end; i++) {
-          next.add(songs[i].id);
-        }
-      } else if (next.has(songId)) {
-        next.delete(songId);
-      } else {
-        next.add(songId);
-      }
-
-      return next;
+    const next = toggleSelection({
+      songId,
+      songIds: songs.map((song) => song.id),
+      shiftKey,
+      state: { selectedIds: selectedSongIds, lastSelectedIndex },
     });
-    const songIndex = songs.findIndex((s) => s.id === songId);
-    if (songIndex !== -1) setLastSelectedIndex(songIndex);
+    setSelectedSongIds(next.selectedIds);
+    setLastSelectedIndex(next.lastSelectedIndex);
   }
 
   function handleSelectAll() {
-    if (selectedSongIds.size === songs.length) {
-      setSelectedSongIds(new Set());
-      setLastSelectedIndex(null);
-    } else {
-      setSelectedSongIds(new Set(songs.map((s) => s.id)));
-    }
+    const next = toggleSelectAll(
+      songs.map((song) => song.id),
+      selectedSongIds,
+    );
+    setSelectedSongIds(next.selectedIds);
+    setLastSelectedIndex(next.lastSelectedIndex);
   }
 
   function clearSelection() {
