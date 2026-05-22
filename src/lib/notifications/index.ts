@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { broadcast } from "@/lib/event-bus";
-import { invalidateByPrefix, cacheKey } from "@/lib/cache";
+import { invalidateByPrefix, cacheKey, cached } from "@/lib/cache";
 import { NOTIFICATION_CHANNELS } from "@/lib/notifications/channels";
 import { type NotificationType } from "@/lib/notifications/types";
+import { cursorPaginate } from "@/lib/pagination";
 import {
   buildPreferenceSelect,
   fetchUserPreferences,
@@ -24,8 +25,32 @@ export type NotifyUserParams = CreateNotificationParams & {
   email?: false;
 };
 
+type ListUserNotificationsParams = {
+  userId: string;
+  limit: number;
+  cursor?: string;
+};
+
 function invalidateUnreadCache(userId: string) {
   invalidateByPrefix(cacheKey("notifications-unread", userId));
+}
+
+export async function listUserNotifications(params: ListUserNotificationsParams) {
+  const notifications = await prisma.notification.findMany({
+    where: { userId: params.userId },
+    orderBy: { createdAt: "desc" },
+    take: params.limit + 1,
+    ...(params.cursor ? { cursor: { id: params.cursor }, skip: 1 } : {}),
+  });
+
+  const { items, nextCursor } = cursorPaginate(notifications, params.limit);
+  const unreadCount = await cached(
+    cacheKey("notifications-unread", params.userId),
+    () => prisma.notification.count({ where: { userId: params.userId, read: false } }),
+    10_000,
+  );
+
+  return { notifications: items, nextCursor, unreadCount };
 }
 
 export async function createNotification(params: CreateNotificationParams) {
@@ -124,18 +149,14 @@ export async function markRead(
   userId: string,
   notificationId: string
 ): Promise<{ ok: boolean; notFound?: boolean }> {
-  const notification = await prisma.notification.findUnique({
-    where: { id: notificationId },
-  });
-
-  if (!notification || notification.userId !== userId) {
-    return { ok: false, notFound: true };
-  }
-
-  await prisma.notification.update({
-    where: { id: notificationId },
+  const updated = await prisma.notification.updateMany({
+    where: { id: notificationId, userId },
     data: { read: true },
   });
+
+  if (updated.count === 0) {
+    return { ok: false, notFound: true };
+  }
 
   invalidateUnreadCache(userId);
   return { ok: true };

@@ -1,11 +1,9 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
 import { authRoute } from "@/lib/route-handler";
-import { prisma } from "@/lib/prisma";
-import { CacheControl, cached, cacheKey } from "@/lib/cache";
-import { createNotification } from "@/lib/notifications";
+import { CacheControl } from "@/lib/cache";
+import { createNotification, listUserNotifications } from "@/lib/notifications";
 import { zLimitParam, zCursorParam } from "@/lib/query-params";
-import { cursorPaginate } from "@/lib/pagination";
 import { createNotificationRequestSchema } from "@/lib/notifications/request";
 
 const notificationsQuery = z.object({
@@ -15,26 +13,14 @@ const notificationsQuery = z.object({
 
 export const GET = authRoute(
   async (_request, { auth, query }) => {
-    const notifications = await prisma.notification.findMany({
-      where: { userId: auth.userId },
-      orderBy: { createdAt: "desc" },
-      take: query.limit + 1,
-      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+    const result = await listUserNotifications({
+      userId: auth.userId,
+      limit: query.limit,
+      cursor: query.cursor ?? undefined,
     });
 
-    const { items, nextCursor } = cursorPaginate(notifications, query.limit);
-
-    const unreadCount = await cached(
-      cacheKey("notifications-unread", auth.userId),
-      () =>
-        prisma.notification.count({
-          where: { userId: auth.userId, read: false },
-        }),
-      10_000,
-    );
-
     return NextResponse.json(
-      { notifications: items, nextCursor, unreadCount },
+      result,
       { headers: { "Cache-Control": CacheControl.privateNoCache } },
     );
   },

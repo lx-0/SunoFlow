@@ -10,8 +10,8 @@ vi.mock("@/lib/prisma", () => ({
     notification: {
       create: vi.fn(),
       findFirst: vi.fn(),
-      findUnique: vi.fn(),
-      update: vi.fn(),
+      findMany: vi.fn(),
+      count: vi.fn(),
       updateMany: vi.fn(),
     },
     user: {
@@ -23,6 +23,7 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/event-bus", () => ({ broadcast: vi.fn() }));
 vi.mock("@/lib/cache", () => ({
   invalidateByPrefix: vi.fn(),
+  cached: vi.fn((_key, fn: () => Promise<unknown>) => fn()),
   cacheKey: (...parts: string[]) => parts.join(":"),
 }));
 vi.mock("@/lib/push", () => ({ sendPushToUser: vi.fn().mockResolvedValue(undefined) }));
@@ -34,7 +35,7 @@ vi.mock("@/lib/logger", () => ({ logger: { error: vi.fn(), warn: vi.fn(), info: 
 import { prisma } from "@/lib/prisma";
 import { sendPushToUser } from "@/lib/push";
 import { sendGenerationCompleteEmail } from "@/lib/email";
-import { notifyUser } from "./index";
+import { listUserNotifications, markRead, notifyUser } from "./index";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -208,5 +209,71 @@ describe("notifyUser channel dispatch", () => {
     expect(result).toMatchObject({ id: "notif-1" });
     expect(sendPushToUser).not.toHaveBeenCalled();
     expect(sendGenerationCompleteEmail).not.toHaveBeenCalled();
+  });
+});
+
+describe("listUserNotifications", () => {
+  it("returns paginated notifications with unread count", async () => {
+    vi.mocked(prisma.notification.findMany).mockResolvedValue([
+      { id: "n3", createdAt: new Date("2026-01-03T00:00:00Z") },
+      { id: "n2", createdAt: new Date("2026-01-02T00:00:00Z") },
+      { id: "n1", createdAt: new Date("2026-01-01T00:00:00Z") },
+    ] as never);
+    vi.mocked(prisma.notification.count).mockResolvedValue(5 as never);
+
+    const result = await listUserNotifications({
+      userId: "user-1",
+      limit: 2,
+    });
+
+    expect(prisma.notification.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: "user-1" },
+        take: 3,
+      }),
+    );
+    expect(result.notifications).toHaveLength(2);
+    expect(result.nextCursor).toBe("n2");
+    expect(result.unreadCount).toBe(5);
+  });
+
+  it("supports cursor pagination", async () => {
+    vi.mocked(prisma.notification.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.notification.count).mockResolvedValue(0 as never);
+
+    await listUserNotifications({
+      userId: "user-1",
+      limit: 20,
+      cursor: "cursor-123",
+    });
+
+    expect(prisma.notification.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cursor: { id: "cursor-123" },
+        skip: 1,
+      }),
+    );
+  });
+});
+
+describe("markRead", () => {
+  it("marks an owned notification as read", async () => {
+    vi.mocked(prisma.notification.updateMany).mockResolvedValue({ count: 1 } as never);
+
+    const result = await markRead("user-1", "notif-1");
+
+    expect(prisma.notification.updateMany).toHaveBeenCalledWith({
+      where: { id: "notif-1", userId: "user-1" },
+      data: { read: true },
+    });
+    expect(result).toEqual({ ok: true });
+  });
+
+  it("returns notFound when notification is not owned or missing", async () => {
+    vi.mocked(prisma.notification.updateMany).mockResolvedValue({ count: 0 } as never);
+
+    const result = await markRead("user-1", "notif-1");
+
+    expect(result).toEqual({ ok: false, notFound: true });
   });
 });
