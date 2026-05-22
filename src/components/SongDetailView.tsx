@@ -52,15 +52,9 @@ import { SongMetadataCard } from "./SongMetadataCard";
 import { SongActionsBar } from "./SongActionsBar";
 import { AddToPlaylistButton } from "./AddToPlaylistButton";
 import { SongLyricsSection } from "./SongLyricsSection";
+import { formatDuration as formatTime } from "@/lib/time-format";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatTime(seconds: number): string {
-  if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

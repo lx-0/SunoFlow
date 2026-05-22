@@ -18,13 +18,8 @@ import { EmojiReactionPicker } from "@/components/EmojiReactionPicker";
 import { ReactionTimeline } from "@/components/ReactionTimeline";
 import { PlayerWaveform } from "@/components/PlayerWaveform";
 import * as Sentry from "@sentry/nextjs";
+import { formatDuration as formatTime } from "@/lib/time-format";
 
-function formatTime(seconds: number): string {
-  if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
 
 export interface SerializedPublicVariant {
   id: string;

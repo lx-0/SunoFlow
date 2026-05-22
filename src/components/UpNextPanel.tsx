@@ -9,13 +9,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { Bars3Icon } from "@heroicons/react/24/outline";
 import { useQueue } from "./QueueContext";
-
-function formatTime(seconds: number | null): string {
-  if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
+import { formatDuration as formatTime } from "@/lib/time-format";
 
 interface UpNextPanelProps {
   onClose: () => void;

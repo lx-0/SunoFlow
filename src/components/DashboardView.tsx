@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { MusicalNoteIcon, SparklesIcon } from "@heroicons/react/24/solid";
+import { formatDuration as formatTime } from "@/lib/time-format";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -82,13 +83,6 @@ function StatCard({ label, value, href }: { label: string; value: string; href?:
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatTime(seconds: number): string {
-  if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();

@@ -9,6 +9,7 @@ import {
   PlayIcon,
   PauseIcon,
 } from "@heroicons/react/24/solid";
+import { formatDuration as formatTime } from "@/lib/time-format";
 
 export interface StemTrack {
   id: string;
@@ -22,13 +23,6 @@ interface TrackState {
   muted: boolean;
   soloed: boolean;
   volume: number;
-}
-
-function formatTime(seconds: number): string {
-  if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 interface StemsPlayerProps {
