@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { cached, cacheKey, CacheTTL } from "@/lib/cache";
+import { offsetWindowPagination } from "@/lib/pagination";
 import { buildDiscoverableFilter } from "./discoverable-filter";
 
 export type PublicSongSort = "newest" | "popular" | "trending";
@@ -171,6 +172,6 @@ export async function queryPublicSongs(
 
   return {
     songs,
-    pagination: { total, limit, offset, hasMore: offset + limit < total },
+    pagination: offsetWindowPagination(offset, limit, total),
   };
 }

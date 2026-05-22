@@ -20,6 +20,29 @@ export function pageSkip(page: number, limit: number = DEFAULT_PAGE_SIZE): numbe
   return (Math.max(1, page) - 1) * limit;
 }
 
+export interface OffsetWindowPagination {
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+}
+
+export function offsetWindowPagination(
+  offset: number,
+  limit: number,
+  total: number,
+): OffsetWindowPagination {
+  const safeOffset = Math.max(0, offset);
+  const safeLimit = Math.max(1, limit);
+
+  return {
+    total,
+    limit: safeLimit,
+    offset: safeOffset,
+    hasMore: safeOffset + safeLimit < total,
+  };
+}
+
 export interface CursorPage<T> {
   items: T[];
   nextCursor: string | null;

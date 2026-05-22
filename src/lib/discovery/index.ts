@@ -1,6 +1,11 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { DEFAULT_PAGE_SIZE, offsetPagination, pageSkip } from "@/lib/pagination";
+import {
+  DEFAULT_PAGE_SIZE,
+  offsetPagination,
+  offsetWindowPagination,
+  pageSkip,
+} from "@/lib/pagination";
 import { buildDiscoverableFilter, SongSelect } from "@/lib/songs";
 import { trendingScore } from "@/lib/feed/rank";
 import { cached, cacheKey, CacheTTL } from "@/lib/cache";
@@ -113,12 +118,7 @@ export async function trendingSongs(q: TrendingSongsQuery) {
   return {
     songs,
     sort: q.sort,
-    pagination: {
-      total,
-      limit: q.limit,
-      offset: q.offset,
-      hasMore: q.offset + q.limit < total,
-    },
+    pagination: offsetWindowPagination(q.offset, q.limit, total),
   };
 }
 
