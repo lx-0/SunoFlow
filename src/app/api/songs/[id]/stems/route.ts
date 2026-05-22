@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
-import { authRoute, requireOwned } from "@/lib/route-handler";
+import { authRoute } from "@/lib/route-handler";
+import { requireOwnedSong } from "@/lib/songs/ownership";
 import { prisma } from "@/lib/prisma";
 
 export const GET = authRoute<{ id: string }>(
   async (_request, { auth, params }) => {
-    const { error } = requireOwned(
-      await prisma.song.findUnique({ where: { id: params.id } }),
-      auth.userId,
-      "Song",
-    );
+    const { error } = await requireOwnedSong(params.id, auth.userId);
     if (error) return error;
 
     const stems = await prisma.song.findMany({

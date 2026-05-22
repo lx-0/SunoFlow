@@ -1,4 +1,5 @@
-import { authRoute, requireOwned } from "@/lib/route-handler";
+import { authRoute } from "@/lib/route-handler";
+import { requireOwnedSong } from "@/lib/songs/ownership";
 import { prisma } from "@/lib/prisma";
 import { separateVocals, mockSongs, resolveUserApiKey } from "@/lib/sunoapi";
 import type { SeparationType } from "@/lib/sunoapi";
@@ -12,11 +13,7 @@ const bodySchema = z.object({
 
 export const POST = authRoute<{ id: string }, z.infer<typeof bodySchema>>(
   async (_request, { auth, params, body }) => {
-    const { data: song, error } = requireOwned(
-      await prisma.song.findUnique({ where: { id: params.id } }),
-      auth.userId,
-      "Song",
-    );
+    const { data: song, error } = await requireOwnedSong(params.id, auth.userId);
     if (error) return error;
 
     const separationType: SeparationType = body.type === "split_stem"

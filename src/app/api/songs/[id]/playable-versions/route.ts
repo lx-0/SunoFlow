@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { authRoute, requireOwned } from "@/lib/route-handler";
+import { authRoute } from "@/lib/route-handler";
+import { requireOwnedSong } from "@/lib/songs/ownership";
 import { prisma } from "@/lib/prisma";
 
 const versionSelect = {
@@ -12,14 +13,7 @@ const versionSelect = {
 
 export const GET = authRoute<{ id: string }>(
   async (_request, { auth, params }) => {
-    const { data: song, error } = requireOwned(
-      await prisma.song.findUnique({
-        where: { id: params.id },
-        select: { id: true, userId: true, parentSongId: true },
-      }),
-      auth.userId,
-      "Song",
-    );
+    const { data: song, error } = await requireOwnedSong(params.id, auth.userId);
     if (error) return error;
 
     let rootId = song.id;

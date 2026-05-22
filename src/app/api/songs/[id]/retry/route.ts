@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { authRoute, requireOwned } from "@/lib/route-handler";
+import { authRoute } from "@/lib/route-handler";
+import { requireOwnedSong } from "@/lib/songs/ownership";
 import { generateSong, resolveUserApiKey } from "@/lib/sunoapi";
 import { prisma } from "@/lib/prisma";
 import { acquireRateLimitSlot } from "@/lib/rate-limit";
@@ -12,11 +13,7 @@ import { markSongPendingRetry, markSongReadyNoApi } from "@/lib/songs/lifecycle"
 
 export const POST = authRoute<{ id: string }>(
   async (_request, { auth, params }) => {
-    const { data: song, error } = requireOwned(
-      await prisma.song.findUnique({ where: { id: params.id } }),
-      auth.userId,
-      "Song",
-    );
+    const { data: song, error } = await requireOwnedSong(params.id, auth.userId);
     if (error) return error;
 
     if (song.generationStatus !== "failed") {
