@@ -1,6 +1,7 @@
 import type { PromptTemplate } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { fetchFeed } from "@/lib/rss";
+import { Err, success, type Result } from "@/lib/result";
 import { boostStyle, resolveUserApiKey } from "@/lib/sunoapi";
 import { rankItems, buildPromptFromItem } from "./build-prompt";
 
@@ -11,10 +12,8 @@ export interface GeneratePromptsOptions {
   boost?: boolean;
 }
 
-export type GeneratePromptsResult =
-  | { ok: true; prompts: Array<PromptTemplate & { excerpt: string | null }> }
-  | { ok: false; code: "NO_FEEDS"; message: string }
-  | { ok: false; code: "NO_ITEMS"; message: string };
+export type GeneratedPromptTemplate = PromptTemplate & { excerpt: string | null };
+export type GeneratePromptsResult = Result<{ prompts: GeneratedPromptTemplate[] }>;
 
 export async function generatePromptsFromFeeds(
   userId: string,
@@ -26,11 +25,7 @@ export async function generatePromptsFromFeeds(
   });
 
   if (feeds.length === 0) {
-    return {
-      ok: false,
-      code: "NO_FEEDS",
-      message: "No RSS feeds configured. Add feeds in Settings first.",
-    };
+    return Err.validation("No RSS feeds configured. Add feeds in Settings first.");
   }
 
   const feedResults = await Promise.all(feeds.map((f) => fetchFeed(f.url)));
@@ -39,12 +34,9 @@ export async function generatePromptsFromFeeds(
     .flatMap((f) => f.items);
 
   if (allItems.length === 0) {
-    return {
-      ok: false,
-      code: "NO_ITEMS",
-      message:
-        "No feed items found. Your RSS feeds may be empty or unreachable.",
-    };
+    return Err.validation(
+      "No feed items found. Your RSS feeds may be empty or unreachable.",
+    );
   }
 
   const topItems = rankItems(allItems, MAX_DAILY_PROMPTS);
@@ -90,11 +82,10 @@ export async function generatePromptsFromFeeds(
     ),
   );
 
-  return {
-    ok: true,
+  return success({
     prompts: created.map((p, i) => ({
       ...p,
       excerpt: generated[i].excerpt,
     })),
-  };
+  });
 }
