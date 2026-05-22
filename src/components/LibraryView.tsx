@@ -47,6 +47,10 @@ import {
 import { SongGridCard } from "./library/song-grid-card";
 import { SwipableSongRow } from "./library/swipable-song-row";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
+import {
+  parseLibraryFilterUrlState,
+  toLibraryFilterSearchParams,
+} from "./library/filter-url-state";
 
 // ─── Playlist option type (used for batch operations) ─────────────────────────
 
@@ -98,31 +102,23 @@ export function LibraryView({
   } = useQueue();
 
   const currentSongId = currentIndex >= 0 ? queue[currentIndex]?.id ?? null : null;
+  const initialFilterState = parseLibraryFilterUrlState(searchParams);
 
   // ─── Filter state (initialized from URL params) ───────────────────────────
-  const [searchText, setSearchText] = useState(searchParams.get("q") ?? "");
-  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") ?? "");
-  const [ratingFilter, setRatingFilter] = useState(searchParams.get("minRating") ?? "");
-  const [dateFrom, setDateFrom] = useState(searchParams.get("dateFrom") ?? "");
-  const [dateTo, setDateTo] = useState(searchParams.get("dateTo") ?? "");
-  const [sortBy, setSortBy] = useState(searchParams.get("sortBy") ?? "newest");
-  const [tagFilter, setTagFilter] = useState<string[]>(() => {
-    const p = searchParams.get("tagIds") ?? searchParams.get("tagId") ?? "";
-    return p ? p.split(",").filter(Boolean) : [];
-  });
-  const [smartFilter, setSmartFilter] = useState(searchParams.get("smartFilter") ?? "");
+  const [searchText, setSearchText] = useState(initialFilterState.searchText);
+  const [statusFilter, setStatusFilter] = useState(initialFilterState.statusFilter);
+  const [ratingFilter, setRatingFilter] = useState(initialFilterState.ratingFilter);
+  const [dateFrom, setDateFrom] = useState(initialFilterState.dateFrom);
+  const [dateTo, setDateTo] = useState(initialFilterState.dateTo);
+  const [sortBy, setSortBy] = useState(initialFilterState.sortBy);
+  const [tagFilter, setTagFilter] = useState<string[]>(initialFilterState.tagFilter);
+  const [smartFilter, setSmartFilter] = useState(initialFilterState.smartFilter);
   // Advanced filters
-  const [genreFilter, setGenreFilter] = useState<string[]>(() => {
-    const p = searchParams.get("genre");
-    return p ? p.split(",").filter(Boolean) : [];
-  });
-  const [moodFilter, setMoodFilter] = useState<string[]>(() => {
-    const p = searchParams.get("mood");
-    return p ? p.split(",").filter(Boolean) : [];
-  });
-  const [tempoMin, setTempoMin] = useState(searchParams.get("tempoMin") ?? "");
-  const [tempoMax, setTempoMax] = useState(searchParams.get("tempoMax") ?? "");
-  const [includeVariations, setIncludeVariations] = useState(searchParams.get("includeVariations") === "true");
+  const [genreFilter, setGenreFilter] = useState<string[]>(initialFilterState.genreFilter);
+  const [moodFilter, setMoodFilter] = useState<string[]>(initialFilterState.moodFilter);
+  const [tempoMin, setTempoMin] = useState(initialFilterState.tempoMin);
+  const [tempoMax, setTempoMax] = useState(initialFilterState.tempoMax);
+  const [includeVariations, setIncludeVariations] = useState(initialFilterState.includeVariations);
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">(() => {
     if (typeof window === "undefined") return "list";
@@ -248,20 +244,21 @@ export function LibraryView({
   useEffect(() => {
     if (!enableServerSearch) return;
 
-    const params = new URLSearchParams();
-    if (debouncedSearch) params.set("q", debouncedSearch);
-    if (statusFilter) params.set("status", statusFilter);
-    if (ratingFilter) params.set("minRating", ratingFilter);
-    if (dateFrom) params.set("dateFrom", dateFrom);
-    if (dateTo) params.set("dateTo", dateTo);
-    if (sortBy && sortBy !== "newest") params.set("sortBy", sortBy);
-    if (tagFilter.length > 0) params.set("tagIds", tagFilter.join(","));
-    if (smartFilter) params.set("smartFilter", smartFilter);
-    if (genreFilter.length > 0) params.set("genre", genreFilter.join(","));
-    if (moodFilter.length > 0) params.set("mood", moodFilter.join(","));
-    if (tempoMin) params.set("tempoMin", tempoMin);
-    if (tempoMax) params.set("tempoMax", tempoMax);
-    if (includeVariations) params.set("includeVariations", "true");
+    const params = toLibraryFilterSearchParams({
+      searchText: debouncedSearch,
+      statusFilter,
+      ratingFilter,
+      dateFrom,
+      dateTo,
+      sortBy,
+      tagFilter,
+      smartFilter,
+      genreFilter,
+      moodFilter,
+      tempoMin,
+      tempoMax,
+      includeVariations,
+    });
 
     const qs = params.toString();
     const newUrl = qs ? `${pathname}?${qs}` : pathname;
