@@ -188,6 +188,7 @@ export function QueueProvider({ children }: { children: ReactNode }) {
 
   const startPlaybackForIndex = useCallback((song: QueueSong, index: number, options?: {
     track?: boolean;
+    useRetryPlay?: boolean;
     syncQueue?: QueueSong[];
   }) => {
     const audio = audioRef.current;
@@ -200,7 +201,11 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     bumpLoadGeneration();
     cdnFallbackRef.current.delete(song.id);
     audio.src = getAudioSrc(song);
-    retryPlay(audio);
+    if (options?.useRetryPlay === false) {
+      audio.play().catch(() => {});
+    } else {
+      retryPlay(audio);
+    }
 
     if (options?.track !== false) {
       trackPlayRef.current(song.id);
@@ -378,7 +383,10 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       // Song is in the queue but not current — jump to it
       const idx = queue.findIndex((s) => s.id === song.id);
       if (idx >= 0) {
-        startPlaybackForIndex(queue[idx], idx);
+        startPlaybackForIndex(queue[idx], idx, {
+          track: false,
+          useRetryPlay: false,
+        });
         return;
       }
 
