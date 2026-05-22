@@ -2,13 +2,15 @@ import { z } from "zod";
 import { NextResponse } from "next/server";
 import { authRoute } from "@/lib/route-handler";
 import { notFound } from "@/lib/api-error";
-import { zLimitParam, zCursorParam } from "@/lib/query-params";
+import { zLimitParam, zCursorParam, zTrimmedParam } from "@/lib/query-params";
 import { listPlayHistory, recordPlay, clearHistory } from "@/lib/history";
 import { recordHistoryRequestSchema } from "@/lib/history/request";
 
 const historyQuery = z.object({
   limit: zLimitParam(20, 50),
   cursor: zCursorParam,
+  dateFrom: zTrimmedParam,
+  dateTo: zTrimmedParam,
 });
 
 export const GET = authRoute(

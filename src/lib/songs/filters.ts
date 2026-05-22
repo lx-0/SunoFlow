@@ -1,5 +1,21 @@
 import { Prisma } from "@prisma/client";
 
+function appendAndConditions(
+  base: Prisma.SongWhereInput,
+  ...conditions: Prisma.SongWhereInput[]
+): Prisma.SongWhereInput {
+  if (conditions.length === 0) return base;
+  const existing = base.AND
+    ? Array.isArray(base.AND)
+      ? base.AND
+      : [base.AND]
+    : [];
+  return {
+    ...base,
+    AND: [...existing, ...conditions],
+  };
+}
+
 export const SongFilters = {
   userLibrary(userId: string): Prisma.SongWhereInput {
     return {
@@ -51,13 +67,7 @@ export const SongFilters = {
     const conditions = values.map((v) => ({
       tags: { contains: v, mode: "insensitive" as const },
     }));
-    return {
-      ...base,
-      AND: [
-        ...((base.AND as Prisma.SongWhereInput[]) ?? []),
-        { OR: conditions },
-      ],
-    };
+    return appendAndConditions(base, { OR: conditions });
   },
 
   withSongTags(
@@ -68,13 +78,10 @@ export const SongFilters = {
     if (tagIds.length === 1) {
       return { ...base, songTags: { some: { tagId: tagIds[0] } } };
     }
-    return {
-      ...base,
-      AND: [
-        ...((base.AND as Prisma.SongWhereInput[]) ?? []),
-        ...tagIds.map((tid) => ({ songTags: { some: { tagId: tid } } })),
-      ],
-    };
+    return appendAndConditions(
+      base,
+      ...tagIds.map((tid) => ({ songTags: { some: { tagId: tid } } }))
+    );
   },
 
   withTagFilters(
@@ -84,14 +91,11 @@ export const SongFilters = {
   ): Prisma.SongWhereInput {
     if (!genre && !mood) return base;
     if (genre && mood) {
-      return {
-        ...base,
-        AND: [
-          ...((base.AND as Prisma.SongWhereInput[]) ?? []),
-          { tags: { contains: genre, mode: "insensitive" } },
-          { tags: { contains: mood, mode: "insensitive" } },
-        ],
-      };
+      return appendAndConditions(
+        base,
+        { tags: { contains: genre, mode: "insensitive" } },
+        { tags: { contains: mood, mode: "insensitive" } },
+      );
     }
     return {
       ...base,

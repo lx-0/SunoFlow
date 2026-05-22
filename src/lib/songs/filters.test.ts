@@ -34,6 +34,38 @@ describe("SongFilters.withTagFilters", () => {
       { tags: { contains: "chill", mode: "insensitive" } },
     ]);
   });
+
+  it("preserves existing AND object when composing mood + genre filters", () => {
+    const base = {
+      generationStatus: "ready" as const,
+      AND: { isPublic: true },
+    };
+    const result = SongFilters.withTagFilters(base, "jazz", "chill");
+    expect(result.AND).toEqual([
+      { isPublic: true },
+      { tags: { contains: "jazz", mode: "insensitive" } },
+      { tags: { contains: "chill", mode: "insensitive" } },
+    ]);
+  });
+});
+
+describe("SongFilters.withTagContains", () => {
+  it("preserves existing AND object and appends OR tag conditions", () => {
+    const base = {
+      generationStatus: "ready" as const,
+      AND: { isPublic: true },
+    };
+    const result = SongFilters.withTagContains(base, ["jazz", "chill"]);
+    expect(result.AND).toEqual([
+      { isPublic: true },
+      {
+        OR: [
+          { tags: { contains: "jazz", mode: "insensitive" } },
+          { tags: { contains: "chill", mode: "insensitive" } },
+        ],
+      },
+    ]);
+  });
 });
 
 describe("SongFilters.withTempoRange", () => {

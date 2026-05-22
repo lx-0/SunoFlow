@@ -32,6 +32,10 @@ The migration safety step fails deploys when:
 - any migration directory is missing `migration.sql`
 - migration SQL includes destructive operations (`DROP TABLE`, `DROP COLUMN`, `TRUNCATE`, `DELETE FROM`) without an explicit `-- approved-destructive` marker in that migration file
 
+At container startup, `docker-entrypoint.sh` first runs a best-effort:
+`prisma migrate resolve --rolled-back 20260322200000_add_missing_schema_objects`,
+then runs `prisma migrate deploy`.
+
 The CI build gate step fails deploys when:
 - the deploy SHA has no completed `CI` workflow run
 - the `CI` workflow conclusion is not `success`

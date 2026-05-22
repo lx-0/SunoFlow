@@ -3,11 +3,16 @@ import { z } from "zod";
 import { computeETag, CacheControl } from "@/lib/cache";
 import { authRoute, resultResponse } from "@/lib/route-handler";
 import { findUserSong } from "@/lib/songs";
-import { updateSongVisibility } from "@/lib/songs";
+import { updateSongMetadata } from "@/lib/songs";
 
-const patchBodySchema = z.object({
-  visibility: z.enum(["public", "private"]),
-});
+const patchBodySchema = z
+  .object({
+    visibility: z.enum(["public", "private"]).optional(),
+    title: z.string().optional(),
+  })
+  .refine((body) => body.visibility !== undefined || body.title !== undefined, {
+    message: "At least one field must be provided",
+  });
 
 export const GET = authRoute<{ id: string }>(async (request, { auth, params }) => {
   const song = await findUserSong(auth.userId, params.id);
@@ -42,7 +47,7 @@ export const PATCH = authRoute<{ id: string }, z.infer<typeof patchBodySchema>>(
   { auth, params, body },
 ) => {
   return resultResponse(
-    await updateSongVisibility(params.id, auth.userId, body.visibility),
+    await updateSongMetadata(params.id, auth.userId, body),
   );
 }, {
   route: "/api/songs/[id]",

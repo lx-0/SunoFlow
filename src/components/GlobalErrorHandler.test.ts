@@ -20,6 +20,10 @@ describe("isBenignError", () => {
     expect(isBenignError(undefined, "Script error.")).toBe(true);
   });
 
+  it("returns true for string AbortError payloads", () => {
+    expect(isBenignError({ name: "AbortError", message: "aborted" })).toBe(true);
+  });
+
   it("returns true for empty rejection payloads", () => {
     expect(isBenignError(undefined)).toBe(true);
     expect(isBenignError(null)).toBe(true);
@@ -38,6 +42,10 @@ describe("isChunkLoadError", () => {
     expect(
       isChunkLoadError(new TypeError("Failed to fetch dynamically imported module")),
     ).toBe(true);
+  });
+
+  it("returns true for string rejection payloads", () => {
+    expect(isChunkLoadError("Failed to fetch dynamically imported module")).toBe(true);
   });
 
   it("returns true for module script import failures", () => {

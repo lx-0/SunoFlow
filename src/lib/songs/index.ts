@@ -56,6 +56,7 @@ export {
   updateSongRating,
   getSongLyrics,
   updateSongLyrics,
+  updateSongMetadata,
   updateSongVisibility,
   toggleSongShare,
   archiveSong,
