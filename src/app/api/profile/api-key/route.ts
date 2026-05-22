@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { buildApiKeyUpdateData, toApiKeyResponse } from "@/lib/profile/api-key";
+import { getUserOrNotFound } from "@/lib/profile/user";
 
 const updateApiKeySchema = z
   .object({
@@ -15,16 +15,16 @@ const updateApiKeySchema = z
   );
 
 export const GET = authRoute(async (_request, { auth }) => {
-  const user = await prisma.user.findUnique({
-    where: { id: auth.userId },
-    select: { sunoApiKey: true, usePersonalApiKey: true },
+  const userResult = await getUserOrNotFound(auth.userId, {
+    sunoApiKey: true,
+    usePersonalApiKey: true,
   });
 
-  if (!user) {
-    return NextResponse.json({ error: "User not found", code: "NOT_FOUND" }, { status: 404 });
+  if (!userResult.ok) {
+    return userResult.response;
   }
 
-  return NextResponse.json(toApiKeyResponse(user));
+  return Response.json(toApiKeyResponse(userResult.user));
 }, { route: "/api/profile/api-key" });
 
 export const PATCH = authRoute(async (_request, { auth, body }) => {
@@ -36,7 +36,7 @@ export const PATCH = authRoute(async (_request, { auth, body }) => {
     select: { sunoApiKey: true, usePersonalApiKey: true },
   });
 
-  return NextResponse.json(toApiKeyResponse(updated));
+  return Response.json(toApiKeyResponse(updated));
 }, {
   route: "/api/profile/api-key",
   body: updateApiKeySchema,

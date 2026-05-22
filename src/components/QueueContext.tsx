@@ -186,6 +186,31 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     return proxiedAudioUrl(song.id);
   }
 
+  const startPlaybackForIndex = useCallback((song: QueueSong, index: number, options?: {
+    track?: boolean;
+    syncQueue?: QueueSong[];
+  }) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    setCurrentIndex(index);
+    setCurrentTime(0);
+    setDuration(song.duration ?? 0);
+    audio.pause();
+    bumpLoadGeneration();
+    cdnFallbackRef.current.delete(song.id);
+    audio.src = getAudioSrc(song);
+    retryPlay(audio);
+
+    if (options?.track !== false) {
+      trackPlayRef.current(song.id);
+    }
+
+    if (options?.syncQueue) {
+      scheduleSyncRef.current?.(song.id, 0, options.syncQueue);
+    }
+  }, [retryPlay, bumpLoadGeneration]);
+
   // Ref for resolveAndPlay — used inside the audio onEnded handler
   const resolveAndPlayRef = useRef<((song: QueueSong, index: number) => Promise<void>) | null>(null);
 
@@ -317,18 +342,11 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       const { playOrder, playIndex: playIdx } = buildPlayQueue(songs, startIndex, shuffle);
 
       setQueue(playOrder);
-      setCurrentIndex(playIdx);
-      setCurrentTime(0);
-      setDuration(playOrder[playIdx].duration ?? 0);
-      audio.pause();
-      bumpLoadGeneration();
-      cdnFallbackRef.current.delete(playOrder[playIdx].id);
-      audio.src = getAudioSrc(playOrder[playIdx]);
-      retryPlay(audio);
-      trackPlay(playOrder[playIdx].id);
-      scheduleSyncRef.current?.(playOrder[playIdx].id, 0, playOrder);
+      startPlaybackForIndex(playOrder[playIdx], playIdx, {
+        syncQueue: playOrder,
+      });
     },
-    [shuffle, trackPlay, retryPlay, bumpLoadGeneration]
+    [shuffle, startPlaybackForIndex]
   );
 
   const togglePlay = useCallback(
@@ -360,20 +378,14 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       // Song is in the queue but not current — jump to it
       const idx = queue.findIndex((s) => s.id === song.id);
       if (idx >= 0) {
-        setCurrentIndex(idx);
-        audio.pause();
-        bumpLoadGeneration();
-        audio.src = getAudioSrc(queue[idx]);
-        setCurrentTime(0);
-        setDuration(queue[idx].duration ?? 0);
-        audio.play().catch(() => {});
+        startPlaybackForIndex(queue[idx], idx);
         return;
       }
 
       // Not in queue — play as solo
       playQueue([song], 0);
     },
-    [isPlaying, currentIndex, queue, playQueue, bumpLoadGeneration]
+    [isPlaying, currentIndex, queue, playQueue, startPlaybackForIndex]
   );
 
   const skipNext = useCallback(() => {
@@ -587,18 +599,12 @@ export function QueueProvider({ children }: { children: ReactNode }) {
         // If nothing is playing, start from first new song
         if (currentIndexRef.current < 0 && merged.length > 0 && audio) {
           const firstNew = prev.length;
-          setCurrentIndex(firstNew);
-          bumpLoadGeneration();
-          audio.src = getAudioSrc(merged[firstNew]);
-          setCurrentTime(0);
-          setDuration(merged[firstNew].duration ?? 0);
-          retryPlay(audio);
-          trackPlayRef.current(merged[firstNew].id);
+          startPlaybackForIndex(merged[firstNew], firstNew);
         }
         return merged;
       });
     });
-  }, [fetchRadioSongs, retryPlay, bumpLoadGeneration]);
+  }, [fetchRadioSongs, startPlaybackForIndex]);
 
   radioRefillRef.current = radioRefill;
 

@@ -71,6 +71,16 @@ describe("GET /api/profile/email-preferences", () => {
     expect(data.emailDigestFrequency).toBe("weekly");
     expect(data.quietHoursStart).toBe(22);
   });
+
+  it("returns 404 when user record is missing", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null as never);
+
+    const res = await GET(new NextRequest("http://localhost/api/profile/email-preferences"), seg);
+    const data = await res.json();
+
+    expect(res.status).toBe(404);
+    expect(data).toEqual({ error: "User not found", code: "NOT_FOUND" });
+  });
 });
 
 describe("PATCH /api/profile/email-preferences", () => {
