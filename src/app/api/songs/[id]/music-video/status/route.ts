@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { authRoute, requireOwned } from "@/lib/route-handler";
+import { authRoute } from "@/lib/route-handler";
+import { requireOwnedSong } from "@/lib/songs/ownership";
 import { prisma } from "@/lib/prisma";
 import { getMusicVideoDetail, SunoApiError, resolveUserApiKey } from "@/lib/sunoapi";
 import { logServerError } from "@/lib/error-logger";
@@ -11,11 +12,7 @@ const querySchema = z.object({
 
 export const GET = authRoute<{ id: string }, undefined, z.infer<typeof querySchema>>(
   async (_request, { auth, params, query }) => {
-    const { error } = requireOwned(
-      await prisma.song.findUnique({ where: { id: params.id } }),
-      auth.userId,
-      "Song",
-    );
+    const { error } = await requireOwnedSong(params.id, auth.userId);
     if (error) return error;
 
     if (query.taskId.startsWith("mock-video-")) {
