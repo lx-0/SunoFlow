@@ -30,7 +30,7 @@ describe("buildPlayHistoryWhere", () => {
       ),
     ).toEqual({
       userId: "user-1",
-      playedAt: { gte: new Date("2026-04-01T00:00:00.000Z") },
+      playedAt: { gte: new Date("2026-03-31T00:00:00.000Z") },
     });
   });
 
@@ -67,7 +67,7 @@ describe("buildPlayHistoryWhere", () => {
       ),
     ).toEqual({
       userId: "user-1",
-      playedAt: { gte: new Date("2026-04-01T00:00:00.000Z") },
+      playedAt: { gte: new Date("2026-03-31T00:00:00.000Z") },
     });
   });
 
