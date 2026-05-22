@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
@@ -8,6 +7,7 @@ import {
   EMAIL_PREFERENCES_SELECT,
   toEmailPreferencesResponse,
 } from "@/lib/profile/email-preferences";
+import { getUserOrNotFound } from "@/lib/profile/user";
 
 const VALID_DIGEST_FREQUENCIES = ["daily", "weekly", "monthly", "off"] as const;
 const updateEmailPreferencesSchema = z.object({
@@ -23,16 +23,13 @@ const updateEmailPreferencesSchema = z.object({
 );
 
 export const GET = authRoute(async (_request, { auth }) => {
-  const user = await prisma.user.findUnique({
-    where: { id: auth.userId },
-    select: EMAIL_PREFERENCES_SELECT,
-  });
+  const userResult = await getUserOrNotFound(auth.userId, EMAIL_PREFERENCES_SELECT);
 
-  if (!user) {
-    return NextResponse.json({ error: "User not found", code: "NOT_FOUND" }, { status: 404 });
+  if (!userResult.ok) {
+    return userResult.response;
   }
 
-  return NextResponse.json(toEmailPreferencesResponse(user));
+  return Response.json(toEmailPreferencesResponse(userResult.user));
 }, { route: "/api/profile/email-preferences" });
 
 export const PATCH = authRoute(async (_request, { auth, body }) => {
@@ -53,7 +50,7 @@ export const PATCH = authRoute(async (_request, { auth, body }) => {
     select: EMAIL_PREFERENCES_SELECT,
   });
 
-  return NextResponse.json(toEmailPreferencesResponse(user));
+  return Response.json(toEmailPreferencesResponse(user));
 }, {
   route: "/api/profile/email-preferences",
   body: updateEmailPreferencesSchema,

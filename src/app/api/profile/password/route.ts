@@ -3,6 +3,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { authRoute } from "@/lib/route-handler";
 import { badRequest, notFound } from "@/lib/api-error";
+import { getUserOrNotFound } from "@/lib/profile/user";
 import { prisma } from "@/lib/prisma";
 
 const bodySchema = z.object({
@@ -22,16 +23,19 @@ export const POST = authRoute<Record<string, never>, z.infer<typeof bodySchema>>
     return badRequest("Passwords do not match");
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: auth.userId },
-    select: { passwordHash: true },
+  const userResult = await getUserOrNotFound(auth.userId, {
+    passwordHash: true,
   });
 
-  if (!user?.passwordHash) {
+  if (!userResult.ok) {
+    return userResult.response;
+  }
+
+  if (!userResult.user.passwordHash) {
     return notFound("User not found");
   }
 
-  const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+  const valid = await bcrypt.compare(currentPassword, userResult.user.passwordHash);
   if (!valid) {
     return badRequest("Current password is incorrect");
   }

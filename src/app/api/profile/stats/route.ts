@@ -1,17 +1,14 @@
-import { NextResponse } from "next/server";
 import { authRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
+import { getUserOrNotFound } from "@/lib/profile/user";
 
 export const GET = authRoute(async (_request, { auth }) => {
-  const [user, totalSongs, totalFavorites, totalPlaylists, totalTemplates] =
+  const [userResult, totalSongs, totalFavorites, totalPlaylists, totalTemplates] =
     await Promise.all([
-      prisma.user.findUnique({
-        where: { id: auth.userId },
-        select: {
-          createdAt: true,
-          lastLoginAt: true,
-          _count: { select: { followers: true, following: true } },
-        },
+      getUserOrNotFound(auth.userId, {
+        createdAt: true,
+        lastLoginAt: true,
+        _count: { select: { followers: true, following: true } },
       }),
       prisma.song.count({ where: { userId: auth.userId } }),
       prisma.song.count({ where: { userId: auth.userId, isFavorite: true } }),
@@ -19,18 +16,18 @@ export const GET = authRoute(async (_request, { auth }) => {
       prisma.promptTemplate.count({ where: { userId: auth.userId } }),
     ]);
 
-  if (!user) {
-    return NextResponse.json({ error: "User not found", code: "NOT_FOUND" }, { status: 404 });
+  if (!userResult.ok) {
+    return userResult.response;
   }
 
-  return NextResponse.json({
+  return Response.json({
     totalSongs,
     totalFavorites,
     totalPlaylists,
     totalTemplates,
-    followersCount: user._count.followers,
-    followingCount: user._count.following,
-    memberSince: user.createdAt,
-    lastLoginAt: user.lastLoginAt,
+    followersCount: userResult.user._count.followers,
+    followingCount: userResult.user._count.following,
+    memberSince: userResult.user.createdAt,
+    lastLoginAt: userResult.user.lastLoginAt,
   });
 }, { route: "/api/profile/stats" });

@@ -82,6 +82,16 @@ describe("GET /api/profile/api-key", () => {
       usePersonalApiKey: true,
     });
   });
+
+  it("returns 404 when user record is missing", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null as never);
+
+    const res = await GET(new NextRequest("http://localhost/api/profile/api-key"), seg);
+    const data = await res.json();
+
+    expect(res.status).toBe(404);
+    expect(data).toEqual({ error: "User not found", code: "NOT_FOUND" });
+  });
 });
 
 describe("PATCH /api/profile/api-key", () => {

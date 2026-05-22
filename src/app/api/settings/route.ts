@@ -3,7 +3,7 @@ import { z } from "zod";
 import { authRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { stripHtml } from "@/lib/sanitize";
-import { notFound } from "@/lib/api-error";
+import { getUserOrNotFound } from "@/lib/profile/user";
 import {
   buildEmailPreferencesUpdateData,
   EMAIL_PREFERENCES_SELECT,
@@ -19,19 +19,14 @@ const SETTINGS_SELECT = {
 } as const;
 
 export const GET = authRoute(async (_request, { auth }) => {
-  const user = await prisma.user.findUnique({
-    where: { id: auth.userId },
-    select: {
-      ...SETTINGS_SELECT,
-      accounts: { select: { provider: true, type: true } },
-    },
+  const result = await getUserOrNotFound(auth.userId, {
+    ...SETTINGS_SELECT,
+    accounts: { select: { provider: true, type: true } },
   });
 
-  if (!user) {
-    return notFound("User not found");
-  }
+  if (!result.ok) return result.response;
 
-  const { accounts, ...rest } = user;
+  const { accounts, ...rest } = result.user;
   return NextResponse.json({
     ...rest,
     connectedProviders: accounts.map((a: { provider: string; type: string }) => a.provider),
