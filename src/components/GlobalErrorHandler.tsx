@@ -4,6 +4,25 @@ import { useEffect, useRef } from "react";
 import { useToast } from "./Toast";
 import { logError } from "@/lib/error-logger";
 
+function getErrorMessage(error: unknown, fallbackMessage?: string): string {
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error !== null) {
+    const candidate = (error as { message?: unknown }).message;
+    if (typeof candidate === "string") return candidate;
+  }
+  return fallbackMessage ?? "";
+}
+
+function getErrorName(error: unknown): string {
+  if (error instanceof Error) return error.name;
+  if (typeof error === "object" && error !== null) {
+    const candidate = (error as { name?: unknown }).name;
+    if (typeof candidate === "string") return candidate;
+  }
+  return "";
+}
+
 /**
  * Returns true for errors that are benign / non-actionable and should be
  * silently logged without surfacing a toast to the user.
@@ -13,9 +32,8 @@ export function isBenignError(error: unknown, message?: string): boolean {
   // Treat these as non-actionable to avoid noisy runtime toasts.
   if (error == null && (message == null || message.trim() === "")) return true;
 
-  const msg =
-    (error instanceof Error ? error.message : undefined) ?? message ?? "";
-  const name = error instanceof Error ? error.name : "";
+  const msg = getErrorMessage(error, message);
+  const name = getErrorName(error);
 
   // ResizeObserver loop errors — fired by layout-measuring libraries
   // (react-virtual, auto-size textareas, etc.) when a resize callback
@@ -37,9 +55,8 @@ export function isBenignError(error: unknown, message?: string): boolean {
  * new deployment while the browser still references old chunk hashes.
  */
 export function isChunkLoadError(error: unknown, message?: string): boolean {
-  const msg =
-    (error instanceof Error ? error.message : undefined) ?? message ?? "";
-  const name = error instanceof Error ? error.name : "";
+  const msg = getErrorMessage(error, message);
+  const name = getErrorName(error);
 
   return (
     name === "ChunkLoadError" ||

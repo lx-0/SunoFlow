@@ -32,9 +32,9 @@ echo "Repository: $REPO"
 echo "SHA: $TARGET_SHA"
 
 if ! gh api "repos/$REPO/commits/$TARGET_SHA" >/dev/null 2>&1; then
-  echo "SKIP: commit $TARGET_SHA is not available on GitHub for $REPO."
-  echo "This is expected for local-only commits/worktrees; CI gate cannot be verified yet."
-  exit 0
+  echo "ERROR: commit $TARGET_SHA is not available on GitHub for $REPO."
+  echo "Refusing deploy without a verifiable remote commit and CI history."
+  exit 1
 fi
 
 runs_json="$(gh api "repos/$REPO/actions/runs?head_sha=$TARGET_SHA&status=completed&per_page=20")"
