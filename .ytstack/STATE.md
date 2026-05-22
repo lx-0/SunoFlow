@@ -1,7 +1,7 @@
 ---
 project: SunoFlow
 slug: SunoFlow
-last_updated: 2026-05-18T11:20:00Z
+last_updated: 2026-05-21T10:00:00Z
 current_milestone: M002
 active_slice: none
 active_task: none
@@ -60,6 +60,10 @@ Plan-only milestone abgeschlossen. Outputs in `.ytstack/`:
 - DECISIONS.md: D1-D17 (17 architectural decisions formal)
 
 Continuous BAU work bleibt parallel auf Paperclip SUNAA.
+
+## Production infra (2026-05-21)
+
+- **Custom domain live: `https://sunoflow.app` (apex-primary) + `https://www.sunoflow.app`**, both serving directly on Railway (verified `HTTP 200` + `/api/health` ok). Registrar/DNS = INWX (apex via ALIAS, www via CNAME, two `_railway-verify` TXTs). `AUTH_URL=https://sunoflow.app`. Key gotcha captured: Railway custom-domain target port must be **8080** (not Dockerfile 3000) — see KNOWLEDGE.md + DECISIONS.md 2026-05-21. No app code changed; no version bump.
 
 ## Known issue
 
