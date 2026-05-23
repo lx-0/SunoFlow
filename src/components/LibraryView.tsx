@@ -48,6 +48,7 @@ import { SongGridCard } from "./library/song-grid-card";
 import { SwipableSongRow } from "./library/swipable-song-row";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 import {
+  hasActiveLibraryFilters,
   parseLibraryFilterUrlState,
   toLibraryFilterSearchParams,
 } from "./library/filter-url-state";
@@ -239,13 +240,8 @@ export function LibraryView({
     if (tagsQuery.data) setAvailableTags(tagsQuery.data);
   }, [tagsQuery.data]);
 
-  // ─── Sync filters → URL params ───────────────────────────────────────────
-  const hasAnyFilter = !!(debouncedSearch || statusFilter || ratingFilter || dateFrom || dateTo || tagFilter.length > 0 || smartFilter || sortBy !== "newest" || genreFilter.length > 0 || moodFilter.length > 0 || tempoMin || tempoMax || includeVariations);
-
-  useEffect(() => {
-    if (!enableServerSearch) return;
-
-    const params = toLibraryFilterSearchParams({
+  const currentFilterState = useMemo(
+    () => ({
       searchText: debouncedSearch,
       statusFilter,
       ratingFilter,
@@ -259,13 +255,36 @@ export function LibraryView({
       tempoMin,
       tempoMax,
       includeVariations,
-    });
+    }),
+    [
+      debouncedSearch,
+      statusFilter,
+      ratingFilter,
+      dateFrom,
+      dateTo,
+      sortBy,
+      tagFilter,
+      smartFilter,
+      genreFilter,
+      moodFilter,
+      tempoMin,
+      tempoMax,
+      includeVariations,
+    ]
+  );
+
+  // ─── Sync filters → URL params ───────────────────────────────────────────
+  const hasAnyFilter = hasActiveLibraryFilters(currentFilterState);
+
+  useEffect(() => {
+    if (!enableServerSearch) return;
+
+    const params = toLibraryFilterSearchParams(currentFilterState);
 
     const qs = params.toString();
     const newUrl = qs ? `${pathname}?${qs}` : pathname;
     router.replace(newUrl, { scroll: false });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, smartFilter, genreFilter, moodFilter, tempoMin, tempoMax, includeVariations, enableServerSearch]);
+  }, [currentFilterState, enableServerSearch, pathname, router]);
 
   // ─── Songs query (filter change, load-more, refresh, pending-poll) ───────
   // One useInfiniteQuery replaces four hand-rolled fetch sites. React Query
@@ -851,7 +870,10 @@ export function LibraryView({
   }
 
   const hasPlayableSongs = songs.some((s) => s.audioUrl && s.generationStatus === "ready");
-  const hasActiveFilters = !!(statusFilter || ratingFilter || dateFrom || dateTo || tagFilter.length > 0 || smartFilter || genreFilter.length > 0 || moodFilter.length > 0 || tempoMin || tempoMax || includeVariations);
+  const hasActiveFilters = hasActiveLibraryFilters(currentFilterState, {
+    includeSearchText: false,
+    includeSortBy: false,
+  });
 
   // ─── Virtualizer for list view ───────────────────────────────────────────
   const listScrollMarginRef = useRef(0);
