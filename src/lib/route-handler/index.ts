@@ -85,6 +85,24 @@ export function authRoute<
   );
 }
 
+export function authDataRoute<
+  P extends Record<string, string> = Record<string, never>,
+  B = undefined,
+  Q = undefined,
+  T = unknown,
+>(
+  handler: (
+    request: NextRequest,
+    ctx: { auth: AuthContext; params: P; body: B; query: Q },
+  ) => Promise<T>,
+  options?: RoutePipelineOptions<B, Q>,
+) {
+  return authRoute<P, B, Q>(
+    async (request, ctx) => NextResponse.json(await handler(request, ctx)),
+    options,
+  );
+}
+
 export function optionalAuthRoute<
   P extends Record<string, string> = Record<string, never>,
   B = undefined,

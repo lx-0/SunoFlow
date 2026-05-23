@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
-import { authRoute, optionalAuthRoute, publicRoute, adminRoute, cronRoute } from "@/lib/route-handler";
+import { authRoute, authDataRoute, optionalAuthRoute, publicRoute, adminRoute, cronRoute } from "@/lib/route-handler";
 
 vi.mock("@/lib/auth", () => ({
   resolveUser: vi.fn(),
@@ -363,5 +363,41 @@ describe("cronRoute", () => {
       { route: "/api/cron/test" }
     );
     vi.unstubAllEnvs();
+  });
+});
+
+describe("authDataRoute", () => {
+  it("auto-wraps plain object return in NextResponse.json", async () => {
+    vi.mocked(resolveUser).mockResolvedValue({
+      userId: "user-123",
+      isApiKey: false,
+      isAdmin: false,
+      error: null,
+    });
+
+    const handler = authDataRoute(async (_req, { auth }) => ({
+      userId: auth.userId,
+    }));
+
+    const result = await handler(makeRequest(), seg);
+    const body = await result.json();
+
+    expect(result.status).toBe(200);
+    expect(body.userId).toBe("user-123");
+  });
+
+  it("propagates auth errors", async () => {
+    const errorResponse = NextResponse.json({ error: "Unauthorized", code: "UNAUTHORIZED" }, { status: 401 });
+    vi.mocked(resolveUser).mockResolvedValue({
+      userId: null,
+      isApiKey: false,
+      isAdmin: false,
+      error: errorResponse,
+    });
+
+    const handler = authDataRoute(async () => ({ ok: true }));
+    const result = await handler(makeRequest(), seg);
+
+    expect(result.status).toBe(401);
   });
 });

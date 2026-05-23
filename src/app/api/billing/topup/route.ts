@@ -1,6 +1,5 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
-import { authRoute } from "@/lib/route-handler";
+import { authRoute, authDataRoute } from "@/lib/route-handler";
 import { createTopupSession, getTopupHistory } from "@/lib/billing";
 import { respondWithResult } from "@/lib/billing/http";
 
@@ -12,7 +11,7 @@ export const POST = authRoute(async (_request, { auth, body }) => {
   body: z.object({ package: z.string() }),
 });
 
-export const GET = authRoute(async (_request, { auth }) => {
+export const GET = authDataRoute(async (_request, { auth }) => {
   const topUps = await getTopupHistory(auth.userId);
-  return NextResponse.json({ topUps });
+  return { topUps };
 }, { route: "/api/billing/topup" });
