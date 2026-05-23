@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useMemo } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   MusicalNoteIcon,
@@ -34,8 +34,10 @@ import { LowCreditsBanner } from "./LowCreditsBanner";
 import { useOfflineCache } from "@/hooks/useOfflineCache";
 import { formatBytes } from "@/lib/cache/offline";
 import { LibraryToolbar } from "./LibraryToolbar";
-import { useDebounce } from "@/hooks/useDebounce";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { useLibraryPullToRefresh } from "@/hooks/useLibraryPullToRefresh";
+import { useLibraryFilterState } from "@/hooks/useLibraryFilterState";
 import { songToQueueSong } from "@/lib/song-mappers";
 import { useSongsList, type SongsFilters } from "@/hooks/useSongsList";
 import { useTagsList } from "@/hooks/useTagsList";
@@ -47,11 +49,6 @@ import {
 import { SongGridCard } from "./library/song-grid-card";
 import { SwipableSongRow } from "./library/swipable-song-row";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
-import {
-  hasActiveLibraryFilters,
-  parseLibraryFilterUrlState,
-  toLibraryFilterSearchParams,
-} from "./library/filter-url-state";
 import { toggleSelectAll, toggleSelection } from "./library/selection";
 
 // ─── Playlist option type (used for batch operations) ─────────────────────────
@@ -90,8 +87,6 @@ export function LibraryView({
 }: LibraryViewProps) {
   const { toast } = useToast();
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const {
     queue,
     currentIndex,
@@ -104,23 +99,38 @@ export function LibraryView({
   } = useQueue();
 
   const currentSongId = currentIndex >= 0 ? queue[currentIndex]?.id ?? null : null;
-  const initialFilterState = parseLibraryFilterUrlState(searchParams);
-
-  // ─── Filter state (initialized from URL params) ───────────────────────────
-  const [searchText, setSearchText] = useState(initialFilterState.searchText);
-  const [statusFilter, setStatusFilter] = useState(initialFilterState.statusFilter);
-  const [ratingFilter, setRatingFilter] = useState(initialFilterState.ratingFilter);
-  const [dateFrom, setDateFrom] = useState(initialFilterState.dateFrom);
-  const [dateTo, setDateTo] = useState(initialFilterState.dateTo);
-  const [sortBy, setSortBy] = useState(initialFilterState.sortBy);
-  const [tagFilter, setTagFilter] = useState<string[]>(initialFilterState.tagFilter);
-  const [smartFilter, setSmartFilter] = useState(initialFilterState.smartFilter);
-  // Advanced filters
-  const [genreFilter, setGenreFilter] = useState<string[]>(initialFilterState.genreFilter);
-  const [moodFilter, setMoodFilter] = useState<string[]>(initialFilterState.moodFilter);
-  const [tempoMin, setTempoMin] = useState(initialFilterState.tempoMin);
-  const [tempoMax, setTempoMax] = useState(initialFilterState.tempoMax);
-  const [includeVariations, setIncludeVariations] = useState(initialFilterState.includeVariations);
+  const {
+    searchText,
+    setSearchText,
+    statusFilter,
+    setStatusFilter,
+    ratingFilter,
+    setRatingFilter,
+    dateFrom,
+    setDateFrom,
+    dateTo,
+    setDateTo,
+    sortBy,
+    setSortBy,
+    tagFilter,
+    setTagFilter,
+    smartFilter,
+    setSmartFilter,
+    genreFilter,
+    setGenreFilter,
+    moodFilter,
+    setMoodFilter,
+    tempoMin,
+    setTempoMin,
+    tempoMax,
+    setTempoMax,
+    includeVariations,
+    setIncludeVariations,
+    debouncedSearch,
+    hasAnyFilter,
+    hasActiveFilters,
+    clearAllFilters,
+  } = useLibraryFilterState({ enableServerSearch });
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">(() => {
     if (typeof window === "undefined") return "list";
@@ -132,8 +142,6 @@ export function LibraryView({
   });
   const [availableTags, setAvailableTags] = useState<{ id: string; name: string; color: string; _count?: { songTags: number } }[]>([]);
 
-  const debouncedSearch = useDebounce(searchText, 300);
-
   // ─── Song + playback state ────────────────────────────────────────────────
   const [songs, setSongs] = useState<Song[]>(initialSongs);
   const [loading, setLoading] = useState(false);
@@ -141,27 +149,18 @@ export function LibraryView({
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [totalSongs, setTotalSongs] = useState<number>(initialSongs.length);
 
-  // ─── Pull-to-refresh state ────────────────────────────────────────────────
-  const [pullDistance, setPullDistance] = useState(0);
-  const [isPullingRefresh, setIsPullingRefresh] = useState(false);
+  const { pullDistance, isPullingRefresh } = useLibraryPullToRefresh({
+    onRefresh: async () => {
+      await songsQuery.refetch();
+    },
+  });
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
   const [downloadErrors, setDownloadErrors] = useState<Record<string, string>>({});
   const [retryingId, setRetryingId] = useState<string | null>(null);
 
   // ─── Offline cache ────────────────────────────────────────────────────────
   const { cachedIds, stats: offlineStats, saving: offlineSaving, saveOffline, removeOffline, clearAll: clearOffline } = useOfflineCache();
-  const [isOnline, setIsOnline] = useState(true);
-  useEffect(() => {
-    setIsOnline(navigator.onLine);
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
+  const isOnline = useOnlineStatus();
 
   // Selection state
   const [selectedSongIds, setSelectedSongIds] = useState<Set<string>>(new Set());
@@ -240,52 +239,6 @@ export function LibraryView({
     if (tagsQuery.data) setAvailableTags(tagsQuery.data);
   }, [tagsQuery.data]);
 
-  const currentFilterState = useMemo(
-    () => ({
-      searchText: debouncedSearch,
-      statusFilter,
-      ratingFilter,
-      dateFrom,
-      dateTo,
-      sortBy,
-      tagFilter,
-      smartFilter,
-      genreFilter,
-      moodFilter,
-      tempoMin,
-      tempoMax,
-      includeVariations,
-    }),
-    [
-      debouncedSearch,
-      statusFilter,
-      ratingFilter,
-      dateFrom,
-      dateTo,
-      sortBy,
-      tagFilter,
-      smartFilter,
-      genreFilter,
-      moodFilter,
-      tempoMin,
-      tempoMax,
-      includeVariations,
-    ]
-  );
-
-  // ─── Sync filters → URL params ───────────────────────────────────────────
-  const hasAnyFilter = hasActiveLibraryFilters(currentFilterState);
-
-  useEffect(() => {
-    if (!enableServerSearch) return;
-
-    const params = toLibraryFilterSearchParams(currentFilterState);
-
-    const qs = params.toString();
-    const newUrl = qs ? `${pathname}?${qs}` : pathname;
-    router.replace(newUrl, { scroll: false });
-  }, [currentFilterState, enableServerSearch, pathname, router]);
-
   // ─── Songs query (filter change, load-more, refresh, pending-poll) ───────
   // One useInfiniteQuery replaces four hand-rolled fetch sites. React Query
   // dedupes concurrent requests, cancels stale fetches on key change, and
@@ -338,80 +291,6 @@ export function LibraryView({
     if (!songsQuery.hasNextPage || songsQuery.isFetchingNextPage) return;
     songsQuery.fetchNextPage();
   }, [songsQuery]);
-
-  // Pull-to-refresh just calls refetch — React Query handles the rest.
-  const handleLibraryRefreshRef = useRef<() => Promise<void>>(async () => {});
-  const handleLibraryRefresh = useCallback(async () => {
-    await songsQuery.refetch();
-  }, [songsQuery]);
-
-  useEffect(() => { handleLibraryRefreshRef.current = handleLibraryRefresh; }, [handleLibraryRefresh]);
-
-  // ─── Pull-to-refresh: window-level touch handler (works with window scroll) ─
-  useEffect(() => {
-    if (!window.matchMedia("(pointer: coarse)").matches) return;
-
-    const pullState = { startY: 0, pulling: false };
-
-    function onTouchStart(e: TouchEvent) {
-      if (window.scrollY > 5) return;
-      pullState.startY = e.touches[0].clientY;
-      pullState.pulling = true;
-    }
-
-    function onTouchMove(e: TouchEvent) {
-      if (!pullState.pulling) return;
-      const dy = e.touches[0].clientY - pullState.startY;
-      if (dy <= 0) {
-        pullState.pulling = false;
-        setPullDistance(0);
-        return;
-      }
-      setPullDistance(Math.min(dy * 0.5, 80));
-    }
-
-    function onTouchEnd() {
-      if (!pullState.pulling) return;
-      pullState.pulling = false;
-      setPullDistance((dist) => {
-        if (dist >= 60) {
-          setIsPullingRefresh(true);
-          handleLibraryRefreshRef.current().finally(() => {
-            setIsPullingRefresh(false);
-            setPullDistance(0);
-          });
-          return 48; // hold the indicator while refreshing
-        }
-        return 0;
-      });
-    }
-
-    document.addEventListener("touchstart", onTouchStart, { passive: true });
-    document.addEventListener("touchmove", onTouchMove, { passive: true });
-    document.addEventListener("touchend", onTouchEnd, { passive: true });
-    return () => {
-      document.removeEventListener("touchstart", onTouchStart);
-      document.removeEventListener("touchmove", onTouchMove);
-      document.removeEventListener("touchend", onTouchEnd);
-    };
-  }, []); // Uses handleLibraryRefreshRef so no deps needed
-
-  // ─── Clear all filters ────────────────────────────────────────────────────
-  function clearAllFilters() {
-    setSearchText("");
-    setStatusFilter("");
-    setRatingFilter("");
-    setDateFrom("");
-    setDateTo("");
-    setSortBy("newest");
-    setTagFilter([]);
-    setSmartFilter("");
-    setGenreFilter([]);
-    setMoodFilter([]);
-    setTempoMin("");
-    setTempoMax("");
-    setIncludeVariations(false);
-  }
 
   // ─── Song callbacks ───────────────────────────────────────────────────────
   const handleSongUpdate = useCallback((updated: Song) => {
@@ -870,11 +749,6 @@ export function LibraryView({
   }
 
   const hasPlayableSongs = songs.some((s) => s.audioUrl && s.generationStatus === "ready");
-  const hasActiveFilters = hasActiveLibraryFilters(currentFilterState, {
-    includeSearchText: false,
-    includeSortBy: false,
-  });
-
   // ─── Virtualizer for list view ───────────────────────────────────────────
   const listScrollMarginRef = useRef(0);
   useLayoutEffect(() => {
