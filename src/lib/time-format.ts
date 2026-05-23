@@ -1,5 +1,5 @@
 export function formatDuration(seconds: number | null | undefined): string {
-  if (!seconds || Number.isNaN(seconds) || !Number.isFinite(seconds)) {
+  if (seconds == null || Number.isNaN(seconds) || !Number.isFinite(seconds)) {
     return "--:--";
   }
 
