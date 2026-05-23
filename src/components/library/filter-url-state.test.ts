@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  DEFAULT_LIBRARY_FILTER_URL_STATE,
+  hasActiveLibraryFilters,
   parseLibraryFilterUrlState,
   toLibraryFilterSearchParams,
 } from "./filter-url-state";
@@ -48,5 +50,60 @@ describe("library filter URL state", () => {
     expect(params.toString()).toBe(
       "q=lofi&sortBy=oldest&tagIds=a%2Cb&smartFilter=favorites&mood=chill&tempoMin=80"
     );
+  });
+
+  it("returns stable defaults for empty search params", () => {
+    const parsed = parseLibraryFilterUrlState(new URLSearchParams());
+    expect(parsed).toEqual(DEFAULT_LIBRARY_FILTER_URL_STATE);
+  });
+
+  it("trims and filters empty CSV items", () => {
+    const parsed = parseLibraryFilterUrlState(
+      new URLSearchParams({
+        tagIds: " tag-1, ,tag-2,, ",
+        genre: " electronic, ,pop ",
+      })
+    );
+
+    expect(parsed.tagFilter).toEqual(["tag-1", "tag-2"]);
+    expect(parsed.genreFilter).toEqual(["electronic", "pop"]);
+  });
+
+  it("detects active filters with optional search/sort toggles", () => {
+    expect(hasActiveLibraryFilters(DEFAULT_LIBRARY_FILTER_URL_STATE)).toBe(false);
+
+    expect(
+      hasActiveLibraryFilters({
+        ...DEFAULT_LIBRARY_FILTER_URL_STATE,
+        searchText: "lofi",
+      })
+    ).toBe(true);
+
+    expect(
+      hasActiveLibraryFilters(
+        {
+          ...DEFAULT_LIBRARY_FILTER_URL_STATE,
+          searchText: "lofi",
+        },
+        { includeSearchText: false }
+      )
+    ).toBe(false);
+
+    expect(
+      hasActiveLibraryFilters({
+        ...DEFAULT_LIBRARY_FILTER_URL_STATE,
+        sortBy: "oldest",
+      })
+    ).toBe(true);
+
+    expect(
+      hasActiveLibraryFilters(
+        {
+          ...DEFAULT_LIBRARY_FILTER_URL_STATE,
+          sortBy: "oldest",
+        },
+        { includeSortBy: false }
+      )
+    ).toBe(false);
   });
 });
