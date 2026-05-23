@@ -501,8 +501,14 @@ export function GenerateForm() {
     );
     const pendingItems = activeItems.filter((i) => i.status === "pending");
     if (index <= 0) return;
+    const firstActiveStatus =
+      activeItems[0]?.status === "processing"
+        ? "processing"
+        : activeItems[0]?.status === "pending"
+          ? "pending"
+          : undefined;
     // Find the pending item at this visual index (skip processing)
-    const pendingIndex = getPendingIndexFromVisualIndex(index, activeItems[0]?.status);
+    const pendingIndex = getPendingIndexFromVisualIndex(index, firstActiveStatus);
     const ids = reorderPendingQueueIds(
       pendingItems.map((i) => i.id),
       pendingIndex,
@@ -516,7 +522,13 @@ export function GenerateForm() {
       (i) => i.status === "pending" || i.status === "processing"
     );
     const pendingItems = activeItems.filter((i) => i.status === "pending");
-    const pendingIndex = getPendingIndexFromVisualIndex(index, activeItems[0]?.status);
+    const firstActiveStatus =
+      activeItems[0]?.status === "processing"
+        ? "processing"
+        : activeItems[0]?.status === "pending"
+          ? "pending"
+          : undefined;
+    const pendingIndex = getPendingIndexFromVisualIndex(index, firstActiveStatus);
     const ids = reorderPendingQueueIds(
       pendingItems.map((i) => i.id),
       pendingIndex,
