@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { getPromptValidationError, getRateLimitMeta, reorderPendingQueueIds } from "./helpers";
+import {
+  getPendingIndexFromVisualIndex,
+  getPromptValidationError,
+  getRateLimitMeta,
+  getSubmitPrompt,
+  reorderPendingQueueIds,
+} from "./helpers";
 
 describe("getPromptValidationError", () => {
   it("requires lyrics in custom mode", () => {
@@ -83,5 +89,26 @@ describe("getRateLimitMeta", () => {
       isAtLimit: true,
       isNearLimit: false,
     });
+  });
+});
+
+describe("getSubmitPrompt", () => {
+  it("uses lyrics prompt in custom mode", () => {
+    expect(getSubmitPrompt(true, "  verse one  ", " synth pop ")).toBe("verse one");
+  });
+
+  it("uses style prompt in style mode", () => {
+    expect(getSubmitPrompt(false, "  verse one  ", " synth pop ")).toBe("synth pop");
+  });
+});
+
+describe("getPendingIndexFromVisualIndex", () => {
+  it("offsets by one when first active item is processing", () => {
+    expect(getPendingIndexFromVisualIndex(2, "processing")).toBe(1);
+  });
+
+  it("does not offset when first active item is pending or undefined", () => {
+    expect(getPendingIndexFromVisualIndex(2, "pending")).toBe(2);
+    expect(getPendingIndexFromVisualIndex(0, undefined)).toBe(0);
   });
 });

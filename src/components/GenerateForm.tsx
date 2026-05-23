@@ -10,7 +10,13 @@ import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { useGenerationQueue } from "@/hooks/useGenerationQueue";
 import { track } from "@/lib/analytics";
 import { fetchWithTimeout, clientFetchErrorMessage } from "@/lib/fetch-client";
-import { getPromptValidationError, getRateLimitMeta, reorderPendingQueueIds } from "./generate-form/helpers";
+import {
+  getPendingIndexFromVisualIndex,
+  getPromptValidationError,
+  getRateLimitMeta,
+  getSubmitPrompt,
+  reorderPendingQueueIds,
+} from "./generate-form/helpers";
 import {
   deletePreset,
   deletePromptTemplate,
@@ -251,7 +257,7 @@ export function GenerateForm() {
       toast("Please enter a template name", "error");
       return;
     }
-    const submitPrompt = customMode ? prompt : style;
+    const submitPrompt = getSubmitPrompt(customMode, prompt, style);
     if (!submitPrompt.trim()) {
       toast("Fill in the prompt fields before saving", "error");
       return;
@@ -353,7 +359,7 @@ export function GenerateForm() {
     setSubmitError(null);
 
     // Client-side inline validation before hitting the server
-    const submitPromptValue = customMode ? prompt : style;
+    const submitPromptValue = getSubmitPrompt(customMode, prompt, style);
     const promptValidationError = getPromptValidationError(submitPromptValue, customMode);
     if (promptValidationError) {
       setPromptError(promptValidationError);
@@ -456,8 +462,8 @@ export function GenerateForm() {
   }
 
   async function handleAddToQueue() {
-    const submitPrompt = customMode ? prompt : style;
-    if (!prompt?.trim()) {
+    const submitPrompt = getSubmitPrompt(customMode, prompt, style);
+    if (!submitPrompt) {
       toast("A prompt is required", "error");
       return;
     }
@@ -496,7 +502,7 @@ export function GenerateForm() {
     const pendingItems = activeItems.filter((i) => i.status === "pending");
     if (index <= 0) return;
     // Find the pending item at this visual index (skip processing)
-    const pendingIndex = index - (activeItems[0]?.status === "processing" ? 1 : 0);
+    const pendingIndex = getPendingIndexFromVisualIndex(index, activeItems[0]?.status);
     const ids = reorderPendingQueueIds(
       pendingItems.map((i) => i.id),
       pendingIndex,
@@ -510,7 +516,7 @@ export function GenerateForm() {
       (i) => i.status === "pending" || i.status === "processing"
     );
     const pendingItems = activeItems.filter((i) => i.status === "pending");
-    const pendingIndex = index - (activeItems[0]?.status === "processing" ? 1 : 0);
+    const pendingIndex = getPendingIndexFromVisualIndex(index, activeItems[0]?.status);
     const ids = reorderPendingQueueIds(
       pendingItems.map((i) => i.id),
       pendingIndex,

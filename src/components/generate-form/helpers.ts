@@ -32,6 +32,17 @@ export function reorderPendingQueueIds(
   return nextIds;
 }
 
+export function getSubmitPrompt(customMode: boolean, prompt: string, style: string): string {
+  return (customMode ? prompt : style).trim();
+}
+
+export function getPendingIndexFromVisualIndex(
+  visualIndex: number,
+  firstActiveStatus: "processing" | "pending" | undefined,
+): number {
+  return visualIndex - (firstActiveStatus === "processing" ? 1 : 0);
+}
+
 export function getRateLimitMeta(rateLimit: RateLimitStatus): RateLimitMeta {
   const used = rateLimit.limit - rateLimit.remaining;
   const pct = rateLimit.limit > 0 ? Math.round((used / rateLimit.limit) * 100) : 0;
