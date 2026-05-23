@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { authRoute, resultResponse } from "@/lib/route-handler";
 import { Tags } from "@/lib/tags";
-
-const postBodySchema = z.object({
-  tagId: z.string().optional(),
-  name: z.string().optional(),
-});
+import {
+  addSongTagBodySchema,
+  type AddSongTagBody,
+} from "@/lib/tags/request";
 
 export const GET = authRoute<{ id: string }>(async (_request, { auth, params }) => {
   const result = await Tags.listForSong(auth.userId, params.id);
@@ -14,7 +12,7 @@ export const GET = authRoute<{ id: string }>(async (_request, { auth, params }) 
   return NextResponse.json({ tags: result.data });
 }, { route: "/api/songs/[id]/tags" });
 
-export const POST = authRoute<{ id: string }, z.infer<typeof postBodySchema>>(async (
+export const POST = authRoute<{ id: string }, AddSongTagBody>(async (
   _request,
   { auth, params, body },
 ) => {
@@ -27,5 +25,5 @@ export const POST = authRoute<{ id: string }, z.infer<typeof postBodySchema>>(as
   return NextResponse.json({ tag }, { status: created ? 201 : 200 });
 }, {
   route: "/api/songs/[id]/tags",
-  body: postBodySchema,
+  body: addSongTagBodySchema,
 });
