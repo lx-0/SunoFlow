@@ -1,6 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
-import { authRoute, authDataRoute, optionalAuthRoute, publicRoute, adminRoute, cronRoute } from "@/lib/route-handler";
+import {
+  authRoute,
+  authDataRoute,
+  optionalAuthRoute,
+  optionalAuthDataRoute,
+  publicRoute,
+  publicDataRoute,
+  adminRoute,
+  adminDataRoute,
+  cronRoute,
+} from "@/lib/route-handler";
 
 vi.mock("@/lib/auth", () => ({
   resolveUser: vi.fn(),
@@ -194,6 +204,28 @@ describe("optionalAuthRoute", () => {
   });
 });
 
+describe("optionalAuthDataRoute", () => {
+  it("serializes returned data as JSON", async () => {
+    vi.mocked(resolveUser).mockResolvedValue({
+      userId: "user-123",
+      isApiKey: false,
+      isAdmin: false,
+      error: null,
+    });
+
+    const handler = optionalAuthDataRoute(async (_req, { auth }) => ({
+      userId: auth.userId,
+      authenticated: auth.userId !== null,
+    }));
+
+    const result = await handler(makeRequest(), seg);
+    const body = await result.json();
+
+    expect(result.status).toBe(200);
+    expect(body).toEqual({ userId: "user-123", authenticated: true });
+  });
+});
+
 describe("publicRoute", () => {
   it("calls handler without auth context", async () => {
     const handler = publicRoute(async () => {
@@ -238,6 +270,17 @@ describe("publicRoute", () => {
       expect.any(Error),
       { route: "/api/public/test" }
     );
+  });
+});
+
+describe("publicDataRoute", () => {
+  it("serializes returned data as JSON", async () => {
+    const handler = publicDataRoute(async () => ({ ok: true, value: 42 }));
+    const result = await handler(makeRequest(), seg);
+    const body = await result.json();
+
+    expect(result.status).toBe(200);
+    expect(body).toEqual({ ok: true, value: 42 });
   });
 });
 
@@ -292,6 +335,30 @@ describe("adminRoute", () => {
       expect.any(Error),
       { userId: "admin-1", route: "/api/test" }
     );
+  });
+});
+
+describe("adminDataRoute", () => {
+  it("serializes returned data as JSON", async () => {
+    vi.mocked(requireAdmin).mockResolvedValue({
+      error: null,
+      session: {
+        user: { id: "admin-1", isAdmin: true },
+      } as never,
+      user: {
+        id: "admin-1",
+      } as never,
+    });
+
+    const handler = adminDataRoute(async (_req, { admin }) => ({
+      adminId: admin.adminId,
+      ok: true,
+    }));
+    const result = await handler(makeRequest(), seg);
+    const body = await result.json();
+
+    expect(result.status).toBe(200);
+    expect(body).toEqual({ adminId: "admin-1", ok: true });
   });
 });
 

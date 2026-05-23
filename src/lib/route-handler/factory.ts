@@ -1,7 +1,5 @@
 import { NextRequest } from "next/server";
-import {
-  runRoutePipeline,
-} from "@/lib/route-pipeline";
+import { runRoutePipeline } from "@/lib/route-pipeline/runner";
 import type { PipelineCtx, PreflightResult } from "@/lib/route-handler/types";
 import type {
   RouteOptions,
