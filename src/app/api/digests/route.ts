@@ -2,6 +2,7 @@ import { z } from "zod";
 import { NextResponse } from "next/server";
 import { authRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
+import { offsetWindowPagination } from "@/lib/pagination";
 import { zPageParam, zLimitParam } from "@/lib/query-params";
 
 const digestsQuery = z.object({
@@ -26,8 +27,7 @@ export const GET = authRoute(
 
     return NextResponse.json({
       digests,
-      total,
-      hasMore: skip + digests.length < total,
+      pagination: offsetWindowPagination(skip, query.limit, total),
     });
   },
   { route: "/api/digests", query: digestsQuery },

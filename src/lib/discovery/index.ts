@@ -1,6 +1,11 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { DEFAULT_PAGE_SIZE, offsetPagination, pageSkip } from "@/lib/pagination";
+import {
+  DEFAULT_PAGE_SIZE,
+  offsetPagination,
+  offsetWindowPagination,
+  pageSkip,
+} from "@/lib/pagination";
 import { buildDiscoverableFilter, SongSelect } from "@/lib/songs";
 import { trendingScore } from "@/lib/feed/rank";
 import { cached, cacheKey, CacheTTL } from "@/lib/cache";
@@ -16,6 +21,10 @@ function trendingCutoff(): Date {
 
 function paginationMeta(page: number, limit: number, total: number) {
   return { ...offsetPagination(page, limit, total), limit };
+}
+
+function asIsoDate(value: Date | null | undefined): string {
+  return value ? value.toISOString() : "";
 }
 
 // ── Song Trending / Popular ─────────────────────────────────────────────────
@@ -42,7 +51,7 @@ function formatTrendingSong(s: SongPublicRow, score: number) {
     duration: s.duration,
     playCount: s.playCount,
     publicSlug: s.publicSlug,
-    createdAt: s.createdAt,
+    createdAt: asIsoDate(s.createdAt),
     score,
     creatorDisplayName: s.user.name || s.user.username || "Anonymous",
     creatorUsername: s.user.username || null,
@@ -113,12 +122,7 @@ export async function trendingSongs(q: TrendingSongsQuery) {
   return {
     songs,
     sort: q.sort,
-    pagination: {
-      total,
-      limit: q.limit,
-      offset: q.offset,
-      hasMore: q.offset + q.limit < total,
-    },
+    pagination: offsetWindowPagination(q.offset, q.limit, total),
   };
 }
 
@@ -170,7 +174,7 @@ export async function discoverSongs(q: DiscoverSongsQuery) {
           break;
       }
 
-      const [results, count] = await Promise.all([
+    const [results, count] = await Promise.all([
         prisma.song.findMany({
           where,
           orderBy,
@@ -181,7 +185,13 @@ export async function discoverSongs(q: DiscoverSongsQuery) {
         prisma.song.count({ where }),
       ]);
 
-      return { songs: results, total: count };
+      return {
+        songs: results.map((song) => ({
+          ...song,
+          createdAt: asIsoDate(song.createdAt),
+        })),
+        total: count,
+      };
     },
     CacheTTL.DISCOVER,
   );
@@ -190,6 +200,15 @@ export async function discoverSongs(q: DiscoverSongsQuery) {
     songs,
     pagination: paginationMeta(q.page, DEFAULT_PAGE_SIZE, total),
   };
+}
+
+export async function getInitialBrowseSongs() {
+  const { songs, pagination } = await discoverSongs({
+    sortBy: "newest",
+    page: 1,
+  });
+
+  return { songs, pagination };
 }
 
 // ── Playlist Discovery ──────────────────────────────────────────────────────
@@ -229,9 +248,9 @@ function formatPlaylist(p: PlaylistDiscoverRow) {
     genre: p.genre,
     slug: p.slug,
     songCount: p._count.songs,
-    publishedAt: p.publishedAt,
+    publishedAt: asIsoDate(p.publishedAt),
     playCount: p.playCount,
-    createdAt: p.createdAt,
+    createdAt: asIsoDate(p.createdAt),
     creatorDisplayName: p.user.name || p.user.username || "Anonymous",
     creatorUsername: p.user.username || null,
   };

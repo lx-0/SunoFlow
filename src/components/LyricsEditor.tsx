@@ -12,6 +12,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useQueue } from "./QueueContext";
 import { useToast } from "./Toast";
+import { formatDuration as formatTime } from "@/lib/time-format";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,12 +39,6 @@ export interface LyricsEditorProps {
 function parseLines(text: string | null): string[] {
   if (!text) return [];
   return text.split("\n");
-}
-
-function formatTime(secs: number): string {
-  const m = Math.floor(secs / 60);
-  const s = Math.floor(secs % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 /** Render inline markdown bold/italic as JSX */

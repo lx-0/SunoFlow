@@ -98,18 +98,29 @@ fi
 rotate() {
   local prefix="$1"
   local keep="$2"
-  local files
-  # List files oldest-first, keep the newest $keep, delete the rest
-  files=$(ls -1t "${BACKUP_DIR}/${prefix}_"*.pgdump 2>/dev/null || true)
-  if [[ -z "$files" ]]; then return; fi
-  count=$(echo "$files" | wc -l)
-  if (( count > keep )); then
-    to_delete=$(echo "$files" | tail -n +"$((keep + 1))")
-    while IFS= read -r f; do
-      log "Rotating out: $f"
-      rm -f "$f"
-    done <<< "$to_delete"
+  local -a files=()
+  local file
+  local i
+
+  # List files newest-first, keep the newest $keep, delete the rest.
+  shopt -s nullglob
+  for file in "${BACKUP_DIR}/${prefix}"_*.pgdump; do
+    files+=("$file")
+  done
+  shopt -u nullglob
+
+  if (( ${#files[@]} == 0 )); then
+    return
   fi
+
+  local -a sorted_files=()
+  mapfile -t sorted_files < <(ls -1t -- "${files[@]}")
+  files=("${sorted_files[@]}")
+
+  for ((i = keep; i < ${#files[@]}; i++)); do
+    log "Rotating out: ${files[$i]}"
+    rm -f "${files[$i]}"
+  done
 }
 
 rotate "daily"   7

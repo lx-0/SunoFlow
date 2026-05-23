@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getInitialBrowseSongs } from "@/lib/discover/get-initial-browse-songs";
+import { getInitialBrowseSongs } from "@/lib/discovery";
 import { DiscoverView } from "../discover/DiscoverView";
 
 export const metadata: Metadata = {

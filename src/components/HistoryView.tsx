@@ -17,6 +17,7 @@ import { useToast } from "./Toast";
 import { useQueue, type QueueSong } from "./QueueContext";
 import Image from "next/image";
 import type { Song } from "@prisma/client";
+import { formatDuration as formatTime } from "@/lib/time-format";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -33,13 +34,6 @@ function formatDate(date: Date | string): string {
   if (diffHr < 24) return `${diffHr}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
-
-function formatTime(seconds: number): string {
-  if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 // ─── Status filter chips ──────────────────────────────────────────────────────

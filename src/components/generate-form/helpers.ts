@@ -14,22 +14,43 @@ export function getPromptValidationError(promptValue: string, customMode: boolea
   return null;
 }
 
+type QueueStatus = "pending" | "processing" | "done" | "failed" | "cancelled";
+type ReorderPendingIndexInput = number | QueueStatus | undefined;
+
+function normalizePendingIndex(input: ReorderPendingIndexInput): number {
+  if (typeof input === "number") return input;
+  if (input === "processing") return 1;
+  return 0;
+}
+
 export function reorderPendingQueueIds(
   pendingIds: string[],
-  pendingIndex: number,
+  pendingIndex: ReorderPendingIndexInput,
   direction: "up" | "down",
 ): string[] {
+  const index = normalizePendingIndex(pendingIndex);
   const nextIds = [...pendingIds];
 
   if (direction === "up") {
-    if (pendingIndex <= 0) return nextIds;
-    [nextIds[pendingIndex - 1], nextIds[pendingIndex]] = [nextIds[pendingIndex], nextIds[pendingIndex - 1]];
+    if (index <= 0) return nextIds;
+    [nextIds[index - 1], nextIds[index]] = [nextIds[index], nextIds[index - 1]];
     return nextIds;
   }
 
-  if (pendingIndex < 0 || pendingIndex >= nextIds.length - 1) return nextIds;
-  [nextIds[pendingIndex], nextIds[pendingIndex + 1]] = [nextIds[pendingIndex + 1], nextIds[pendingIndex]];
+  if (index < 0 || index >= nextIds.length - 1) return nextIds;
+  [nextIds[index], nextIds[index + 1]] = [nextIds[index + 1], nextIds[index]];
   return nextIds;
+}
+
+export function getSubmitPrompt(customMode: boolean, prompt: string, style: string): string {
+  return (customMode ? prompt : style).trim();
+}
+
+export function getPendingIndexFromVisualIndex(
+  visualIndex: number,
+  firstActiveStatus: "processing" | "pending" | undefined,
+): number {
+  return visualIndex - (firstActiveStatus === "processing" ? 1 : 0);
 }
 
 export function getRateLimitMeta(rateLimit: RateLimitStatus): RateLimitMeta {

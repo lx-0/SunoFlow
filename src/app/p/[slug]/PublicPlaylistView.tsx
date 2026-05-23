@@ -20,15 +20,9 @@ import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/components/Toast";
 import { ShareMenu } from "@/components/ShareMenu";
+import { formatDuration as formatTime } from "@/lib/time-format";
 
 const ReportModal = dynamic(() => import("@/components/ReportModal").then((m) => m.ReportModal), { ssr: false });
-
-function formatTime(seconds: number): string {
-  if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
 
 function formatPlayCount(count: number): string {
   if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1).replace(/\.0$/, "")}M plays`;

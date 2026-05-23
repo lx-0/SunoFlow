@@ -33,13 +33,7 @@ import { useQueue, type QueueSong } from "./QueueContext";
 import { SwipeablePlaylistItem } from "./SwipeablePlaylistItem";
 import { BottomSheet } from "./BottomSheet";
 import { songToQueueSong } from "@/lib/song-mappers";
-
-function formatTime(seconds: number): string {
-  if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
+import { formatDuration as formatTime } from "@/lib/time-format";
 
 interface CollaboratorUser {
   id: string;

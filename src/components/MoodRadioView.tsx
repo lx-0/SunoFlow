@@ -11,6 +11,7 @@ import { PlayIcon } from "@heroicons/react/24/solid";
 import { useQueue, type RadioParams } from "./QueueContext";
 import { CoverArtImage } from "./CoverArtImage";
 import { AddToPlaylistButton } from "./AddToPlaylistButton";
+import { formatDuration as formatTime } from "@/lib/time-format";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -43,13 +44,6 @@ const GENRES = [
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatTime(seconds: number): string {
-  if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
