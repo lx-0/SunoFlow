@@ -11,34 +11,51 @@ export const uploadBodySchema = z.object({
   style: z.string().optional(),
   instrumental: z.any().optional(),
   continueAt: z.any().optional(),
-});
-
-export type UploadBody = z.infer<typeof uploadBodySchema>;
-
-export function validateUploadBody(body: UploadBody): { error: string; code?: string } | null {
+}).superRefine((body, ctx) => {
   const { mode, base64Data, fileUrl } = body;
 
   if (mode !== "cover" && mode !== "extend") {
-    return { error: 'Mode must be "cover" or "extend"', code: "VALIDATION_ERROR" };
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Mode must be "cover" or "extend"',
+      path: ["mode"],
+    });
+    return;
   }
 
   if (!base64Data && !fileUrl) {
-    return { error: "Either a base64-encoded file or a file URL is required", code: "VALIDATION_ERROR" };
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Either a base64-encoded file or a file URL is required",
+      path: ["base64Data"],
+    });
+    return;
   }
 
   if (base64Data && fileUrl) {
-    return { error: "Provide either base64Data or fileUrl, not both", code: "VALIDATION_ERROR" };
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Provide either base64Data or fileUrl, not both",
+      path: ["base64Data"],
+    });
+    return;
   }
 
-  if (base64Data) {
-    const sizeBytes = Math.ceil((base64Data.length * 3) / 4);
-    if (sizeBytes > MAX_BASE64_SIZE) {
-      return { error: "File too large for base64 upload (max 10MB). Use a URL-based upload for larger files." };
-    }
+  if (!base64Data) {
+    return;
   }
 
-  return null;
-}
+  const sizeBytes = Math.ceil((base64Data.length * 3) / 4);
+  if (sizeBytes > MAX_BASE64_SIZE) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "File too large for base64 upload (max 10MB). Use a URL-based upload for larger files.",
+      path: ["base64Data"],
+    });
+  }
+});
+
+export type UploadBody = z.infer<typeof uploadBodySchema>;
 
 export function buildUploadGenerationInput(body: UploadBody) {
   const { mode, title, prompt, style, instrumental } = body;

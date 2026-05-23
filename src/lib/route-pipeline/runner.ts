@@ -7,12 +7,6 @@ import {
   parseValidatedBody,
   parseValidatedQuery,
 } from "@/lib/route-pipeline/parsers";
-export type {
-  RouteOptions,
-  RoutePipelineOptions,
-  RouteSchemas,
-  SegmentData,
-} from "@/lib/route-pipeline/types";
 
 export async function runRoutePipeline<
   P extends Record<string, string>,

@@ -8,7 +8,6 @@ import { logServerError } from "@/lib/error-logger";
 import {
   buildUploadGenerationInput,
   uploadBodySchema,
-  validateUploadBody,
   type UploadBody,
 } from "@/lib/upload/request";
 import { runUploadGenerationApiCall } from "@/lib/upload/api-call";
@@ -18,11 +17,6 @@ export const POST = authRoute<Record<string, never>, UploadBody>(async (
   { auth, body },
 ) => {
   try {
-    const validationError = validateUploadBody(body);
-    if (validationError) {
-      return NextResponse.json(validationError, { status: 400 });
-    }
-
     const { mode, base64Data, fileUrl } = body;
 
     const userApiKey = await resolveUserApiKey(auth.userId);

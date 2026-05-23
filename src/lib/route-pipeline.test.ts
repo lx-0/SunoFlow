@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { runRoutePipeline } from "@/lib/route-pipeline";
+import { runRoutePipeline } from "@/lib/route-pipeline/runner";
 
 vi.mock("@/lib/query-params", () => ({
   parseQueryParams: vi.fn(),

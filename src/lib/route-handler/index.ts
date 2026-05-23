@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import {
   adminPreflight,
   anonPreflight,
@@ -6,12 +6,14 @@ import {
   optionalAuthPreflight,
 } from "@/lib/route-handler/preflight";
 import {
-  createPreflightRequestRoute,
   createPreflightRoute,
   withParsedContext,
-  withKeyedParsedContext,
-  type RouteContextWithKey,
 } from "@/lib/route-handler/factory";
+import {
+  createCronRoute,
+  createJsonDataRoute,
+  createKeyedRoute,
+} from "@/lib/route-handler/builders";
 import type { PipelineCtx } from "@/lib/route-handler/types";
 import type {
   RouteOptions,
@@ -34,35 +36,6 @@ export type {
   OptionalAuthContext,
   RateLimitConfig,
 } from "@/lib/route-handler/types";
-
-function createKeyedRoute<
-  K extends "auth" | "admin" | "anon",
-  TContext,
-  P extends Record<string, string> = Record<string, never>,
-  B = undefined,
-  Q = undefined,
->(
-  key: K,
-  preflight: (request: NextRequest) => Promise<{ ok: true; context: TContext } | { ok: false; error: Response }>,
-  logLabel: string,
-  getLogContext: (context: TContext) => Record<string, unknown>,
-  handler: (
-    request: NextRequest,
-    ctx: RouteContextWithKey<K, TContext, P, B, Q>,
-  ) => Promise<Response>,
-  options?: RoutePipelineOptions<B, Q>,
-) {
-  return createPreflightRoute<P, B, Q, TContext, RouteContextWithKey<K, TContext, P, B, Q>>(
-    {
-      preflight,
-      toHandlerContext: (context, parsed) => withKeyedParsedContext(key, context, parsed),
-      logLabel,
-      getLogContext,
-    },
-    handler,
-    options,
-  );
-}
 
 export function authRoute<
   P extends Record<string, string> = Record<string, never>,
@@ -97,10 +70,22 @@ export function authDataRoute<
   ) => Promise<T>,
   options?: RoutePipelineOptions<B, Q>,
 ) {
-  return authRoute<P, B, Q>(
-    async (request, ctx) => NextResponse.json(await handler(request, ctx)),
-    options,
-  );
+  return createJsonDataRoute(authRoute<P, B, Q>, handler, options);
+}
+
+export function optionalAuthDataRoute<
+  P extends Record<string, string> = Record<string, never>,
+  B = undefined,
+  Q = undefined,
+  T = unknown,
+>(
+  handler: (
+    request: NextRequest,
+    ctx: { auth: OptionalAuthContext; params: P; body: B; query: Q },
+  ) => Promise<T>,
+  options?: RoutePipelineOptions<B, Q>,
+) {
+  return createJsonDataRoute(optionalAuthRoute<P, B, Q>, handler, options);
 }
 
 export function optionalAuthRoute<
@@ -147,6 +132,21 @@ export function publicRoute<
   );
 }
 
+export function publicDataRoute<
+  P extends Record<string, string> = Record<string, never>,
+  B = undefined,
+  Q = undefined,
+  T = unknown,
+>(
+  handler: (
+    request: NextRequest,
+    ctx: { params: P; body: B; query: Q },
+  ) => Promise<T>,
+  options?: RoutePipelineOptions<B, Q>,
+) {
+  return createJsonDataRoute(publicRoute<P, B, Q>, handler, options);
+}
+
 export function adminRoute<
   P extends Record<string, string> = Record<string, never>,
   B = undefined,
@@ -166,6 +166,21 @@ export function adminRoute<
     handler,
     options,
   );
+}
+
+export function adminDataRoute<
+  P extends Record<string, string> = Record<string, never>,
+  B = undefined,
+  Q = undefined,
+  T = unknown,
+>(
+  handler: (
+    request: NextRequest,
+    ctx: { admin: AdminContext; params: P; body: B; query: Q },
+  ) => Promise<T>,
+  options?: RoutePipelineOptions<B, Q>,
+) {
+  return createJsonDataRoute(adminRoute<P, B, Q>, handler, options);
 }
 
 export function anonRoute<
@@ -192,28 +207,5 @@ export function cronRoute(
   handler: (request: NextRequest) => Promise<Response>,
   options?: RouteOptions,
 ) {
-  return createPreflightRequestRoute(
-    {
-      preflight: async (request) => {
-        const authHeader = request.headers.get("authorization");
-        const cronSecret = process.env.CRON_SECRET;
-
-        if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-          return {
-            ok: false,
-            error: NextResponse.json(
-              { error: "Unauthorized", code: "UNAUTHORIZED" },
-              { status: 401 },
-            ),
-          };
-        }
-
-        return { ok: true, context: null };
-      },
-      logLabel: "cron-route-handler",
-      getLogContext: () => ({}),
-    },
-    async (request) => handler(request),
-    options,
-  );
+  return createCronRoute(handler, options);
 }

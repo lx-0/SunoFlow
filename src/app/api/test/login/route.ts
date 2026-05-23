@@ -11,26 +11,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { encode } from "next-auth/jwt";
 import bcrypt from "bcryptjs";
+import { z } from "zod";
+import { publicRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 
-export async function POST(req: NextRequest) {
+const testLoginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+
+export const POST = publicRoute<
+  Record<string, never>,
+  z.infer<typeof testLoginSchema>
+>(async (_req: NextRequest, { body }) => {
   // Read at request time (not module-load time) to survive Turbopack static analysis
   if (process.env.PLAYWRIGHT_TEST !== "true") {
     return NextResponse.json({ error: "Not Found" }, { status: 404 });
   }
 
-  let email: string, password: string;
-  try {
-    const body = await req.json();
-    email = body.email;
-    password = body.password;
-  } catch {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-  }
-
-  if (!email || !password) {
-    return NextResponse.json({ error: "Missing credentials" }, { status: 400 });
-  }
+  const { email, password } = body;
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !user.passwordHash) {
@@ -80,4 +79,6 @@ export async function POST(req: NextRequest) {
   });
 
   return response;
-}
+}, {
+  body: testLoginSchema,
+});
