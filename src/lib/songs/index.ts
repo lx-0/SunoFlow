@@ -40,6 +40,7 @@ export type {
 
 export { querySongLibrary } from "./library";
 export type { SongLibraryQuery, SongLibraryResult, SortField } from "./library";
+export { listLibrarySongs, listReadySongs } from "./server-list";
 
 export { SongSelect } from "./projections";
 export type { EnrichedSong } from "./projections";

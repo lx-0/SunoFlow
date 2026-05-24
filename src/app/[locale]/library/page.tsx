@@ -4,36 +4,19 @@ import { AppShell } from "@/components/AppShell";
 import { LibraryView } from "@/components/LibraryView";
 import { LibrarySkeleton } from "@/components/Skeleton";
 import { auth } from "@/lib/auth";
+import { listLibrarySongs } from "@/lib/songs";
 
 export const metadata: Metadata = {
   title: "Your Library",
   description: "Browse and manage all your AI-generated songs in one place.",
   robots: { index: false },
 };
-import { prisma } from "@/lib/prisma";
 
 async function fetchSongs() {
   try {
     const session = await auth();
     if (!session?.user?.id) return [];
-    const songs = await prisma.song.findMany({
-      where: { userId: session.user.id, parentSongId: null, archivedAt: null },
-      orderBy: { createdAt: "desc" },
-      include: {
-        songTags: { include: { tag: true }, orderBy: { tag: { name: "asc" } } },
-        favorites: { where: { userId: session.user.id }, select: { id: true } },
-        _count: { select: { favorites: true, variations: true } },
-      },
-    });
-    return songs.map((s) => {
-      const { favorites, _count, ...rest } = s;
-      return {
-        ...rest,
-        isFavorite: favorites.length > 0,
-        favoriteCount: _count.favorites,
-        variationCount: _count.variations,
-      };
-    });
+    return listLibrarySongs(session.user.id);
   } catch {
     return [];
   }
