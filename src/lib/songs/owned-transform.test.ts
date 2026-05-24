@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NextResponse } from "next/server";
 
 vi.mock("@/lib/songs/ownership", () => ({
   requireOwnedSong: vi.fn(),
@@ -24,7 +25,7 @@ import { executeTransform, respondToTransform } from "@/lib/generation";
 import { runOwnedSongTransform } from "@/lib/songs/owned-transform";
 
 const makeResponse = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+  NextResponse.json(body, { status });
 
 const baseOptions = {
   songId: "song-1",
@@ -47,7 +48,7 @@ beforeEach(() => {
 describe("runOwnedSongTransform", () => {
   it("returns ownership error response immediately", async () => {
     const forbidden = makeResponse({ error: "forbidden" }, 403);
-    vi.mocked(requireOwnedSong).mockResolvedValue({ data: null, error: forbidden });
+    vi.mocked(requireOwnedSong).mockResolvedValue({ data: undefined, error: forbidden });
 
     const result = await runOwnedSongTransform(baseOptions);
 
@@ -58,7 +59,7 @@ describe("runOwnedSongTransform", () => {
   it("returns validation error response immediately", async () => {
     vi.mocked(requireOwnedSong).mockResolvedValue({
       data: { id: "song-1", sunoJobId: "task-1", sunoAudioId: "audio-1" } as never,
-      error: null,
+      error: undefined,
     });
     vi.mocked(resolveUserApiKey).mockResolvedValue(undefined);
     const invalid = makeResponse({ error: "invalid" }, 400);
@@ -73,7 +74,7 @@ describe("runOwnedSongTransform", () => {
   it("executes transform and responds with helper payload", async () => {
     vi.mocked(requireOwnedSong).mockResolvedValue({
       data: { id: "song-1", sunoJobId: "task-1", sunoAudioId: "audio-1" } as never,
-      error: null,
+      error: undefined,
     });
     vi.mocked(resolveUserApiKey).mockResolvedValue("user-key");
     vi.mocked(validateSongTransformPrerequisites).mockReturnValue(null);

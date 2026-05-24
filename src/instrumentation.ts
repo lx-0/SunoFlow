@@ -54,7 +54,7 @@ export async function register() {
 // no DSN is set — the static re-export would pull in eval() calls that are
 // blocked by V8 isolate CSP, crashing every route with EvalError.
 export async function onRequestError(
-  ...args: Parameters<import("@sentry/nextjs").captureRequestError>
+  ...args: unknown[]
 ) {
   if (process.env.SENTRY_DSN) {
     const { captureRequestError } = await import("@sentry/nextjs");
