@@ -7,12 +7,19 @@ export async function resolveRootId(songId: string, parentSongId: string | null)
   if (!parentSongId) return songId;
 
   let rootId = parentSongId;
+  const visited = new Set<string>([songId]);
+  let depth = 0;
   let current = await prisma.song.findUnique({
     where: { id: rootId },
     select: { parentSongId: true },
   });
 
   while (current?.parentSongId) {
+    if (visited.has(rootId) || depth >= 100) {
+      return rootId;
+    }
+    visited.add(rootId);
+    depth += 1;
     rootId = current.parentSongId;
     current = await prisma.song.findUnique({
       where: { id: rootId },
