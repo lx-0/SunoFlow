@@ -16,10 +16,10 @@ export async function register() {
   // Sentry.init() when their DSN env var is set, so this is a no-op when
   // tracking is disabled. Without these imports, sentry.server.config.ts is
   // never executed and 100% of server-side errors silently bypass Sentry.
-  if (process.env.NEXT_RUNTIME === "nodejs") {
+  if (process.env.NEXT_RUNTIME === "nodejs" && process.env.SENTRY_DSN) {
     await import("../sentry.server.config");
   }
-  if (process.env.NEXT_RUNTIME === "edge") {
+  if (process.env.NEXT_RUNTIME === "edge" && process.env.SENTRY_DSN) {
     await import("../sentry.edge.config");
   }
 
@@ -50,4 +50,15 @@ export async function register() {
 // Required for Next.js 15 to forward RSC + route-handler errors into Sentry.
 // Without this export, server-side React errors and unhandled exceptions
 // from Route Handlers are not captured even when Sentry.init has run.
-export { captureRequestError as onRequestError } from "@sentry/nextjs";
+// Dynamic import avoids bundling @sentry/nextjs into the edge runtime when
+// no DSN is set — the static re-export would pull in eval() calls that are
+// blocked by V8 isolate CSP, crashing every route with EvalError.
+export async function onRequestError(
+  ...args: Parameters<import("@sentry/nextjs").captureRequestError>
+) {
+  if (process.env.SENTRY_DSN) {
+    const { captureRequestError } = await import("@sentry/nextjs");
+    // @ts-expect-error spread into overloaded signature
+    return captureRequestError(...args);
+  }
+}
