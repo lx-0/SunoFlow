@@ -1,41 +1,21 @@
 import { authRoute } from "@/lib/route-handler";
-import { requireOwnedSong } from "@/lib/songs/ownership";
-import { prisma } from "@/lib/prisma";
-import { createMusicVideo, resolveUserApiKey } from "@/lib/sunoapi";
-import { executeTransform, respondToTransform } from "@/lib/generation";
-import { validateSongTransformPrerequisites } from "@/lib/song-transform-guards";
+import { runOwnedSongTransform } from "@/lib/songs/owned-transform";
+import { createMusicVideo } from "@/lib/sunoapi";
 
 export const POST = authRoute<{ id: string }>(
   async (_request, { auth, params }) => {
-    const { data: song, error } = await requireOwnedSong(params.id, auth.userId);
-    if (error) return error;
-
-    const userApiKey = await resolveUserApiKey(auth.userId);
-    const hasApiKey = !!(userApiKey || process.env.SUNOAPI_KEY);
-    const validationError = validateSongTransformPrerequisites(song, {
-      requireIdentifiers: hasApiKey,
+    return runOwnedSongTransform({
+      songId: params.id,
+      userId: auth.userId,
+      route: `/api/songs/${params.id}/music-video`,
+      logLabel: "music-video-api",
+      format: "mp4",
+      mockTaskId: `mock-video-${params.id}`,
       notReadyMessage: "Song must be fully generated before creating a music video.",
       missingIdentifiersMessage: "Song is missing Suno identifiers for music video generation.",
-    });
-    if (validationError) return validationError;
-
-    const outcome = await executeTransform({
-      userId: auth.userId,
-      action: "generate",
-      apiCall: () => createMusicVideo(
-        { taskId: song.sunoJobId!, audioId: song.sunoAudioId! },
-        userApiKey,
-      ),
-      hasApiKey,
-      mockTaskId: `mock-video-${params.id}`,
       fallbackErrorMessage: "Music video generation failed. Please try again.",
+      apiCall: (identifiers, userApiKey) => createMusicVideo(identifiers, userApiKey),
     });
-
-    return respondToTransform(
-      outcome,
-      { label: "music-video-api", userId: auth.userId, route: `/api/songs/${params.id}/music-video` },
-      { songId: params.id, format: "mp4" },
-    );
   },
   { route: "/api/songs/[id]/music-video" },
 );

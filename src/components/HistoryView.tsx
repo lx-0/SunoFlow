@@ -18,32 +18,17 @@ import { useQueue, type QueueSong } from "./QueueContext";
 import Image from "next/image";
 import type { Song } from "@prisma/client";
 import { formatDuration as formatTime } from "@/lib/time-format";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDate(date: Date | string): string {
-  const d = new Date(date);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffHr = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMin < 1) return "Just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHr < 24) return `${diffHr}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
-
-// ─── Status filter chips ──────────────────────────────────────────────────────
-
-const STATUS_FILTERS: { label: string; value: string }[] = [
-  { label: "All", value: "all" },
-  { label: "Ready", value: "ready" },
-  { label: "Pending", value: "pending" },
-  { label: "Failed", value: "failed" },
-];
+import {
+  parseHistoryFilterUrlState,
+  toHistoryFilterSearchParams,
+  type HistorySortKey,
+} from "./history/filter-url-state";
+import {
+  formatHistoryRelativeDate,
+  HISTORY_SORT_OPTIONS,
+  HISTORY_STATUS_FILTERS,
+  type HistoryStatusFilter,
+} from "./history/view-config";
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
@@ -93,15 +78,6 @@ function buildVariationUrl(song: Song): string {
   if (song.prompt) params.set("prompt", song.prompt);
   return `/generate?${params.toString()}`;
 }
-
-// ─── Sort options ─────────────────────────────────────────────────────────────
-
-type SortKey = "newest" | "oldest";
-
-const SORT_OPTIONS: { label: string; value: SortKey }[] = [
-  { label: "Newest first", value: "newest" },
-  { label: "Oldest first", value: "oldest" },
-];
 
 // ─── History entry row ────────────────────────────────────────────────────────
 
@@ -194,7 +170,7 @@ function HistoryRow({ song, onRetry, retryingId }: { song: Song; onRetry: (song:
             )}
             <span className="text-xs text-gray-400 dark:text-gray-600 flex items-center gap-1">
               <ClockIcon className="w-3 h-3" />
-              {formatDate(song.createdAt)}
+              {formatHistoryRelativeDate(song.createdAt)}
             </span>
           </div>
 
@@ -264,9 +240,10 @@ export function HistoryView({
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
+  const initialFilterState = parseHistoryFilterUrlState(searchParams);
 
-  const [activeFilter, setActiveFilter] = useState(searchParams.get("status") ?? "all");
-  const [sortKey, setSortKey] = useState<SortKey>((searchParams.get("sort") as SortKey) ?? "newest");
+  const [activeFilter, setActiveFilter] = useState(initialFilterState.status);
+  const [sortKey, setSortKey] = useState<HistorySortKey>(initialFilterState.sort);
   const [songs, setSongs] = useState<Song[]>(initialSongs);
   const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
   const [totalSongs, setTotalSongs] = useState(initialTotal ?? initialSongs.length);
@@ -276,9 +253,13 @@ export function HistoryView({
 
   // ─── Sync filter state → URL ──────────────────────────────────────────────
   useEffect(() => {
-    const params = new URLSearchParams();
-    if (activeFilter !== "all") params.set("status", activeFilter);
-    if (sortKey !== "newest") params.set("sort", sortKey);
+    const params = toHistoryFilterSearchParams({
+      status: activeFilter,
+      sort: sortKey,
+      q: "",
+      from: "",
+      to: "",
+    });
     const qs = params.toString();
     const newUrl = qs ? `${pathname}?${qs}` : pathname;
     router.replace(newUrl, { scroll: false });
@@ -310,11 +291,11 @@ export function HistoryView({
     setLoadingMore(songsQuery.isFetchingNextPage);
   }, [songsQuery.isFetchingNextPage]);
 
-  function handleFilterChange(filter: string) {
+  function handleFilterChange(filter: HistoryStatusFilter) {
     setActiveFilter(filter);
   }
 
-  function handleSortChange(sort: SortKey) {
+  function handleSortChange(sort: HistorySortKey) {
     setSortKey(sort);
   }
 
@@ -372,7 +353,7 @@ export function HistoryView({
       {/* Filter chips + sort */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex gap-2 overflow-x-auto pb-1 flex-1">
-          {STATUS_FILTERS.map((opt) => (
+          {HISTORY_STATUS_FILTERS.map((opt) => (
             <button
               key={opt.value}
               onClick={() => handleFilterChange(opt.value)}
@@ -392,12 +373,12 @@ export function HistoryView({
         <div className="relative flex-shrink-0">
           <select
             value={sortKey}
-            onChange={(e) => handleSortChange(e.target.value as SortKey)}
+            onChange={(e) => handleSortChange(e.target.value as HistorySortKey)}
             disabled={loading}
             className="appearance-none pl-3 pr-8 py-1.5 rounded-full text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-none cursor-pointer min-h-[44px] focus:ring-2 focus:ring-violet-500 focus:outline-none disabled:opacity-50"
             aria-label="Sort generations"
           >
-            {SORT_OPTIONS.map((opt) => (
+            {HISTORY_SORT_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>

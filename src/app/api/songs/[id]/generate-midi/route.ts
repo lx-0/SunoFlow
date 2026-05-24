@@ -1,41 +1,21 @@
 import { authRoute } from "@/lib/route-handler";
-import { requireOwnedSong } from "@/lib/songs/ownership";
-import { prisma } from "@/lib/prisma";
-import { generateMidi, resolveUserApiKey } from "@/lib/sunoapi";
-import { executeTransform, respondToTransform } from "@/lib/generation";
-import { validateSongTransformPrerequisites } from "@/lib/song-transform-guards";
+import { runOwnedSongTransform } from "@/lib/songs/owned-transform";
+import { generateMidi } from "@/lib/sunoapi";
 
 export const POST = authRoute<{ id: string }>(
   async (_request, { auth, params }) => {
-    const { data: song, error } = await requireOwnedSong(params.id, auth.userId);
-    if (error) return error;
-
-    const userApiKey = await resolveUserApiKey(auth.userId);
-    const hasApiKey = !!(userApiKey || process.env.SUNOAPI_KEY);
-    const validationError = validateSongTransformPrerequisites(song, {
-      requireIdentifiers: hasApiKey,
+    return runOwnedSongTransform({
+      songId: params.id,
+      userId: auth.userId,
+      route: `/api/songs/${params.id}/generate-midi`,
+      logLabel: "generate-midi-api",
+      format: "midi",
+      mockTaskId: `mock-midi-${params.id}`,
       notReadyMessage: "Song must be fully generated before extracting MIDI.",
       missingIdentifiersMessage: "Song is missing Suno identifiers for MIDI extraction.",
-    });
-    if (validationError) return validationError;
-
-    const outcome = await executeTransform({
-      userId: auth.userId,
-      action: "generate",
-      apiCall: () => generateMidi(
-        { taskId: song.sunoJobId!, audioId: song.sunoAudioId! },
-        userApiKey,
-      ),
-      hasApiKey,
-      mockTaskId: `mock-midi-${params.id}`,
       fallbackErrorMessage: "MIDI generation failed. Please try again.",
+      apiCall: (identifiers, userApiKey) => generateMidi(identifiers, userApiKey),
     });
-
-    return respondToTransform(
-      outcome,
-      { label: "generate-midi-api", userId: auth.userId, route: `/api/songs/${params.id}/generate-midi` },
-      { songId: params.id, format: "midi" },
-    );
   },
   { route: "/api/songs/[id]/generate-midi" },
 );

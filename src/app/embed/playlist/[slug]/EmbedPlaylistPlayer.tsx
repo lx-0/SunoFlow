@@ -8,6 +8,7 @@ import {
   BackwardIcon,
 } from "@heroicons/react/24/solid";
 import { formatDuration as formatTime } from "@/lib/time-format";
+import { useAudioElementPlayer } from "@/hooks/useAudioElementPlayer";
 
 
 interface EmbedSong {
@@ -30,10 +31,19 @@ export function EmbedPlaylistPlayer({
   songs,
 }: EmbedPlaylistPlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(-1);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [audioDuration, setAudioDuration] = useState(0);
+  const {
+    state: { isPlaying, currentTime, duration: audioDuration, pct },
+    actions: {
+      onPlay,
+      onPause,
+      syncCurrentTime,
+      syncDuration,
+      seek,
+      setIsPlaying,
+      setCurrentTime,
+    },
+  } = useAudioElementPlayer();
 
   const playableSongs = songs.filter((s) => s.audioUrl);
   const currentSong = currentIndex >= 0 ? playableSongs[currentIndex] : null;
@@ -83,13 +93,6 @@ export function EmbedPlaylistPlayer({
       setCurrentTime(0);
     }
   }
-
-  function handleSeek(pct: number) {
-    if (!audioRef.current || audioDuration <= 0) return;
-    audioRef.current.currentTime = pct * audioDuration;
-  }
-
-  const pct = audioDuration > 0 ? (currentTime / audioDuration) * 100 : 0;
 
   return (
     <div className="flex flex-col h-screen min-h-[200px] p-3 gap-2">
@@ -157,7 +160,7 @@ export function EmbedPlaylistPlayer({
             min={0}
             max={100}
             value={pct}
-            onChange={(e) => handleSeek(Number(e.target.value) / 100)}
+            onChange={(e) => seek(audioRef.current, Number(e.target.value) / 100)}
             className="absolute left-0 right-0 top-1/2 -translate-y-1/2 w-full opacity-0 cursor-pointer min-h-[44px]"
             aria-label="Seek"
           />
@@ -200,13 +203,11 @@ export function EmbedPlaylistPlayer({
       {/* Hidden audio element */}
       <audio
         ref={audioRef}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
+        onPlay={onPlay}
+        onPause={onPause}
         onEnded={handleEnded}
-        onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime ?? 0)}
-        onDurationChange={() =>
-          setAudioDuration(audioRef.current?.duration ?? 0)
-        }
+        onTimeUpdate={() => syncCurrentTime(audioRef.current)}
+        onDurationChange={() => syncDuration(audioRef.current)}
       />
     </div>
   );
