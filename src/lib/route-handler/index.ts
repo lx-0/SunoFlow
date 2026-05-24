@@ -35,6 +35,7 @@ export type {
   AuthContext,
   OptionalAuthContext,
   RateLimitConfig,
+  RouteContextKey,
 } from "@/lib/route-handler/types";
 
 export function authRoute<

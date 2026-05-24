@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { authRoute } from "@/lib/route-handler";
+import { NextRequest } from "next/server";
+import { authDataRoute } from "@/lib/route-handler";
 import { getUserStats } from "@/lib/user-stats";
 
-export const GET = authRoute(async (_request: NextRequest, { auth }) => {
+export const GET = authDataRoute(async (_request: NextRequest, { auth }) => {
   const stats = await getUserStats(auth.userId);
-  return NextResponse.json(stats);
+  return stats;
 }, { route: "/api/stats/user" });

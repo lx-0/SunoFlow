@@ -5,14 +5,11 @@ import {
   withKeyedParsedContext,
   type RouteContextWithKey,
 } from "@/lib/route-handler/factory";
+import type { PreflightResult, RouteContextKey } from "@/lib/route-handler/types";
 import type { RouteOptions, RoutePipelineOptions } from "@/lib/route-pipeline/types";
 
-type PreflightResult<TContext> =
-  | { ok: true; context: TContext }
-  | { ok: false; error: Response };
-
 export function createKeyedRoute<
-  K extends "auth" | "admin" | "anon",
+  K extends RouteContextKey,
   TContext,
   P extends Record<string, string> = Record<string, never>,
   B = undefined,

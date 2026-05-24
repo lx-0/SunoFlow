@@ -1,8 +1,6 @@
-import { NextResponse } from "next/server";
-import { authRoute } from "@/lib/route-handler";
+import { authDataRoute } from "@/lib/route-handler";
 import { getDailyMix } from "@/lib/recommendations";
 
-export const GET = authRoute(async (_request, { auth }) => {
-  const result = await getDailyMix(auth.userId);
-  return NextResponse.json(result);
+export const GET = authDataRoute(async (_request, { auth }) => {
+  return getDailyMix(auth.userId);
 }, { route: "/api/recommendations/daily" });

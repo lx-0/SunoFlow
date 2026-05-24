@@ -1,12 +1,11 @@
-import { NextResponse } from "next/server";
-import { authRoute } from "@/lib/route-handler";
+import { authDataRoute, authRoute } from "@/lib/route-handler";
 import { listItems, addItem } from "@/lib/generation-queue";
 import { generateSongRequestSchema } from "@/lib/generation/request";
 import { resultResponse } from "@/lib/route-response";
 
-export const GET = authRoute(async (_request, { auth }) => {
+export const GET = authDataRoute(async (_request, { auth }) => {
   const items = await listItems(auth.userId);
-  return NextResponse.json({ items });
+  return { items };
 }, { route: "/api/generation-queue" });
 
 export const POST = authRoute(async (_request, { auth, body }) => {

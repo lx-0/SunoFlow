@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { MusicalNoteIcon, SparklesIcon } from "@heroicons/react/24/solid";
 import { formatDuration as formatTime } from "@/lib/time-format";
+import { firstTag } from "@/lib/tags";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -314,7 +315,7 @@ export function DashboardView({ userName }: { userName?: string | null }) {
                     {song.title ?? "Untitled"}
                   </p>
                   <div className="flex items-center gap-2 text-xs text-gray-500">
-                    {song.tags && <span className="truncate">{song.tags.split(",")[0].trim()}</span>}
+                    {song.tags && <span className="truncate">{firstTag(song.tags)}</span>}
                     {song.duration && <span>{formatTime(song.duration)}</span>}
                   </div>
                 </div>
@@ -373,7 +374,7 @@ export function DashboardView({ userName }: { userName?: string | null }) {
                       {song.title ?? "Untitled"}
                     </p>
                     <div className="flex items-center gap-2 text-xs text-gray-500">
-                      {song.tags && <span className="truncate">{song.tags.split(",")[0].trim()}</span>}
+                      {song.tags && <span className="truncate">{firstTag(song.tags)}</span>}
                       {song.duration != null && <span>{formatTime(song.duration)}</span>}
                     </div>
                   </div>

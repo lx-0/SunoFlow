@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { type Result, success, Err } from "@/lib/result";
+import { splitTagCsv } from "@/lib/tags";
 
 type PublicProfile = {
   id: string;
@@ -126,7 +127,7 @@ export async function getPublicUserProfileByUsername(
           imageUrl: featuredSong.imageUrl,
           audioUrl: featuredSong.audioUrl ?? "",
           duration: featuredSong.duration,
-          tags: featuredSong.tags ? featuredSong.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+          tags: splitTagCsv(featuredSong.tags),
           publicSlug: featuredSong.publicSlug,
         }
       : null,

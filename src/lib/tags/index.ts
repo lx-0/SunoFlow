@@ -10,6 +10,18 @@ export function parseTags(raw: string | null): string[] {
     .filter(Boolean);
 }
 
+export function splitTagCsv(raw: string | null): string[] {
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+}
+
+export function firstTag(raw: string | null): string | null {
+  return splitTagCsv(raw)[0] ?? null;
+}
+
 export function normalizeTagCombo(raw: string | null): string {
   return parseTags(raw).sort().join(", ");
 }
@@ -39,9 +51,8 @@ export function countGenres(
 ): Array<{ genre: string; count: number }> {
   const counts: Record<string, number> = {};
   for (const song of songs) {
-    if (!song.tags) continue;
-    for (const raw of song.tags.split(",")) {
-      const genre = raw.trim().toLowerCase();
+    for (const raw of splitTagCsv(song.tags)) {
+      const genre = raw.toLowerCase();
       if (genre) counts[genre] = (counts[genre] || 0) + 1;
     }
   }

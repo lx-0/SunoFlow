@@ -1,8 +1,6 @@
-import { NextResponse } from "next/server";
-import { authRoute } from "@/lib/route-handler";
+import { authDataRoute } from "@/lib/route-handler";
 import { getInsights } from "@/lib/insights";
 
-export const GET = authRoute(async (_request, { auth }) => {
-  const insights = await getInsights(auth.userId);
-  return NextResponse.json(insights);
+export const GET = authDataRoute(async (_request, { auth }) => {
+  return getInsights(auth.userId);
 }, { route: "/api/insights" });
