@@ -1,9 +1,8 @@
-import { NextResponse } from "next/server";
-import { authRoute } from "@/lib/route-handler";
+import { authDataRoute } from "@/lib/route-handler";
 import { markAllRead } from "@/lib/notifications";
 
-export const PATCH = authRoute(async (_request, { auth }) => {
+export const PATCH = authDataRoute(async (_request, { auth }) => {
   await markAllRead(auth.userId);
 
-  return NextResponse.json({ ok: true });
+  return { ok: true };
 }, { route: "/api/notifications/read-all" });

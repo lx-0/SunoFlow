@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import { authRoute } from "@/lib/route-handler";
+import { authDataRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 
 const CATEGORY = "auto-generated";
@@ -11,7 +10,7 @@ const CATEGORY = "auto-generated";
  * If none exist yet, returns an empty array — the client should call
  * POST /api/prompts/generate to populate them.
  */
-export const GET = authRoute(async (_request, { auth }) => {
+export const GET = authDataRoute(async (_request, { auth }) => {
   const prompts = await prisma.promptTemplate.findMany({
     where: {
       userId: auth.userId,
@@ -28,7 +27,7 @@ export const GET = authRoute(async (_request, { auth }) => {
       (p) => Date.now() - new Date(p.createdAt).getTime() > 24 * 60 * 60 * 1000
     );
 
-  return NextResponse.json({ prompts, stale });
+  return { prompts, stale };
 }, {
   route: "/api/prompts/daily",
 });

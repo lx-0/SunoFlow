@@ -1,9 +1,8 @@
-import { NextResponse } from "next/server";
-import { authRoute } from "@/lib/route-handler";
+import { authDataRoute } from "@/lib/route-handler";
 import { getRateLimitStatus } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 
-export const GET = authRoute(async (_request, { auth }) => {
+export const GET = authDataRoute(async (_request, { auth }) => {
   const { status } = await getRateLimitStatus(auth.userId);
 
   // Usage history: daily generation count for the last 7 days
@@ -40,12 +39,12 @@ export const GET = authRoute(async (_request, { auth }) => {
   const used = status.limit - status.remaining;
   const percentUsed = status.limit > 0 ? Math.round((used / status.limit) * 100) : 0;
 
-  return NextResponse.json({
+  return {
     remaining: status.remaining,
     limit: status.limit,
     used,
     percentUsed,
     resetAt: status.resetAt,
     dailyCounts,
-  });
+  };
 }, { route: "/api/rate-limit/status" });
