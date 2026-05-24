@@ -16,6 +16,14 @@ vi.mock("@/lib/env", () => ({
 const { mockIsStripeConfigured } = vi.hoisted(() => ({
   mockIsStripeConfigured: vi.fn(),
 }));
+
+vi.mock("@/lib/route-handler", () => ({
+  publicDataRoute: (handler: (...args: unknown[]) => unknown) => async (...args: unknown[]) => {
+    const payload = await handler(...args);
+    return Response.json(payload);
+  },
+}));
+
 vi.mock("@/lib/stripe", () => ({
   isStripeConfigured: mockIsStripeConfigured,
 }));
@@ -32,7 +40,10 @@ describe("GET /api/billing/status", () => {
   it("returns stripeConfigured: true when Stripe is configured", async () => {
     mockIsStripeConfigured.mockReturnValue(true);
 
-    const res = await GET();
+    const res = await GET(
+      { url: "http://localhost/api/billing/status" } as never,
+      { params: Promise.resolve({}) },
+    );
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.stripeConfigured).toBe(true);
@@ -41,7 +52,10 @@ describe("GET /api/billing/status", () => {
   it("returns stripeConfigured: false when Stripe is not configured", async () => {
     mockIsStripeConfigured.mockReturnValue(false);
 
-    const res = await GET();
+    const res = await GET(
+      { url: "http://localhost/api/billing/status" } as never,
+      { params: Promise.resolve({}) },
+    );
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.stripeConfigured).toBe(false);
