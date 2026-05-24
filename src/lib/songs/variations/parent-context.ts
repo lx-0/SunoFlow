@@ -43,7 +43,7 @@ export async function resolveParent(userId: string, parentSongId: string): Promi
     return Err.notFound("Song not found");
   }
 
-  const rootId = parentSong.parentSongId ?? parentSongId;
+  const rootId = await resolveRootId(parentSong.id, parentSong.parentSongId);
   const variationCount = await prisma.song.count({ where: { parentSongId: rootId } });
   if (variationCount >= MAX_VARIATIONS) {
     return Err.limitReached(`Maximum ${MAX_VARIATIONS} variations per song reached.`);
