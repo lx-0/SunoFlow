@@ -14,7 +14,6 @@ import {
 } from "@heroicons/react/24/solid";
 import { HeartIcon as HeartOutlineIcon, CloudArrowDownIcon, CheckCircleIcon, QueueListIcon, ForwardIcon } from "@heroicons/react/24/outline";
 import { useOfflineCache } from "@/hooks/useOfflineCache";
-import type { Song } from "@prisma/client";
 import { downloadSongFile } from "@/lib/download";
 import { useToast } from "./Toast";
 import { useQueue, type QueueSong } from "./QueueContext";
@@ -22,19 +21,9 @@ import { PullToRefreshContainer } from "./PullToRefreshContainer";
 import { CoverArtImage } from "./CoverArtImage";
 import { generateCoverArtVariants } from "@/lib/cover-art-generator";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
+import { applySongsGalleryFilters, type SongWithMeta } from "./songs-gallery/filtering";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-
-interface SongTagRelation {
-  tag: { id: string; name: string; color: string };
-}
-
-type SongWithMeta = Song & {
-  songTags: SongTagRelation[];
-  isFavorite: boolean;
-  favoriteCount: number;
-  variationCount?: number;
-};
 
 interface SongsGalleryViewProps {
   initialSongs: SongWithMeta[];
@@ -269,57 +258,18 @@ export function SongsGalleryView({ initialSongs }: SongsGalleryViewProps) {
   const [offlineOnly, setOfflineOnly] = useState(false);
 
   // Filter songs
-  const filtered = useMemo(() => {
-    let result = songs;
-
-    // Text search
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (s) =>
-          (s.title?.toLowerCase().includes(q)) ||
-          (s.prompt?.toLowerCase().includes(q)) ||
-          (s.tags?.toLowerCase().includes(q))
-      );
-    }
-
-    // Style filter — match against tags field
-    if (selectedStyles.size > 0) {
-      result = result.filter((s) => {
-        const t = (s.tags || "").toLowerCase();
-        return Array.from(selectedStyles).some((style) => t.includes(style.toLowerCase()));
-      });
-    }
-
-    // Mood filter — match against tags or prompt
-    if (selectedMoods.size > 0) {
-      result = result.filter((s) => {
-        const text = `${s.tags || ""} ${s.prompt || ""}`.toLowerCase();
-        return Array.from(selectedMoods).some((mood) => text.includes(mood.toLowerCase()));
-      });
-    }
-
-    // Date filter
-    if (dateFilter >= 0) {
-      const now = Date.now();
-      if (dateFilter === 0) {
-        // Today
-        const start = new Date();
-        start.setHours(0, 0, 0, 0);
-        result = result.filter((s) => new Date(s.createdAt).getTime() >= start.getTime());
-      } else {
-        const cutoff = now - dateFilter * 24 * 60 * 60 * 1000;
-        result = result.filter((s) => new Date(s.createdAt).getTime() >= cutoff);
-      }
-    }
-
-    // Offline-only filter
-    if (offlineOnly) {
-      result = result.filter((s) => cachedIds.has(s.id));
-    }
-
-    return result;
-  }, [songs, search, selectedStyles, selectedMoods, dateFilter, offlineOnly, cachedIds]);
+  const filtered = useMemo(
+    () =>
+      applySongsGalleryFilters(songs, {
+        search,
+        selectedStyles,
+        selectedMoods,
+        dateFilter,
+        offlineOnly,
+        cachedIds,
+      }),
+    [songs, search, selectedStyles, selectedMoods, dateFilter, offlineOnly, cachedIds],
+  );
 
   // Map a SongWithMeta to the QueueSong shape
   const toQueueSong = useCallback((song: SongWithMeta): QueueSong => ({
