@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import Image from "next/image";
 import { PlayIcon, PauseIcon, MusicalNoteIcon, SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/24/solid";
 import * as Sentry from "@sentry/nextjs";
 import { formatDuration as formatTime } from "@/lib/time-format";
+import { useAudioElementPlayer } from "@/hooks/useAudioElementPlayer";
 
 interface EmbedSongPlayerProps {
   songId: string;
@@ -32,13 +33,23 @@ export function EmbedSongPlayer({
   autoplay = false,
 }: EmbedSongPlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [audioDuration, setAudioDuration] = useState(duration ?? 0);
-  const [volume, setVolume] = useState(1);
-  const [muted, setMuted] = useState(false);
-  const [audioError, setAudioError] = useState(false);
-  const [isBuffering, setIsBuffering] = useState(false);
+  const {
+    state: { isPlaying, currentTime, duration: audioDuration, volume, muted, isBuffering, hasError: audioError, pct },
+    actions: {
+      startLoad,
+      seek,
+      changeVolume,
+      toggleMute,
+      onPlay,
+      onPause,
+      onEnded,
+      onWaiting,
+      onCanPlay,
+      onError,
+      syncCurrentTime,
+      syncDuration,
+    },
+  } = useAudioElementPlayer({ initialDuration: duration ?? 0 });
 
   const resolvedAudioUrl = songId ? `/api/audio/public/${songId}` : audioUrl;
 
@@ -49,11 +60,9 @@ export function EmbedSongPlayer({
     if (isPlaying) {
       audioRef.current.pause();
     } else {
-      setAudioError(false);
-      setIsBuffering(true);
+      startLoad();
       audioRef.current.play().catch((err) => {
-        setIsBuffering(false);
-        setAudioError(true);
+        onError();
         Sentry.captureException(err, {
           tags: { component: "EmbedSongPlayer", songId },
           extra: { audioUrl: resolvedAudioUrl },
@@ -61,27 +70,6 @@ export function EmbedSongPlayer({
       });
     }
   }
-
-  function handleSeek(pct: number) {
-    if (!audioRef.current || audioDuration <= 0) return;
-    audioRef.current.currentTime = pct * audioDuration;
-  }
-
-  function handleVolumeChange(val: number) {
-    if (!audioRef.current) return;
-    setVolume(val);
-    audioRef.current.volume = val;
-    if (val > 0) setMuted(false);
-  }
-
-  function handleToggleMute() {
-    if (!audioRef.current) return;
-    const next = !muted;
-    setMuted(next);
-    audioRef.current.muted = next;
-  }
-
-  const pct = audioDuration > 0 ? (currentTime / audioDuration) * 100 : 0;
 
   const bg = isDark ? "bg-gray-950" : "bg-white";
   const text = isDark ? "text-white" : "text-gray-900";
@@ -126,7 +114,7 @@ export function EmbedSongPlayer({
               min={0}
               max={100}
               value={pct}
-              onChange={(e) => handleSeek(Number(e.target.value) / 100)}
+              onChange={(e) => seek(audioRef.current, Number(e.target.value) / 100)}
               className="absolute inset-0 w-full opacity-0 cursor-pointer"
               aria-label="Seek"
             />
@@ -163,7 +151,7 @@ export function EmbedSongPlayer({
         {/* Volume */}
         <div className="flex items-center gap-1">
           <button
-            onClick={handleToggleMute}
+            onClick={() => toggleMute(audioRef.current)}
             className={`${subtext} hover:text-violet-500 transition-colors`}
             aria-label={muted ? "Unmute" : "Mute"}
           >
@@ -179,7 +167,7 @@ export function EmbedSongPlayer({
             max={1}
             step={0.05}
             value={muted ? 0 : volume}
-            onChange={(e) => handleVolumeChange(Number(e.target.value))}
+            onChange={(e) => changeVolume(audioRef.current, Number(e.target.value))}
             className="w-10 accent-violet-500"
             aria-label="Volume"
           />
@@ -205,17 +193,15 @@ export function EmbedSongPlayer({
           src={resolvedAudioUrl ?? undefined}
           preload="metadata"
           autoPlay={autoplay}
-          onPlay={() => { setIsPlaying(true); setIsBuffering(false); setAudioError(false); }}
-          onPause={() => setIsPlaying(false)}
-          onEnded={() => { setIsPlaying(false); setCurrentTime(0); }}
-          onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime ?? 0)}
-          onDurationChange={() => setAudioDuration(audioRef.current?.duration ?? 0)}
-          onWaiting={() => setIsBuffering(true)}
-          onCanPlay={() => setIsBuffering(false)}
+          onPlay={onPlay}
+          onPause={onPause}
+          onEnded={onEnded}
+          onTimeUpdate={() => syncCurrentTime(audioRef.current)}
+          onDurationChange={() => syncDuration(audioRef.current)}
+          onWaiting={onWaiting}
+          onCanPlay={onCanPlay}
           onError={() => {
-            setIsPlaying(false);
-            setIsBuffering(false);
-            setAudioError(true);
+            onError();
             Sentry.captureMessage("Audio load error on embed player", {
               level: "error",
               tags: { component: "EmbedSongPlayer", songId },
