@@ -1,6 +1,10 @@
 import { NextRequest } from "next/server";
 import { runRoutePipeline } from "@/lib/route-pipeline/runner";
-import type { PipelineCtx, PreflightResult } from "@/lib/route-handler/types";
+import type {
+  PipelineCtx,
+  PreflightResult,
+  RouteContextKey,
+} from "@/lib/route-handler/types";
 import type {
   RouteOptions,
   RoutePipelineOptions,
@@ -8,7 +12,7 @@ import type {
 } from "@/lib/route-pipeline/types";
 
 export type RouteContextWithKey<
-  K extends "auth" | "admin" | "anon",
+  K extends RouteContextKey,
   TContext,
   P extends Record<string, string>,
   B,
@@ -38,7 +42,7 @@ export function withParsedContext<P extends Record<string, string>, B, Q>(
 }
 
 export function withKeyedParsedContext<
-  K extends "auth" | "admin" | "anon",
+  K extends RouteContextKey,
   TAuthContext,
   P extends Record<string, string>,
   B,

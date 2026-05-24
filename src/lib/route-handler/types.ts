@@ -4,6 +4,8 @@ export type PipelineCtx<P extends Record<string, string>, B, Q> = {
   query: Q;
 };
 
+export type RouteContextKey = "auth" | "admin" | "anon";
+
 export type AuthContext = {
   userId: string;
   isApiKey: boolean;
