@@ -1,9 +1,8 @@
-import { NextResponse } from "next/server";
-import { authRoute } from "@/lib/route-handler";
+import { authDataRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { MILESTONE_META } from "@/lib/streaks";
 
-export const GET = authRoute(async (_request, { auth }) => {
+export const GET = authDataRoute(async (_request, { auth }) => {
   const rows = await prisma.userMilestone.findMany({
     where: { userId: auth.userId },
     orderBy: { earnedAt: "asc" },
@@ -19,5 +18,5 @@ export const GET = authRoute(async (_request, { auth }) => {
     }),
   }));
 
-  return NextResponse.json({ milestones });
+  return { milestones };
 }, { route: "/api/milestones" });

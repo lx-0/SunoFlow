@@ -1,3 +1,5 @@
+import { splitTagCsv } from "@/lib/tags";
+
 export interface FeedbackTally {
   key: string;
   likes: number;
@@ -13,10 +15,7 @@ export interface TallyOptions {
 }
 
 export function normalizeTags(raw: string): string[] {
-  return raw
-    .split(",")
-    .map((t) => t.trim().toLowerCase())
-    .filter(Boolean);
+  return splitTagCsv(raw).map((t) => t.toLowerCase());
 }
 
 export function comboKey(raw: string): string {

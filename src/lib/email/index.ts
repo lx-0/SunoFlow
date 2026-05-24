@@ -1,5 +1,6 @@
 import Mailjet from "node-mailjet";
 import { logger } from "@/lib/logger";
+import { firstTag } from "@/lib/tags";
 
 const APP_NAME = "SunoFlow";
 
@@ -207,7 +208,7 @@ export async function sendWeeklyHighlightsEmail(
         ${data.recommendedSongs
           .map((s) => {
             const tag = s.tags
-              ? ` <span style="color: #888; font-size: 12px;">${s.tags.split(",")[0].trim()}</span>`
+              ? ` <span style="color: #888; font-size: 12px;">${firstTag(s.tags)}</span>`
               : "";
             return `<li style="margin-bottom: 8px;"><a href="${baseUrl}/songs/${s.id}" style="color: #6366f1; text-decoration: none; font-weight: 500;">${s.title || "Untitled"}</a>${tag}</li>`;
           })

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseTags, normalizeTagCombo, collectSongTokens, tagOverlapScore, countGenres } from "./index";
+import { parseTags, splitTagCsv, firstTag, normalizeTagCombo, collectSongTokens, tagOverlapScore, countGenres } from "./index";
 
 describe("parseTags", () => {
   it("splits comma-separated tags", () => {
@@ -47,6 +47,31 @@ describe("normalizeTagCombo", () => {
 
   it("returns empty string for null", () => {
     expect(normalizeTagCombo(null)).toBe("");
+  });
+});
+
+describe("splitTagCsv", () => {
+  it("splits only on commas and preserves casing", () => {
+    expect(splitTagCsv("Pop, drum and bass, LO-FI")).toEqual([
+      "Pop",
+      "drum and bass",
+      "LO-FI",
+    ]);
+  });
+
+  it("returns empty array for null", () => {
+    expect(splitTagCsv(null)).toEqual([]);
+  });
+});
+
+describe("firstTag", () => {
+  it("returns first trimmed tag", () => {
+    expect(firstTag("  Pop , Rock")).toBe("Pop");
+  });
+
+  it("returns null when no tag exists", () => {
+    expect(firstTag(null)).toBeNull();
+    expect(firstTag(" ,, ")).toBeNull();
   });
 });
 

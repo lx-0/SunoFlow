@@ -36,6 +36,7 @@ import { useRouter } from "next/navigation";
 import { HighlightText } from "./HighlightText";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
 import { formatDuration as formatTime } from "@/lib/time-format";
+import { firstTag } from "@/lib/tags";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -555,7 +556,7 @@ export const SongListItem = memo(function SongListItem({
             )}
             {!isPending && !isFailed && !((song as SongWithTags).songTags?.length > 0) && song.tags && (
               <span className="text-xs text-gray-500 truncate">
-                {song.tags.split(",")[0].trim()}
+                {firstTag(song.tags)}
               </span>
             )}
             {!isPending && song.duration && (

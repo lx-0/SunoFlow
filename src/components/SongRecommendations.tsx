@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { MusicalNoteIcon } from "@heroicons/react/24/solid";
 import { formatDuration as formatTime } from "@/lib/time-format";
+import { firstTag } from "@/lib/tags";
 
 interface RecommendedSong {
   id: string;
@@ -43,7 +44,7 @@ function SongRow({ song }: { song: RecommendedSong }) {
         </p>
         {song.tags && (
           <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-            {song.tags.split(",")[0].trim()}
+            {firstTag(song.tags)}
           </p>
         )}
       </div>
