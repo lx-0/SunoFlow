@@ -3,8 +3,9 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { LandingPage } from "@/components/LandingPage";
 import { safeJsonLd } from "@/lib/json-ld";
+import { getSiteUrl } from "@/lib/site-url";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sunoflow.app";
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   title: "SunoFlow — Your Personal AI Music Studio",

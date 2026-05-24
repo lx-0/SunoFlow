@@ -3,9 +3,10 @@ import { cache } from "react";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { safeJsonLd } from "@/lib/json-ld";
+import { getSiteUrl } from "@/lib/site-url";
 import { PublicProfileView } from "./PublicProfileView";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sunoflow.app";
+const siteUrl = getSiteUrl();
 
 /** ISR: revalidate public profile pages every 60 seconds */
 export const revalidate = 60;

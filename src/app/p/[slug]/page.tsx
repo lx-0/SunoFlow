@@ -5,8 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { PublicPlaylistView } from "./PublicPlaylistView";
 import { cached, cacheKey, CacheTTL } from "@/lib/cache";
 import { safeJsonLd } from "@/lib/json-ld";
+import { getSiteUrl } from "@/lib/site-url";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sunoflow.app";
+const siteUrl = getSiteUrl();
 
 /** ISR: revalidate public playlist pages every 60 seconds */
 export const revalidate = 60;

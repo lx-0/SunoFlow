@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
-import { adminRoute } from "@/lib/route-handler";
+import { adminDataRoute, adminRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { logAdminAction } from "@/lib/auth";
 import { generateInviteCode } from "@/lib/auth/invite";
@@ -12,13 +12,13 @@ const createBody = z.object({
   expiresInDays: z.number().int().min(1).max(365).optional(),
 });
 
-export const GET = adminRoute(async () => {
+export const GET = adminDataRoute(async () => {
   const codes = await prisma.inviteCode.findMany({
     orderBy: { createdAt: "desc" },
     take: 200,
     include: { usedByUser: { select: { email: true, name: true } } },
   });
-  return NextResponse.json({ codes });
+  return { codes };
 });
 
 export const POST = adminRoute<Record<string, never>, z.infer<typeof createBody>>(

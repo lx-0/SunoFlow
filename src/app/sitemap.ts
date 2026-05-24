@@ -1,9 +1,10 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
+import { getSiteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sunoflow.app";
+const siteUrl = getSiteUrl();
 
 const ITEMS_PER_SITEMAP = 5000;
 

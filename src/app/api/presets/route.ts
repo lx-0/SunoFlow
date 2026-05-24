@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { authRoute } from "@/lib/route-handler";
+import { authDataRoute, authRoute } from "@/lib/route-handler";
 import { badRequest } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 
 const MAX_PRESETS = 20;
 
-export const GET = authRoute(async (_request, { auth }) => {
+export const GET = authDataRoute(async (_request, { auth }) => {
   const presets = await prisma.generationPreset.findMany({
     where: { userId: auth.userId },
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ presets });
+  return { presets };
 });
 
 const createPresetBody = z.object({

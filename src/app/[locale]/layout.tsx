@@ -12,6 +12,7 @@ import { ClientOnlyComponents } from "@/components/ClientOnlyComponents";
 import { OnboardingProvider } from "@/components/OnboardingTour";
 import { RouteAnnouncer } from "@/components/RouteAnnouncer";
 import { routing } from "@/i18n/routing";
+import { getSiteUrl } from "@/lib/site-url";
 import "../globals.css";
 
 const geistSans = localFont({
@@ -21,7 +22,7 @@ const geistSans = localFont({
   preload: false,
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sunoflow.app";
+const siteUrl = getSiteUrl();
 
 export async function generateMetadata({
   params,
