@@ -21,6 +21,18 @@ import { useQueue, type QueueSong } from "./QueueContext";
 import Image from "next/image";
 import { retrySong, pollSongStatus, mergeSongIntoList } from "./generation-history/retry-client";
 import { formatDuration as formatTime } from "@/lib/time-format";
+import {
+  parseHistoryFilterUrlState,
+  toGenerationsApiSearchParams,
+  toHistoryFilterSearchParams,
+  type HistorySortKey,
+} from "./history/filter-url-state";
+import {
+  formatHistoryRelativeDate,
+  HISTORY_SORT_OPTIONS,
+  HISTORY_STATUS_FILTERS,
+  type HistoryStatusFilter,
+} from "./history/view-config";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,32 +51,6 @@ interface GenerationEntry {
   createdAt: string;
   updatedAt: string;
 }
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDate(date: Date | string): string {
-  const d = new Date(date);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffHr = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMin < 1) return "Just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHr < 24) return `${diffHr}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
-
-// ─── Status filter chips ──────────────────────────────────────────────────────
-
-const STATUS_FILTERS = [
-  { label: "All", value: "all" },
-  { label: "Ready", value: "ready" },
-  { label: "Pending", value: "pending" },
-  { label: "Failed", value: "failed" },
-];
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
@@ -204,7 +190,7 @@ function GenerationRow({
             )}
             <span className="text-xs text-gray-400 dark:text-gray-600 flex items-center gap-1">
               <ClockIcon className="w-3 h-3" />
-              {formatDate(entry.createdAt)}
+              {formatHistoryRelativeDate(entry.createdAt)}
             </span>
           </div>
 
@@ -362,15 +348,6 @@ function SavedPromptsPanel() {
   );
 }
 
-// ─── Sort options ─────────────────────────────────────────────────────────────
-
-type SortKey = "newest" | "oldest";
-
-const SORT_OPTIONS: { label: string; value: SortKey }[] = [
-  { label: "Newest first", value: "newest" },
-  { label: "Oldest first", value: "oldest" },
-];
-
 // ─── Main view ────────────────────────────────────────────────────────────────
 
 interface GenerationHistoryViewProps {
@@ -388,13 +365,14 @@ export function GenerationHistoryView({
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
+  const initialFilterState = parseHistoryFilterUrlState(searchParams);
 
-  const [activeFilter, setActiveFilter] = useState(searchParams.get("status") ?? "all");
-  const [sortKey, setSortKey] = useState<SortKey>((searchParams.get("sort") as SortKey) ?? "newest");
-  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
-  const [debouncedQuery, setDebouncedQuery] = useState(searchParams.get("q") ?? "");
-  const [dateFrom, setDateFrom] = useState(searchParams.get("from") ?? "");
-  const [dateTo, setDateTo] = useState(searchParams.get("to") ?? "");
+  const [activeFilter, setActiveFilter] = useState(initialFilterState.status);
+  const [sortKey, setSortKey] = useState<HistorySortKey>(initialFilterState.sort);
+  const [searchQuery, setSearchQuery] = useState(initialFilterState.q);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialFilterState.q);
+  const [dateFrom, setDateFrom] = useState(initialFilterState.from);
+  const [dateTo, setDateTo] = useState(initialFilterState.to);
 
   const [songs, setSongs] = useState<GenerationEntry[]>(initialSongs);
   const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
@@ -423,12 +401,13 @@ export function GenerationHistoryView({
 
   // Sync filter state → URL
   useEffect(() => {
-    const params = new URLSearchParams();
-    if (activeFilter !== "all") params.set("status", activeFilter);
-    if (sortKey !== "newest") params.set("sort", sortKey);
-    if (debouncedQuery) params.set("q", debouncedQuery);
-    if (dateFrom) params.set("from", dateFrom);
-    if (dateTo) params.set("to", dateTo);
+    const params = toHistoryFilterSearchParams({
+      status: activeFilter,
+      sort: sortKey,
+      q: debouncedQuery,
+      from: dateFrom,
+      to: dateTo,
+    });
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -436,14 +415,16 @@ export function GenerationHistoryView({
 
   // Build query params
   function buildParams(cursor?: string): URLSearchParams {
-    const p = new URLSearchParams();
-    if (activeFilter !== "all") p.set("status", activeFilter);
-    p.set("sortBy", sortKey);
-    if (debouncedQuery) p.set("q", debouncedQuery);
-    if (dateFrom) p.set("dateFrom", dateFrom);
-    if (dateTo) p.set("dateTo", dateTo);
-    if (cursor) p.set("cursor", cursor);
-    return p;
+    return toGenerationsApiSearchParams(
+      {
+        status: activeFilter,
+        sort: sortKey,
+        q: debouncedQuery,
+        from: dateFrom,
+        to: dateTo,
+      },
+      cursor
+    );
   }
 
   // Re-fetch when filters change
@@ -469,8 +450,8 @@ export function GenerationHistoryView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterVersion]);
 
-  function handleFilterChange(f: string) { setActiveFilter(f); setFilterVersion((v) => v + 1); }
-  function handleSortChange(s: SortKey) { setSortKey(s); setFilterVersion((v) => v + 1); }
+  function handleFilterChange(f: HistoryStatusFilter) { setActiveFilter(f); setFilterVersion((v) => v + 1); }
+  function handleSortChange(s: HistorySortKey) { setSortKey(s); setFilterVersion((v) => v + 1); }
   function handleDateChange() { setFilterVersion((v) => v + 1); }
 
   // Load more
@@ -660,7 +641,7 @@ export function GenerationHistoryView({
       {/* Status chips + sort */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex gap-2 overflow-x-auto pb-1 flex-1">
-          {STATUS_FILTERS.map((opt) => (
+          {HISTORY_STATUS_FILTERS.map((opt) => (
             <button
               key={opt.value}
               onClick={() => handleFilterChange(opt.value)}
@@ -679,12 +660,12 @@ export function GenerationHistoryView({
         <div className="relative flex-shrink-0">
           <select
             value={sortKey}
-            onChange={(e) => handleSortChange(e.target.value as SortKey)}
+            onChange={(e) => handleSortChange(e.target.value as HistorySortKey)}
             disabled={loading}
             className="appearance-none pl-3 pr-8 py-1.5 rounded-full text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-none cursor-pointer min-h-[44px] focus:ring-2 focus:ring-violet-500 focus:outline-none disabled:opacity-50"
             aria-label="Sort generations"
           >
-            {SORT_OPTIONS.map((opt) => (
+            {HISTORY_SORT_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
