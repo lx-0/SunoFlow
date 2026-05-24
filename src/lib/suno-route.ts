@@ -28,11 +28,13 @@ export function handleSunoRouteError(
     logLabel: string;
     route: string;
     mapOptions?: MapSunoApiErrorOptions;
+    transformMappedResponse?: (response: Response) => Response;
     fallbackResponse?: Response;
   }
 ): Response {
   if (error instanceof SunoApiError) {
-    return mapSunoApiError(error, config.mapOptions);
+    const mapped = mapSunoApiError(error, config.mapOptions);
+    return config.transformMappedResponse ? config.transformMappedResponse(mapped) : mapped;
   }
   logServerError(config.logLabel, error, { route: config.route });
   return config.fallbackResponse ?? internalError();
