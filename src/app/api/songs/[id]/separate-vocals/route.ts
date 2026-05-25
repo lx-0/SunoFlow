@@ -1,6 +1,5 @@
 import { authRoute } from "@/lib/route-handler";
 import { requireOwnedSong } from "@/lib/songs/ownership";
-import { prisma } from "@/lib/prisma";
 import { separateVocals, mockSongs, resolveUserApiKey } from "@/lib/sunoapi";
 import type { SeparationType } from "@/lib/sunoapi";
 import { executeGeneration, respondToGeneration } from "@/lib/generation";
