@@ -1,4 +1,8 @@
-export type SearchParamsLike = Pick<URLSearchParams, "get">;
+import {
+  setSearchParamIfNotDefault,
+  setSearchParamIfPresent,
+  type SearchParamsLike,
+} from "@/lib/url-state";
 
 export type HistorySortKey = "newest" | "oldest";
 
@@ -34,21 +38,23 @@ export function parseHistoryFilterUrlState(searchParams: SearchParamsLike): Hist
 
 export function toHistoryFilterSearchParams(state: HistoryFilterUrlState): URLSearchParams {
   const params = new URLSearchParams();
-  if (state.status !== DEFAULT_HISTORY_FILTER_URL_STATE.status) params.set("status", state.status);
-  if (state.sort !== DEFAULT_HISTORY_FILTER_URL_STATE.sort) params.set("sort", state.sort);
-  if (state.q) params.set("q", state.q);
-  if (state.from) params.set("from", state.from);
-  if (state.to) params.set("to", state.to);
+  setSearchParamIfNotDefault(params, "status", state.status, DEFAULT_HISTORY_FILTER_URL_STATE.status);
+  setSearchParamIfNotDefault(params, "sort", state.sort, DEFAULT_HISTORY_FILTER_URL_STATE.sort);
+  setSearchParamIfPresent(params, "q", state.q);
+  setSearchParamIfPresent(params, "from", state.from);
+  setSearchParamIfPresent(params, "to", state.to);
   return params;
 }
 
 export function toGenerationsApiSearchParams(state: HistoryFilterUrlState, cursor?: string): URLSearchParams {
   const params = new URLSearchParams();
-  if (state.status !== DEFAULT_HISTORY_FILTER_URL_STATE.status) params.set("status", state.status);
+  setSearchParamIfNotDefault(params, "status", state.status, DEFAULT_HISTORY_FILTER_URL_STATE.status);
   params.set("sortBy", state.sort);
-  if (state.q) params.set("q", state.q);
-  if (state.from) params.set("dateFrom", state.from);
-  if (state.to) params.set("dateTo", state.to);
-  if (cursor) params.set("cursor", cursor);
+  setSearchParamIfPresent(params, "q", state.q);
+  setSearchParamIfPresent(params, "dateFrom", state.from);
+  setSearchParamIfPresent(params, "dateTo", state.to);
+  if (cursor) {
+    params.set("cursor", cursor);
+  }
   return params;
 }

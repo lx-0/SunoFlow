@@ -1,4 +1,4 @@
-import { splitTagCsv } from "@/lib/tags";
+import { normalizedTagList, normalizeTagCombo } from "@/lib/tags";
 
 export interface FeedbackTally {
   key: string;
@@ -15,11 +15,11 @@ export interface TallyOptions {
 }
 
 export function normalizeTags(raw: string): string[] {
-  return splitTagCsv(raw).map((t) => t.toLowerCase());
+  return normalizedTagList(raw);
 }
 
 export function comboKey(raw: string): string {
-  return normalizeTags(raw).sort().join(", ");
+  return normalizeTagCombo(raw);
 }
 
 export function tallyFeedback(
