@@ -1,6 +1,5 @@
-import { NextResponse } from "next/server";
-import { optionalAuthRoute } from "@/lib/route-handler";
 import { errorFromResult } from "@/lib/api-error";
+import { optionalAuthDataRoute } from "@/lib/route-handler";
 import { getPublicUserProfileByUsername } from "@/lib/profile";
 
 type FeaturedSongResponse = {
@@ -33,7 +32,7 @@ function toFeaturedSongResponse(song: {
   };
 }
 
-export const GET = optionalAuthRoute<{ username: string }>(async (_request, { auth, params }) => {
+export const GET = optionalAuthDataRoute<{ username: string }>(async (_request, { auth, params }) => {
   const userResult = await getPublicUserProfileByUsername(params.username, auth.userId);
   if (!userResult.ok) {
     return errorFromResult(userResult);
@@ -41,7 +40,7 @@ export const GET = optionalAuthRoute<{ username: string }>(async (_request, { au
 
   const user = userResult.data;
 
-  return NextResponse.json({
+  return {
     id: user.id,
     name: user.name,
     username: user.username,
@@ -56,5 +55,5 @@ export const GET = optionalAuthRoute<{ username: string }>(async (_request, { au
     totalPlays: user.totalPlays,
     featuredSong: user.featuredSong ? toFeaturedSongResponse(user.featuredSong) : null,
     isFollowing: user.isFollowing,
-  });
+  };
 }, { route: "/api/u/[username]" });

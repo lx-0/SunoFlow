@@ -1,12 +1,11 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { MILESTONE_META } from "@/lib/streaks";
-import { publicRoute } from "@/lib/route-handler";
-import { resolveRouteUsernameOrResponse } from "../route-shared";
+import { publicDataRoute } from "@/lib/route-handler";
+import { isRouteResponse, resolveRouteUsernameOrResponse } from "../route-shared";
 
-export const GET = publicRoute<{ username: string }>(async (_request, { params }) => {
+export const GET = publicDataRoute<{ username: string }>(async (_request, { params }) => {
   const user = await resolveRouteUsernameOrResponse(params.username);
-  if ("status" in user) return user;
+  if (isRouteResponse(user)) return user;
 
   const rows = await prisma.userMilestone.findMany({
     where: { userId: user.userId },
@@ -23,5 +22,5 @@ export const GET = publicRoute<{ username: string }>(async (_request, { params }
     }),
   }));
 
-  return NextResponse.json({ milestones });
+  return { milestones };
 }, { route: "/api/u/[username]/milestones" });

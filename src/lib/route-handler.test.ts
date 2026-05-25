@@ -467,4 +467,21 @@ describe("authDataRoute", () => {
 
     expect(result.status).toBe(401);
   });
+
+  it("passes through a Response returned by the data handler", async () => {
+    vi.mocked(resolveUser).mockResolvedValue({
+      userId: "user-123",
+      isApiKey: false,
+      isAdmin: false,
+      error: null,
+    });
+
+    const handler = authDataRoute(async () =>
+      NextResponse.json({ error: "forbidden" }, { status: 403 })
+    );
+    const result = await handler(makeRequest(), seg);
+
+    expect(result.status).toBe(403);
+    await expect(result.json()).resolves.toEqual({ error: "forbidden" });
+  });
 });

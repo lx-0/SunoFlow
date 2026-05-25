@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { authRoute, resultResponse } from "@/lib/route-handler";
+import { authDataRoute, authRoute, resultResponse } from "@/lib/route-handler";
 import { Tags } from "@/lib/tags";
 import {
   createTagBodySchema,
   type CreateTagBody,
 } from "@/lib/tags/request";
 
-export const GET = authRoute(async (_request, { auth }) => {
+export const GET = authDataRoute(async (_request, { auth }) => {
   const tags = await Tags.list(auth.userId);
-  return NextResponse.json({ tags });
+  return { tags };
 }, { route: "/api/tags" });
 
 export const POST = authRoute<Record<string, never>, CreateTagBody>(async (_request, { auth, body }) => {
