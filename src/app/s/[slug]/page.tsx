@@ -6,8 +6,9 @@ import { PublicSongView } from "./PublicSongView";
 import { cached, cacheKey, CacheTTL } from "@/lib/cache";
 import { getVariantFamily } from "@/lib/songs";
 import { safeJsonLd } from "@/lib/json-ld";
+import { getSiteUrl } from "@/lib/site-url";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sunoflow.app";
+const siteUrl = getSiteUrl();
 
 /** ISR: revalidate public song pages every 60 seconds */
 export const revalidate = 60;

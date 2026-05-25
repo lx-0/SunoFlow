@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { authRoute, resultResponse } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { acquireRateLimitSlot } from "@/lib/rate-limit";
@@ -6,9 +7,17 @@ import { prepareSongDownload } from "@/lib/songs";
 import type { DownloadFormat } from "@/lib/songs";
 
 const DOWNLOAD_RATE_LIMIT = 50;
+const downloadQuerySchema = z.object({
+  format: z.enum(["native", "mp3", "wav", "flac"]).default("native"),
+  metadata: z.enum(["true", "false"]).default("true"),
+});
 
-export const GET = authRoute<{ id: string }>(
-  async (request, { auth, params }) => {
+export const GET = authRoute<
+  { id: string },
+  undefined,
+  z.infer<typeof downloadQuerySchema>
+>(
+  async (_request, { auth, params, query }) => {
     const [song, user] = await Promise.all([
       prisma.song.findFirst({ where: { id: params.id, userId: auth.userId } }),
       prisma.user.findUnique({ where: { id: auth.userId }, select: { name: true } }),
@@ -40,8 +49,8 @@ export const GET = authRoute<{ id: string }>(
       );
     }
 
-    const requestedFormat = (request.nextUrl.searchParams.get("format") ?? "native") as DownloadFormat | "native";
-    const embedMetadata = request.nextUrl.searchParams.get("metadata") !== "false";
+    const requestedFormat = query.format as DownloadFormat | "native";
+    const embedMetadata = query.metadata !== "false";
 
     const result = await prepareSongDownload({
       song,
@@ -62,5 +71,8 @@ export const GET = authRoute<{ id: string }>(
 
     return new NextResponse(result.buffer, { status: 200, headers });
   },
-  { route: "/api/songs/[id]/download" },
+  {
+    route: "/api/songs/[id]/download",
+    query: downloadQuerySchema,
+  },
 );

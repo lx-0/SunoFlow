@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
+import { getSiteUrl } from "@/lib/site-url";
 import { EmbedSongPlayer } from "./EmbedSongPlayer";
 import { cached, cacheKey, CacheTTL } from "@/lib/cache";
 
@@ -18,7 +19,7 @@ const getSong = cache((songId: string) =>
   )
 );
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sunoflow.app";
+const siteUrl = getSiteUrl();
 
 export default async function EmbedSongPage({
   params,

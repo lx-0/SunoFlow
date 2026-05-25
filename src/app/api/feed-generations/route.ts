@@ -1,8 +1,7 @@
-import { NextResponse } from "next/server";
-import { authRoute } from "@/lib/route-handler";
+import { authDataRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 
-export const GET = authRoute(async (_request, { auth }) => {
+export const GET = authDataRoute(async (_request, { auth }) => {
   const items = await prisma.pendingFeedGeneration.findMany({
     where: { userId: auth.userId, status: "pending" },
     orderBy: { createdAt: "desc" },
@@ -19,5 +18,5 @@ export const GET = authRoute(async (_request, { auth }) => {
     },
   });
 
-  return NextResponse.json({ items });
+  return { items };
 });

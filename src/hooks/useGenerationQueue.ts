@@ -1,37 +1,33 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-
-export interface QueueItem {
-  id: string;
-  prompt: string;
-  title: string | null;
-  tags: string | null;
-  makeInstrumental: boolean;
-  personaId: string | null;
-  status: "pending" | "processing" | "done" | "failed" | "cancelled";
-  position: number;
-  songId: string | null;
-  errorMessage: string | null;
-}
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import type { QueueItem } from "@/lib/generation-queue/client";
+export type { QueueItem } from "@/lib/generation-queue/client";
+import {
+  addQueueItem,
+  fetchQueueItems,
+  processNextQueueItem,
+  reorderQueueItems,
+  removeQueueItem,
+} from "@/lib/generation-queue/client";
 
 export function useGenerationQueue() {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const processingRef = useRef(false);
+  const itemsRef = useRef<QueueItem[]>([]);
+
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
   const fetchQueue = useCallback(async () => {
     try {
-      const res = await fetch("/api/generation-queue");
-      if (res.ok) {
-        const data = await res.json();
-        setItems(data.items);
-        const hasProcessing = data.items.some(
-          (i: QueueItem) => i.status === "processing"
-        );
-        setIsProcessing(hasProcessing);
-        processingRef.current = hasProcessing;
-      }
+      const data = await fetchQueueItems();
+      setItems(data.items);
+      const hasProcessing = data.items.some((i) => i.status === "processing");
+      setIsProcessing(hasProcessing);
+      processingRef.current = hasProcessing;
     } catch {
       // Non-critical
     }
@@ -50,17 +46,11 @@ export function useGenerationQueue() {
       personaId?: string;
     }): Promise<{ item?: QueueItem; error?: string }> => {
       try {
-        const res = await fetch("/api/generation-queue", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(params),
-        });
-        const data = await res.json();
-        if (!res.ok) return { error: data.error };
+        const data = await addQueueItem(params);
         setItems((prev) => [...prev, data.item]);
         return { item: data.item };
-      } catch {
-        return { error: "Failed to add to queue" };
+      } catch (error) {
+        return { error: error instanceof Error ? error.message : "Failed to add to queue" };
       }
     },
     []
@@ -68,12 +58,8 @@ export function useGenerationQueue() {
 
   const removeFromQueue = useCallback(async (id: string) => {
     try {
-      const res = await fetch(`/api/generation-queue/${id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        setItems((prev) => prev.filter((i) => i.id !== id));
-      }
+      await removeQueueItem(id);
+      setItems((prev) => prev.filter((i) => i.id !== id));
     } catch {
       // Non-critical
     }
@@ -98,11 +84,7 @@ export function useGenerationQueue() {
     });
 
     try {
-      await fetch("/api/generation-queue/reorder", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderedIds }),
-      });
+      await reorderQueueItems(orderedIds);
     } catch {
       // Revert on error
       await fetchQueue();
@@ -119,17 +101,7 @@ export function useGenerationQueue() {
     setIsProcessing(true);
 
     try {
-      const res = await fetch("/api/generation-queue/process-next", {
-        method: "POST",
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        processingRef.current = false;
-        setIsProcessing(false);
-        return { error: data.error };
-      }
-
+      const data = await processNextQueueItem();
       if (!data.item) {
         processingRef.current = false;
         setIsProcessing(false);
@@ -137,17 +109,18 @@ export function useGenerationQueue() {
       }
 
       // Update local state
-      setItems((prev) =>
-        prev.map((i) =>
-          i.id === data.item.id ? { ...i, ...data.item } : i
-        )
-      );
+      if (data.item) {
+        const item = data.item;
+        setItems((prev) =>
+          prev.map((i) => (i.id === item.id ? { ...i, ...item } : i))
+        );
+      }
 
       return { item: data.item, song: data.song };
-    } catch {
+    } catch (error) {
       processingRef.current = false;
       setIsProcessing(false);
-      return { error: "Failed to process queue" };
+      return { error: error instanceof Error ? error.message : "Failed to process queue" };
     }
   }, []);
 
@@ -165,20 +138,30 @@ export function useGenerationQueue() {
       setIsProcessing(false);
 
       // Auto-process next
-      const pendingItems = items.filter((i) => i.status === "pending");
+      const pendingItems = itemsRef.current.filter((i) => i.status === "pending");
       if (pendingItems.length > 0) {
         return processNext();
       }
       return null;
     },
-    [items, processNext]
+    [processNext]
   );
 
-  const pendingCount = items.filter((i) => i.status === "pending").length;
-  const processingItem = items.find((i) => i.status === "processing");
-  const totalActive = items.filter(
-    (i) => i.status === "pending" || i.status === "processing"
-  ).length;
+  const pendingCount = useMemo(
+    () => items.filter((i) => i.status === "pending").length,
+    [items]
+  );
+  const processingItem = useMemo(
+    () => items.find((i) => i.status === "processing"),
+    [items]
+  );
+  const totalActive = useMemo(
+    () =>
+      items.filter(
+        (i) => i.status === "pending" || i.status === "processing"
+      ).length,
+    [items]
+  );
 
   return {
     items,

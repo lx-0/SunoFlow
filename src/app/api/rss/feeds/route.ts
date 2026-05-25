@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { authRoute } from "@/lib/route-handler";
+import { authDataRoute, authRoute } from "@/lib/route-handler";
 import { badRequest, conflict, notFound } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 
@@ -12,14 +12,14 @@ const deleteFeedQuery = z.object({
   id: z.string().min(1, "id query param required"),
 });
 
-export const GET = authRoute(async (_request, { auth }) => {
+export const GET = authDataRoute(async (_request, { auth }) => {
   const feeds = await prisma.rssFeedSubscription.findMany({
     where: { userId: auth.userId },
     orderBy: { createdAt: "asc" },
     select: { id: true, url: true, title: true, autoGenerate: true, createdAt: true },
   });
 
-  return NextResponse.json({ feeds });
+  return { feeds };
 }, { route: "/api/rss/feeds" });
 
 export const POST = authRoute(async (_req, { auth, body }) => {
