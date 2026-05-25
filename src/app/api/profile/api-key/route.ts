@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { authRoute } from "@/lib/route-handler";
+import { authRoute, resultResponse } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { buildApiKeyUpdateData, toApiKeyResponse } from "@/lib/profile/api-key";
 import { getUserOrNotFound } from "@/lib/profile/user";
@@ -20,11 +20,9 @@ export const GET = authRoute(async (_request, { auth }) => {
     usePersonalApiKey: true,
   });
 
-  if (!userResult.ok) {
-    return userResult.response;
-  }
+  if (!userResult.ok) return resultResponse(userResult);
 
-  return Response.json(toApiKeyResponse(userResult.user));
+  return Response.json(toApiKeyResponse(userResult.data));
 }, { route: "/api/profile/api-key" });
 
 export const PATCH = authRoute(async (_request, { auth, body }) => {

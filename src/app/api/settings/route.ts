@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { authRoute } from "@/lib/route-handler";
+import { authRoute, resultResponse } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { stripHtml } from "@/lib/sanitize";
 import { getUserOrNotFound } from "@/lib/profile/user";
@@ -24,9 +24,9 @@ export const GET = authRoute(async (_request, { auth }) => {
     accounts: { select: { provider: true, type: true } },
   });
 
-  if (!result.ok) return result.response;
+  if (!result.ok) return resultResponse(result);
 
-  const { accounts, ...rest } = result.user;
+  const { accounts, ...rest } = result.data;
   return NextResponse.json({
     ...rest,
     connectedProviders: accounts.map((a: { provider: string; type: string }) => a.provider),

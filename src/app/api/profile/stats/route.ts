@@ -1,4 +1,4 @@
-import { authRoute } from "@/lib/route-handler";
+import { authRoute, resultResponse } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { getUserOrNotFound } from "@/lib/profile/user";
 
@@ -16,18 +16,16 @@ export const GET = authRoute(async (_request, { auth }) => {
       prisma.promptTemplate.count({ where: { userId: auth.userId } }),
     ]);
 
-  if (!userResult.ok) {
-    return userResult.response;
-  }
+  if (!userResult.ok) return resultResponse(userResult);
 
   return Response.json({
     totalSongs,
     totalFavorites,
     totalPlaylists,
     totalTemplates,
-    followersCount: userResult.user._count.followers,
-    followingCount: userResult.user._count.following,
-    memberSince: userResult.user.createdAt,
-    lastLoginAt: userResult.user.lastLoginAt,
+    followersCount: userResult.data._count.followers,
+    followingCount: userResult.data._count.following,
+    memberSince: userResult.data.createdAt,
+    lastLoginAt: userResult.data.lastLoginAt,
   });
 }, { route: "/api/profile/stats" });

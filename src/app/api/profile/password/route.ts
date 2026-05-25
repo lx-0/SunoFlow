@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { authRoute } from "@/lib/route-handler";
+import { authRoute, resultResponse } from "@/lib/route-handler";
 import { badRequest, notFound } from "@/lib/api-error";
 import { getUserOrNotFound } from "@/lib/profile/user";
 import { prisma } from "@/lib/prisma";
@@ -27,15 +27,13 @@ export const POST = authRoute<Record<string, never>, z.infer<typeof bodySchema>>
     passwordHash: true,
   });
 
-  if (!userResult.ok) {
-    return userResult.response;
-  }
+  if (!userResult.ok) return resultResponse(userResult);
 
-  if (!userResult.user.passwordHash) {
+  if (!userResult.data.passwordHash) {
     return notFound("User not found");
   }
 
-  const valid = await verifyPassword(currentPassword, userResult.user.passwordHash);
+  const valid = await verifyPassword(currentPassword, userResult.data.passwordHash);
   if (!valid) {
     return badRequest("Current password is incorrect");
   }
