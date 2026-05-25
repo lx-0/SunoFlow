@@ -8,6 +8,15 @@ import {
   zTrimmedParam,
 } from "@/lib/query-params";
 
+export interface DiscoverSongsQuery {
+  sortBy: "newest" | "highest_rated" | "most_played";
+  tag?: string;
+  mood?: string;
+  tempoMin?: number | null;
+  tempoMax?: number | null;
+  page: number;
+}
+
 export const discoverSongsQuerySchema = z.object({
   page: zPageParam(),
   sortBy: zEnumParam(
@@ -22,7 +31,7 @@ export const discoverSongsQuerySchema = z.object({
 
 export type DiscoverSongsQueryInput = z.infer<typeof discoverSongsQuerySchema>;
 
-export function toDiscoverSongsQuery(query: DiscoverSongsQueryInput) {
+export function toDiscoverSongsQuery(query: DiscoverSongsQueryInput): DiscoverSongsQuery {
   return {
     sortBy: query.sortBy,
     tag: query.tag,
@@ -51,6 +60,13 @@ export const discoverFeedQuerySchema = z.object({
 
 export type DiscoverFeedQueryInput = z.infer<typeof discoverFeedQuerySchema>;
 
+export interface DiscoverPlaylistsQuery {
+  sort: "trending" | "recent" | "popular";
+  genre?: string;
+  page: number;
+  limit: number;
+}
+
 export const discoverPlaylistsQuerySchema = z.object({
   sort: zEnumParam(["trending", "recent", "popular"] as const, "trending"),
   genre: zTrimmedParam,
@@ -61,3 +77,9 @@ export const discoverPlaylistsQuerySchema = z.object({
 export type DiscoverPlaylistsQueryInput = z.infer<
   typeof discoverPlaylistsQuerySchema
 >;
+
+export function toDiscoverPlaylistsQuery(
+  query: DiscoverPlaylistsQueryInput,
+): DiscoverPlaylistsQuery {
+  return query;
+}

@@ -11,6 +11,7 @@ import {
   discoverFeedQuerySchema,
   discoverPlaylistsQuerySchema,
   discoverSongsQuerySchema,
+  toDiscoverPlaylistsQuery,
   toDiscoverSongsQuery,
   trendingSongsQuerySchema,
 } from "@/lib/discovery/request";
@@ -149,6 +150,22 @@ describe("request schemas", () => {
         mood: "focus",
       },
     );
+
+    expect(
+      toDiscoverPlaylistsQuery(
+        discoverPlaylistsQuerySchema.parse({
+          sort: "bad",
+          page: "0",
+          limit: "999",
+          genre: " lo-fi ",
+        }),
+      ),
+    ).toEqual({
+      sort: "trending",
+      genre: "lo-fi",
+      page: 1,
+      limit: 100,
+    });
 
     expect(
       discoverPlaylistsQuerySchema.parse({
