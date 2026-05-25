@@ -7,6 +7,11 @@ import {
   recommendationsQuerySchema,
   similarRecommendationsQuerySchema,
 } from "@/lib/recommendations/request";
+import {
+  discoverSongsQuerySchema,
+  toDiscoverSongsQuery,
+  trendingSongsQuerySchema,
+} from "@/lib/discovery/request";
 import { publicSongsQuerySchema, songsQuerySchema } from "@/lib/songs/request";
 
 describe("request schemas", () => {
@@ -104,6 +109,35 @@ describe("request schemas", () => {
       sort: "newest",
       limit: 15,
       offset: 2,
+    });
+  });
+
+  it("normalizes discovery query params", () => {
+    const discover = discoverSongsQuerySchema.parse({
+      page: "0",
+      sortBy: "bad",
+      tag: " synthwave ",
+      tempoMin: "128",
+      tempoMax: "bad",
+    });
+
+    expect(toDiscoverSongsQuery(discover)).toEqual({
+      page: 1,
+      sortBy: "newest",
+      tag: "synthwave",
+      mood: undefined,
+      tempoMin: 128,
+      tempoMax: null,
+    });
+
+    expect(
+      trendingSongsQuerySchema.parse({ sort: "invalid", limit: "999", offset: "-2" }),
+    ).toEqual({
+      sort: "trending",
+      limit: 100,
+      offset: 0,
+      genre: undefined,
+      mood: undefined,
     });
   });
 });

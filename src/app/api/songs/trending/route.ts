@@ -1,17 +1,8 @@
-import { z } from "zod";
 import { NextResponse } from "next/server";
 import { CacheControl } from "@/lib/cache";
 import { trendingSongs } from "@/lib/discovery";
+import { trendingSongsQuerySchema } from "@/lib/discovery/request";
 import { anonRoute } from "@/lib/route-handler";
-import { zLimitParam, zOffsetParam, zTrimmedParam, zEnumParam } from "@/lib/query-params";
-
-const trendingQuery = z.object({
-  sort: zEnumParam(["trending", "popular"] as const, "trending"),
-  limit: zLimitParam(20, 100),
-  offset: zOffsetParam(),
-  genre: zTrimmedParam,
-  mood: zTrimmedParam,
-});
 
 export const GET = anonRoute(
   async (_request, { query }) => {
@@ -23,6 +14,6 @@ export const GET = anonRoute(
   },
   {
     rateLimit: { action: "trending", limit: 60, windowMs: 60_000 },
-    query: trendingQuery,
+    query: trendingSongsQuerySchema,
   },
 );
