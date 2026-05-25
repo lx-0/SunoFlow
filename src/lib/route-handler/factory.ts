@@ -35,6 +35,12 @@ export type RouteDescriptor<
   getLogContext: (context: TContext) => Record<string, unknown>;
 };
 
+type PreflightDescriptor<TContext> = {
+  preflight: (request: NextRequest) => Promise<PreflightResult<TContext>>;
+  logLabel: string;
+  getLogContext: (context: TContext) => Record<string, unknown>;
+};
+
 export function withParsedContext<P extends Record<string, string>, B, Q>(
   parsed: PipelineCtx<P, B, Q>,
 ): PipelineCtx<P, B, Q> {
@@ -58,6 +64,19 @@ export function withKeyedParsedContext<
   } as Record<K, TAuthContext> & PipelineCtx<P, B, Q>;
 }
 
+async function runWithPreflight<TContext, TReturn>(
+  request: NextRequest,
+  descriptor: PreflightDescriptor<TContext>,
+  execute: (context: TContext) => Promise<TReturn>,
+): Promise<Response | TReturn> {
+  const preflightResult = await descriptor.preflight(request);
+  if (!preflightResult.ok) {
+    return preflightResult.error;
+  }
+
+  return execute(preflightResult.context);
+}
+
 export function createPreflightRoute<
   P extends Record<string, string>,
   B,
@@ -76,45 +95,40 @@ export function createPreflightRoute<
     request: NextRequest,
     segmentData: SegmentData<P>,
   ): Promise<Response> => {
-    const preflightResult = await descriptor.preflight(request);
-    if (!preflightResult.ok) {
-      return preflightResult.error;
-    }
-
-    return runRoutePipeline(
+    return runWithPreflight<Response>(
       request,
-      segmentData,
-      options,
-      descriptor.logLabel,
-      descriptor.getLogContext(preflightResult.context),
-      (parsed) =>
-        handler(request, descriptor.toHandlerContext(preflightResult.context, parsed)),
+      descriptor,
+      (context) =>
+        runRoutePipeline(
+          request,
+          segmentData,
+          options,
+          descriptor.logLabel,
+          descriptor.getLogContext(context),
+          (parsed) => handler(request, descriptor.toHandlerContext(context, parsed)),
+        ),
     );
   };
 }
 
 export function createPreflightRequestRoute<TContext>(
-  descriptor: {
-    preflight: (request: NextRequest) => Promise<PreflightResult<TContext>>;
-    logLabel: string;
-    getLogContext: (context: TContext) => Record<string, unknown>;
-  },
+  descriptor: PreflightDescriptor<TContext>,
   handler: (request: NextRequest, context: TContext) => Promise<Response>,
   options?: RouteOptions,
 ) {
   return async (request: NextRequest): Promise<Response> => {
-    const preflightResult = await descriptor.preflight(request);
-    if (!preflightResult.ok) {
-      return preflightResult.error;
-    }
-
-    return runRoutePipeline(
+    return runWithPreflight<Response>(
       request,
-      undefined,
-      options,
-      descriptor.logLabel,
-      descriptor.getLogContext(preflightResult.context),
-      () => handler(request, preflightResult.context),
+      descriptor,
+      (context) =>
+        runRoutePipeline(
+          request,
+          undefined,
+          options,
+          descriptor.logLabel,
+          descriptor.getLogContext(context),
+          () => handler(request, context),
+        ),
     );
   };
 }
