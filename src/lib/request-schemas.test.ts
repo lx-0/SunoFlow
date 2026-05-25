@@ -8,6 +8,8 @@ import {
   similarRecommendationsQuerySchema,
 } from "@/lib/recommendations/request";
 import {
+  discoverFeedQuerySchema,
+  discoverPlaylistsQuerySchema,
   discoverSongsQuerySchema,
   toDiscoverSongsQuery,
   trendingSongsQuerySchema,
@@ -138,6 +140,28 @@ describe("request schemas", () => {
       offset: 0,
       genre: undefined,
       mood: undefined,
+    });
+
+    expect(discoverFeedQuerySchema.parse({ page: "0", tag: " chill ", mood: " focus " })).toEqual(
+      {
+        page: 1,
+        tag: "chill",
+        mood: "focus",
+      },
+    );
+
+    expect(
+      discoverPlaylistsQuerySchema.parse({
+        sort: "bad",
+        page: "0",
+        limit: "999",
+        genre: " lo-fi ",
+      }),
+    ).toEqual({
+      sort: "trending",
+      genre: "lo-fi",
+      page: 1,
+      limit: 100,
     });
   });
 });

@@ -42,3 +42,22 @@ export const trendingSongsQuerySchema = z.object({
 });
 
 export type TrendingSongsQueryInput = z.infer<typeof trendingSongsQuerySchema>;
+
+export const discoverFeedQuerySchema = z.object({
+  page: zPageParam(),
+  tag: zTrimmedParam,
+  mood: zTrimmedParam,
+});
+
+export type DiscoverFeedQueryInput = z.infer<typeof discoverFeedQuerySchema>;
+
+export const discoverPlaylistsQuerySchema = z.object({
+  sort: zEnumParam(["trending", "recent", "popular"] as const, "trending"),
+  genre: zTrimmedParam,
+  page: zPageParam(),
+  limit: zLimitParam(20, 100),
+});
+
+export type DiscoverPlaylistsQueryInput = z.infer<
+  typeof discoverPlaylistsQuerySchema
+>;
