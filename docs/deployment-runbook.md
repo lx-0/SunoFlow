@@ -13,6 +13,7 @@ There is no staging environment — only production.
 ```
 push or PR to main
   → lint + typecheck + unit tests + build + local E2E   (qa job)
+  → migration safety check                               (qa job)
   → secrets scan                                         (secrets-scan job)
   → Lighthouse CI                                        (lighthouse job)
 

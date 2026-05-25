@@ -66,6 +66,9 @@ jobs:
       - name: Apply DB migrations
         run: pnpm exec prisma migrate deploy
 
+      - name: Migration safety check
+        run: bash scripts/check-migration-safety.sh
+
       - name: Lint
         run: pnpm lint
 
