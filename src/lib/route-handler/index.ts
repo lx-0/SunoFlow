@@ -7,7 +7,6 @@ import {
 } from "@/lib/route-handler/preflight";
 import {
   createPreflightRoute,
-  withParsedContext,
 } from "@/lib/route-handler/factory";
 import {
   createCronRoute,
@@ -124,7 +123,7 @@ export function publicRoute<
   return createPreflightRoute<P, B, Q, null, PipelineCtx<P, B, Q>>(
     {
       preflight: async () => ({ ok: true, context: null }),
-      toHandlerContext: (_unused, parsed) => withParsedContext(parsed),
+      toHandlerContext: (_unused, parsed) => parsed,
       logLabel: "public-route-handler",
       getLogContext: () => ({}),
     },

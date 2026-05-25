@@ -41,12 +41,6 @@ type PreflightDescriptor<TContext> = {
   getLogContext: (context: TContext) => Record<string, unknown>;
 };
 
-export function withParsedContext<P extends Record<string, string>, B, Q>(
-  parsed: PipelineCtx<P, B, Q>,
-): PipelineCtx<P, B, Q> {
-  return parsed;
-}
-
 export function withKeyedParsedContext<
   K extends RouteContextKey,
   TAuthContext,
@@ -60,15 +54,15 @@ export function withKeyedParsedContext<
 ): Record<K, TAuthContext> & PipelineCtx<P, B, Q> {
   return {
     [key]: authContext,
-    ...withParsedContext(parsed),
+    ...parsed,
   } as Record<K, TAuthContext> & PipelineCtx<P, B, Q>;
 }
 
-async function runWithPreflight<TContext, TReturn>(
+async function runWithPreflight<TContext>(
   request: NextRequest,
   descriptor: PreflightDescriptor<TContext>,
-  execute: (context: TContext) => Promise<TReturn>,
-): Promise<Response | TReturn> {
+  execute: (context: TContext) => Promise<Response>,
+): Promise<Response> {
   const preflightResult = await descriptor.preflight(request);
   if (!preflightResult.ok) {
     return preflightResult.error;
@@ -95,7 +89,7 @@ export function createPreflightRoute<
     request: NextRequest,
     segmentData: SegmentData<P>,
   ): Promise<Response> => {
-    return runWithPreflight<Response>(
+    return runWithPreflight(
       request,
       descriptor,
       (context) =>
@@ -117,11 +111,11 @@ export function createPreflightRequestRoute<TContext>(
   options?: RouteOptions,
 ) {
   return async (request: NextRequest): Promise<Response> => {
-    return runWithPreflight<Response>(
+    return runWithPreflight(
       request,
       descriptor,
       (context) =>
-        runRoutePipeline(
+        runRoutePipeline<Record<string, string>, never, never>(
           request,
           undefined,
           options,
