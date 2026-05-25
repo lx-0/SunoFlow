@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { QueueItem } from "@/lib/generation-queue/client";
+export type { QueueItem } from "@/lib/generation-queue/client";
 import {
   addQueueItem,
   fetchQueueItems,
@@ -108,11 +109,12 @@ export function useGenerationQueue() {
       }
 
       // Update local state
-      setItems((prev) =>
-        prev.map((i) =>
-          i.id === data.item.id ? { ...i, ...data.item } : i
-        )
-      );
+      if (data.item) {
+        const item = data.item;
+        setItems((prev) =>
+          prev.map((i) => (i.id === item.id ? { ...i, ...item } : i))
+        );
+      }
 
       return { item: data.item, song: data.song };
     } catch (error) {
