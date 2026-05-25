@@ -3,13 +3,13 @@ import { CacheControl } from "@/lib/cache";
 import { discoverSongs } from "@/lib/discovery";
 import {
   discoverSongsQuerySchema,
-  toDiscoverSongsQuery,
+  normalizeDiscoverSongsQuery,
 } from "@/lib/discovery/request";
 import { anonRoute } from "@/lib/route-handler";
 
 export const GET = anonRoute(
   async (_request, { query }) => {
-    const result = await discoverSongs(toDiscoverSongsQuery(query));
+    const result = await discoverSongs(normalizeDiscoverSongsQuery(query));
 
     return NextResponse.json(result, {
       headers: { "Cache-Control": CacheControl.publicShort },

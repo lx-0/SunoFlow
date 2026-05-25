@@ -8,15 +8,6 @@ import {
   zTrimmedParam,
 } from "@/lib/query-params";
 
-export interface DiscoverSongsQuery {
-  sortBy: "newest" | "highest_rated" | "most_played";
-  tag?: string;
-  mood?: string;
-  tempoMin?: number | null;
-  tempoMax?: number | null;
-  page: number;
-}
-
 export const discoverSongsQuerySchema = z.object({
   page: zPageParam(),
   sortBy: zEnumParam(
@@ -29,17 +20,25 @@ export const discoverSongsQuerySchema = z.object({
   tempoMax: zIntParam,
 });
 
-export type DiscoverSongsQueryInput = z.infer<typeof discoverSongsQuerySchema>;
+export type DiscoverSongsQueryInput = z.input<typeof discoverSongsQuerySchema>;
+export type DiscoverSongsQuery = Omit<
+  z.output<typeof discoverSongsQuerySchema>,
+  "tag" | "mood" | "tempoMin" | "tempoMax"
+> & {
+  tag?: string;
+  mood?: string;
+  tempoMin?: number | null;
+  tempoMax?: number | null;
+};
 
-export function toDiscoverSongsQuery(query: DiscoverSongsQueryInput): DiscoverSongsQuery {
+export function normalizeDiscoverSongsQuery(
+  query: z.output<typeof discoverSongsQuerySchema>,
+): DiscoverSongsQuery {
   return {
-    sortBy: query.sortBy,
-    tag: query.tag,
-    mood: query.mood,
+    ...query,
     tempoMin: query.tempoMin ?? null,
     tempoMax: query.tempoMax ?? null,
-    page: query.page,
-  } as const;
+  };
 }
 
 export const trendingSongsQuerySchema = z.object({
@@ -60,13 +59,6 @@ export const discoverFeedQuerySchema = z.object({
 
 export type DiscoverFeedQueryInput = z.infer<typeof discoverFeedQuerySchema>;
 
-export interface DiscoverPlaylistsQuery {
-  sort: "trending" | "recent" | "popular";
-  genre?: string;
-  page: number;
-  limit: number;
-}
-
 export const discoverPlaylistsQuerySchema = z.object({
   sort: zEnumParam(["trending", "recent", "popular"] as const, "trending"),
   genre: zTrimmedParam,
@@ -74,12 +66,7 @@ export const discoverPlaylistsQuerySchema = z.object({
   limit: zLimitParam(20, 100),
 });
 
-export type DiscoverPlaylistsQueryInput = z.infer<
+export type DiscoverPlaylistsQueryInput = z.input<
   typeof discoverPlaylistsQuerySchema
 >;
-
-export function toDiscoverPlaylistsQuery(
-  query: DiscoverPlaylistsQueryInput,
-): DiscoverPlaylistsQuery {
-  return query;
-}
+export type DiscoverPlaylistsQuery = z.output<typeof discoverPlaylistsQuerySchema>;
