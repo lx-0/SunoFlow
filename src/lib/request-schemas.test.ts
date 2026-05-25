@@ -3,6 +3,7 @@ import { recordPlayRequestSchema } from "@/lib/analytics-data/request";
 import { recordHistoryRequestSchema } from "@/lib/history/request";
 import { mashupRequestSchema } from "@/lib/mashup/request";
 import { createNotificationRequestSchema } from "@/lib/notifications/request";
+import { radioQuerySchema } from "@/lib/radio/request";
 import {
   recommendationsQuerySchema,
   similarRecommendationsQuerySchema,
@@ -16,6 +17,7 @@ import {
   trendingSongsQuerySchema,
 } from "@/lib/discovery/request";
 import { publicSongsQuerySchema, songsQuerySchema } from "@/lib/songs/request";
+import { recommendationQuerySchema } from "@/lib/songs/recommendation-request";
 
 describe("request schemas", () => {
   it("validates analytics play payloads", () => {
@@ -81,6 +83,29 @@ describe("request schemas", () => {
       limit: 2,
     });
     expect(() => similarRecommendationsQuerySchema.parse({ songId: "" })).toThrow();
+    expect(recommendationQuerySchema.parse({ limit: "999" })).toEqual({ limit: 8 });
+  });
+
+  it("normalizes radio query params", () => {
+    expect(
+      radioQuerySchema.parse({
+        mood: " focus ",
+        genre: " electronic ",
+        tempoMin: "120",
+        tempoMax: "bad",
+        excludeIds: "a,b",
+        seedSongId: " seed-1 ",
+        limit: "999",
+      }),
+    ).toEqual({
+      mood: "focus",
+      genre: "electronic",
+      tempoMin: 120,
+      tempoMax: undefined,
+      excludeIds: ["a", "b"],
+      seedSongId: "seed-1",
+      limit: 50,
+    });
   });
 
   it("normalizes songs query params", () => {
