@@ -11,6 +11,7 @@ import { PlayIcon } from "@heroicons/react/24/solid";
 import { useQueue, type RadioParams } from "./QueueContext";
 import { CoverArtImage } from "./CoverArtImage";
 import { AddToPlaylistButton } from "./AddToPlaylistButton";
+import { getCurrentQueueSong, getUpcomingQueueCount } from "@/components/queue/queue-selectors";
 import { formatDuration as formatTime } from "@/lib/time-format";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -67,9 +68,9 @@ export function MoodRadioView() {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [selectedGenre, setSelectedGenre] = useState<string>("");
 
-  const currentSong = currentIndex >= 0 ? queue[currentIndex] : null;
+  const currentSong = getCurrentQueueSong(queue, currentIndex);
   const isRadioActive = radioState !== null;
-  const upcomingCount = Math.max(0, queue.length - currentIndex - 1);
+  const upcomingCount = getUpcomingQueueCount(queue.length, currentIndex);
 
   const handleStartRadio = useCallback(async () => {
     const params: RadioParams = {

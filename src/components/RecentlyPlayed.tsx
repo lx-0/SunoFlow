@@ -4,13 +4,14 @@ import Link from "next/link";
 import { PlayIcon, PauseIcon, MusicalNoteIcon, ClockIcon } from "@heroicons/react/24/solid";
 import Image from "next/image";
 import { useQueue, type QueueSong } from "./QueueContext";
+import { getCurrentQueueSong } from "@/components/queue/queue-selectors";
 import { useRecentlyPlayed, type RecentSong } from "@/hooks/useRecentlyPlayed";
 
 export function RecentlyPlayed() {
   const { data: items = [], isPending: loading } = useRecentlyPlayed(20);
 
   const { queue, currentIndex, isPlaying, togglePlay } = useQueue();
-  const currentSong = currentIndex >= 0 ? queue[currentIndex] : null;
+  const currentSong = getCurrentQueueSong(queue, currentIndex);
 
   if (loading) {
     return (

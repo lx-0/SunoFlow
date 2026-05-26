@@ -12,6 +12,7 @@ import {
 import Image from "next/image";
 import { useQueue, type QueueSong } from "./QueueContext";
 import { useToast } from "./Toast";
+import { getCurrentQueueSong } from "@/components/queue/queue-selectors";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -63,7 +64,7 @@ export function PlayHistoryView() {
 
   const { queue, currentIndex, isPlaying, togglePlay } = useQueue();
   const { toast } = useToast();
-  const currentSong = currentIndex >= 0 ? queue[currentIndex] : null;
+  const currentSong = getCurrentQueueSong(queue, currentIndex);
 
   const fetchHistory = useCallback(async (cursor?: string) => {
     try {

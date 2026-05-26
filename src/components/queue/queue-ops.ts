@@ -1,4 +1,5 @@
 import type { QueueSong } from "@/components/queue/playback-state";
+import { getCurrentQueueSong } from "@/components/queue/queue-selectors";
 
 export function fisherYatesShuffle<T>(arr: T[]): T[] {
   const copy = [...arr];
@@ -41,7 +42,7 @@ export function toggleShuffleQueue(
     return { queue, currentIndex };
   }
 
-  const currentSong = currentIndex >= 0 ? queue[currentIndex] : null;
+  const currentSong = getCurrentQueueSong(queue, currentIndex);
 
   if (nextShuffle) {
     const rest = queue.filter((_, i) => i !== currentIndex);
