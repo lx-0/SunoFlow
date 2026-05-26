@@ -27,17 +27,24 @@ echo "PASS: prisma schema validates"
 
 # 2) Basic migration structure checks.
 missing=0
+invalid_name=0
 while IFS= read -r -d '' dir; do
+  base="$(basename "$dir")"
+  if ! [[ "$base" =~ ^([0-9]{14}|[0-9]{8})_[a-z0-9_]+$ ]]; then
+    echo "FAIL: invalid migration directory name: $base" >&2
+    echo "      expected: <YYYYMMDDHHMMSS|YYYYMMDD>_<lower_snake_case>" >&2
+    invalid_name=1
+  fi
   if [ ! -f "$dir/migration.sql" ]; then
     echo "FAIL: missing migration.sql in $dir" >&2
     missing=1
   fi
 done < <(find "$MIGRATIONS_DIR" -mindepth 1 -maxdepth 1 -type d -print0)
 
-if [ "$missing" -ne 0 ]; then
+if [ "$missing" -ne 0 ] || [ "$invalid_name" -ne 0 ]; then
   exit 1
 fi
-echo "PASS: all migration directories contain migration.sql"
+echo "PASS: migration directory names and migration.sql files are valid"
 
 # 3) Heuristic guardrail for destructive SQL ops.
 # Allow explicit opt-in by placing '-- approved-destructive' in the migration file.

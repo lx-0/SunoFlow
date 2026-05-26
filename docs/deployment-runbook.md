@@ -30,6 +30,7 @@ not auto-deploy — that bypassed the manual approval gate.
 
 The migration safety step fails deploys when:
 - Prisma schema validation fails (`prisma validate`)
+- any migration directory name is invalid (must be `<YYYYMMDDHHMMSS|YYYYMMDD>_<lower_snake_case>`)
 - any migration directory is missing `migration.sql`
 - migration SQL includes destructive operations (`DROP TABLE`, `DROP COLUMN`, `TRUNCATE`, `DELETE FROM`) without an explicit `-- approved-destructive` marker in that migration file
 
