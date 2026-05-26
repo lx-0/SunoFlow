@@ -1,8 +1,8 @@
-import { authRoute, resultResponse } from "@/lib/route-handler";
+import { authDataRoute, resultResponse } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { getUserOrNotFound } from "@/lib/profile/user";
 
-export const GET = authRoute(async (_request, { auth }) => {
+export const GET = authDataRoute(async (_request, { auth }) => {
   const [userResult, totalSongs, totalFavorites, totalPlaylists, totalTemplates] =
     await Promise.all([
       getUserOrNotFound(auth.userId, {
@@ -18,7 +18,7 @@ export const GET = authRoute(async (_request, { auth }) => {
 
   if (!userResult.ok) return resultResponse(userResult);
 
-  return Response.json({
+  return {
     totalSongs,
     totalFavorites,
     totalPlaylists,
@@ -27,5 +27,5 @@ export const GET = authRoute(async (_request, { auth }) => {
     followingCount: userResult.data._count.following,
     memberSince: userResult.data.createdAt,
     lastLoginAt: userResult.data.lastLoginAt,
-  });
+  };
 }, { route: "/api/profile/stats" });

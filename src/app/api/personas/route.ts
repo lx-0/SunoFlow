@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { authRoute, resultResponse } from "@/lib/route-handler";
+import { authDataRoute, authRoute, resultResponse } from "@/lib/route-handler";
 import { listPersonas, createPersona } from "@/lib/personas";
 import { createPersonaRequestSchema } from "@/lib/personas/request";
 
-export const GET = authRoute(async (_request, { auth }) => {
+export const GET = authDataRoute(async (_request, { auth }) => {
   const result = await listPersonas(auth.userId);
   if (!result.ok) return resultResponse(result);
-  return NextResponse.json({ personas: result.data });
+  return { personas: result.data };
 }, { route: "/api/personas" });
 
 export const POST = authRoute(async (_request, { auth, body }) => {
