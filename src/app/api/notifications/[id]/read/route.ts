@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import { authRoute } from "@/lib/route-handler";
+import { authRoute, successResponse } from "@/lib/route-handler";
 import { markRead } from "@/lib/notifications";
 import { notFound } from "@/lib/api-error";
 
@@ -8,5 +7,5 @@ export const PATCH = authRoute<{ id: string }>(async (_request, { auth, params }
 
   if (result.notFound) return notFound();
 
-  return NextResponse.json({ ok: true });
+  return successResponse();
 }, { route: "/api/notifications/[id]/read" });

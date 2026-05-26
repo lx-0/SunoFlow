@@ -1,6 +1,5 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
-import { authRoute, resultResponse } from "@/lib/route-handler";
+import { authRoute, resultResponse, successResponse } from "@/lib/route-handler";
 import { badRequest, notFound } from "@/lib/api-error";
 import { getUserOrNotFound } from "@/lib/profile/user";
 import { prisma } from "@/lib/prisma";
@@ -44,7 +43,7 @@ export const POST = authRoute<Record<string, never>, z.infer<typeof bodySchema>>
     data: { passwordHash },
   });
 
-  return NextResponse.json({ success: true });
+  return successResponse();
 }, {
   route: "/api/profile/password",
   body: bodySchema,

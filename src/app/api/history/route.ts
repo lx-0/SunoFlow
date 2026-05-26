@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authDataRoute, authRoute } from "@/lib/route-handler";
+import { authDataRoute, authRoute, successResponse } from "@/lib/route-handler";
 import { notFound } from "@/lib/api-error";
 import { zCursorPaginationQuery, zTrimmedParam } from "@/lib/query-params";
 import { listPlayHistory, recordPlay, clearHistory } from "@/lib/history";
@@ -34,7 +34,7 @@ export const POST = authRoute(
 export const DELETE = authRoute(
   async (_request, { auth }) => {
     await clearHistory(auth.userId);
-    return NextResponse.json({ success: true });
+    return successResponse();
   },
   { route: "/api/history" },
 );
