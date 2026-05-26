@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
-import { adminRoute } from "@/lib/route-handler";
+import { adminDataRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
+import { SELECT_USER_BRIEF } from "@/lib/prisma-selects";
 import { countActiveUsers } from "@/lib/active-users";
 
-export const GET = adminRoute(async () => {
+export const GET = adminDataRoute(async () => {
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -45,7 +45,7 @@ export const GET = adminRoute(async () => {
         title: true,
         playCount: true,
         imageUrl: true,
-        user: { select: { id: true, name: true, email: true } },
+        user: { select: SELECT_USER_BRIEF },
       },
     }),
   ]);
@@ -82,7 +82,7 @@ export const GET = adminRoute(async () => {
     return acc;
   }, {});
 
-  return NextResponse.json({
+  return {
     totalUsers,
     newUsersToday,
     activeUsers7d,
@@ -107,5 +107,5 @@ export const GET = adminRoute(async () => {
       date: new Date(r.date).toISOString().split("T")[0],
       count: Number(r.count),
     })),
-  });
+  };
 }, { route: "/api/admin/metrics" });

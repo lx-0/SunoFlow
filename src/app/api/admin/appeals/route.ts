@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { NextResponse } from "next/server";
-import { adminRoute } from "@/lib/route-handler";
+import { adminDataRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
-import { DEFAULT_PAGE_SIZE, offsetPagination, pageSkip } from "@/lib/pagination";
+import { DEFAULT_PAGE_SIZE, pageSkip, paginatedQuery } from "@/lib/pagination";
+import { SELECT_USER_BRIEF } from "@/lib/prisma-selects";
 import { zEnumParam, zPageParam } from "@/lib/query-params";
 
 const appealsQuery = z.object({
@@ -10,17 +10,16 @@ const appealsQuery = z.object({
   page: zPageParam(1),
 });
 
-export const GET = adminRoute<Record<string, never>, undefined, z.infer<typeof appealsQuery>>(async (_request, { query }) => {
+export const GET = adminDataRoute<Record<string, never>, undefined, z.infer<typeof appealsQuery>>(async (_request, { query }) => {
   const { status, page } = query;
-  const skip = pageSkip(page, DEFAULT_PAGE_SIZE);
 
   const where = status === "all" ? {} : { status };
 
-  const [appeals, total] = await Promise.all([
-    prisma.appeal.findMany({
+  const { items: appeals, ...pagination } = await paginatedQuery({
+    findMany: () => prisma.appeal.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      skip,
+      skip: pageSkip(page, DEFAULT_PAGE_SIZE),
       take: DEFAULT_PAGE_SIZE,
       include: {
         song: {
@@ -37,16 +36,13 @@ export const GET = adminRoute<Record<string, never>, undefined, z.infer<typeof a
             },
           },
         },
-        user: {
-          select: { id: true, name: true, email: true },
-        },
+        user: { select: SELECT_USER_BRIEF },
       },
     }),
-    prisma.appeal.count({ where }),
-  ]);
-
-  return NextResponse.json({
-    appeals,
-    ...offsetPagination(page, DEFAULT_PAGE_SIZE, total),
+    count: () => prisma.appeal.count({ where }),
+    page,
+    limit: DEFAULT_PAGE_SIZE,
   });
+
+  return { appeals, ...pagination };
 }, { route: "/api/admin/appeals", query: appealsQuery });

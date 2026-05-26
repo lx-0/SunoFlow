@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_PAGE_SIZE, offsetPagination, pageSkip } from "@/lib/pagination";
+import { SELECT_USER_BRIEF } from "@/lib/prisma-selects";
 import { logger } from "@/lib/logger";
 import { logAdminAction } from "@/lib/auth";
 
@@ -114,11 +115,11 @@ export async function listReports({ status, page }: ListReportsInput) {
             audioUrl: true,
             isHidden: true,
             userId: true,
-            user: { select: { id: true, name: true, email: true } },
+            user: { select: SELECT_USER_BRIEF },
           },
         },
         reporter: {
-          select: { id: true, name: true, email: true },
+          select: SELECT_USER_BRIEF,
         },
       },
     }),
