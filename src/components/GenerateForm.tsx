@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { SparklesIcon } from "@heroicons/react/24/solid";
@@ -21,6 +21,7 @@ import {
 } from "./generate-form/api";
 import type { GenerationPreset, PromptSuggestion, PromptTemplate } from "./generate-form/types";
 import { useGenerateFormData } from "./generate-form/useGenerateFormData";
+import { useGenerationCompletionEffects } from "./generate-form/useGenerationCompletionEffects";
 import { GenerationProgress } from "./GenerationProgress";
 import { GenerationQueue } from "./GenerationQueue";
 import { BatchGeneratePanel } from "./BatchGeneratePanel";
@@ -34,7 +35,7 @@ import dynamic from "next/dynamic";
 // Lazy-load confetti — only shown after generation success, not needed on initial render
 const Confetti = dynamic(() => import("./Confetti").then((m) => m.Confetti));
 import { UpgradeModal, shouldShowUpgradeModal } from "./UpgradeModal";
-import { InAppFeedbackWidget, hasFeedbackBeenSubmitted } from "./InAppFeedbackWidget";
+import { InAppFeedbackWidget } from "./InAppFeedbackWidget";
 
 export function GenerateForm() {
   const searchParams = useSearchParams();
@@ -86,56 +87,16 @@ export function GenerateForm() {
     fetchTemplates,
   } = useGenerateFormData({ toast });
 
-  // First-generation confetti celebration
-  const [showConfetti, setShowConfetti] = useState(false);
-  const prevReadyCountRef = useRef(0);
-
-  // Track completed song IDs so we only process next once per completion
-  const processedCompletionsRef = useRef<Set<string>>(new Set());
-
-  // In-app feedback widget after song generation
-  const [feedbackWidget, setFeedbackWidget] = useState<{ songId: string } | null>(null);
-  const feedbackShownRef = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    const readyCount = trackedSongs.filter((s) => s.status === "ready").length;
-    if (readyCount > prevReadyCountRef.current) {
-      // A song just completed — check if this is the user's first ever generation
-      try {
-        if (!localStorage.getItem("sunoflow-first-gen-celebrated")) {
-          setShowConfetti(true);
-          localStorage.setItem("sunoflow-first-gen-celebrated", "true");
-        }
-      } catch {
-        // localStorage unavailable
-      }
-    }
-    prevReadyCountRef.current = readyCount;
-
-    // Auto-process next queue item when a tracked song completes
-    for (const song of trackedSongs) {
-      if (
-        (song.status === "ready" || song.status === "failed") &&
-        !processedCompletionsRef.current.has(song.songId)
-      ) {
-        processedCompletionsRef.current.add(song.songId);
-        onGenerationComplete(song.songId).then((result) => {
-          if (result?.song) {
-            trackSong(result.song.id, result.song.title);
-          }
-        });
-      }
-      // Show feedback widget once per completed song (ready only)
-      if (
-        song.status === "ready" &&
-        !feedbackShownRef.current.has(song.songId) &&
-        !hasFeedbackBeenSubmitted("song_generation", song.songId)
-      ) {
-        feedbackShownRef.current.add(song.songId);
-        setFeedbackWidget({ songId: song.songId });
-      }
-    }
-  }, [trackedSongs, onGenerationComplete, trackSong]);
+  const {
+    showConfetti,
+    setShowConfetti,
+    feedbackWidget,
+    setFeedbackWidget,
+  } = useGenerationCompletionEffects({
+    trackedSongs,
+    onGenerationComplete,
+    trackSong,
+  });
 
   async function handleBoostStyle() {
     if (isBoosting || !style.trim()) return;
