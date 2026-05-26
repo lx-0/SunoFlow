@@ -10,6 +10,34 @@ export function reorderByIndex<T>(items: T[], from: number, to: number): T[] {
   return reordered;
 }
 
+export interface PlaylistSongRef {
+  songId: string;
+}
+
+export function reorderSongsWithIds<T extends PlaylistSongRef>(
+  items: T[],
+  from: number,
+  to: number
+): { reordered: T[]; songIds: string[] } {
+  const reordered = reorderByIndex(items, from, to);
+  return {
+    reordered,
+    songIds: reordered.map((item) => item.songId),
+  };
+}
+
+export async function persistPlaylistReorder(
+  playlistId: string,
+  songIds: string[]
+): Promise<boolean> {
+  const response = await fetch(`/api/playlists/${playlistId}/reorder`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ songIds }),
+  });
+  return response.ok;
+}
+
 export function buildPublicPlaylistUrl(origin: string, slug: string): string {
   return `${origin}/p/${slug}`;
 }
