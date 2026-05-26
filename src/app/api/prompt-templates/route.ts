@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authRoute, resultResponse } from "@/lib/route-handler";
+import { authDataRoute, authRoute, resultResponse } from "@/lib/route-handler";
 import { listTemplates, createTemplate } from "@/lib/prompt-templates";
 import { z } from "zod";
 
@@ -17,7 +17,7 @@ const createTemplateBody = z.object({
   isInstrumental: z.boolean().optional(),
 });
 
-export const GET = authRoute(async (_request, { auth, query }) => {
+export const GET = authDataRoute(async (_request, { auth, query }) => {
   return resultResponse(await listTemplates(auth.userId, query));
 }, { route: "/api/prompt-templates", query: listTemplatesQuery });
 

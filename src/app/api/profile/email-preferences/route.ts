@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { authRoute, resultResponse } from "@/lib/route-handler";
+import { authDataRoute, authRoute, resultResponse } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import {
@@ -22,12 +22,12 @@ const updateEmailPreferencesSchema = z.object({
   { message: "No fields to update" },
 );
 
-export const GET = authRoute(async (_request, { auth }) => {
+export const GET = authDataRoute(async (_request, { auth }) => {
   const userResult = await getUserOrNotFound(auth.userId, EMAIL_PREFERENCES_SELECT);
 
   if (!userResult.ok) return resultResponse(userResult);
 
-  return Response.json(toEmailPreferencesResponse(userResult.data));
+  return toEmailPreferencesResponse(userResult.data);
 }, { route: "/api/profile/email-preferences" });
 
 export const PATCH = authRoute(async (_request, { auth, body }) => {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { authRoute } from "@/lib/route-handler";
+import { authDataRoute } from "@/lib/route-handler";
 import { CacheControl } from "@/lib/cache";
 import { listFavorites } from "@/lib/songs";
 import {
@@ -21,20 +21,17 @@ const favoritesQuery = z.object({
   cursor: zCursorParam,
 });
 
-export const GET = authRoute(
-  async (_request, { auth, query }) => {
-    const result = await listFavorites({
-      userId: auth.userId,
-      search: query.q,
-      status: query.status,
-      sortBy: query.sortBy,
-      limit: query.limit,
-      cursor: query.cursor,
-    });
+export const GET = authDataRoute(async (_request, { auth, query }) => {
+  const result = await listFavorites({
+    userId: auth.userId,
+    search: query.q,
+    status: query.status,
+    sortBy: query.sortBy,
+    limit: query.limit,
+    cursor: query.cursor,
+  });
 
-    return NextResponse.json(result, {
-      headers: { "Cache-Control": CacheControl.privateNoCache },
-    });
-  },
-  { route: "/api/songs/favorites", query: favoritesQuery },
-);
+  return NextResponse.json(result, {
+    headers: { "Cache-Control": CacheControl.privateNoCache },
+  });
+}, { route: "/api/songs/favorites", query: favoritesQuery });

@@ -1,4 +1,4 @@
-import { authRoute, resultResponse } from "@/lib/route-handler";
+import { authDataRoute, authRoute, resultResponse } from "@/lib/route-handler";
 import { getProfile, updateProfile, deleteAccount } from "@/lib/profile";
 import { z } from "zod";
 
@@ -16,7 +16,7 @@ const deleteAccountBody = z.object({
   confirmEmail: z.string(),
 });
 
-export const GET = authRoute(async (_request, { auth }) => {
+export const GET = authDataRoute(async (_request, { auth }) => {
   return resultResponse(await getProfile(auth.userId));
 }, { route: "/api/profile" });
 
