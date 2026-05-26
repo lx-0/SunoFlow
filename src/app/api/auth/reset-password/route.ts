@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { publicRoute } from "@/lib/route-handler";
 import { badRequest } from "@/lib/api-error";
 import { clearPasswordResetTokenData } from "@/lib/auth/tokens";
+import { hashPassword } from "@/lib/auth/password";
 
 const resetPasswordBody = z.object({
   token: z.string().trim().min(1, "Token is required"),
@@ -26,7 +26,7 @@ export const POST = publicRoute<Record<string, never>, z.infer<typeof resetPassw
       return badRequest("Invalid or expired reset token");
     }
 
-    const passwordHash = await bcrypt.hash(password, 12);
+    const passwordHash = await hashPassword(password);
 
     await prisma.user.update({
       where: { id: user.id },
