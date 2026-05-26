@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface TimestampedComment {
   id: string;
@@ -102,8 +102,14 @@ export function usePlayerComments({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTime, isPlaying]);
 
+  const resetPlayback = useCallback(() => {
+    shownCommentIdsRef.current = new Set();
+    setActiveCommentPopups([]);
+  }, []);
+
   return {
     timedComments,
     activeCommentPopups,
+    resetPlayback,
   };
 }

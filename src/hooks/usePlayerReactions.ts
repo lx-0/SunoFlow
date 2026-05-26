@@ -136,11 +136,17 @@ export function usePlayerReactions({
     [songId, currentTime, duration, userId, userName, toast],
   );
 
+  const resetPlayback = useCallback(() => {
+    shownReactionIdsRef.current = new Set();
+    setActivePopups([]);
+  }, []);
+
   return {
     reactions,
     activePopups,
     showReactions,
     setShowReactions,
     handleReact,
+    resetPlayback,
   };
 }

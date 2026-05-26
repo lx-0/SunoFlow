@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { PlayIcon, PauseIcon, MusicalNoteIcon, FlagIcon, SparklesIcon, SpeakerWaveIcon, SpeakerXMarkIcon, CodeBracketIcon, HeartIcon } from "@heroicons/react/24/solid";
 import { ChatBubbleLeftIcon, HeartIcon as HeartOutlineIcon } from "@heroicons/react/24/outline";
+import { useSession } from "next-auth/react";
 import { FollowButton } from "@/components/FollowButton";
 import { track } from "@/lib/analytics";
 import { RelatedSongs } from "@/components/RelatedSongs";
@@ -15,25 +16,15 @@ import { EmojiReactionPicker } from "@/components/EmojiReactionPicker";
 import { ReactionTimeline } from "@/components/ReactionTimeline";
 import { PlayerWaveform } from "@/components/PlayerWaveform";
 import { formatDuration as formatTime } from "@/lib/time-format";
-import { useAudioPlayback } from "./use-audio-playback";
-import { useVariantSwitcher } from "./use-variant-switcher";
-import { useFavoriteSong } from "./use-favorite-song";
-import { useEmbedCode } from "./use-embed-code";
-import { useReactionPopups } from "./use-reaction-popups";
-import { useCommentPopups } from "./use-comment-popups";
-import { useState } from "react";
+import { useAudioElementPlayer } from "@/hooks/useAudioElementPlayer";
+import { usePlayerReactions } from "@/hooks/usePlayerReactions";
+import { usePlayerComments } from "@/hooks/usePlayerComments";
+import { usePlayerFavorite } from "@/hooks/usePlayerFavorite";
+import { usePublicSongEmbed } from "@/hooks/usePublicSongEmbed";
+import { usePublicSongVariants, type SerializedPublicVariant } from "@/hooks/usePublicSongVariants";
+import { useToast } from "@/components/Toast";
 
-
-export interface SerializedPublicVariant {
-  id: string;
-  title: string | null;
-  audioUrl: string | null;
-  imageUrl: string | null;
-  duration: number | null;
-  tags: string | null;
-  publicSlug: string | null;
-  createdAt: string;
-}
+export type { SerializedPublicVariant };
 
 interface PublicSongViewProps {
   songId: string;
@@ -72,22 +63,69 @@ export function PublicSongView({
   variants = [],
 }: PublicSongViewProps) {
   const signupReturnUrl = returnUrl ?? `/s/${slug}`;
-  const [reportOpen, setReportOpen] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { data: session } = useSession();
+  const { toast } = useToast();
 
-  const audio = useAudioPlayback(duration);
-  const variant = useVariantSwitcher({ songId, title, imageUrl, audioUrl, tags });
-  const { session, isFavorite, handleToggleFavorite } = useFavoriteSong(songId);
-  const embed = useEmbedCode(songId, title);
-  const reactionPopups = useReactionPopups(songId, audio.currentTime, audio.audioDuration, audio.isPlaying);
-  const commentPopups = useCommentPopups(songId, audio.currentTime, audio.audioDuration, audio.isPlaying);
+  const player = useAudioElementPlayer({ initialDuration: duration ?? 0 });
+  const { state: playerState, actions: playerActions } = player;
 
+  const {
+    activeSongId, activeTitle, activeImageUrl, activeAudioUrl, activeTags,
+    handleVariantSwitch,
+  } = usePublicSongVariants({
+    songId, title, imageUrl, audioUrl, duration, tags,
+    onBeforeSwitch: () => {
+      audioRef.current?.pause();
+      playerActions.setIsPlaying(false);
+      playerActions.setCurrentTime(0);
+      playerActions.setHasError(false);
+      playerActions.setIsBuffering(false);
+    },
+  });
+
+  const resolvedAudioUrl = activeSongId ? `/api/audio/public/${activeSongId}` : activeAudioUrl;
   const showVariants = variants.length > 1;
 
+  const { isFavorite, handleToggleFavorite } = usePlayerFavorite({
+    songId,
+    isAuthenticated: !!session?.user,
+    usePublicEndpoint: true,
+  });
+
+  const {
+    reactions, activePopups, handleReact, resetPlayback: resetReactionPlayback,
+  } = usePlayerReactions({
+    songId: activeSongId,
+    currentTime: playerState.currentTime,
+    duration: playerState.duration,
+    isPlaying: playerState.isPlaying,
+    userId: session?.user?.id,
+    userName: session?.user?.name,
+    toast,
+  });
+
+  const {
+    timedComments, activeCommentPopups, resetPlayback: resetCommentPlayback,
+  } = usePlayerComments({
+    songId: activeSongId,
+    currentTime: playerState.currentTime,
+    duration: playerState.duration,
+    isPlaying: playerState.isPlaying,
+  });
+
+  const {
+    embedOpen, setEmbedOpen, embedTheme, setEmbedTheme,
+    embedWidth, setEmbedWidth, embedCopied, getEmbedCode, handleCopyEmbed,
+  } = usePublicSongEmbed({ songId, title });
+
+  const [reportOpen, setReportOpen] = useState(false);
+
   useEffect(() => {
-    if (audio.audioRef.current && variant.activeAudioUrl) {
-      audio.audioRef.current.load();
+    if (audioRef.current && activeAudioUrl) {
+      audioRef.current.load();
     }
-  }, [variant.activeAudioUrl, audio.audioRef]);
+  }, [activeAudioUrl]);
 
   useEffect(() => {
     track("public_song_viewed", { songId, slug });
@@ -98,13 +136,30 @@ export function PublicSongView({
     }).catch(() => {});
   }, [songId, slug]);
 
-  function handleVariantSwitch(v: SerializedPublicVariant) {
-    variant.handleVariantSwitch(v, () => {
-      audio.resetPlayback();
-      audio.setAudioDuration(v.duration ?? 0);
-      reactionPopups.resetReactions();
-      commentPopups.resetComments();
-    });
+  const handleEnded = useCallback(() => {
+    playerActions.onEnded();
+    resetReactionPlayback();
+    resetCommentPlayback();
+  }, [playerActions, resetReactionPlayback, resetCommentPlayback]);
+
+  function handleTogglePlay() {
+    if (!audioRef.current) return;
+    if (playerState.isPlaying) {
+      audioRef.current.pause();
+    } else {
+      playerActions.startLoad();
+      audioRef.current.play().catch((err) => {
+        playerActions.onError();
+        Sentry.captureException(err, {
+          tags: { component: "PublicSongView", songId: activeSongId },
+          extra: { audioUrl: resolvedAudioUrl },
+        });
+      });
+    }
+  }
+
+  function handleSeek(pct: number) {
+    playerActions.seek(audioRef.current, pct);
   }
 
   return (
@@ -193,24 +248,24 @@ export function PublicSongView({
           {/* Play button */}
           <div className="flex flex-col items-center gap-1.5">
             <button
-              onClick={() => audio.handleTogglePlay(variant.activeSongId, variant.resolvedAudioUrl)}
-              disabled={audio.isBuffering}
+              onClick={handleTogglePlay}
+              disabled={playerState.isBuffering}
               className="w-14 h-14 rounded-full bg-violet-600 hover:bg-violet-500 disabled:opacity-70 text-white flex items-center justify-center transition-colors"
-              aria-label={audio.isBuffering ? "Loading" : audio.isPlaying ? "Pause" : "Play"}
+              aria-label={playerState.isBuffering ? "Loading" : playerState.isPlaying ? "Pause" : "Play"}
             >
-              {audio.isBuffering ? (
+              {playerState.isBuffering ? (
                 <svg className="w-7 h-7 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-25" />
                   <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
                 </svg>
-              ) : audio.isPlaying ? (
+              ) : playerState.isPlaying ? (
                 <PauseIcon className="w-7 h-7" />
               ) : (
                 <PlayIcon className="w-7 h-7 ml-0.5" />
               )}
             </button>
-            {audio.audioError && (
-              <p className="text-xs text-red-500 dark:text-red-400 text-center max-w-[200px]">{audio.audioError}</p>
+            {playerState.hasError && (
+              <p className="text-xs text-red-500 dark:text-red-400 text-center max-w-[200px]">Could not load audio</p>
             )}
           </div>
 
@@ -257,35 +312,35 @@ export function PublicSongView({
             <div className="relative h-14 bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden px-2 pt-1 pb-0.5">
               <PlayerWaveform
                 songId={songId}
-                currentTime={audio.currentTime}
-                duration={audio.audioDuration}
-                isBuffering={audio.isBuffering}
-                onSeek={audio.handleSeek}
-                reactionTimestamps={reactionPopups.reactions.map((r) => r.timestamp)}
-                commentTimestamps={commentPopups.timedComments.map((c) => c.timestamp)}
+                currentTime={playerState.currentTime}
+                duration={playerState.duration}
+                isBuffering={playerState.isBuffering}
+                onSeek={handleSeek}
+                reactionTimestamps={reactions.map((r) => r.timestamp)}
+                commentTimestamps={timedComments.map((c) => c.timestamp)}
               />
-              {reactionPopups.reactions.length > 0 && audio.audioDuration > 0 && (
+              {reactions.length > 0 && playerState.duration > 0 && (
                 <div className="absolute inset-x-2 top-0 bottom-0 pointer-events-none">
                   <div className="pointer-events-auto">
-                    <ReactionTimeline reactions={reactionPopups.reactions} duration={audio.audioDuration} />
+                    <ReactionTimeline reactions={reactions} duration={playerState.duration} />
                   </div>
                 </div>
               )}
             </div>
             <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-              <span>{formatTime(audio.currentTime)}</span>
-              <span>{formatTime(audio.audioDuration)}</span>
+              <span>{formatTime(playerState.currentTime)}</span>
+              <span>{formatTime(playerState.duration)}</span>
             </div>
           </div>
 
           {/* Volume control */}
           <div className="flex items-center gap-2">
             <button
-              onClick={audio.handleToggleMute}
+              onClick={() => playerActions.toggleMute(audioRef.current)}
               className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors flex-shrink-0"
-              aria-label={audio.muted ? "Unmute" : "Mute"}
+              aria-label={playerState.muted ? "Unmute" : "Mute"}
             >
-              {audio.muted || audio.volume === 0 ? (
+              {playerState.muted || playerState.volume === 0 ? (
                 <SpeakerXMarkIcon className="w-4 h-4" aria-hidden="true" />
               ) : (
                 <SpeakerWaveIcon className="w-4 h-4" aria-hidden="true" />
@@ -296,8 +351,8 @@ export function PublicSongView({
               min={0}
               max={1}
               step={0.05}
-              value={audio.muted ? 0 : audio.volume}
-              onChange={(e) => audio.handleVolumeChange(parseFloat(e.target.value))}
+              value={playerState.muted ? 0 : playerState.volume}
+              onChange={(e) => playerActions.changeVolume(audioRef.current, parseFloat(e.target.value))}
               className="flex-1 h-1.5 accent-violet-500 cursor-pointer"
               aria-label="Volume"
             />
@@ -307,13 +362,13 @@ export function PublicSongView({
           <div className="flex justify-center">
             {session?.user ? (
               <EmojiReactionPicker
-                isPlaying={audio.isPlaying}
+                isPlaying={playerState.isPlaying}
                 isAuthenticated={true}
                 onReact={reactionPopups.handleReact}
                 reactionEmojis={reactionPopups.reactions.map((r) => r.emoji)}
               />
             ) : (
-              audio.isPlaying && (
+              playerState.isPlaying && (
                 <p className="text-xs text-gray-400 dark:text-gray-500">
                   <Link href="/auth/signin" className="underline hover:text-violet-500 transition-colors">
                     Log in
@@ -328,12 +383,21 @@ export function PublicSongView({
             ref={audio.audioRef}
             src={variant.resolvedAudioUrl ?? undefined}
             preload="metadata"
-            onPlay={audio.onPlay}
-            onPause={audio.onPause}
-            onEnded={() => {
-              audio.onEnded();
-              reactionPopups.resetReactions();
-              commentPopups.resetComments();
+            onPlay={playerActions.onPlay}
+            onPause={playerActions.onPause}
+            onEnded={handleEnded}
+            onTimeUpdate={() => playerActions.syncCurrentTime(audioRef.current)}
+            onDurationChange={() => playerActions.syncDuration(audioRef.current)}
+            onWaiting={playerActions.onWaiting}
+            onCanPlay={playerActions.onCanPlay}
+            onError={() => {
+              playerActions.onError();
+              const code = audioRef.current?.error?.code;
+              Sentry.captureMessage(`Audio load error on public song`, {
+                level: "error",
+                tags: { component: "PublicSongView", songId: activeSongId, errorCode: String(code ?? "unknown") },
+                extra: { audioUrl: resolvedAudioUrl },
+              });
             }}
             onTimeUpdate={audio.onTimeUpdate}
             onDurationChange={audio.onDurationChange}
@@ -578,11 +642,11 @@ export function PublicSongView({
         <CommentsSection
           songId={songId}
           songOwnerId={songOwnerId ?? undefined}
-          currentTime={audio.currentTime}
-          duration={audio.audioDuration}
+          currentTime={playerState.currentTime}
+          duration={playerState.duration}
           onSeek={(seconds) => {
-            if (audio.audioRef.current && audio.audioDuration > 0) {
-              audio.audioRef.current.currentTime = seconds;
+            if (audioRef.current && playerState.duration > 0) {
+              audioRef.current.currentTime = seconds;
             }
           }}
         />
