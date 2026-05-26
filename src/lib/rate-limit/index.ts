@@ -1,6 +1,5 @@
 export {
   getRateLimitStatus,
-  checkRateLimit,
   releaseRateLimitSlot,
   hashRateLimitKey,
   acquireAnonRateLimitSlot,
