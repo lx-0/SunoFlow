@@ -57,7 +57,7 @@ describe("runSunoUserRoute", () => {
   });
 
   it("returns key validation error when user key is missing", async () => {
-    vi.mocked(resolveUserApiKey).mockResolvedValue(null);
+    vi.mocked(resolveUserApiKey).mockResolvedValue(undefined);
 
     const res = await runSunoUserRoute(
       "user-1",
