@@ -1,5 +1,19 @@
 import { z } from "zod";
 
+export const createPlaylistBody = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required")
+    .max(100, "Name must be 100 characters or less"),
+  description: z
+    .string()
+    .max(1000, "Description must be 1000 characters or less")
+    .optional(),
+});
+
+export type CreatePlaylistBody = z.infer<typeof createPlaylistBody>;
+
 export const updatePlaylistBody = z
   .object({
     name: z.string().trim().min(1).max(100).optional(),

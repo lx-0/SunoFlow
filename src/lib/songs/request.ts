@@ -53,6 +53,18 @@ export const songsQuerySchema = z
     moods: mood,
   }));
 
+export const generationsQuerySchema = z.object({
+  status: zTrimmedParam,
+  source: zTrimmedParam,
+  q: zTrimmedParam,
+  dateFrom: zTrimmedParam,
+  dateTo: zTrimmedParam,
+  sortBy: zEnumParam(["newest", "oldest"] as const, "newest"),
+  cursor: zTrimmedParam,
+});
+
+export type GenerationsQuery = z.infer<typeof generationsQuerySchema>;
+
 export const publicSongsQuerySchema = z.object({
   q: zTrimmedParam,
   genre: zTrimmedParam,

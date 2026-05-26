@@ -1,20 +1,6 @@
 import { authDataRoute, authRoute, resultResponse } from "@/lib/route-handler";
 import { getProfile, updateProfile, deleteAccount } from "@/lib/profile";
-import { z } from "zod";
-
-const updateProfileBody = z.object({
-  name: z.string().optional(),
-  bio: z.string().nullable().optional(),
-  avatarUrl: z.string().nullable().optional(),
-  username: z.string().nullable().optional(),
-  bannerUrl: z.string().nullable().optional(),
-  featuredSongId: z.string().nullable().optional(),
-});
-
-const deleteAccountBody = z.object({
-  password: z.string(),
-  confirmEmail: z.string(),
-});
+import { updateProfileBody, deleteAccountBody } from "@/lib/profile/request";
 
 export const GET = authDataRoute(async (_request, { auth }) => {
   return resultResponse(await getProfile(auth.userId));
