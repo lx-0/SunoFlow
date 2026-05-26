@@ -1,12 +1,22 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { Song } from "@prisma/client";
-import { useRouter } from "next/navigation";
 import { downloadSongFile } from "@/lib/download";
 import { songToQueueSong } from "@/lib/song-mappers";
-import { useToast } from "@/components/Toast";
-import { useQueue, type QueueSong } from "@/components/QueueContext";
+import type { QueueSong } from "@/components/QueueContext";
+import { runSongsBatchAction } from "@/lib/songs/library-client";
+import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
+
+interface UseLibrarySongActionsOptions {
+  songs: Song[];
+  setSongs: React.Dispatch<React.SetStateAction<Song[]>>;
+  currentSongId: string | null;
+  togglePlay: (song: QueueSong) => void;
+  playQueue: (songs: QueueSong[], startIndex: number) => void;
+  seek: (pct: number) => void;
+  toast: (message: string, variant?: "success" | "error" | "info") => void;
+}
 
 function toDownloadable(song: Song) {
   return {
@@ -17,32 +27,35 @@ function toDownloadable(song: Song) {
   };
 }
 
-export function useLibrarySongActions(
-  songs: Song[],
-  setSongs: React.Dispatch<React.SetStateAction<Song[]>>
-) {
-  const { toast } = useToast();
-  const router = useRouter();
-  const {
-    queue,
-    currentIndex,
-    isPlaying,
-    currentTime,
-    duration: audioDuration,
-    togglePlay,
-    playQueue,
-    seek,
-  } = useQueue();
-
-  const currentSongId = currentIndex >= 0 ? queue[currentIndex]?.id ?? null : null;
-
+export function useLibrarySongActions({
+  songs,
+  setSongs,
+  currentSongId,
+  togglePlay,
+  playQueue,
+  seek,
+  toast,
+}: UseLibrarySongActionsOptions) {
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
   const [downloadErrors, setDownloadErrors] = useState<Record<string, string>>({});
   const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [pendingMenuDelete, setPendingMenuDelete] = useState<{ song: Song } | null>(null);
+  const [menuDeleteLoading, setMenuDeleteLoading] = useState(false);
 
-  const handleSongUpdate = useCallback((updated: Song) => {
-    setSongs((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
-  }, [setSongs]);
+  const pendingDeleteDialogRef = useRef<HTMLDivElement>(null);
+
+  useDialogFocusTrap(
+    pendingDeleteDialogRef,
+    Boolean(pendingMenuDelete),
+    () => setPendingMenuDelete(null)
+  );
+
+  const handleSongUpdate = useCallback(
+    (updated: Song) => {
+      setSongs((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+    },
+    [setSongs]
+  );
 
   async function handleTogglePlay(song: Song) {
     if (currentSongId === song.id) {
@@ -165,11 +178,57 @@ export function useLibrarySongActions(
         handleSongUpdate(data.song);
       }
       toast("Retry started! Song is regenerating.", "success");
-      router.refresh();
     } catch {
       toast("Network error. Please check your connection.", "error");
     } finally {
       setRetryingId(null);
+    }
+  }
+
+  async function handleSingleSongAction(song: Song, action: "delete" | "restore" | "permanent_delete") {
+    if (action === "permanent_delete") {
+      setPendingMenuDelete({ song });
+      return;
+    }
+
+    try {
+      const result = await runSongsBatchAction({ action, songIds: [song.id] });
+      if (!result.ok) {
+        toast(result.error, "error");
+        return;
+      }
+      if (action === "delete") {
+        setSongs((prev) => prev.filter((s) => s.id !== song.id));
+        toast(`"${song.title ?? "Song"}" moved to archive`, "success");
+      } else if (action === "restore") {
+        setSongs((prev) => prev.filter((s) => s.id !== song.id));
+        toast(`"${song.title ?? "Song"}" restored`, "success");
+      }
+    } catch {
+      toast("Action failed", "error");
+    }
+  }
+
+  async function executePendingMenuDelete() {
+    if (!pendingMenuDelete) return;
+    const { song } = pendingMenuDelete;
+    setMenuDeleteLoading(true);
+    try {
+      const result = await runSongsBatchAction({
+        action: "permanent_delete",
+        songIds: [song.id],
+      });
+      if (!result.ok) {
+        toast(result.error || "Delete failed", "error");
+        return;
+      }
+      setSongs((prev) => prev.filter((s) => s.id !== song.id));
+      toast(`"${song.title ?? "Song"}" permanently deleted`, "success");
+      setPendingMenuDelete(null);
+    } catch {
+      toast("Delete failed", "error");
+    } finally {
+      setMenuDeleteLoading(false);
     }
   }
 
@@ -183,19 +242,21 @@ export function useLibrarySongActions(
   }
 
   return {
-    currentSongId,
-    isPlaying,
-    currentTime,
-    audioDuration,
     downloadProgress,
     downloadErrors,
     retryingId,
+    pendingMenuDelete,
+    setPendingMenuDelete,
+    menuDeleteLoading,
+    pendingDeleteDialogRef,
     handleSongUpdate,
     handleTogglePlay,
     handleDownload,
     handleSeek,
     handleToggleFavorite,
     handleRetry,
+    handleSingleSongAction,
+    executePendingMenuDelete,
     handlePlayAll,
   };
 }

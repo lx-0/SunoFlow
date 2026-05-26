@@ -12,6 +12,9 @@ import {
 } from "@heroicons/react/24/solid";
 import { PlayIcon as PlayOutlineIcon } from "@heroicons/react/24/outline";
 import type { Song } from "@prisma/client";
+import type { AudioFormat } from "@/lib/export";
+import { useToast } from "./Toast";
+import { useQueue } from "./QueueContext";
 import { RecentlyPlayed } from "./RecentlyPlayed";
 import { LowCreditsBanner } from "./LowCreditsBanner";
 import { useOfflineCache } from "@/hooks/useOfflineCache";
@@ -22,14 +25,12 @@ import { useLibraryPullToRefresh } from "@/hooks/useLibraryPullToRefresh";
 import { useLibraryFilterState } from "@/hooks/useLibraryFilterState";
 import { useSongsList, type SongsFilters } from "@/hooks/useSongsList";
 import { useTagsList } from "@/hooks/useTagsList";
-import { useLibrarySongActions } from "@/hooks/useLibrarySongActions";
-import { useLibraryBatchActions } from "@/hooks/useLibraryBatchActions";
-import { useLibraryExport } from "@/hooks/useLibraryExport";
 import { SongGridCard } from "./library/song-grid-card";
 import { SwipableSongRow } from "./library/swipable-song-row";
-import { LibraryBatchActionBar } from "./library/batch-action-bar";
-import { LibraryDeleteDialogs } from "./library/delete-dialogs";
-import { useLibrarySelection, useLibraryKeyboardNav } from "./library/hooks";
+import { useLibrarySelection } from "@/hooks/useLibrarySelection";
+import { useLibraryBatchOps } from "@/hooks/useLibraryBatchOps";
+import { useLibrarySongActions } from "@/hooks/useLibrarySongActions";
+import { useLibraryExport } from "@/hooks/useLibraryExport";
 
 interface LibraryViewProps {
   initialSongs: Song[];
@@ -105,29 +106,141 @@ export function LibraryView({
   const { cachedIds, stats: offlineStats, saving: offlineSaving, saveOffline, removeOffline, clearAll: clearOffline } = useOfflineCache();
   const isOnline = useOnlineStatus();
 
-  // ─── Selection state ─────────────────────────────────────────────────────
   const isArchiveView = smartFilter === "archived";
   const songIds = useMemo(() => songs.map((s) => s.id), [songs]);
   const { selectedSongIds, setSelectedSongIds, selectionMode, handleToggleSelect, handleSelectAll, clearSelection } = useLibrarySelection(songIds);
 
-  // ─── Action hooks ────────────────────────────────────────────────────────
-  const songActions = useLibrarySongActions(songs, setSongs);
-  const batchActions = useLibraryBatchActions({
+  // ─── Extracted hooks ──────────────────────────────────────────────────────
+  const {
+    selectedSongIds,
+    setSelectedSongIds,
+    showDeleteConfirm,
+    setShowDeleteConfirm,
+    batchLoading,
+    selectionMode,
+    batchDeleteDialogRef,
+    handleToggleSelect,
+    handleSelectAll,
+    clearSelection,
+    handleBatchAction,
+    executeBatchAction,
+  } = useLibrarySelection({ songs, setSongs, toast });
+
+  const {
+    downloadProgress,
+    downloadErrors,
+    retryingId,
+    pendingMenuDelete,
+    setPendingMenuDelete,
+    menuDeleteLoading,
+    pendingDeleteDialogRef,
+    handleSongUpdate,
+    handleTogglePlay,
+    handleDownload,
+    handleSeek,
+    handleToggleFavorite,
+    handleRetry,
+    handleSingleSongAction,
+    executePendingMenuDelete,
+    handlePlayAll,
+  } = useLibrarySongActions({
     songs,
     setSongs,
+    currentSongId,
+    togglePlay,
+    playQueue,
+    seek,
+    toast,
+  });
+
+  const {
+    exportMenuOpen,
+    setExportMenuOpen,
+    exporting,
+    exportProgress,
+    exportMenuRef,
+    handleExportZip,
+    handleExportM3U,
+  } = useLibraryExport({ songs, toast });
+
+  const {
+    showBatchTagMenu,
+    setShowBatchTagMenu,
+    showBatchPlaylistMenu,
+    batchTagLoading,
+    batchPlaylistLoading,
+    batchPlaylists,
+    batchDownloading,
+    batchDownloadProgress,
+    showBatchDownloadFormatMenu,
+    setShowBatchDownloadFormatMenu,
+    batchDownloadFormat,
+    setBatchDownloadFormat,
+    batchTagMenuRef,
+    batchPlaylistMenuRef,
+    batchDownloadFormatMenuRef,
+    handleBatchTag,
+    handleBatchAddToPlaylist,
+    openBatchPlaylistMenu,
+    handleBatchDownload,
+  } = useLibraryBatchOps({
+    songs,
     selectedSongIds,
     clearSelection,
-    isArchiveView,
+    toast,
+    onRefresh: () => router.refresh(),
   });
-  const exportActions = useLibraryExport(songs);
 
-  // ─── Tags ────────────────────────────────────────────────────────────────
+  // ─── Arrow-key navigation for song list ──────────────────────────────────
+  const songListRef = useRef<HTMLDivElement>(null);
+  const handleSongListKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const list = songListRef.current;
+      if (!list) return;
+      const items = Array.from(list.querySelectorAll<HTMLElement>('[role="option"]'));
+      if (items.length === 0) return;
+      const currentIdx = items.findIndex((el) => el.contains(document.activeElement) || el === document.activeElement);
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const next = currentIdx < items.length - 1 ? currentIdx + 1 : 0;
+        items[next].focus();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const prev = currentIdx > 0 ? currentIdx - 1 : items.length - 1;
+        items[prev].focus();
+      } else if (e.key === "Enter" && currentIdx >= 0) {
+        const song = songs[currentIdx];
+        if (song) {
+          e.preventDefault();
+          handleTogglePlay(song);
+        }
+      } else if (e.key === "f" && currentIdx >= 0) {
+        const song = songs[currentIdx];
+        if (song) {
+          e.preventDefault();
+          handleToggleFavorite(song);
+        }
+      } else if (e.key === "Delete" && currentIdx >= 0) {
+        const song = songs[currentIdx];
+        if (song) {
+          e.preventDefault();
+          setSelectedSongIds(new Set([song.id]));
+          setShowDeleteConfirm(true);
+        }
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [songs]
+  );
+
+  // ─── Fetch user tags for filter ───────────────────────────────────────────
   const tagsQuery = useTagsList();
   useEffect(() => {
     if (tagsQuery.data) setAvailableTags(tagsQuery.data);
   }, [tagsQuery.data]);
 
-  // ─── Songs query ─────────────────────────────────────────────────────────
+  // ─── Songs query (filter change, load-more, refresh, pending-poll) ───────
   const songsFilters: SongsFilters = useMemo(() => ({
     q: debouncedSearch || undefined,
     status: statusFilter || undefined,
@@ -172,18 +285,9 @@ export function LibraryView({
     songsQuery.fetchNextPage();
   }, [songsQuery]);
 
-  // ─── Keyboard navigation ────────────────────────────────────────────────
-  const { songListRef, handleSongListKeyDown } = useLibraryKeyboardNav({
-    songs,
-    onTogglePlay: songActions.handleTogglePlay,
-    onToggleFavorite: songActions.handleToggleFavorite,
-    onDeleteSong: (song) => {
-      setSelectedSongIds(new Set([song.id]));
-      batchActions.setShowDeleteConfirm(true);
-    },
-  });
+  const hasPlayableSongs = songs.some((s) => s.audioUrl && s.generationStatus === "ready");
 
-  // ─── Virtualizer ────────────────────────────────────────────────────────
+  // ─── Virtualizer for list view ───────────────────────────────────────────
   const listScrollMarginRef = useRef(0);
   useLayoutEffect(() => {
     listScrollMarginRef.current = songListRef.current?.offsetTop ?? 0;
