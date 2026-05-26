@@ -45,6 +45,60 @@ export type ListReportsInput = {
   page: number;
 };
 
+type ReportWithSong = {
+  id: string;
+  songId: string | null;
+  song: { id: string; userId: string } | null;
+};
+
+type ActionContext = {
+  adminId: string;
+  action: ModerationAction;
+  report: ReportWithSong;
+  bulk: boolean;
+};
+
+const INVALID_SONG_TARGET = { error: "INVALID_TARGET", message: "This report is not for a song" } as const;
+
+async function executeAction({ adminId, action, report, bulk }: ActionContext) {
+  if (action === "hide_song") {
+    if (!report.songId || !report.song) return INVALID_SONG_TARGET;
+    await prisma.song.update({
+      where: { id: report.songId },
+      data: { isHidden: true, isPublic: false },
+    });
+    await logAdminAction(adminId, "hide_song", report.songId, `${bulk ? "Bulk hide" : "Hidden song"} via report ${report.id}`);
+    return null;
+  }
+
+  if (action === "delete_song") {
+    if (!report.songId) return INVALID_SONG_TARGET;
+    await prisma.song.delete({ where: { id: report.songId } });
+    await logAdminAction(adminId, "delete_song", report.songId, `${bulk ? "Bulk delete" : "Deleted song"} via report ${report.id}`);
+    return null;
+  }
+
+  if (action === "warn_user") {
+    if (!report.song) return INVALID_SONG_TARGET;
+    logger.info(
+      { userId: report.song.userId, songId: report.songId, reportId: report.id },
+      `moderation: ${bulk ? "bulk warning issued" : "warning issued to user"}`
+    );
+    await logAdminAction(
+      adminId,
+      "warn_user",
+      report.song.userId,
+      `${bulk ? "Bulk warn" : "Warned user"} via report ${report.id}${bulk ? "" : ` for song ${report.songId}`}`
+    );
+    return null;
+  }
+
+  if (action === "dismiss") {
+    await logAdminAction(adminId, "dismiss_report", report.id, bulk ? "Bulk dismiss report" : `Dismissed report ${report.id}`);
+  }
+  return null;
+}
+
 // ── Report creation ─────────────────────────────────────────────────
 
 export async function createReport(userId: string, input: CreateReportInput) {
@@ -148,40 +202,9 @@ export async function resolveReport({ reportId, adminId, action, adminNote }: Re
     updatedAt: new Date(),
   };
 
-  if (action === "dismiss") {
-    updates.status = "dismissed";
-    await logAdminAction(adminId, "dismiss_report", report.id, `Dismissed report ${report.id}`);
-  } else if (action === "hide_song") {
-    if (!report.songId || !report.song) {
-      return { error: "INVALID_TARGET", message: "This report is not for a song" } as const;
-    }
-    updates.status = "actioned";
-    await prisma.song.update({
-      where: { id: report.songId },
-      data: { isHidden: true, isPublic: false },
-    });
-    await logAdminAction(adminId, "hide_song", report.songId, `Hidden song via report ${report.id}`);
-  } else if (action === "delete_song") {
-    if (!report.songId) {
-      return { error: "INVALID_TARGET", message: "This report is not for a song" } as const;
-    }
-    updates.status = "actioned";
-    await prisma.song.delete({ where: { id: report.songId } });
-    await logAdminAction(adminId, "delete_song", report.songId, `Deleted song via report ${report.id}`);
-
-    const updated = await prisma.report.update({ where: { id: reportId }, data: updates });
-    return { data: updated } as const;
-  } else if (action === "warn_user") {
-    if (!report.song) {
-      return { error: "INVALID_TARGET", message: "This report is not for a song" } as const;
-    }
-    updates.status = "actioned";
-    logger.info(
-      { userId: report.song.userId, songId: report.songId, reportId: report.id },
-      "moderation: warning issued to user"
-    );
-    await logAdminAction(adminId, "warn_user", report.song.userId, `Warned user via report ${report.id} for song ${report.songId}`);
-  }
+  const actionResult = await executeAction({ adminId, action, report, bulk: false });
+  if (actionResult) return actionResult;
+  updates.status = action === "dismiss" ? "dismissed" : "actioned";
 
   const updated = await prisma.report.update({ where: { id: reportId }, data: updates });
   return { data: updated } as const;
@@ -202,31 +225,8 @@ export async function bulkResolveReports({ reportIds, adminId, action }: BulkAct
     try {
       const newStatus = action === "dismiss" ? "dismissed" : "actioned";
       const updates: Record<string, unknown> = { status: newStatus, updatedAt: new Date() };
-
-      if (action === "hide_song") {
-        if (!report.songId || !report.song) { errors.push(report.id); continue; }
-        await prisma.song.update({
-          where: { id: report.songId },
-          data: { isHidden: true, isPublic: false },
-        });
-        await logAdminAction(adminId, "hide_song", report.songId, `Bulk hide via report ${report.id}`);
-      } else if (action === "delete_song") {
-        if (!report.songId) { errors.push(report.id); continue; }
-        await prisma.song.delete({ where: { id: report.songId } });
-        await logAdminAction(adminId, "delete_song", report.songId, `Bulk delete via report ${report.id}`);
-        await prisma.report.update({ where: { id: report.id }, data: updates });
-        processed.push(report.id);
-        continue;
-      } else if (action === "warn_user") {
-        if (!report.song) { errors.push(report.id); continue; }
-        logger.info(
-          { userId: report.song.userId, songId: report.songId, reportId: report.id },
-          "moderation: bulk warning issued"
-        );
-        await logAdminAction(adminId, "warn_user", report.song.userId, `Bulk warn via report ${report.id}`);
-      } else if (action === "dismiss") {
-        await logAdminAction(adminId, "dismiss_report", report.id, "Bulk dismiss report");
-      }
+      const actionResult = await executeAction({ adminId, action, report, bulk: true });
+      if (actionResult) { errors.push(report.id); continue; }
 
       await prisma.report.update({ where: { id: report.id }, data: updates });
       processed.push(report.id);
