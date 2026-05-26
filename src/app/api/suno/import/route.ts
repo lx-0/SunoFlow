@@ -3,7 +3,7 @@ import { z } from "zod";
 import { authRoute } from "@/lib/route-handler";
 import { getSongById, SunoApiError } from "@/lib/sunoapi";
 import { prisma } from "@/lib/prisma";
-import { handleSunoRouteError, withRequiredSunoApiKey } from "@/lib/suno-route";
+import { runSunoUserRoute } from "@/lib/suno-route";
 
 const MAX_BATCH_SIZE = 20;
 
@@ -12,8 +12,7 @@ const importSongsBodySchema = z.object({
 });
 
 export const POST = authRoute(async (_request, { auth, body }) => {
-  try {
-    return withRequiredSunoApiKey(auth.userId, async (apiKey) => {
+  return runSunoUserRoute(auth.userId, async (apiKey) => {
       const existing = await prisma.song.findMany({
         where: { userId: auth.userId, sunoJobId: { in: body.songIds } },
         select: { sunoJobId: true, id: true },
@@ -62,14 +61,11 @@ export const POST = authRoute(async (_request, { auth, body }) => {
       }
 
       return NextResponse.json({ imported, skipped, errors });
-    });
-  } catch (error) {
-    return handleSunoRouteError(error, {
+    }, {
       logLabel: "suno-import",
       route: "/api/suno/import",
       mapOptions: {
         includeRawMessageOnFallback: true,
       },
     });
-  }
 }, { body: importSongsBodySchema, route: "/api/suno/import" });
