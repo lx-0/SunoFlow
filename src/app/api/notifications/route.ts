@@ -1,15 +1,11 @@
-import { z } from "zod";
 import { NextResponse } from "next/server";
 import { authDataRoute, authRoute } from "@/lib/route-handler";
 import { CacheControl } from "@/lib/cache";
 import { createNotification, listUserNotifications } from "@/lib/notifications";
-import { zLimitParam, zCursorParam } from "@/lib/query-params";
+import { zCursorPaginationQuery } from "@/lib/query-params";
 import { createNotificationRequestSchema } from "@/lib/notifications/request";
 
-const notificationsQuery = z.object({
-  limit: zLimitParam(20, 100),
-  cursor: zCursorParam,
-});
+const notificationsQuery = zCursorPaginationQuery(20, 100);
 
 export const GET = authDataRoute(async (_request, { auth, query }) => {
   const result = await listUserNotifications({

@@ -1,24 +1,20 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { authDataRoute } from "@/lib/route-handler";
 import { CacheControl } from "@/lib/cache";
 import { listFavorites } from "@/lib/songs";
 import {
+  zCursorPaginationQuery,
   zTrimmedParam,
-  zLimitParam,
-  zCursorParam,
   zEnumParam,
 } from "@/lib/query-params";
 
-const favoritesQuery = z.object({
+const favoritesQuery = zCursorPaginationQuery(20, 100).extend({
   q: zTrimmedParam,
   status: zTrimmedParam,
   sortBy: zEnumParam(
     ["recently_liked", "newest", "oldest", "title_az"] as const,
     "recently_liked",
   ),
-  limit: zLimitParam(20, 100),
-  cursor: zCursorParam,
 });
 
 export const GET = authDataRoute(async (_request, { auth, query }) => {
