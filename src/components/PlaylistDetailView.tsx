@@ -22,13 +22,8 @@ import { SwipeablePlaylistItem } from "./SwipeablePlaylistItem";
 import { BottomSheet } from "./BottomSheet";
 import { songToQueueSong } from "@/lib/song-mappers";
 import { formatDuration as formatTime } from "@/lib/time-format";
-import type { PlaylistData, PlaylistSongItem, PlaylistCollaboratorItem, PlaylistActivityItem } from "./playlist-detail/types";
-import { PlaylistSongListItem } from "./playlist-detail/PlaylistSongListItem";
-import { PlaylistSharePanel } from "./playlist-detail/PlaylistSharePanel";
-import { PlaylistCollaboratorsPanel } from "./playlist-detail/PlaylistCollaboratorsPanel";
-import { PlaylistActivityFeed } from "./playlist-detail/PlaylistActivityFeed";
-import { PlaylistBatchToolbar } from "./playlist-detail/PlaylistBatchToolbar";
-import { usePlaylistReorder } from "./playlist-detail/usePlaylistReorder";
+import { usePlaylistReorder } from "@/hooks/usePlaylistReorder";
+import { usePlaylistCollaboration } from "@/hooks/usePlaylistCollaboration";
 
 export type { PlaylistData, PlaylistSongItem, PlaylistCollaboratorItem, PlaylistActivityItem };
 
@@ -68,14 +63,19 @@ export function PlaylistDetailView({
   const [isTogglingShare, setIsTogglingShare] = useState(false);
 
   // Collaborative state
-  const [isCollaborative, setIsCollaborative] = useState(initialPlaylist.isCollaborative);
-  const [collaborators, setCollaborators] = useState<PlaylistCollaboratorItem[]>(
-    initialPlaylist.collaborators ?? []
-  );
-  const [showCollabPanel, setShowCollabPanel] = useState(false);
-  const [isTogglingCollab, setIsTogglingCollab] = useState(false);
-  const [inviteLink, setInviteLink] = useState<string | null>(null);
-  const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
+  const collab = usePlaylistCollaboration({
+    playlistId: initialPlaylist.id,
+    initialIsCollaborative: initialPlaylist.isCollaborative,
+    initialCollaborators: initialPlaylist.collaborators ?? [],
+    toast,
+  });
+  const {
+    isCollaborative, collaborators, showCollabPanel, isTogglingCollab,
+    inviteLink, isGeneratingInvite, inviteUsername, setInviteUsername,
+    inviteRole, setInviteRole, isInvitingByUsername, toggleCollabPanel,
+    handleToggleCollaborative, handleGenerateInvite, handleCopyInviteLink,
+    handleRemoveCollaborator, handleInviteByUsername, closeCollabPanel,
+  } = collab;
 
   // Publish to Discover state
   const [isPublished, setIsPublished] = useState(initialPlaylist.isPublished ?? false);
@@ -180,6 +180,13 @@ export function PlaylistDetailView({
     }
   }
 
+  // Drag & drop / touch / keyboard reorder
+  const {
+    dragIndex, dragOverIndex,
+    handleDragStart, handleDragOver, handleDrop, handleDragEnd,
+    handleDragHandleTouchStart, handleKeyboardReorder,
+  } = usePlaylistReorder({ playlistId: playlist.id, songs, setSongs, toast });
+
   function buildPlaylistQueue(): QueueSong[] {
     return songs
       .map((ps) => songToQueueSong(ps.song))
@@ -228,6 +235,7 @@ export function PlaylistDetailView({
     },
     [playlist.id, songs, toast]
   );
+
 
   async function handleSaveEdit(e: React.FormEvent) {
     e.preventDefault();
@@ -309,70 +317,6 @@ export function PlaylistDetailView({
     navigator.clipboard.writeText(code).then(() => toast("Embed code copied!", "success"));
   }
 
-  async function handleToggleCollaborative() {
-    if (isTogglingCollab) return;
-    setIsTogglingCollab(true);
-    try {
-      const res = await fetch(`/api/playlists/${playlist.id}/collaborative`, { method: "PATCH" });
-      if (!res.ok) { toast("Failed to update collaborative mode", "error"); return; }
-      const data = await res.json();
-      setIsCollaborative(data.isCollaborative);
-      if (!data.isCollaborative) setInviteLink(null);
-      toast(data.isCollaborative ? "Collaborative mode enabled" : "Collaborative mode disabled", "success");
-    } catch {
-      toast("Failed to update collaborative mode", "error");
-    } finally {
-      setIsTogglingCollab(false);
-    }
-  }
-
-  async function handleGenerateInvite() {
-    if (isGeneratingInvite) return;
-    setIsGeneratingInvite(true);
-    try {
-      const res = await fetch(`/api/playlists/${playlist.id}/collaborators`, { method: "POST" });
-      if (!res.ok) { toast("Failed to generate invite link", "error"); return; }
-      const data = await res.json();
-      const link = `${window.location.origin}/playlists/invite/${data.collaborator.inviteToken}`;
-      setInviteLink(link);
-    } catch {
-      toast("Failed to generate invite link", "error");
-    } finally {
-      setIsGeneratingInvite(false);
-    }
-  }
-
-  function handleCopyInviteLink() {
-    if (!inviteLink) return;
-    navigator.clipboard.writeText(inviteLink).then(() => toast("Invite link copied!", "success"));
-  }
-
-  async function handleRemoveCollaborator(collaboratorId: string) {
-    try {
-      const res = await fetch(`/api/playlists/${playlist.id}/collaborators/${collaboratorId}`, { method: "DELETE" });
-      if (!res.ok) { toast("Failed to remove collaborator", "error"); return; }
-      setCollaborators((prev) => prev.filter((c) => c.id !== collaboratorId));
-      toast("Collaborator removed", "success");
-    } catch {
-      toast("Failed to remove collaborator", "error");
-    }
-  }
-
-  async function handleInviteByUsername(username: string, role: "editor" | "viewer") {
-    try {
-      const res = await fetch(`/api/playlists/${playlist.id}/collaborators`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, role }),
-      });
-      const data = await res.json();
-      if (!res.ok) { toast(data.error ?? "Failed to invite user", "error"); return; }
-      setCollaborators((prev) => [...prev, data.collaborator]);
-      toast(`${data.collaborator.user?.name ?? username} added as ${role}`, "success");
-    } catch {
-      toast("Failed to invite user", "error");
-    }
-  }
 
   async function handleLoadActivity() {
     if (activityLoading) return;
@@ -564,7 +508,7 @@ export function PlaylistDetailView({
             )}
             {isOwner && (
               <button
-                onClick={() => { setShowCollabPanel((v) => !v); setShowSharePanel(false); }}
+                onClick={() => { toggleCollabPanel(); setShowSharePanel(false); }}
                 aria-label="Collaborative mode"
                 aria-expanded={showCollabPanel}
                 className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
@@ -577,7 +521,7 @@ export function PlaylistDetailView({
               </button>
             )}
             <button
-              onClick={() => { setShowSharePanel((v) => !v); setShowCollabPanel(false); }}
+              onClick={() => { setShowSharePanel((v) => !v); closeCollabPanel(); }}
               aria-label="Share playlist"
               aria-expanded={showSharePanel}
               className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${

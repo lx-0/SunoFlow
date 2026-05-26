@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 interface CollaboratorUser {
   id: string;
@@ -10,7 +10,7 @@ interface CollaboratorUser {
   username?: string | null;
 }
 
-interface PlaylistCollaboratorItem {
+export interface PlaylistCollaboratorItem {
   id: string;
   userId: string | null;
   status: string;
@@ -18,15 +18,22 @@ interface PlaylistCollaboratorItem {
   user: CollaboratorUser | null;
 }
 
-export function usePlaylistCollaboration(
-  playlistId: string,
-  initialIsCollaborative: boolean,
-  initialCollaborators: PlaylistCollaboratorItem[],
-  toast: (message: string, type: "success" | "error") => void,
-) {
+interface UsePlaylistCollaborationOptions {
+  playlistId: string;
+  initialIsCollaborative: boolean;
+  initialCollaborators: PlaylistCollaboratorItem[];
+  toast: (message: string, type: "success" | "error") => void;
+}
+
+export function usePlaylistCollaboration({
+  playlistId,
+  initialIsCollaborative,
+  initialCollaborators,
+  toast,
+}: UsePlaylistCollaborationOptions) {
   const [isCollaborative, setIsCollaborative] = useState(initialIsCollaborative);
   const [collaborators, setCollaborators] = useState<PlaylistCollaboratorItem[]>(
-    initialCollaborators,
+    initialCollaborators
   );
   const [showCollabPanel, setShowCollabPanel] = useState(false);
   const [isTogglingCollab, setIsTogglingCollab] = useState(false);
@@ -36,7 +43,15 @@ export function usePlaylistCollaboration(
   const [inviteRole, setInviteRole] = useState<"editor" | "viewer">("editor");
   const [isInvitingByUsername, setIsInvitingByUsername] = useState(false);
 
-  async function handleToggleCollaborative() {
+  const toggleCollabPanel = useCallback(() => {
+    setShowCollabPanel((v) => !v);
+  }, []);
+
+  const closeCollabPanel = useCallback(() => {
+    setShowCollabPanel(false);
+  }, []);
+
+  const handleToggleCollaborative = useCallback(async () => {
     if (isTogglingCollab) return;
     setIsTogglingCollab(true);
     try {
@@ -51,9 +66,9 @@ export function usePlaylistCollaboration(
     } finally {
       setIsTogglingCollab(false);
     }
-  }
+  }, [isTogglingCollab, playlistId, toast]);
 
-  async function handleGenerateInvite() {
+  const handleGenerateInvite = useCallback(async () => {
     if (isGeneratingInvite) return;
     setIsGeneratingInvite(true);
     try {
@@ -67,14 +82,14 @@ export function usePlaylistCollaboration(
     } finally {
       setIsGeneratingInvite(false);
     }
-  }
+  }, [isGeneratingInvite, playlistId, toast]);
 
-  function handleCopyInviteLink() {
+  const handleCopyInviteLink = useCallback(() => {
     if (!inviteLink) return;
     navigator.clipboard.writeText(inviteLink).then(() => toast("Invite link copied!", "success"));
-  }
+  }, [inviteLink, toast]);
 
-  async function handleRemoveCollaborator(collaboratorId: string) {
+  const handleRemoveCollaborator = useCallback(async (collaboratorId: string) => {
     try {
       const res = await fetch(`/api/playlists/${playlistId}/collaborators/${collaboratorId}`, { method: "DELETE" });
       if (!res.ok) { toast("Failed to remove collaborator", "error"); return; }
@@ -83,9 +98,9 @@ export function usePlaylistCollaboration(
     } catch {
       toast("Failed to remove collaborator", "error");
     }
-  }
+  }, [playlistId, toast]);
 
-  async function handleInviteByUsername(e: React.FormEvent) {
+  const handleInviteByUsername = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteUsername.trim() || isInvitingByUsername) return;
     setIsInvitingByUsername(true);
@@ -105,13 +120,12 @@ export function usePlaylistCollaboration(
     } finally {
       setIsInvitingByUsername(false);
     }
-  }
+  }, [inviteUsername, isInvitingByUsername, playlistId, inviteRole, toast]);
 
   return {
     isCollaborative,
     collaborators,
     showCollabPanel,
-    setShowCollabPanel,
     isTogglingCollab,
     inviteLink,
     isGeneratingInvite,
@@ -120,6 +134,8 @@ export function usePlaylistCollaboration(
     inviteRole,
     setInviteRole,
     isInvitingByUsername,
+    toggleCollabPanel,
+    closeCollabPanel,
     handleToggleCollaborative,
     handleGenerateInvite,
     handleCopyInviteLink,
