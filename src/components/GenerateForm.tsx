@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { SparklesIcon } from "@heroicons/react/24/solid";
@@ -8,6 +8,11 @@ import { BoltIcon, UserCircleIcon, ExclamationTriangleIcon, QueueListIcon, Adjus
 import { useToast } from "./Toast";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { useGenerationQueue } from "@/hooks/useGenerationQueue";
+import { useStyleBoost } from "@/hooks/useStyleBoost";
+import { useLyricsGeneration } from "@/hooks/useLyricsGeneration";
+import { useAutoGenerate } from "@/hooks/useAutoGenerate";
+import { useTemplateManager } from "@/hooks/useTemplateManager";
+import { usePresetManager } from "@/hooks/usePresetManager";
 import { track } from "@/lib/analytics";
 import { fetchWithTimeout, clientFetchErrorMessage } from "@/lib/fetch-client";
 import {
@@ -16,10 +21,7 @@ import {
   getSubmitPrompt,
   reorderPendingQueueIds,
 } from "./generate-form/helpers";
-import {
-  boostStylePrompt,
-} from "./generate-form/api";
-import type { GenerationPreset, PromptSuggestion, PromptTemplate } from "./generate-form/types";
+import type { PromptSuggestion } from "./generate-form/types";
 import { useGenerateFormData } from "./generate-form/useGenerateFormData";
 import { GenerationProgress } from "./GenerationProgress";
 import { GenerationQueue } from "./GenerationQueue";
@@ -63,11 +65,7 @@ export function GenerateForm() {
   const [promptError, setPromptError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-
   const [selectedPersonaId, setSelectedPersonaId] = useState("");
-
-  // Style boost state
-  const [isBoosting, setIsBoosting] = useState(false);
 
   const {
     rateLimit,
@@ -89,18 +87,79 @@ export function GenerateForm() {
   // First-generation confetti celebration
   const [showConfetti, setShowConfetti] = useState(false);
   const prevReadyCountRef = useRef(0);
-
-  // Track completed song IDs so we only process next once per completion
   const processedCompletionsRef = useRef<Set<string>>(new Set());
 
   // In-app feedback widget after song generation
   const [feedbackWidget, setFeedbackWidget] = useState<{ songId: string } | null>(null);
   const feedbackShownRef = useRef<Set<string>>(new Set());
 
+  // --- Extracted hooks ---
+
+  const getFormState = useCallback(() => ({
+    title, style, prompt, customMode, instrumental,
+  }), [title, style, prompt, customMode, instrumental]);
+
+  const { isBoosting, handleBoostStyle } = useStyleBoost({
+    style,
+    onStyleChange: setStyle,
+    toast,
+  });
+
+  const lyrics = useLyricsGeneration({
+    initialPrompt: searchParams.get("lyricsprompt") ?? "",
+    toast,
+    onUseLyrics: (lyricsText) => {
+      setPrompt(lyricsText);
+      setCustomMode(true);
+    },
+  });
+
+  const autoGen = useAutoGenerate({
+    initialPrompt: searchParams.get("autoprompt") ?? "",
+    toast,
+    onResult: (result) => {
+      if (result.title) setTitle(result.title);
+      if (result.style) setStyle(result.style);
+      if (result.lyricsPrompt) {
+        lyrics.setLyricsPrompt(result.lyricsPrompt);
+        lyrics.setShowLyricsGenerator(true);
+      }
+    },
+  });
+
+  const templateMgr = useTemplateManager({
+    templates,
+    setTemplates,
+    categories,
+    fetchTemplates,
+    toast,
+    getFormState,
+    onApply: (fields) => {
+      setStyle(fields.style);
+      setPrompt(fields.prompt);
+      setInstrumental(fields.instrumental);
+      setCustomMode(fields.customMode);
+    },
+  });
+
+  const presetMgr = usePresetManager({
+    setPresets,
+    toast,
+    getFormState,
+    onApply: (fields) => {
+      if (fields.title !== null) setTitle(fields.title ?? "");
+      if (fields.style !== null) setStyle(fields.style ?? "");
+      if (fields.prompt !== null) setPrompt(fields.prompt ?? "");
+      setInstrumental(fields.instrumental);
+      setCustomMode(fields.customMode);
+    },
+  });
+
+  // --- Effects ---
+
   useEffect(() => {
     const readyCount = trackedSongs.filter((s) => s.status === "ready").length;
     if (readyCount > prevReadyCountRef.current) {
-      // A song just completed — check if this is the user's first ever generation
       try {
         if (!localStorage.getItem("sunoflow-first-gen-celebrated")) {
           setShowConfetti(true);
@@ -112,7 +171,6 @@ export function GenerateForm() {
     }
     prevReadyCountRef.current = readyCount;
 
-    // Auto-process next queue item when a tracked song completes
     for (const song of trackedSongs) {
       if (
         (song.status === "ready" || song.status === "failed") &&
@@ -125,7 +183,6 @@ export function GenerateForm() {
           }
         });
       }
-      // Show feedback widget once per completed song (ready only)
       if (
         song.status === "ready" &&
         !feedbackShownRef.current.has(song.songId) &&
@@ -137,50 +194,13 @@ export function GenerateForm() {
     }
   }, [trackedSongs, onGenerationComplete, trackSong]);
 
-  async function handleBoostStyle() {
-    if (isBoosting || !style.trim()) return;
-    setIsBoosting(true);
-    try {
-      const data = await boostStylePrompt(style.trim());
-      if (data.ok && data.result) {
-        setStyle(data.result);
-        toast("Style enhanced!", "success");
-      } else {
-        toast(data.error ?? "Style boost failed", "error");
-      }
-    } catch {
-      toast("Style boost failed", "error");
-    } finally {
-      setIsBoosting(false);
-    }
-  }
-
-  function applyTemplate(template: PromptTemplate) {
-    setStyle(template.style ?? "");
-    setPrompt(template.prompt);
-    setInstrumental(template.isInstrumental);
-    if (template.style) {
-      setCustomMode(false);
-    } else {
-      setCustomMode(true);
-    }
-    toast(`Loaded "${template.name}" template`, "success");
-  }
-
-  function applyPreset(preset: GenerationPreset) {
-    if (preset.title !== null) setTitle(preset.title ?? "");
-    if (preset.stylePrompt !== null) setStyle(preset.stylePrompt ?? "");
-    if (preset.lyricsPrompt !== null) setPrompt(preset.lyricsPrompt ?? "");
-    setInstrumental(preset.isInstrumental);
-    setCustomMode(preset.customMode);
-    toast(`Loaded "${preset.name}" preset`, "success");
-  }
+  // --- Handlers ---
 
   function applySuggestion(suggestion: PromptSuggestion) {
     setStyle(suggestion.stylePrompt);
     setInstrumental(suggestion.isInstrumental);
     setCustomMode(false);
-    toast(`Applied suggestion`, "success");
+    toast("Applied suggestion", "success");
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -188,7 +208,6 @@ export function GenerateForm() {
     if (isSubmitting) return;
     setSubmitError(null);
 
-    // Client-side inline validation before hitting the server
     const submitPromptValue = getSubmitPrompt(customMode, prompt, style);
     const promptValidationError = getPromptValidationError(submitPromptValue, customMode);
     if (promptValidationError) {
@@ -197,7 +216,6 @@ export function GenerateForm() {
     }
     setPromptError(null);
 
-    // Show upgrade modal if user has no credits (client-side check before hitting the server)
     if (creditInfo !== null && creditInfo.creditsRemaining <= 0 && shouldShowUpgradeModal("no_credits")) {
       setShowUpgradeModal(true);
       return;
@@ -256,7 +274,6 @@ export function GenerateForm() {
         return;
       }
 
-      // Update rate limit from response
       if (data.rateLimit) {
         setRateLimit(data.rateLimit);
         if (data.rateLimit.remaining <= 2 && data.rateLimit.remaining > 0) {
@@ -315,7 +332,6 @@ export function GenerateForm() {
     toast("Added to generation queue!", "success");
     track("song_generation_requested", { mode: customMode ? "custom" : "style", instrumental, via: "queue" });
 
-    // If nothing is processing, start processing immediately
     if (!queueIsProcessing && item) {
       const result = await processNext();
       if (result?.song) {
@@ -337,7 +353,6 @@ export function GenerateForm() {
         : activeItems[0]?.status === "pending"
           ? "pending"
           : undefined;
-    // Find the pending item at this visual index (skip processing)
     const pendingIndex = getPendingIndexFromVisualIndex(index, firstActiveStatus);
     const ids = reorderPendingQueueIds(
       pendingItems.map((i) => i.id),
@@ -366,9 +381,6 @@ export function GenerateForm() {
     );
     reorderQueue(ids);
   }
-
-  const initialLyricsPrompt = searchParams.get("lyricsprompt") ?? "";
-  const initialAutoPrompt = searchParams.get("autoprompt") ?? "";
 
   return (
     <div className="px-4 py-4 space-y-6">
@@ -434,44 +446,404 @@ export function GenerateForm() {
       {/* Generation Progress */}
       <GenerationProgress songs={trackedSongs} onDismiss={clearAll} />
 
-      {/* Template Picker */}
-      <TemplatePickerPanel
-        templates={templates}
-        categories={categories}
-        customMode={customMode}
-        prompt={prompt}
-        style={style}
-        instrumental={instrumental}
-        onApplyTemplate={applyTemplate}
-        onTemplatesChange={setTemplates}
-        fetchTemplates={fetchTemplates}
-      />
+      {/* Template Picker Button */}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => templateMgr.setShowTemplatePicker(!templateMgr.showTemplatePicker)}
+          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
+        >
+          <BookmarkOutline className="h-4 w-4" />
+          Templates
+        </button>
+        <button
+          type="button"
+          onClick={() => templateMgr.setShowSaveDialog(!templateMgr.showSaveDialog)}
+          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+        >
+          <BookmarkIcon className="h-4 w-4" />
+          Save as template
+        </button>
+      </div>
 
-      {/* Preset Picker */}
-      <PresetPickerPanel
-        presets={presets}
-        formState={{ title, style, prompt, customMode, instrumental }}
-        onApplyPreset={applyPreset}
-        onPresetsChange={setPresets}
-      />
+      {/* Preset Picker Buttons */}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => presetMgr.setShowPresetPicker(!presetMgr.showPresetPicker)}
+          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-xl hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors"
+        >
+          <AdjustmentsHorizontalIcon className="h-4 w-4" />
+          Presets{presets.length > 0 ? ` (${presets.length})` : ""}
+        </button>
+        <button
+          type="button"
+          onClick={() => presetMgr.setShowPresetSaveDialog(!presetMgr.showPresetSaveDialog)}
+          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+        >
+          <BookmarkIcon className="h-4 w-4" />
+          Save as preset
+        </button>
+      </div>
 
-      {/* Suggestions & Trending */}
-      <SuggestionsPanel
-        suggestions={suggestions}
-        trendingCombos={trendingCombos}
-        onApplySuggestion={applySuggestion}
-        onApplyTrendingCombo={setStyle}
-      />
+      {/* Template Picker Panel */}
+      {templateMgr.showTemplatePicker && (
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
+          {/* Category Filter */}
+          {categories.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => templateMgr.setSelectedCategory(null)}
+                className={`px-2.5 py-1 text-xs font-medium rounded-full transition-colors ${
+                  templateMgr.selectedCategory === null
+                    ? "bg-violet-600 text-white"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+                }`}
+              >
+                All
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => templateMgr.setSelectedCategory(templateMgr.selectedCategory === cat ? null : cat)}
+                  className={`px-2.5 py-1 text-xs font-medium rounded-full capitalize transition-colors ${
+                    templateMgr.selectedCategory === cat
+                      ? "bg-violet-600 text-white"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Built-in Templates Grid */}
+          {templateMgr.filteredBuiltIn.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Starter Templates</p>
+              <div className="grid grid-cols-2 gap-2">
+                {templateMgr.filteredBuiltIn.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => templateMgr.applyTemplate(t)}
+                    className="text-left p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/10 transition-colors"
+                  >
+                    <span className="text-sm font-medium text-gray-900 dark:text-white block">{t.name}</span>
+                    {t.description && (
+                      <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{t.description}</span>
+                    )}
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      {t.category && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 capitalize">{t.category}</span>
+                      )}
+                      {t.isInstrumental && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">Instrumental</span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* User Templates */}
+          {templateMgr.filteredUser.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">My Templates</p>
+              <div className="grid grid-cols-2 gap-2">
+                {templateMgr.filteredUser.map((t) => (
+                  <div key={t.id} className="relative group">
+                    <button
+                      type="button"
+                      onClick={() => templateMgr.applyTemplate(t)}
+                      className="w-full text-left p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/10 transition-colors"
+                    >
+                      <span className="text-sm font-medium text-gray-900 dark:text-white block pr-6">{t.name}</span>
+                      <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{t.style ?? t.prompt}</span>
+                      {t.category && (
+                        <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 mt-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 capitalize">{t.category}</span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => templateMgr.deleteTemplate(t.id)}
+                      className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                      aria-label="Delete template"
+                      title="Delete template"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {templateMgr.filteredBuiltIn.length === 0 && templateMgr.filteredUser.length === 0 && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+              {templateMgr.selectedCategory ? "No templates in this category" : "No templates yet"}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Save Template Dialog */}
+      {templateMgr.showSaveDialog && (
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
+          <p className="text-sm font-medium text-gray-900 dark:text-white">Save current settings as template</p>
+          <input
+            type="text"
+            value={templateMgr.templateName}
+            onChange={(e) => templateMgr.setTemplateName(e.target.value)}
+            placeholder="Template name"
+            aria-label="Template name"
+            maxLength={50}
+            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+          />
+          <select
+            value={templateMgr.templateCategory}
+            onChange={(e) => templateMgr.setTemplateCategory(e.target.value)}
+            aria-label="Template category"
+            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+          >
+            <option value="">No category</option>
+            <option value="pop">Pop</option>
+            <option value="rock">Rock</option>
+            <option value="hip-hop">Hip-Hop</option>
+            <option value="electronic">Electronic</option>
+            <option value="ambient">Ambient</option>
+            <option value="r&b">R&B</option>
+            <option value="folk">Folk</option>
+            <option value="jazz">Jazz</option>
+            <option value="latin">Latin</option>
+            <option value="other">Other</option>
+          </select>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={templateMgr.saveAsTemplate}
+              disabled={templateMgr.isSavingTemplate}
+              className="flex-1 px-3 py-2 text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-xl transition-colors"
+            >
+              {templateMgr.isSavingTemplate ? "Saving…" : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { templateMgr.setShowSaveDialog(false); templateMgr.setTemplateName(""); templateMgr.setTemplateCategory(""); }}
+              className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {templateMgr.userTemplates.length} / 20 templates used
+          </p>
+        </div>
+      )}
+
+      {/* Preset Picker Panel */}
+      {presetMgr.showPresetPicker && (
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">My Presets</p>
+          {presets.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+              No presets yet — save your current form state as a preset.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {presets.map((p) => (
+                <div key={p.id} className="relative group">
+                  <button
+                    type="button"
+                    onClick={() => presetMgr.applyPreset(p)}
+                    className="w-full text-left p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-teal-400 dark:hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/10 transition-colors"
+                  >
+                    <span className="text-sm font-medium text-gray-900 dark:text-white block pr-6">{p.name}</span>
+                    {p.stylePrompt && (
+                      <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{p.stylePrompt}</span>
+                    )}
+                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                      {p.isInstrumental && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">Instrumental</span>
+                      )}
+                      {p.customMode && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400">Custom lyrics</span>
+                      )}
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => presetMgr.handleDeletePreset(p.id)}
+                    className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                    aria-label="Delete preset"
+                    title="Delete preset"
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Save Preset Dialog */}
+      {presetMgr.showPresetSaveDialog && (
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
+          <p className="text-sm font-medium text-gray-900 dark:text-white">Save current settings as preset</p>
+          <input
+            type="text"
+            value={presetMgr.presetName}
+            onChange={(e) => presetMgr.setPresetName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); presetMgr.saveAsPreset(); } }}
+            placeholder="Preset name"
+            aria-label="Preset name"
+            maxLength={100}
+            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={presetMgr.saveAsPreset}
+              disabled={presetMgr.isSavingPreset}
+              className="flex-1 px-3 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-500 disabled:opacity-50 rounded-xl transition-colors"
+            >
+              {presetMgr.isSavingPreset ? "Saving…" : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { presetMgr.setShowPresetSaveDialog(false); presetMgr.setPresetName(""); }}
+              className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {presets.length} / 20 presets used
+          </p>
+        </div>
+      )}
+
+      {/* Suggested for you */}
+      {suggestions.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            Suggested for you
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {suggestions.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => applySuggestion(s)}
+                title={s.stylePrompt}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-full hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/10 hover:text-violet-700 dark:hover:text-violet-300 transition-colors"
+              >
+                {s.source === "personal" && (
+                  <span className="text-amber-500" aria-hidden="true">★</span>
+                )}
+                {s.label}
+                {s.isInstrumental && (
+                  <span className="text-[10px] font-medium px-1 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 ml-0.5">
+                    Instr
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Trending combos */}
+      {trendingCombos.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            Trending Combos
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {trendingCombos.map((combo) => (
+              <button
+                key={combo.id}
+                type="button"
+                onClick={() => setStyle(combo.stylePrompt)}
+                title={`${combo.combo} — rated ${combo.displayScore}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800 rounded-full hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
+              >
+                <span aria-hidden="true">🔥</span>
+                {combo.label}
+                <span className="text-[10px] font-semibold text-violet-500 dark:text-violet-400 ml-0.5">
+                  {combo.displayScore}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Auto-generate panel */}
-      <AutoGeneratePanel
-        initialPrompt={initialAutoPrompt}
-        onFieldsFilled={(fields) => {
-          if (fields.title) setTitle(fields.title);
-          if (fields.style) setStyle(fields.style);
-          if (fields.lyricsPrompt) setPrompt(fields.lyricsPrompt);
-        }}
-      />
+      <div className="space-y-0 mb-4">
+        <button
+          type="button"
+          onClick={() => autoGen.setShowAutoGenerate((v) => !v)}
+          aria-expanded={autoGen.showAutoGenerate}
+          className="w-full flex items-center justify-between bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+        >
+          <span className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
+            <SparklesIcon className="h-4 w-4" />
+            Auto-generate from description
+          </span>
+          <ChevronDownIcon
+            className={`h-4 w-4 text-amber-500 dark:text-amber-400 transition-transform ${
+              autoGen.showAutoGenerate ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+
+        {autoGen.showAutoGenerate && (
+          <div className="mt-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Describe what you want and we&apos;ll suggest a title, style, and prompt prompt all at once.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={autoGen.autoPrompt}
+                onChange={(e) => autoGen.setAutoPrompt(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); autoGen.handleAutoGenerate(); } }}
+                placeholder="e.g. a nostalgic road trip song, summer vibes, indie feel…"
+                aria-label="Auto-generation description"
+                maxLength={500}
+                disabled={autoGen.isAutoGenerating}
+                className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-50"
+              />
+              <button
+                type="button"
+                onClick={autoGen.handleAutoGenerate}
+                disabled={autoGen.isAutoGenerating || !autoGen.autoPrompt.trim()}
+                className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-amber-600 hover:bg-amber-500 disabled:opacity-50 rounded-xl transition-colors whitespace-nowrap"
+              >
+                {autoGen.isAutoGenerating ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Generating…
+                  </>
+                ) : (
+                  <>
+                    <SparklesIcon className="h-4 w-4" />
+                    Fill fields
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4" data-tour="generate-prompt">
         {/* Title */}
@@ -595,13 +967,87 @@ export function GenerateForm() {
         )}
 
         {/* Generate Lyrics panel */}
-        <LyricsGeneratorPanel
-          initialPrompt={initialLyricsPrompt}
-          onUseLyrics={(lyrics) => {
-            setPrompt(lyrics);
-            setCustomMode(true);
-          }}
-        />
+        <div className="space-y-0">
+          <button
+            type="button"
+            onClick={() => lyrics.setShowLyricsGenerator((v) => !v)}
+            aria-expanded={lyrics.showLyricsGenerator}
+            className="w-full flex items-center justify-between bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl px-4 py-3 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
+          >
+            <span className="flex items-center gap-2 text-sm font-medium text-violet-700 dark:text-violet-300">
+              <PencilSquareIcon className="h-4 w-4" />
+              Generate Lyrics
+            </span>
+            <ChevronDownIcon
+              className={`h-4 w-4 text-violet-500 dark:text-violet-400 transition-transform ${
+                lyrics.showLyricsGenerator ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {lyrics.showLyricsGenerator && (
+            <div className="mt-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
+              <div className="flex gap-2">
+                <textarea
+                  value={lyrics.lyricsPrompt}
+                  onChange={(e) => lyrics.setLyricsPrompt(e.target.value)}
+                  placeholder="Describe your song theme, mood, or topic..."
+                  aria-label="Lyrics generation prompt"
+                  maxLength={2000}
+                  rows={3}
+                  disabled={lyrics.isGeneratingLyrics}
+                  className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50 resize-none"
+                />
+                <button
+                  type="button"
+                  onClick={lyrics.handleGenerateLyrics}
+                  disabled={lyrics.isGeneratingLyrics || !lyrics.lyricsPrompt.trim()}
+                  className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-xl transition-colors whitespace-nowrap"
+                >
+                  {lyrics.isGeneratingLyrics ? (
+                    <>
+                      <svg
+                        className="animate-spin h-4 w-4"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Generating…
+                    </>
+                  ) : (
+                    <>
+                      <SparklesIcon className="h-4 w-4" />
+                      Generate
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {lyrics.generatedLyrics && (
+                <div className="space-y-2">
+                  <textarea
+                    value={lyrics.generatedLyrics}
+                    onChange={(e) => lyrics.setGeneratedLyrics(e.target.value)}
+                    aria-label="Generated lyrics"
+                    rows={8}
+                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-base sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={lyrics.handleUseLyrics}
+                    className="w-full px-4 py-2.5 text-sm font-medium text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/30 border border-violet-300 dark:border-violet-700 rounded-xl hover:bg-violet-200 dark:hover:bg-violet-900/50 transition-colors"
+                  >
+                    Use these prompt
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Custom prompt toggle */}
         <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3">
