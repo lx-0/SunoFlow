@@ -81,7 +81,7 @@ export async function downloadSongFile(
     return;
   }
 
-  const chunks: Uint8Array<ArrayBuffer>[] = [];
+  const chunks: Uint8Array[] = [];
   let received = 0;
 
   while (true) {
