@@ -3,7 +3,6 @@
 import {
   createContext,
   useContext,
-  useEffect,
   useRef,
   useState,
   useCallback,
@@ -24,16 +23,14 @@ import {
   reorderQueueState,
   toggleShuffleQueue,
 } from "@/components/queue/queue-ops";
-import {
-  buildRadioRequestUrl,
-  removeFutureSongFromQueue,
-} from "@/components/queue/radio-ops";
 import { useMediaSession } from "@/components/queue/use-media-session";
 import { usePlaybackRecovery } from "@/components/queue/use-playback-recovery";
 import { usePlaybackRestore } from "@/components/queue/use-playback-restore";
 import { usePlaybackTracking } from "@/components/queue/use-playback-tracking";
 import { usePlaybackSync } from "@/components/queue/use-playback-sync";
 import { useQueueAudioEvents } from "@/components/queue/use-queue-audio-events";
+import { useRadioActions } from "@/components/queue/use-radio-actions";
+import { useVolumeControl } from "@/components/queue/use-volume-control";
 
 export type { QueueSong, RepeatMode, RadioParams } from "@/components/queue/queue-context-types";
 
@@ -56,9 +53,6 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   // Original (unshuffled) queue preserved for unshuffle
   const originalQueueRef = useRef<QueueSong[]>([]);
 
-  // Debounce timer for server-side playback state sync
-  const volumeRef = useRef(1);
-
   const scheduleSyncRef = useRef<((songId: string, position: number, queue: QueueSong[]) => void) | null>(null);
 
   const [queue, setQueue] = useState<QueueSong[]>([]);
@@ -69,23 +63,15 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   const [duration, setDuration] = useState(0);
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState<RepeatMode>("off");
-  const [volume, setVolumeState] = useState(1);
-  const [muted, setMuted] = useState(false);
   const [playlistSource, setPlaylistSource] = useState<string | null>(null);
-  const [radioState, setRadioState] = useState<RadioParams | null>(null);
-  const [isRadioLoading, setIsRadioLoading] = useState(false);
   const [shuffleVersions, setShuffleVersions] = useState(false);
   const [activeVersion, setActiveVersion] = useState<QueueSong | null>(null);
   const [restoredEQ, setRestoredEQ] = useState<{ gains: number[]; speed: number; pitch: number } | null>(null);
   const eqSettingsRef = useRef({ gains: [0, 0, 0, 0, 0], speed: 1, pitch: 0 });
   const { trackPlay, clearHistoryTimer } = usePlaybackTracking();
 
-  // Ref versions for use in callbacks without stale closures
+  // Shared refs for radio (used by useQueueAudioEvents and useRadioActions)
   const radioStateRef = useRef<RadioParams | null>(null);
-  const radioExcludedIds = useRef<Set<string>>(new Set());
-  radioStateRef.current = radioState;
-
-  // Ref to the radio refill function — set after actions are defined
   const radioRefillRef = useRef<(() => void) | null>(null);
 
   // Refs for event handlers (avoid stale closures)
@@ -93,7 +79,6 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   const currentIndexRef = useRef(currentIndex);
   const repeatRef = useRef(repeat);
   const shuffleRef = useRef(shuffle);
-  const mutedRef = useRef(muted);
 
   // Tracks songs that failed through the CDN proxy and fell back to direct URL
   const cdnFallbackRef = useRef<Set<string>>(new Set());
@@ -128,10 +113,13 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   currentIndexRef.current = currentIndex;
   repeatRef.current = repeat;
   shuffleRef.current = shuffle;
-  mutedRef.current = muted;
   trackPlayRef.current = trackPlay;
-  volumeRef.current = volume;
   shuffleVersionsRef.current = shuffleVersions;
+
+  const {
+    volume, muted, setVolume, toggleMute,
+    volumeRef, mutedRef, setVolumeState, setMuted,
+  } = useVolumeControl({ audioRef });
 
   const { scheduleSync, clearSyncTimer } = usePlaybackSync({
     volumeRef,
@@ -515,6 +503,18 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     setCurrentIndex(result.currentIndex);
   }, []);
 
+  // ─── Radio actions ─────────────────────────────────────────────────────────
+
+  const {
+    radioState, isRadioLoading,
+    startRadio, stopRadio, radioThumbsDown, clearRadio,
+  } = useRadioActions({
+    audioRef, queueRef, currentIndexRef, loadGenerationRef,
+    radioStateRef, radioRefillRef,
+    playQueue, skipNext, startPlaybackForIndex,
+    setQueue, setPlaylistSource,
+  });
+
   const clearQueue = useCallback(() => {
     const audio = audioRef.current;
     if (audio) {
@@ -529,90 +529,11 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     setCurrentTime(0);
     setDuration(0);
     setPlaylistSource(null);
-    setRadioState(null);
-    radioExcludedIds.current = new Set();
+    clearRadio();
     originalQueueRef.current = [];
     setActiveVersion(null);
     versionCacheRef.current = new Map();
-  }, [clearHistoryTimer, clearSyncTimer]);
-
-  // ─── Radio actions ─────────────────────────────────────────────────────────
-
-  const fetchRadioSongs = useCallback(
-    async (params: RadioParams, excludeIds: string[]): Promise<QueueSong[]> => {
-      const url = buildRadioRequestUrl(window.location.origin, params, excludeIds);
-      const res = await fetch(url);
-      if (!res.ok) return [];
-      const data = await res.json();
-      return (data.songs ?? []) as QueueSong[];
-    },
-    []
-  );
-
-  const startRadio = useCallback(
-    async (params: RadioParams) => {
-      setIsRadioLoading(true);
-      radioExcludedIds.current = new Set();
-      try {
-        const songs = await fetchRadioSongs(params, []);
-        if (songs.length === 0) {
-          setIsRadioLoading(false);
-          return;
-        }
-        setRadioState(params);
-        // Mark all fetched IDs as known so we don't repeat them
-        songs.forEach((s) => radioExcludedIds.current.add(s.id));
-        playQueue(songs, 0, params.mood ? `Radio: ${params.mood}` : "Radio");
-      } finally {
-        setIsRadioLoading(false);
-      }
-    },
-    [fetchRadioSongs, playQueue]
-  );
-
-  const stopRadio = useCallback(() => {
-    setRadioState(null);
-    radioExcludedIds.current = new Set();
-    setPlaylistSource(null);
-  }, []);
-
-  const radioThumbsDown = useCallback((songId: string) => {
-    radioExcludedIds.current.add(songId);
-    // Remove the song from the queue if it hasn't been played yet
-    setQueue((prev) => removeFutureSongFromQueue(prev, currentIndexRef.current, songId));
-    // If it's the current song, skip to next
-    const q = queueRef.current;
-    const idx = currentIndexRef.current;
-    if (idx >= 0 && q[idx]?.id === songId) {
-      skipNext();
-    }
-  }, [skipNext]);
-
-  // Wire up the refill callback used inside the audio onEnded handler
-  const radioRefill = useCallback(() => {
-    const params = radioStateRef.current;
-    if (!params) return;
-    const excludeIds = Array.from(radioExcludedIds.current);
-    const generation = loadGenerationRef.current;
-    fetchRadioSongs(params, excludeIds).then((songs) => {
-      if (songs.length === 0) return;
-      // Bail if the user has moved to manual playback in the meantime.
-      if (loadGenerationRef.current !== generation) return;
-      songs.forEach((s) => radioExcludedIds.current.add(s.id));
-      const audio = audioRef.current;
-      setQueue((prev) => {
-        const merged = [...prev, ...songs];
-        // If nothing is playing, start from first new song
-        if (currentIndexRef.current < 0 && merged.length > 0 && audio) {
-          const firstNew = prev.length;
-          startPlaybackForIndex(merged[firstNew], firstNew);
-        }
-        return merged;
-      });
-    });
-  }, [fetchRadioSongs, startPlaybackForIndex]);
-
-  radioRefillRef.current = radioRefill;
+  }, [clearHistoryTimer, clearSyncTimer, clearRadio]);
 
   usePlaybackRecovery({
     audioRef,
@@ -648,23 +569,6 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     eqSettingsRef,
     setRestoredEQ,
   });
-
-  // ─── Volume ─────────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.volume = muted ? 0 : volume;
-  }, [volume, muted]);
-
-  const setVolume = useCallback((v: number) => {
-    setVolumeState(v);
-    if (v > 0 && muted) setMuted(false);
-  }, [muted]);
-
-  const toggleMute = useCallback(() => {
-    setMuted((m) => !m);
-  }, []);
 
   // ─── Current song helper ──────────────────────────────────────────────────
 
