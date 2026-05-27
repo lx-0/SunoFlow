@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { canUseFeature, type SubscriptionTier } from "@/lib/feature-gates";
-import { track } from "@/lib/analytics";
 import {
   ArrowLeftIcon,
   MusicalNoteIcon,
@@ -29,15 +28,14 @@ import {
 import { HeartIcon as HeartOutlineIcon, HandThumbUpIcon as HandThumbUpOutlineIcon, HandThumbDownIcon as HandThumbDownOutlineIcon, DocumentDuplicateIcon } from "@heroicons/react/24/outline";
 import { useOfflineCache } from "@/hooks/useOfflineCache";
 import { useSongStems } from "@/hooks/useSongStems";
+import { useSongActions } from "@/hooks/useSongActions";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 import type { SunoSong } from "@/lib/sunoapi";
-import { getRating, type SongRating } from "@/lib/ratings";
 import { useToast } from "./Toast";
 import { useQueue } from "./QueueContext";
 import { StarPicker } from "./StarPicker";
 import { StemsPlayer } from "./StemsPlayer";
 import { SeparateVocalsModal } from "./SeparateVocalsModal";
-import { type RemixAction } from "./RemixModal";
 const EmbedCodeModal = dynamic(() => import("./EmbedCodeModal").then((m) => m.EmbedCodeModal));
 const CreateVariationModal = dynamic(() => import("./CreateVariationModal").then((m) => m.CreateVariationModal));
 const RemixModal = dynamic(() => import("./RemixModal").then((m) => m.RemixModal));
@@ -53,8 +51,6 @@ import { SongActionsBar } from "./SongActionsBar";
 import { AddToPlaylistButton } from "./AddToPlaylistButton";
 import { SongLyricsSection } from "./SongLyricsSection";
 import { formatDuration as formatTime } from "@/lib/time-format";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -133,499 +129,47 @@ export function SongDetailView({
   const currentSong = currentIndex >= 0 ? queue[currentIndex] : null;
   const isThisSongPlaying = isPlaying && currentSong?.id === song.id;
 
-  const [isFavorite, setIsFavorite] = useState(initialFavorite);
-  const [favoriteCount, setFavoriteCount] = useState(initialFavoriteCount);
-
-  // Variation state
-  const [variationModalOpen, setVariationModalOpen] = useState(false);
-  const [creatingVariation, setCreatingVariation] = useState(false);
-  const [compareVariation, setCompareVariation] = useState<VariationSummary | null>(null);
-  const [remixAction, setRemixAction] = useState<RemixAction | null>(null);
-  const [remixSubmitting, setRemixSubmitting] = useState(false);
-
-  const [rating, setRatingState] = useState<SongRating>({
-    stars: initialRating ?? 0,
-    note: initialRatingNote ?? "",
+  // All data mutations extracted to useSongActions
+  const actions = useSongActions({
+    song,
+    initialFavorite,
+    initialFavoriteCount,
+    initialIsPublic,
+    initialPublicSlug,
+    initialRating,
+    initialRatingNote,
+    initialIsArchived,
+    initialVariationCount,
+    maxVariations,
+    toast,
   });
-  const [saved, setSaved] = useState(false);
-  const [savingRating, setSavingRating] = useState(false);
-  const [noteDraft, setNoteDraft] = useState(initialRatingNote ?? "");
 
-  // Generation feedback (thumbs up/down)
-  type ThumbsRating = "thumbs_up" | "thumbs_down" | null;
-  const [thumbsRating, setThumbsRating] = useState<ThumbsRating>(null);
-  const [savingThumbs, setSavingThumbs] = useState(false);
-
-  // Share / visibility state
-  const [isPublic, setIsPublic] = useState(initialIsPublic);
-  const [publicSlug, setPublicSlug] = useState(initialPublicSlug);
-  const [sharing, setSharing] = useState(false);
-  const [confirmPublicOpen, setConfirmPublicOpen] = useState(false);
-
-  // Report modal
-  const [reportOpen, setReportOpen] = useState(false);
-
-  // Archive state
-  const [isArchived, setIsArchived] = useState(initialIsArchived);
-  const [archiving, setArchiving] = useState(false);
-  const [confirmArchiveOpen, setConfirmArchiveOpen] = useState(false);
-
-  // Appeal state
-  const [appealOpen, setAppealOpen] = useState(false);
-  const [appealReason, setAppealReason] = useState("");
-  const [appealSubmitting, setAppealSubmitting] = useState(false);
-  const [appealStatus, setAppealStatus] = useState<"none" | "pending" | "approved" | "rejected">("none");
-  const appealDialogRef = useRef<HTMLDivElement>(null);
-  useDialogFocusTrap(appealDialogRef, appealOpen, () => setAppealOpen(false));
-
-  const handleSubmitAppeal = async () => {
-    if (appealReason.trim().length < 10) return;
-    setAppealSubmitting(true);
-    try {
-      const res = await fetch("/api/appeals", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songId: song.id, reason: appealReason.trim() }),
-      });
-      if (res.status === 409) {
-        setAppealStatus("pending");
-        setAppealOpen(false);
-        toast("You already have a pending appeal for this song.");
-        return;
-      }
-      if (res.ok) {
-        setAppealStatus("pending");
-        setAppealOpen(false);
-        toast("Appeal submitted. We'll review it shortly.");
-      } else {
-        const data = await res.json().catch(() => ({}));
-        toast(data.error || "Failed to submit appeal. Please try again.");
-      }
-    } catch {
-      toast("Failed to submit appeal. Please try again.");
-    } finally {
-      setAppealSubmitting(false);
-    }
-  };
-
-  // Embed code modal
+  // UI-only modal state (no data fetching)
   const [embedOpen, setEmbedOpen] = useState(false);
   const [embedTheme, setEmbedTheme] = useState<"dark" | "light">("dark");
   const [embedAutoplay, setEmbedAutoplay] = useState(false);
-  const [saveStyleOpen, setSaveStyleOpen] = useState(false);
-  const [styleTemplateName, setStyleTemplateName] = useState("");
-  const [styleTemplateTags, setStyleTemplateTags] = useState("");
-  const [isSavingStyle, setIsSavingStyle] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [sectionEditorOpen, setSectionEditorOpen] = useState(false);
+  const [coverArtModalOpen, setCoverArtModalOpen] = useState(false);
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(song.imageUrl ?? null);
+  const [confirmPublicOpen, setConfirmPublicOpen] = useState(false);
+  const [confirmArchiveOpen, setConfirmArchiveOpen] = useState(false);
+
+  const generatedFallbackUrl = generateCoverArtVariants({ songId: song.id, title: song.title, tags: song.tags })[0].dataUrl;
 
   // Vocal separation — delegated to useSongStems hook
   const stemHook = useSongStems({ songId: song.id, songTitle: song.title, toast });
 
-  // Section editor state
-  const [sectionEditorOpen, setSectionEditorOpen] = useState(false);
-
-  // Cover art state
-  const [coverArtModalOpen, setCoverArtModalOpen] = useState(false);
-  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(song.imageUrl ?? null);
-  const generatedFallbackUrl = generateCoverArtVariants({ songId: song.id, title: song.title, tags: song.tags })[0].dataUrl;
-
-  // Export/conversion state
-  type ExportFormat = "wav" | "midi" | "mp4";
-  type ExportStatus = "idle" | "converting" | "done" | "error";
-  const [exports, setExports] = useState<Record<ExportFormat, { status: ExportStatus; taskId?: string; error?: string }>>({
-    wav: { status: "idle" },
-    midi: { status: "idle" },
-    mp4: { status: "idle" },
-  });
-
-  // Music video state
-  type VideoStatus = "idle" | "polling" | "ready" | "error";
-  const [videoUrl, setVideoUrl] = useState<string | null>(song.videoUrl ?? null);
-  const [videoStatus, setVideoStatus] = useState<VideoStatus>(song.videoUrl ? "ready" : "idle");
-  const [videoError, setVideoError] = useState<string | null>(null);
-  const videoPollRef = useRef<NodeJS.Timeout | null>(null);
+  // Appeal dialog focus trap
+  const appealDialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocusTrap(appealDialogRef, actions.appealOpen, () => actions.setAppealOpen(false));
 
   const hasAudio = Boolean(song.audioUrl);
 
-  // Fallback: load from backend Rating model if no DB rating on Song
-  useEffect(() => {
-    if (initialRating) return;
-    let cancelled = false;
-    getRating(song.id).then((existing) => {
-      if (cancelled || !existing) return;
-      setRatingState(existing);
-      setNoteDraft(existing.note);
-    });
-    return () => { cancelled = true; };
-  }, [song.id, initialRating]);
-
-  // Load existing thumbs feedback
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/songs/${song.id}/feedback`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (cancelled || !data?.rating) return;
-        setThumbsRating(data.rating);
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [song.id]);
-
-  async function handleThumbsFeedback(value: "thumbs_up" | "thumbs_down") {
-    if (savingThumbs) return;
-    setSavingThumbs(true);
-    try {
-      const res = await fetch(`/api/songs/${song.id}/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating: value }),
-      });
-      if (res.ok) setThumbsRating(value);
-    } catch {
-      toast("Failed to save feedback", "error");
-    } finally {
-      setSavingThumbs(false);
-    }
-  }
-
-  function handleStarChange(stars: number) {
-    setRatingState((r) => ({ ...r, stars }));
-    setSaved(false);
-  }
-
-
-  async function handleSaveRating() {
-    if (rating.stars === 0 || savingRating) return;
-    const r: SongRating = { stars: rating.stars, note: noteDraft.trim() };
-    setSavingRating(true);
-    try {
-      const res = await fetch(`/api/songs/${song.id}/rating`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stars: r.stars, note: r.note }),
-      });
-      if (!res.ok) throw new Error("Failed to save rating");
-      setRatingState(r);
-      setSaved(true);
-    } catch {
-      toast("Failed to save rating", "error");
-    } finally {
-      setSavingRating(false);
-    }
-  }
-
-  async function handleToggleFavorite() {
-    const prev = isFavorite;
-    const prevCount = favoriteCount;
-    const newFav = !prev;
-    setIsFavorite(newFav);
-    setFavoriteCount(newFav ? prevCount + 1 : Math.max(0, prevCount - 1));
-    try {
-      const res = await fetch(`/api/songs/${song.id}/favorite`, {
-        method: newFav ? "POST" : "DELETE",
-      });
-      if (!res.ok) {
-        setIsFavorite(prev);
-        setFavoriteCount(prevCount);
-        toast("Failed to update favorite", "error");
-      } else {
-        const data = await res.json();
-        setFavoriteCount(data.favoriteCount);
-        toast(newFav ? "Added to favorites" : "Removed from favorites", "success");
-      }
-    } catch {
-      setIsFavorite(prev);
-      setFavoriteCount(prevCount);
-      toast("Failed to update favorite", "error");
-    }
-  }
-
-  async function setVisibility(visibility: "public" | "private") {
-    setSharing(true);
-    try {
-      const res = await fetch(`/api/songs/${song.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ visibility }),
-      });
-      if (!res.ok) {
-        toast("Failed to update visibility", "error");
-        return;
-      }
-      const data = await res.json();
-      setIsPublic(data.isPublic);
-      setPublicSlug(data.publicSlug);
-
-      if (data.isPublic && data.publicSlug) {
-        const url = `${window.location.origin}/s/${data.publicSlug}`;
-        await navigator.clipboard.writeText(url);
-        toast("Public link copied to clipboard", "success");
-        track("song_shared", { songId: song.id, source: "song_detail" });
-      } else {
-        toast("Song is now private", "success");
-      }
-    } catch {
-      toast("Failed to update visibility", "error");
-    } finally {
-      setSharing(false);
-    }
-  }
-
   function handleVisibilityToggle() {
-    if (!isPublic) {
+    const result = actions.handleVisibilityToggle();
+    if (result === "confirm-public") {
       setConfirmPublicOpen(true);
-    } else {
-      setVisibility("private");
-    }
-  }
-
-  async function handleCopyLink() {
-    if (!publicSlug) return;
-    const url = `${window.location.origin}/s/${publicSlug}`;
-
-    if (typeof navigator.share === "function") {
-      try {
-        await navigator.share({ title: song.title ?? "Check out this song", url });
-        track("song_shared", { songId: song.id, source: "song_detail", method: "web_share_api" });
-        return;
-      } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") return;
-      }
-    }
-
-    await navigator.clipboard.writeText(url);
-    toast("Link copied!", "success");
-    track("song_link_copied", { songId: song.id, source: "song_detail" });
-  }
-
-  function handleShareOnX() {
-    if (!publicSlug) return;
-    const url = `${window.location.origin}/s/${publicSlug}`;
-    const songTitle = song.title ?? "Check out this song";
-    const tweetText = `${songTitle} — listen on SunoFlow`;
-    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(url)}`;
-    window.open(twitterUrl, "_blank", "noopener,noreferrer");
-    track("song_shared", { songId: song.id, source: "song_detail", method: "twitter" });
-  }
-
-  async function handleArchive() {
-    setArchiving(true);
-    try {
-      const res = await fetch(`/api/songs/${song.id}/archive`, { method: "POST" });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        toast(data.error || "Failed to archive song", "error");
-        return;
-      }
-      setIsArchived(true);
-      toast("Song archived", "success");
-      router.push("/library");
-    } catch {
-      toast("Failed to archive song", "error");
-    } finally {
-      setArchiving(false);
-    }
-  }
-
-  async function handleRestore() {
-    setArchiving(true);
-    try {
-      const res = await fetch(`/api/songs/${song.id}/restore`, { method: "POST" });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        toast(data.error || "Failed to restore song", "error");
-        return;
-      }
-      setIsArchived(false);
-      toast("Song restored", "success");
-    } catch {
-      toast("Failed to restore song", "error");
-    } finally {
-      setArchiving(false);
-    }
-  }
-
-  async function handleCreateVariation(data: { prompt: string; tags: string; lyrics: string; title: string; makeInstrumental: boolean }) {
-    if (creatingVariation) return;
-    if (initialVariationCount >= maxVariations) {
-      toast(`Maximum ${maxVariations} variations reached`, "error");
-      return;
-    }
-    setCreatingVariation(true);
-    try {
-      const res = await fetch(`/api/songs/${song.id}/variations`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: data.prompt || undefined,
-          tags: data.tags || undefined,
-          title: data.title || undefined,
-          makeInstrumental: data.makeInstrumental,
-        }),
-      });
-      const result = await res.json();
-      if (!res.ok) {
-        toast(result.error ?? "Failed to create variation", "error");
-        return;
-      }
-      toast("Variation generation started!", "success");
-      setVariationModalOpen(false);
-      router.push(`/library/${result.song.id}`);
-    } catch {
-      toast("Failed to create variation", "error");
-    } finally {
-      setCreatingVariation(false);
-    }
-  }
-
-  async function handleRemixSubmit(action: RemixAction, data: Record<string, string | number | undefined>) {
-    if (remixSubmitting) return;
-    if (initialVariationCount >= maxVariations) {
-      toast(`Maximum ${maxVariations} variations reached`, "error");
-      return;
-    }
-    setRemixSubmitting(true);
-    try {
-      const res = await fetch(`/api/songs/${song.id}/${action}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const result = await res.json();
-      if (!res.ok) {
-        toast(result.error ?? "Generation failed", "error");
-        return;
-      }
-      toast("Generation started!", "success");
-      setRemixAction(null);
-      router.push(`/library/${result.song.id}`);
-    } catch {
-      toast("Generation failed", "error");
-    } finally {
-      setRemixSubmitting(false);
-    }
-  }
-
-  function startVideoPolling(taskId: string) {
-    if (videoPollRef.current) clearInterval(videoPollRef.current);
-    setVideoStatus("polling");
-    setVideoError(null);
-
-    const poll = async () => {
-      try {
-        const res = await fetch(`/api/songs/${song.id}/music-video/status?taskId=${encodeURIComponent(taskId)}`);
-        const data = await res.json();
-        if (!res.ok) {
-          if (videoPollRef.current) clearInterval(videoPollRef.current);
-          videoPollRef.current = null;
-          setVideoStatus("error");
-          setVideoError(data.error ?? "Failed to check video status");
-          return;
-        }
-        if (data.status === "SUCCESS" && data.videoUrl) {
-          if (videoPollRef.current) clearInterval(videoPollRef.current);
-          videoPollRef.current = null;
-          setVideoUrl(data.videoUrl);
-          setVideoStatus("ready");
-          toast("Music video is ready!", "success");
-        } else if (data.status === "CREATE_TASK_FAILED" || data.status === "GENERATE_MP4_FAILED" || data.status === "CALLBACK_EXCEPTION") {
-          if (videoPollRef.current) clearInterval(videoPollRef.current);
-          videoPollRef.current = null;
-          setVideoStatus("error");
-          setVideoError(data.errorMessage ?? "Video generation failed");
-          toast("Music video generation failed", "error");
-        }
-      } catch {
-        if (videoPollRef.current) clearInterval(videoPollRef.current);
-        videoPollRef.current = null;
-        setVideoStatus("error");
-        setVideoError("Network error while checking video status");
-      }
-    };
-
-    poll();
-    videoPollRef.current = setInterval(poll, 7000);
-  }
-
-  useEffect(() => {
-    return () => {
-      if (videoPollRef.current) clearInterval(videoPollRef.current);
-    };
-  }, []);
-
-  async function handleExport(format: ExportFormat) {
-    if (exports[format].status === "converting") return;
-    setExports((prev) => ({ ...prev, [format]: { status: "converting" } }));
-
-    const endpoints: Record<ExportFormat, string> = {
-      wav: `/api/songs/${song.id}/convert-wav`,
-      midi: `/api/songs/${song.id}/generate-midi`,
-      mp4: `/api/songs/${song.id}/music-video`,
-    };
-
-    const labels: Record<ExportFormat, string> = {
-      wav: "WAV conversion",
-      midi: "MIDI extraction",
-      mp4: "Music video generation",
-    };
-
-    try {
-      const res = await fetch(endpoints[format], { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        setExports((prev) => ({ ...prev, [format]: { status: "error", error: data.error } }));
-        toast(data.error ?? `${labels[format]} failed`, "error");
-        return;
-      }
-      setExports((prev) => ({ ...prev, [format]: { status: "done", taskId: data.taskId } }));
-      if (format === "mp4" && data.taskId) {
-        startVideoPolling(data.taskId);
-      } else {
-        toast(`${labels[format]} started! Task ID: ${data.taskId}`, "success");
-      }
-    } catch {
-      setExports((prev) => ({ ...prev, [format]: { status: "error", error: `${labels[format]} failed` } }));
-      toast(`${labels[format]} failed`, "error");
-    }
-  }
-
-  function openSaveStyleModal() {
-    setStyleTemplateName("");
-    setStyleTemplateTags((song.tags || "").trim());
-    setSaveStyleOpen(true);
-  }
-
-  async function handleSaveStyleTemplate() {
-    if (isSavingStyle || !styleTemplateName.trim() || !styleTemplateTags.trim()) return;
-
-    const name = styleTemplateName.trim();
-    const tags = styleTemplateTags.trim();
-    setIsSavingStyle(true);
-    try {
-      const res = await fetch("/api/style-templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          tags,
-          sourceSongId: song.id,
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast(data.error ?? "Failed to save style template", "error");
-        return;
-      }
-
-      setSaveStyleOpen(false);
-      setStyleTemplateName("");
-      setStyleTemplateTags("");
-      toast("Style template saved", "success");
-    } catch {
-      toast("Failed to save style template", "error");
-    } finally {
-      setIsSavingStyle(false);
     }
   }
 
@@ -697,19 +241,19 @@ export function SongDetailView({
                 )}
               </h1>
               <button
-                onClick={handleToggleFavorite}
-                aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                onClick={actions.handleToggleFavorite}
+                aria-label={actions.isFavorite ? "Remove from favorites" : "Add to favorites"}
                 className={`flex-shrink-0 flex items-center gap-1 px-2 h-11 rounded-full transition-all duration-200 active:scale-95 ${
-                  isFavorite ? "text-pink-500" : "text-gray-400 dark:text-gray-500 hover:text-pink-400"
+                  actions.isFavorite ? "text-pink-500" : "text-gray-400 dark:text-gray-500 hover:text-pink-400"
                 }`}
               >
-                {isFavorite ? (
+                {actions.isFavorite ? (
                   <HeartIcon className="w-6 h-6" />
                 ) : (
                   <HeartOutlineIcon className="w-6 h-6" />
                 )}
-                {favoriteCount > 0 && (
-                  <span className="text-sm font-medium">{favoriteCount}</span>
+                {actions.favoriteCount > 0 && (
+                  <span className="text-sm font-medium">{actions.favoriteCount}</span>
                 )}
               </button>
             </div>
@@ -723,15 +267,15 @@ export function SongDetailView({
       {isHidden && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
           <p className="text-sm font-medium text-red-700 dark:text-red-400 mb-1">This song was removed by a moderator.</p>
-          {appealStatus === "pending" ? (
+          {actions.appealStatus === "pending" ? (
             <p className="text-xs text-red-600 dark:text-red-400">Your appeal is under review.</p>
-          ) : appealStatus === "approved" ? (
+          ) : actions.appealStatus === "approved" ? (
             <p className="text-xs text-green-600 dark:text-green-400">Your appeal was approved.</p>
-          ) : appealStatus === "rejected" ? (
+          ) : actions.appealStatus === "rejected" ? (
             <p className="text-xs text-red-600 dark:text-red-400">Your appeal was rejected.</p>
           ) : (
             <button
-              onClick={() => setAppealOpen(true)}
+              onClick={() => actions.setAppealOpen(true)}
               className="mt-1 text-xs font-medium text-red-700 dark:text-red-300 underline hover:no-underline"
             >
               Appeal this decision
@@ -741,8 +285,8 @@ export function SongDetailView({
       )}
 
       {/* Appeal modal */}
-      {appealOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 px-4" onClick={() => setAppealOpen(false)}>
+      {actions.appealOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 px-4" onClick={() => actions.setAppealOpen(false)}>
           <div
             ref={appealDialogRef}
             role="dialog"
@@ -760,24 +304,24 @@ export function SongDetailView({
               className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-500"
               rows={5}
               placeholder="Describe why this content should be restored (min 10 characters)…"
-              value={appealReason}
-              onChange={(e) => setAppealReason(e.target.value)}
+              value={actions.appealReason}
+              onChange={(e) => actions.setAppealReason(e.target.value)}
               maxLength={2000}
             />
-            <p className="text-xs text-gray-400 text-right mt-1">{appealReason.length}/2000</p>
+            <p className="text-xs text-gray-400 text-right mt-1">{actions.appealReason.length}/2000</p>
             <div className="flex gap-3 mt-4">
               <button
-                onClick={() => setAppealOpen(false)}
+                onClick={() => actions.setAppealOpen(false)}
                 className="flex-1 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={handleSubmitAppeal}
-                disabled={appealSubmitting || appealReason.trim().length < 10}
+                onClick={actions.handleSubmitAppeal}
+                disabled={actions.appealSubmitting || actions.appealReason.trim().length < 10}
                 className="flex-1 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors"
               >
-                {appealSubmitting ? "Submitting…" : "Submit appeal"}
+                {actions.appealSubmitting ? "Submitting…" : "Submit appeal"}
               </button>
             </div>
           </div>
@@ -790,7 +334,7 @@ export function SongDetailView({
         duration={song.duration}
         createdAt={song.createdAt}
         model={song.model}
-        ratingStars={rating.stars}
+        ratingStars={actions.rating.stars}
         sunoJobId={sunoJobId}
       />
 
@@ -830,15 +374,15 @@ export function SongDetailView({
       <SongActionsBar
         song={song}
         hasAudio={hasAudio}
-        isPublic={isPublic}
-        publicSlug={publicSlug}
+        isPublic={actions.isPublic}
+        publicSlug={actions.publicSlug}
         isCached={isCached}
         isSavingOffline={isSavingOffline}
-        sharing={sharing}
+        sharing={actions.sharing}
         coverImageUrl={coverImageUrl}
         onVisibilityToggle={handleVisibilityToggle}
-        onCopyLink={handleCopyLink}
-        onShareOnX={handleShareOnX}
+        onCopyLink={actions.handleCopyLink}
+        onShareOnX={actions.handleShareOnX}
         onEmbedOpen={() => setEmbedOpen(true)}
         onReportOpen={() => setReportOpen(true)}
         onSaveOffline={() => saveOffline({ id: song.id, title: song.title, imageUrl: song.imageUrl ?? null })}
@@ -851,10 +395,10 @@ export function SongDetailView({
           addToQueue({ id: song.id, title: song.title, audioUrl: song.audioUrl!, imageUrl: coverImageUrl ?? null, duration: song.duration ?? null, lyrics: song.lyrics });
           toast("Added to queue", "success");
         }}
-        isArchived={isArchived}
-        archiving={archiving}
+        isArchived={actions.isArchived}
+        archiving={actions.archiving}
         onArchive={() => setConfirmArchiveOpen(true)}
-        onRestore={handleRestore}
+        onRestore={actions.handleRestore}
       />
 
       {/* Make public confirmation dialog */}
@@ -873,7 +417,7 @@ export function SongDetailView({
                 Cancel
               </button>
               <button
-                onClick={() => { setConfirmPublicOpen(false); setVisibility("public"); }}
+                onClick={() => { setConfirmPublicOpen(false); actions.setVisibility("public"); }}
                 className="px-4 py-2 text-sm font-medium rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors"
               >
                 Make public
@@ -899,11 +443,11 @@ export function SongDetailView({
                 Cancel
               </button>
               <button
-                onClick={() => { setConfirmArchiveOpen(false); handleArchive(); }}
-                disabled={archiving}
+                onClick={() => { setConfirmArchiveOpen(false); actions.handleArchive(); }}
+                disabled={actions.archiving}
                 className="px-4 py-2 text-sm font-medium rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
               >
-                {archiving ? "Archiving…" : "Archive"}
+                {actions.archiving ? "Archiving…" : "Archive"}
               </button>
             </div>
           </div>
@@ -931,13 +475,13 @@ export function SongDetailView({
         />
       )}
 
-      {saveStyleOpen && (
+      {actions.saveStyleOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="save-style-title"
-          onClick={() => setSaveStyleOpen(false)}
+          onClick={() => actions.setSaveStyleOpen(false)}
         >
           <div
             className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4"
@@ -955,8 +499,8 @@ export function SongDetailView({
                 <input
                   id="style-template-name"
                   type="text"
-                  value={styleTemplateName}
-                  onChange={(e) => setStyleTemplateName(e.target.value)}
+                  value={actions.styleTemplateName}
+                  onChange={(e) => actions.setStyleTemplateName(e.target.value)}
                   maxLength={100}
                   autoFocus
                   className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
@@ -969,8 +513,8 @@ export function SongDetailView({
                 </label>
                 <textarea
                   id="style-template-tags"
-                  value={styleTemplateTags}
-                  onChange={(e) => setStyleTemplateTags(e.target.value)}
+                  value={actions.styleTemplateTags}
+                  onChange={(e) => actions.setStyleTemplateTags(e.target.value)}
                   rows={3}
                   maxLength={500}
                   className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
@@ -980,17 +524,17 @@ export function SongDetailView({
             </div>
             <div className="flex gap-3 justify-end">
               <button
-                onClick={() => setSaveStyleOpen(false)}
+                onClick={() => actions.setSaveStyleOpen(false)}
                 className="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={handleSaveStyleTemplate}
-                disabled={isSavingStyle || !styleTemplateName.trim() || !styleTemplateTags.trim()}
+                onClick={actions.handleSaveStyleTemplate}
+                disabled={actions.isSavingStyle || !actions.styleTemplateName.trim() || !actions.styleTemplateTags.trim()}
                 className="px-4 py-2 text-sm font-medium rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
               >
-                {isSavingStyle ? "Saving..." : "Save Style"}
+                {actions.isSavingStyle ? "Saving..." : "Save Style"}
               </button>
             </div>
           </div>
@@ -1004,44 +548,44 @@ export function SongDetailView({
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Export</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             <button
-              onClick={() => handleExport("wav")}
-              disabled={exports.wav.status === "converting"}
+              onClick={() => actions.handleExport("wav")}
+              disabled={actions.exports.wav.status === "converting"}
               className="flex items-center justify-center gap-2 px-3 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
             >
               <ArrowDownTrayIcon className="w-4 h-4" aria-hidden="true" />
-              {exports.wav.status === "converting" ? "Converting..." : exports.wav.status === "done" ? "WAV Sent" : "WAV"}
+              {actions.exports.wav.status === "converting" ? "Converting..." : actions.exports.wav.status === "done" ? "WAV Sent" : "WAV"}
             </button>
             <button
-              onClick={() => handleExport("midi")}
-              disabled={exports.midi.status === "converting"}
+              onClick={() => actions.handleExport("midi")}
+              disabled={actions.exports.midi.status === "converting"}
               className="flex items-center justify-center gap-2 px-3 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
             >
               <MusicalNoteIcon className="w-4 h-4" aria-hidden="true" />
-              {exports.midi.status === "converting" ? "Extracting..." : exports.midi.status === "done" ? "MIDI Sent" : "MIDI"}
+              {actions.exports.midi.status === "converting" ? "Extracting..." : actions.exports.midi.status === "done" ? "MIDI Sent" : "MIDI"}
             </button>
             <button
-              onClick={() => handleExport("mp4")}
-              disabled={exports.mp4.status === "converting" || videoStatus === "polling"}
+              onClick={() => actions.handleExport("mp4")}
+              disabled={actions.exports.mp4.status === "converting" || actions.videoStatus === "polling"}
               className="flex items-center justify-center gap-2 px-3 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
             >
               <FilmIcon className="w-4 h-4" aria-hidden="true" />
-              {exports.mp4.status === "converting" || videoStatus === "polling"
+              {actions.exports.mp4.status === "converting" || actions.videoStatus === "polling"
                 ? "Generating..."
-                : videoStatus === "ready"
+                : actions.videoStatus === "ready"
                   ? "Regenerate Video"
                   : "Music Video"}
             </button>
           </div>
-          {(exports.wav.status === "error" || exports.midi.status === "error" || exports.mp4.status === "error") && (
+          {(actions.exports.wav.status === "error" || actions.exports.midi.status === "error" || actions.exports.mp4.status === "error") && (
             <p className="text-xs text-red-400">
-              {exports.wav.error || exports.midi.error || exports.mp4.error}
+              {actions.exports.wav.error || actions.exports.midi.error || actions.exports.mp4.error}
             </p>
           )}
         </div>
       )}
 
       {/* Music Video Player */}
-      {videoStatus === "polling" && (
+      {actions.videoStatus === "polling" && (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Music Video</h2>
           <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
@@ -1051,12 +595,12 @@ export function SongDetailView({
         </div>
       )}
 
-      {videoStatus === "ready" && videoUrl && (
+      {actions.videoStatus === "ready" && actions.videoUrl && (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Music Video</h2>
           <div className="rounded-lg overflow-hidden bg-black">
             <video
-              src={videoUrl}
+              src={actions.videoUrl}
               controls
               playsInline
               preload="metadata"
@@ -1064,7 +608,7 @@ export function SongDetailView({
             />
           </div>
           <a
-            href={videoUrl}
+            href={actions.videoUrl}
             download
             target="_blank"
             rel="noopener noreferrer"
@@ -1076,12 +620,12 @@ export function SongDetailView({
         </div>
       )}
 
-      {videoStatus === "error" && (
+      {actions.videoStatus === "error" && (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Music Video</h2>
-          <p className="text-sm text-red-500">{videoError ?? "Video generation failed."}</p>
+          <p className="text-sm text-red-500">{actions.videoError ?? "Video generation failed."}</p>
           <button
-            onClick={() => handleExport("mp4")}
+            onClick={() => actions.handleExport("mp4")}
             className="inline-flex items-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
           >
             <ArrowPathIcon className="w-4 h-4" aria-hidden="true" />
@@ -1130,7 +674,7 @@ export function SongDetailView({
                 toast(`Maximum ${maxVariations} variations reached`, "error");
                 return;
               }
-              setVariationModalOpen(true);
+              actions.setVariationModalOpen(true);
             }}
             disabled={initialVariationCount >= maxVariations}
             className="flex items-center justify-center gap-2 px-3 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
@@ -1139,7 +683,7 @@ export function SongDetailView({
             Create Variation
           </button>
           <button
-            onClick={() => setRemixAction("extend")}
+            onClick={() => actions.setRemixAction("extend")}
             disabled={initialVariationCount >= maxVariations}
             className="flex items-center justify-center gap-2 px-3 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
           >
@@ -1148,7 +692,7 @@ export function SongDetailView({
           </button>
           {isInstrumental ? (
             <button
-              onClick={() => setRemixAction("add-vocals")}
+              onClick={() => actions.setRemixAction("add-vocals")}
               disabled={initialVariationCount >= maxVariations}
               className="flex items-center justify-center gap-2 px-3 py-2.5 bg-pink-600 hover:bg-pink-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
             >
@@ -1157,7 +701,7 @@ export function SongDetailView({
             </button>
           ) : (
             <button
-              onClick={() => setRemixAction("add-instrumental")}
+              onClick={() => actions.setRemixAction("add-instrumental")}
               disabled={initialVariationCount >= maxVariations}
               className="flex items-center justify-center gap-2 px-3 py-2.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
             >
@@ -1210,7 +754,7 @@ export function SongDetailView({
           </button>
           {song.tags?.trim() && (
             <button
-              onClick={openSaveStyleModal}
+              onClick={actions.openSaveStyleModal}
               className="flex items-center justify-center gap-2 px-3 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px] col-span-2"
             >
               <SwatchIcon className="w-4 h-4" aria-hidden="true" />
@@ -1221,7 +765,7 @@ export function SongDetailView({
       </div>
 
       {/* Remix modal */}
-      {variationModalOpen && (
+      {actions.variationModalOpen && (
         <CreateVariationModal
           sourceSong={{
             prompt: song.prompt ?? null,
@@ -1230,21 +774,21 @@ export function SongDetailView({
             title: song.title ?? null,
             isInstrumental: isInstrumental,
           }}
-          onClose={() => setVariationModalOpen(false)}
-          onSubmit={handleCreateVariation}
-          submitting={creatingVariation}
+          onClose={() => actions.setVariationModalOpen(false)}
+          onSubmit={actions.handleCreateVariation}
+          submitting={actions.creatingVariation}
         />
       )}
 
-      {remixAction && (
+      {actions.remixAction && (
         <RemixModal
-          action={remixAction}
+          action={actions.remixAction}
           songTitle={song.title}
           songTags={song.tags ?? null}
           songDuration={song.duration ?? null}
-          onClose={() => setRemixAction(null)}
-          onSubmit={handleRemixSubmit}
-          submitting={remixSubmitting}
+          onClose={() => actions.setRemixAction(null)}
+          onSubmit={actions.handleRemixSubmit}
+          submitting={actions.remixSubmitting}
         />
       )}
 
@@ -1343,14 +887,14 @@ export function SongDetailView({
                       Compare
                     </Link>
                     <button
-                      onClick={() => setCompareVariation(compareVariation?.id === v.id ? null : v)}
+                      onClick={() => actions.setCompareVariation(actions.compareVariation?.id === v.id ? null : { id: v.id, title: v.title, tags: v.tags, audioUrl: v.audioUrl, duration: v.duration, lyrics: v.lyrics })}
                       className={`px-2 py-1 text-xs font-medium rounded-lg transition-colors ${
-                        compareVariation?.id === v.id
+                        actions.compareVariation?.id === v.id
                           ? "bg-indigo-600 text-white"
                           : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
                       }`}
                     >
-                      {compareVariation?.id === v.id ? "Hide" : "Quick"}
+                      {actions.compareVariation?.id === v.id ? "Hide" : "Quick"}
                     </button>
                   </div>
                 )}
@@ -1361,12 +905,12 @@ export function SongDetailView({
       )}
 
       {/* Side-by-side comparison */}
-      {compareVariation && (
+      {actions.compareVariation && (
         <div className="bg-white dark:bg-gray-900 border border-violet-300 dark:border-violet-700 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Comparison</h2>
             <button
-              onClick={() => setCompareVariation(null)}
+              onClick={() => actions.setCompareVariation(null)}
               className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
             >
               Close
@@ -1391,15 +935,15 @@ export function SongDetailView({
             {/* Comparison variation */}
             <div className="space-y-2">
               <span className="text-xs font-semibold text-violet-500 uppercase tracking-wide">Variation</span>
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{compareVariation.title || "Untitled"}</p>
-              {compareVariation.tags && <p className="text-xs text-gray-500 dark:text-gray-400">{compareVariation.tags}</p>}
-              {compareVariation.duration != null && <p className="text-xs text-gray-400">{formatTime(compareVariation.duration)}</p>}
-              {compareVariation.audioUrl && (
-                <audio src={compareVariation.audioUrl} controls className="w-full h-8" preload="none" />
+              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{actions.compareVariation.title || "Untitled"}</p>
+              {actions.compareVariation.tags && <p className="text-xs text-gray-500 dark:text-gray-400">{actions.compareVariation.tags}</p>}
+              {actions.compareVariation.duration != null && <p className="text-xs text-gray-400">{formatTime(actions.compareVariation.duration)}</p>}
+              {actions.compareVariation.audioUrl && (
+                <audio src={actions.compareVariation.audioUrl} controls className="w-full h-8" preload="none" />
               )}
-              {compareVariation.lyrics && (
+              {actions.compareVariation.lyrics && (
                 <div className="max-h-40 overflow-y-auto">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-pre-line">{compareVariation.lyrics}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-pre-line">{actions.compareVariation.lyrics}</p>
                 </div>
               )}
             </div>
@@ -1442,17 +986,17 @@ export function SongDetailView({
         <div className="flex gap-3">
           <button
             type="button"
-            onClick={() => handleThumbsFeedback("thumbs_up")}
-            disabled={savingThumbs}
+            onClick={() => actions.handleThumbsFeedback("thumbs_up")}
+            disabled={actions.savingThumbs}
             aria-label="Thumbs up — good generation"
-            aria-pressed={thumbsRating === "thumbs_up"}
+            aria-pressed={actions.thumbsRating === "thumbs_up"}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
-              thumbsRating === "thumbs_up"
+              actions.thumbsRating === "thumbs_up"
                 ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700"
                 : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-600 hover:border-green-200"
             }`}
           >
-            {thumbsRating === "thumbs_up" ? (
+            {actions.thumbsRating === "thumbs_up" ? (
               <HandThumbUpIcon className="h-5 w-5" aria-hidden="true" />
             ) : (
               <HandThumbUpOutlineIcon className="h-5 w-5" aria-hidden="true" />
@@ -1461,17 +1005,17 @@ export function SongDetailView({
           </button>
           <button
             type="button"
-            onClick={() => handleThumbsFeedback("thumbs_down")}
-            disabled={savingThumbs}
+            onClick={() => actions.handleThumbsFeedback("thumbs_down")}
+            disabled={actions.savingThumbs}
             aria-label="Thumbs down — poor generation"
-            aria-pressed={thumbsRating === "thumbs_down"}
+            aria-pressed={actions.thumbsRating === "thumbs_down"}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
-              thumbsRating === "thumbs_down"
+              actions.thumbsRating === "thumbs_down"
                 ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700"
                 : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 hover:border-red-200"
             }`}
           >
-            {thumbsRating === "thumbs_down" ? (
+            {actions.thumbsRating === "thumbs_down" ? (
               <HandThumbDownIcon className="h-5 w-5" aria-hidden="true" />
             ) : (
               <HandThumbDownOutlineIcon className="h-5 w-5" aria-hidden="true" />
@@ -1485,13 +1029,13 @@ export function SongDetailView({
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3 transition-shadow duration-200 hover:shadow-md">
         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Your Rating</h2>
 
-        <StarPicker value={rating.stars} onChange={handleStarChange} />
+        <StarPicker value={actions.rating.stars} onChange={actions.handleStarChange} />
 
         <textarea
-          value={noteDraft}
+          value={actions.noteDraft}
           onChange={(e) => {
-            setNoteDraft(e.target.value);
-            setSaved(false);
+            actions.setNoteDraft(e.target.value);
+            actions.setSaved(false);
           }}
           placeholder="Add a note (optional)..."
           aria-label="Rating note"
@@ -1501,13 +1045,13 @@ export function SongDetailView({
 
         <div className="flex items-center gap-3">
           <button
-            onClick={handleSaveRating}
-            disabled={rating.stars === 0}
+            onClick={actions.handleSaveRating}
+            disabled={actions.rating.stars === 0}
             className="px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-600 text-white text-sm font-medium rounded-lg transition-colors min-h-[44px]"
           >
             Save rating
           </button>
-          {saved && (
+          {actions.saved && (
             <span className="text-sm text-green-400">Saved</span>
           )}
         </div>
