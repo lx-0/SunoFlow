@@ -1,48 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
-interface CollaboratorUser {
-  id: string;
-  name: string | null;
-  image: string | null;
-  avatarUrl: string | null;
-}
-
-interface PlaylistActivityItem {
+export interface PlaylistActivityItem {
   id: string;
   type: string;
   createdAt: string;
-  user: CollaboratorUser | null;
-  song: { id: string; title: string | null; imageUrl: string | null } | null;
+  user: {
+    id: string;
+    name: string | null;
+    image: string | null;
+    avatarUrl: string | null;
+    username?: string | null;
+  } | null;
+  song: {
+    id: string;
+    title: string | null;
+    imageUrl: string | null;
+  } | null;
 }
 
-export function usePlaylistActivity(playlistId: string) {
+interface UsePlaylistActivityOptions {
+  playlistId: string;
+}
+
+export function usePlaylistActivity({
+  playlistId,
+}: UsePlaylistActivityOptions) {
   const [activities, setActivities] = useState<PlaylistActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
   const [showActivityFeed, setShowActivityFeed] = useState(false);
 
-  async function handleLoadActivity() {
-    if (activityLoading) return;
+  const handleLoadActivity = useCallback(async () => {
     setActivityLoading(true);
     try {
       const res = await fetch(`/api/playlists/${playlistId}/activity`);
-      if (!res.ok) return;
-      const data = await res.json();
-      setActivities(data.activities ?? []);
-    } catch {
-      // non-fatal
+      if (res.ok) {
+        const data = await res.json();
+        setActivities(data.activities ?? data);
+      }
     } finally {
       setActivityLoading(false);
     }
-  }
+  }, [playlistId]);
 
-  function handleToggleActivityFeed() {
+  const handleToggleActivityFeed = useCallback(async () => {
     if (!showActivityFeed && activities.length === 0) {
-      handleLoadActivity();
+      await handleLoadActivity();
     }
-    setShowActivityFeed((prev) => !prev);
-  }
+    setShowActivityFeed((v) => !v);
+  }, [showActivityFeed, activities.length, handleLoadActivity]);
 
   return {
     activities,
