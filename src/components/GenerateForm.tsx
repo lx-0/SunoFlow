@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { SparklesIcon } from "@heroicons/react/24/solid";
-import { BoltIcon, UserCircleIcon, ExclamationTriangleIcon, QueueListIcon, AdjustmentsHorizontalIcon, DocumentDuplicateIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { ClockIcon, BoltIcon, UserCircleIcon, PencilSquareIcon, ChevronDownIcon, ExclamationTriangleIcon, QueueListIcon, AdjustmentsHorizontalIcon, DocumentDuplicateIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useToast } from "./Toast";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { useGenerationQueue } from "@/hooks/useGenerationQueue";
@@ -13,16 +13,13 @@ import { useLyricsGeneration } from "@/hooks/useLyricsGeneration";
 import { useAutoGenerate } from "@/hooks/useAutoGenerate";
 import { useTemplateManager } from "@/hooks/useTemplateManager";
 import { usePresetManager } from "@/hooks/usePresetManager";
-import { track } from "@/lib/analytics";
-import { fetchWithTimeout, clientFetchErrorMessage } from "@/lib/fetch-client";
-import {
-  getPendingIndexFromVisualIndex,
-  getPromptValidationError,
-  getSubmitPrompt,
-  reorderPendingQueueIds,
-} from "./generate-form/helpers";
+import { getRateLimitMeta } from "./generate-form/helpers";
 import type { PromptSuggestion } from "./generate-form/types";
 import { useGenerateFormData } from "./generate-form/useGenerateFormData";
+import { useGenerateSubmit } from "./generate-form/useGenerateSubmit";
+import { useGenerationCelebration } from "./generate-form/useGenerationCelebration";
+import { TemplatePickerPanel } from "./generate-form/TemplatePickerPanel";
+import { PresetPickerPanel } from "./generate-form/PresetPickerPanel";
 import { GenerationProgress } from "./GenerationProgress";
 import { GenerationQueue } from "./GenerationQueue";
 import { BatchGeneratePanel } from "./BatchGeneratePanel";
@@ -33,10 +30,9 @@ import { AutoGeneratePanel } from "./generate-form/AutoGeneratePanel";
 import { SuggestionsPanel } from "./generate-form/SuggestionsPanel";
 import { RateLimitPanel } from "./generate-form/RateLimitPanel";
 import dynamic from "next/dynamic";
-// Lazy-load confetti — only shown after generation success, not needed on initial render
 const Confetti = dynamic(() => import("./Confetti").then((m) => m.Confetti));
-import { UpgradeModal, shouldShowUpgradeModal } from "./UpgradeModal";
-import { InAppFeedbackWidget, hasFeedbackBeenSubmitted } from "./InAppFeedbackWidget";
+import { UpgradeModal } from "./UpgradeModal";
+import { InAppFeedbackWidget } from "./InAppFeedbackWidget";
 
 export function GenerateForm() {
   const searchParams = useSearchParams();
@@ -61,10 +57,6 @@ export function GenerateForm() {
   const [customMode, setCustomMode] = useState(Boolean(searchParams.get("prompt") && !searchParams.get("tags")));
   const [prompt, setPrompt] = useState(searchParams.get("prompt") ?? "");
   const [instrumental, setInstrumental] = useState(searchParams.get("instrumental") === "1");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [promptError, setPromptError] = useState<string | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [selectedPersonaId, setSelectedPersonaId] = useState("");
 
   const {
@@ -83,17 +75,6 @@ export function GenerateForm() {
     fetchCredits,
     fetchTemplates,
   } = useGenerateFormData({ toast });
-
-  // First-generation confetti celebration
-  const [showConfetti, setShowConfetti] = useState(false);
-  const prevReadyCountRef = useRef(0);
-  const processedCompletionsRef = useRef<Set<string>>(new Set());
-
-  // In-app feedback widget after song generation
-  const [feedbackWidget, setFeedbackWidget] = useState<{ songId: string } | null>(null);
-  const feedbackShownRef = useRef<Set<string>>(new Set());
-
-  // --- Extracted hooks ---
 
   const getFormState = useCallback(() => ({
     title, style, prompt, customMode, instrumental,
@@ -155,46 +136,49 @@ export function GenerateForm() {
     },
   });
 
-  // --- Effects ---
+  const {
+    showConfetti,
+    dismissConfetti,
+    feedbackWidget,
+    dismissFeedback,
+  } = useGenerationCelebration({
+    trackedSongs,
+    onGenerationComplete,
+    trackSong,
+  });
 
-  useEffect(() => {
-    const readyCount = trackedSongs.filter((s) => s.status === "ready").length;
-    if (readyCount > prevReadyCountRef.current) {
-      try {
-        if (!localStorage.getItem("sunoflow-first-gen-celebrated")) {
-          setShowConfetti(true);
-          localStorage.setItem("sunoflow-first-gen-celebrated", "true");
-        }
-      } catch {
-        // localStorage unavailable
-      }
-    }
-    prevReadyCountRef.current = readyCount;
-
-    for (const song of trackedSongs) {
-      if (
-        (song.status === "ready" || song.status === "failed") &&
-        !processedCompletionsRef.current.has(song.songId)
-      ) {
-        processedCompletionsRef.current.add(song.songId);
-        onGenerationComplete(song.songId).then((result) => {
-          if (result?.song) {
-            trackSong(result.song.id, result.song.title);
-          }
-        });
-      }
-      if (
-        song.status === "ready" &&
-        !feedbackShownRef.current.has(song.songId) &&
-        !hasFeedbackBeenSubmitted("song_generation", song.songId)
-      ) {
-        feedbackShownRef.current.add(song.songId);
-        setFeedbackWidget({ songId: song.songId });
-      }
-    }
-  }, [trackedSongs, onGenerationComplete, trackSong]);
-
-  // --- Handlers ---
+  const {
+    isSubmitting,
+    promptError,
+    setPromptError,
+    submitError,
+    showUpgradeModal,
+    setShowUpgradeModal,
+    handleSubmit,
+    handleAddToQueue,
+    handleQueueMoveUp,
+    handleQueueMoveDown,
+  } = useGenerateSubmit({
+    toast,
+    customMode,
+    prompt,
+    style,
+    title,
+    instrumental,
+    selectedPersonaId,
+    sourceSongId,
+    creditInfo,
+    personas,
+    rateLimit,
+    setRateLimit,
+    trackSong,
+    fetchCredits,
+    queueItems,
+    addToQueue,
+    reorderQueue,
+    processNext,
+    queueIsProcessing,
+  });
 
   function applySuggestion(suggestion: PromptSuggestion) {
     setStyle(suggestion.stylePrompt);
@@ -203,189 +187,9 @@ export function GenerateForm() {
     toast("Applied suggestion", "success");
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (isSubmitting) return;
-    setSubmitError(null);
-
-    const submitPromptValue = getSubmitPrompt(customMode, prompt, style);
-    const promptValidationError = getPromptValidationError(submitPromptValue, customMode);
-    if (promptValidationError) {
-      setPromptError(promptValidationError);
-      return;
-    }
-    setPromptError(null);
-
-    if (creditInfo !== null && creditInfo.creditsRemaining <= 0 && shouldShowUpgradeModal("no_credits")) {
-      setShowUpgradeModal(true);
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const selectedPersona = personas.find((p) => p.personaId === selectedPersonaId);
-      const body = {
-        prompt: customMode ? prompt : style,
-        title: title || undefined,
-        tags: style || undefined,
-        makeInstrumental: instrumental,
-        personaId: selectedPersona?.personaId || undefined,
-        parentSongId: sourceSongId || undefined,
-      };
-
-      let res: Response;
-      try {
-        res = await fetchWithTimeout("/api/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-      } catch (fetchErr) {
-        const msg = clientFetchErrorMessage(fetchErr);
-        setSubmitError(msg);
-        toast(msg, "error", { label: "Retry", onClick: () => handleSubmit(e) });
-        return;
-      }
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (res.status === 429 && (data.details?.resetAt || data.details?.rateLimit?.resetAt)) {
-          const resetAt = data.details?.resetAt ?? data.details?.rateLimit?.resetAt;
-          const resetTime = new Date(resetAt);
-          const minutesLeft = Math.ceil((resetTime.getTime() - Date.now()) / 60000);
-          const message = `Rate limit reached. Try again in ${minutesLeft} minute${minutesLeft === 1 ? "" : "s"}.`;
-          setSubmitError(message);
-          toast(message, "error");
-          if (data.details?.rateLimit) setRateLimit(data.details.rateLimit);
-        } else if (res.status >= 500) {
-          const message = data.error ?? "Generation failed. Please try again.";
-          setSubmitError(message);
-          toast(message, "error", {
-            label: "Retry",
-            onClick: () => handleSubmit(e),
-          });
-        } else {
-          const message = data.error ?? "Generation failed. Please try again.";
-          setSubmitError(message);
-          toast(message, "error");
-        }
-        return;
-      }
-
-      if (data.rateLimit) {
-        setRateLimit(data.rateLimit);
-        if (data.rateLimit.remaining <= 2 && data.rateLimit.remaining > 0) {
-          toast(`${data.rateLimit.remaining} generation${data.rateLimit.remaining === 1 ? "" : "s"} remaining this hour`, "info");
-        }
-      }
-
-      const song = data.songs?.[0] ?? data.song;
-      const songId = song?.id ?? data.id;
-      const songTitle = song?.title ?? data.title ?? (title || null);
-
-      if (data.error) {
-        setSubmitError(data.error);
-        toast(data.error, "error");
-        return;
-      }
-
-      setSubmitError(null);
-      toast("Song generation started!", "success");
-      track("song_generation_requested", { mode: customMode ? "custom" : "style", instrumental });
-      trackSong(songId, songTitle);
-      fetchCredits();
-    } catch {
-      const message = "Network error. Please check your connection and try again.";
-      setSubmitError(message);
-      toast(message, "error", {
-        label: "Retry",
-        onClick: () => handleSubmit(e),
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  async function handleAddToQueue() {
-    const submitPrompt = getSubmitPrompt(customMode, prompt, style);
-    if (!submitPrompt) {
-      toast("A prompt is required", "error");
-      return;
-    }
-
-    const selectedPersona = personas.find((p) => p.personaId === selectedPersonaId);
-    const { item, error: queueError } = await addToQueue({
-      prompt: submitPrompt.trim(),
-      title: title || undefined,
-      tags: style || undefined,
-      makeInstrumental: instrumental,
-      personaId: selectedPersona?.personaId || undefined,
-    });
-
-    if (queueError) {
-      toast(queueError, "error");
-      return;
-    }
-
-    toast("Added to generation queue!", "success");
-    track("song_generation_requested", { mode: customMode ? "custom" : "style", instrumental, via: "queue" });
-
-    if (!queueIsProcessing && item) {
-      const result = await processNext();
-      if (result?.song) {
-        trackSong(result.song.id, result.song.title);
-        fetchCredits();
-      }
-    }
-  }
-
-  function handleQueueMoveUp(index: number) {
-    const activeItems = queueItems.filter(
-      (i) => i.status === "pending" || i.status === "processing"
-    );
-    const pendingItems = activeItems.filter((i) => i.status === "pending");
-    if (index <= 0) return;
-    const firstActiveStatus =
-      activeItems[0]?.status === "processing"
-        ? "processing"
-        : activeItems[0]?.status === "pending"
-          ? "pending"
-          : undefined;
-    const pendingIndex = getPendingIndexFromVisualIndex(index, firstActiveStatus);
-    const ids = reorderPendingQueueIds(
-      pendingItems.map((i) => i.id),
-      pendingIndex,
-      "up",
-    );
-    reorderQueue(ids);
-  }
-
-  function handleQueueMoveDown(index: number) {
-    const activeItems = queueItems.filter(
-      (i) => i.status === "pending" || i.status === "processing"
-    );
-    const pendingItems = activeItems.filter((i) => i.status === "pending");
-    const firstActiveStatus =
-      activeItems[0]?.status === "processing"
-        ? "processing"
-        : activeItems[0]?.status === "pending"
-          ? "pending"
-          : undefined;
-    const pendingIndex = getPendingIndexFromVisualIndex(index, firstActiveStatus);
-    const ids = reorderPendingQueueIds(
-      pendingItems.map((i) => i.id),
-      pendingIndex,
-      "down",
-    );
-    reorderQueue(ids);
-  }
-
   return (
     <div className="px-4 py-4 space-y-6">
-      {/* First-generation celebration */}
-      {showConfetti && <Confetti onDone={() => setShowConfetti(false)} />}
+      {showConfetti && <Confetti onDone={dismissConfetti} />}
 
       {/* Header */}
       <div>
@@ -435,7 +239,6 @@ export function GenerateForm() {
         </div>
       )}
 
-      {/* Generation Queue */}
       <GenerationQueue
         items={queueItems}
         onRemove={removeFromQueue}
@@ -443,289 +246,10 @@ export function GenerateForm() {
         onMoveDown={handleQueueMoveDown}
       />
 
-      {/* Generation Progress */}
       <GenerationProgress songs={trackedSongs} onDismiss={clearAll} />
 
-      {/* Template Picker Button */}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => templateMgr.setShowTemplatePicker(!templateMgr.showTemplatePicker)}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
-        >
-          <BookmarkOutline className="h-4 w-4" />
-          Templates
-        </button>
-        <button
-          type="button"
-          onClick={() => templateMgr.setShowSaveDialog(!templateMgr.showSaveDialog)}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-        >
-          <BookmarkIcon className="h-4 w-4" />
-          Save as template
-        </button>
-      </div>
-
-      {/* Preset Picker Buttons */}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => presetMgr.setShowPresetPicker(!presetMgr.showPresetPicker)}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-xl hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors"
-        >
-          <AdjustmentsHorizontalIcon className="h-4 w-4" />
-          Presets{presets.length > 0 ? ` (${presets.length})` : ""}
-        </button>
-        <button
-          type="button"
-          onClick={() => presetMgr.setShowPresetSaveDialog(!presetMgr.showPresetSaveDialog)}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-        >
-          <BookmarkIcon className="h-4 w-4" />
-          Save as preset
-        </button>
-      </div>
-
-      {/* Template Picker Panel */}
-      {templateMgr.showTemplatePicker && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
-          {/* Category Filter */}
-          {categories.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                type="button"
-                onClick={() => templateMgr.setSelectedCategory(null)}
-                className={`px-2.5 py-1 text-xs font-medium rounded-full transition-colors ${
-                  templateMgr.selectedCategory === null
-                    ? "bg-violet-600 text-white"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
-                }`}
-              >
-                All
-              </button>
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => templateMgr.setSelectedCategory(templateMgr.selectedCategory === cat ? null : cat)}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-full capitalize transition-colors ${
-                    templateMgr.selectedCategory === cat
-                      ? "bg-violet-600 text-white"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Built-in Templates Grid */}
-          {templateMgr.filteredBuiltIn.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Starter Templates</p>
-              <div className="grid grid-cols-2 gap-2">
-                {templateMgr.filteredBuiltIn.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => templateMgr.applyTemplate(t)}
-                    className="text-left p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/10 transition-colors"
-                  >
-                    <span className="text-sm font-medium text-gray-900 dark:text-white block">{t.name}</span>
-                    {t.description && (
-                      <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{t.description}</span>
-                    )}
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      {t.category && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 capitalize">{t.category}</span>
-                      )}
-                      {t.isInstrumental && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">Instrumental</span>
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* User Templates */}
-          {templateMgr.filteredUser.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">My Templates</p>
-              <div className="grid grid-cols-2 gap-2">
-                {templateMgr.filteredUser.map((t) => (
-                  <div key={t.id} className="relative group">
-                    <button
-                      type="button"
-                      onClick={() => templateMgr.applyTemplate(t)}
-                      className="w-full text-left p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/10 transition-colors"
-                    >
-                      <span className="text-sm font-medium text-gray-900 dark:text-white block pr-6">{t.name}</span>
-                      <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{t.style ?? t.prompt}</span>
-                      {t.category && (
-                        <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 mt-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 capitalize">{t.category}</span>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => templateMgr.deleteTemplate(t.id)}
-                      className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
-                      aria-label="Delete template"
-                      title="Delete template"
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {templateMgr.filteredBuiltIn.length === 0 && templateMgr.filteredUser.length === 0 && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
-              {templateMgr.selectedCategory ? "No templates in this category" : "No templates yet"}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Save Template Dialog */}
-      {templateMgr.showSaveDialog && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
-          <p className="text-sm font-medium text-gray-900 dark:text-white">Save current settings as template</p>
-          <input
-            type="text"
-            value={templateMgr.templateName}
-            onChange={(e) => templateMgr.setTemplateName(e.target.value)}
-            placeholder="Template name"
-            aria-label="Template name"
-            maxLength={50}
-            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-          />
-          <select
-            value={templateMgr.templateCategory}
-            onChange={(e) => templateMgr.setTemplateCategory(e.target.value)}
-            aria-label="Template category"
-            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-          >
-            <option value="">No category</option>
-            <option value="pop">Pop</option>
-            <option value="rock">Rock</option>
-            <option value="hip-hop">Hip-Hop</option>
-            <option value="electronic">Electronic</option>
-            <option value="ambient">Ambient</option>
-            <option value="r&b">R&B</option>
-            <option value="folk">Folk</option>
-            <option value="jazz">Jazz</option>
-            <option value="latin">Latin</option>
-            <option value="other">Other</option>
-          </select>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={templateMgr.saveAsTemplate}
-              disabled={templateMgr.isSavingTemplate}
-              className="flex-1 px-3 py-2 text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-xl transition-colors"
-            >
-              {templateMgr.isSavingTemplate ? "Saving…" : "Save"}
-            </button>
-            <button
-              type="button"
-              onClick={() => { templateMgr.setShowSaveDialog(false); templateMgr.setTemplateName(""); templateMgr.setTemplateCategory(""); }}
-              className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {templateMgr.userTemplates.length} / 20 templates used
-          </p>
-        </div>
-      )}
-
-      {/* Preset Picker Panel */}
-      {presetMgr.showPresetPicker && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">My Presets</p>
-          {presets.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
-              No presets yet — save your current form state as a preset.
-            </p>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              {presets.map((p) => (
-                <div key={p.id} className="relative group">
-                  <button
-                    type="button"
-                    onClick={() => presetMgr.applyPreset(p)}
-                    className="w-full text-left p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-teal-400 dark:hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/10 transition-colors"
-                  >
-                    <span className="text-sm font-medium text-gray-900 dark:text-white block pr-6">{p.name}</span>
-                    {p.stylePrompt && (
-                      <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{p.stylePrompt}</span>
-                    )}
-                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                      {p.isInstrumental && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">Instrumental</span>
-                      )}
-                      {p.customMode && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400">Custom lyrics</span>
-                      )}
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => presetMgr.handleDeletePreset(p.id)}
-                    className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
-                    aria-label="Delete preset"
-                    title="Delete preset"
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Save Preset Dialog */}
-      {presetMgr.showPresetSaveDialog && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
-          <p className="text-sm font-medium text-gray-900 dark:text-white">Save current settings as preset</p>
-          <input
-            type="text"
-            value={presetMgr.presetName}
-            onChange={(e) => presetMgr.setPresetName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); presetMgr.saveAsPreset(); } }}
-            placeholder="Preset name"
-            aria-label="Preset name"
-            maxLength={100}
-            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-          />
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={presetMgr.saveAsPreset}
-              disabled={presetMgr.isSavingPreset}
-              className="flex-1 px-3 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-500 disabled:opacity-50 rounded-xl transition-colors"
-            >
-              {presetMgr.isSavingPreset ? "Saving…" : "Save"}
-            </button>
-            <button
-              type="button"
-              onClick={() => { presetMgr.setShowPresetSaveDialog(false); presetMgr.setPresetName(""); }}
-              className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {presets.length} / 20 presets used
-          </p>
-        </div>
-      )}
+      <TemplatePickerPanel templateMgr={templateMgr} categories={categories} />
+      <PresetPickerPanel presetMgr={presetMgr} presets={presets} />
 
       {/* Suggested for you */}
       {suggestions.length > 0 && (
@@ -1124,9 +648,55 @@ export function GenerateForm() {
         </div>
 
         {/* Rate limit info panel */}
-        {rateLimit && <RateLimitPanel rateLimit={rateLimit} />}
+        {rateLimit && (() => {
+          const { used, pct, barColor, minsLeft, isAtLimit, isNearLimit } = getRateLimitMeta(rateLimit);
 
-        {/* Batch Generate Variations */}
+          return (
+            <div className="space-y-2">
+              {isNearLimit && (
+                <div className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300">
+                  <span className="font-medium">{rateLimit.remaining} generation{rateLimit.remaining === 1 ? "" : "s"} remaining</span>
+                </div>
+              )}
+
+              <div className={`rounded-xl px-4 py-3 text-sm border ${
+                isAtLimit
+                  ? "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-800"
+                  : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={isAtLimit ? "text-red-700 dark:text-red-300 font-medium" : "text-gray-600 dark:text-gray-400"}>
+                    {isAtLimit ? "Rate limit reached" : "Generation quota"}
+                  </span>
+                  <span className={`font-semibold ${isAtLimit ? "text-red-700 dark:text-red-300" : "text-gray-900 dark:text-white"}`}>
+                    {used} / {rateLimit.limit} used
+                  </span>
+                </div>
+
+                <div
+                  role="progressbar"
+                  aria-valuenow={used}
+                  aria-valuemin={0}
+                  aria-valuemax={rateLimit.limit}
+                  aria-label={`Generation quota: ${used} of ${rateLimit.limit} used`}
+                  className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"
+                >
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+                    style={{ width: `${Math.min(pct, 100)}%` }}
+                    aria-hidden="true"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1 mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  <ClockIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Resets in {minsLeft} minute{minsLeft === 1 ? "" : "s"}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         <BatchGeneratePanel
           basePrompt={customMode ? prompt : style}
           baseTitle={title}
@@ -1181,7 +751,6 @@ export function GenerateForm() {
                 </>
               )}
             </button>
-            {/* Tooltip when limit reached */}
             {rateLimit?.remaining === 0 && (
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                 Rate limit reached — resets in {Math.max(0, Math.ceil((new Date(rateLimit.resetAt).getTime() - Date.now()) / 60000))} min
@@ -1206,17 +775,15 @@ export function GenerateForm() {
         )}
       </form>
 
-      {/* Upgrade modal — shown when user has no credits and tries to generate */}
       {showUpgradeModal && (
         <UpgradeModal trigger="no_credits" onClose={() => setShowUpgradeModal(false)} />
       )}
 
-      {/* In-app feedback widget — shown after song generation completes */}
       {feedbackWidget && (
         <InAppFeedbackWidget
           source="song_generation"
           entityId={feedbackWidget.songId}
-          onClose={() => setFeedbackWidget(null)}
+          onClose={dismissFeedback}
         />
       )}
     </div>
