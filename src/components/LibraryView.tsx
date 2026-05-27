@@ -29,7 +29,7 @@ import { SongGridCard } from "./library/song-grid-card";
 import { SwipableSongRow } from "./library/swipable-song-row";
 import { LibraryBatchActionBar } from "./library/batch-action-bar";
 import { LibraryDeleteDialogs } from "./library/delete-dialogs";
-import { toggleSelectAll, toggleSelection } from "./library/selection";
+import { useLibrarySelection, useLibraryKeyboardNav } from "./library/hooks";
 
 interface LibraryViewProps {
   initialSongs: Song[];
@@ -106,35 +106,9 @@ export function LibraryView({
   const isOnline = useOnlineStatus();
 
   // ─── Selection state ─────────────────────────────────────────────────────
-  const [selectedSongIds, setSelectedSongIds] = useState<Set<string>>(new Set());
-  const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
-  const selectionMode = selectedSongIds.size > 0;
   const isArchiveView = smartFilter === "archived";
-
-  function handleToggleSelect(songId: string, shiftKey: boolean) {
-    const next = toggleSelection({
-      songId,
-      songIds: songs.map((song) => song.id),
-      shiftKey,
-      state: { selectedIds: selectedSongIds, lastSelectedIndex },
-    });
-    setSelectedSongIds(next.selectedIds);
-    setLastSelectedIndex(next.lastSelectedIndex);
-  }
-
-  function handleSelectAll() {
-    const next = toggleSelectAll(
-      songs.map((song) => song.id),
-      selectedSongIds,
-    );
-    setSelectedSongIds(next.selectedIds);
-    setLastSelectedIndex(next.lastSelectedIndex);
-  }
-
-  function clearSelection() {
-    setSelectedSongIds(new Set());
-    setLastSelectedIndex(null);
-  }
+  const songIds = useMemo(() => songs.map((s) => s.id), [songs]);
+  const { selectedSongIds, setSelectedSongIds, selectionMode, handleToggleSelect, handleSelectAll, clearSelection } = useLibrarySelection(songIds);
 
   // ─── Action hooks ────────────────────────────────────────────────────────
   const songActions = useLibrarySongActions(songs, setSongs);
@@ -199,47 +173,15 @@ export function LibraryView({
   }, [songsQuery]);
 
   // ─── Keyboard navigation ────────────────────────────────────────────────
-  const songListRef = useRef<HTMLDivElement>(null);
-  const handleSongListKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      const list = songListRef.current;
-      if (!list) return;
-      const items = Array.from(list.querySelectorAll<HTMLElement>('[role="option"]'));
-      if (items.length === 0) return;
-      const currentIdx = items.findIndex((el) => el.contains(document.activeElement) || el === document.activeElement);
-
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        const next = currentIdx < items.length - 1 ? currentIdx + 1 : 0;
-        items[next].focus();
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        const prev = currentIdx > 0 ? currentIdx - 1 : items.length - 1;
-        items[prev].focus();
-      } else if (e.key === "Enter" && currentIdx >= 0) {
-        const song = songs[currentIdx];
-        if (song) {
-          e.preventDefault();
-          songActions.handleTogglePlay(song);
-        }
-      } else if (e.key === "f" && currentIdx >= 0) {
-        const song = songs[currentIdx];
-        if (song) {
-          e.preventDefault();
-          songActions.handleToggleFavorite(song);
-        }
-      } else if (e.key === "Delete" && currentIdx >= 0) {
-        const song = songs[currentIdx];
-        if (song) {
-          e.preventDefault();
-          setSelectedSongIds(new Set([song.id]));
-          batchActions.setShowDeleteConfirm(true);
-        }
-      }
+  const { songListRef, handleSongListKeyDown } = useLibraryKeyboardNav({
+    songs,
+    onTogglePlay: songActions.handleTogglePlay,
+    onToggleFavorite: songActions.handleToggleFavorite,
+    onDeleteSong: (song) => {
+      setSelectedSongIds(new Set([song.id]));
+      batchActions.setShowDeleteConfirm(true);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [songs]
-  );
+  });
 
   // ─── Virtualizer ────────────────────────────────────────────────────────
   const listScrollMarginRef = useRef(0);
