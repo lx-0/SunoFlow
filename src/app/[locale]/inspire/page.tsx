@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { AppShell } from "@/components/AppShell";
 import { PullToRefreshContainer } from "@/components/PullToRefreshContainer";
-import { useToast } from "@/components/Toast";
 import {
   ArrowPathIcon,
   SparklesIcon,
@@ -15,19 +14,12 @@ import {
   RssIcon,
   ClockIcon,
 } from "@heroicons/react/24/outline";
-
-import { useRssFeeds } from "./use-rss-feeds";
-import type { FeedItem } from "./use-rss-feeds";
-import { useInstagramPosts } from "./use-instagram-posts";
-import type { InstagramPost } from "./use-instagram-posts";
-import { usePendingGenerations } from "./use-pending-generations";
-import type { PendingFeedGenerationItem } from "./use-pending-generations";
-import { useTodaysPicks } from "./use-todays-picks";
-import type { DigestItem } from "./use-todays-picks";
-import { useInspireFeed } from "./use-inspire-feed";
-import type { SourceType, UnifiedFeedItem } from "./use-inspire-feed";
-import { useInspireFilters } from "./use-inspire-filters";
-import type { SortMode } from "./use-inspire-filters";
+import { useRssFeeds } from "@/hooks/useRssFeeds";
+import { useInstagramPosts } from "@/hooks/useInstagramPosts";
+import { usePendingGenerations } from "@/hooks/usePendingGenerations";
+import { useTodaysPicks } from "@/hooks/useTodaysPicks";
+import { useInspireFilters, type SourceType, type SortMode, type UnifiedFeedItem } from "@/hooks/useInspireFilters";
+import { useInspireActions } from "@/hooks/useInspireActions";
 
 // ─── Mood badge colors ───
 
@@ -368,120 +360,50 @@ function TodaysPicksSection({
 
 function InspireContent() {
   const router = useRouter();
-  const { toast } = useToast();
 
   const rss = useRssFeeds();
   const ig = useInstagramPosts();
   const pending = usePendingGenerations();
-  const todaysPicks = useTodaysPicks(rss.hasRss);
 
-  const { unifiedFeed, picksItems, availableSources, allMoods } = useInspireFeed({
+  const hasRss = rss.urls.length > 0;
+  const hasIg = ig.urls.length > 0;
+  const hasAnySources = hasRss || hasIg;
+
+  const todaysPicks = useTodaysPicks({ hasRss });
+
+  const filters = useInspireFilters({
     feeds: rss.feeds,
-    igPosts: ig.igPosts,
-    pendingGenerations: pending.pendingGenerations,
+    igPosts: ig.posts,
+    pendingGenerations: pending.items,
     picks: todaysPicks.picks,
   });
 
-  const filters = useInspireFilters(unifiedFeed, picksItems);
-
-  const hasAnySources = rss.hasRss || ig.hasIg;
-  const isLoading = rss.rssLoading || ig.igLoading || pending.pendingLoading || todaysPicks.picksLoading || !rss.feedsLoaded;
-
-  const lastRefreshed = (() => {
-    const times = [rss.rssRefreshed, ig.igRefreshed].filter(Boolean) as Date[];
-    if (times.length === 0) return null;
-    return new Date(Math.max(...times.map((d) => d.getTime())));
-  })();
-
-  const showPicksCTA =
-    filters.sourceFilters.has("picks") && !todaysPicks.picks && !todaysPicks.picksLoading && !todaysPicks.picksGenerating && rss.hasRss;
-
-  // ── Action handlers ──
-
-  const handleCardAction = useCallback(
-    async (item: UnifiedFeedItem) => {
-      try {
-        switch (item.sourceType) {
-          case "rss": {
-            const rssItem = item.original as FeedItem;
-            const normalizeText = (text: string) => text.replace(/\s+/g, " ").trim();
-            const clamp = (text: string, max: number) =>
-              text.length > max ? `${text.slice(0, Math.max(0, max - 1)).trimEnd()}…` : text;
-
-            const title = clamp(normalizeText(rssItem.title || ""), 120);
-            const bodySource = rssItem.content || rssItem.description || "";
-            const body = clamp(normalizeText(bodySource), 520);
-            const topics =
-              rssItem.topics && rssItem.topics.length > 0
-                ? clamp(normalizeText(rssItem.topics.join(", ")), 120)
-                : "";
-
-            const parts: string[] = [];
-            if (title) parts.push(title);
-            if (body) parts.push(body);
-            if (topics) parts.push(`Themes: ${topics}`);
-            if (rssItem.mood && rssItem.mood !== "neutral") parts.push(`Mood: ${rssItem.mood}`);
-            const lyricsPrompt = clamp(parts.join("\n\n"), 800);
-
-            const params = new URLSearchParams();
-            params.set("lyricsprompt", lyricsPrompt);
-            const style = rssItem.suggestedStyle || (rssItem.mood !== "neutral" ? rssItem.mood : "");
-            if (style) params.set("tags", style);
-            router.push(`/generate?${params.toString()}`);
-            break;
-          }
-          case "instagram": {
-            const post = item.original as InstagramPost;
-            router.push(`/generate?prompt=${encodeURIComponent(post.promptSuggestion)}`);
-            break;
-          }
-          case "picks": {
-            const digestItem = item.original as DigestItem;
-            router.push(`/generate?prompt=${encodeURIComponent(digestItem.suggestedPrompt)}`);
-            break;
-          }
-          case "pending":
-            break;
-        }
-      } catch {
-        toast("Could not open generator. Please try again.", "error");
-      }
-    },
-    [router, toast]
-  );
-
-  const { handleApprovePending, handleDismissPending } = pending;
-
-  const handleApproveCard = useCallback(
-    (item: UnifiedFeedItem) => {
-      if (item.sourceType === "pending") {
-        handleApprovePending(item.original as PendingFeedGenerationItem);
-      }
-    },
-    [handleApprovePending]
-  );
-
-  const handleDismissCard = useCallback(
-    (item: UnifiedFeedItem) => {
-      if (item.sourceType === "pending") {
-        handleDismissPending((item.original as PendingFeedGenerationItem).id);
-      }
-    },
-    [handleDismissPending]
-  );
+  const actions = useInspireActions({
+    approvePending: pending.approve,
+    dismissPending: pending.dismiss,
+  });
 
   const handleRefresh = useCallback(async () => {
     const promises: Promise<void>[] = [];
-    promises.push(todaysPicks.refresh());
-    promises.push(pending.refresh());
-    if (rss.hasRss) promises.push(rss.refresh());
-    if (ig.hasIg) promises.push(ig.refresh());
+    promises.push(todaysPicks.fetchPicks());
+    promises.push(pending.fetchItems());
+    if (hasRss) promises.push(rss.fetchFeeds(rss.urls));
+    if (hasIg) promises.push(ig.fetchPosts(ig.urls));
     await Promise.all(promises);
-  }, [rss, ig, todaysPicks, pending]);
+  }, [hasRss, hasIg, rss, ig, todaysPicks, pending]);
 
-  // ── Empty state ──
+  const isLoading = rss.loading || ig.loading || pending.loading || todaysPicks.loading || !rss.loaded;
 
-  if (rss.feedsLoaded && !hasAnySources) {
+  const lastRefreshed = useMemo(() => {
+    const times = [rss.refreshed, ig.refreshed].filter(Boolean) as Date[];
+    if (times.length === 0) return null;
+    return new Date(Math.max(...times.map((d) => d.getTime())));
+  }, [rss.refreshed, ig.refreshed]);
+
+  const showPicksCTA =
+    filters.sourceFilters.has("picks") && !todaysPicks.picks && !todaysPicks.loading && !todaysPicks.generating && hasRss;
+
+  if (rss.loaded && !hasAnySources) {
     return (
       <div className="px-4 py-6 space-y-4">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">Inspire</h2>
@@ -504,13 +426,12 @@ function InspireContent() {
   return (
     <PullToRefreshContainer onRefresh={handleRefresh}>
       <div className="px-4 py-6 space-y-4">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Inspire</h2>
-            {pending.pendingGenerations.length > 0 && (
+            {pending.items.length > 0 && (
               <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-bold text-teal-100 bg-teal-500 rounded-full">
-                {pending.pendingGenerations.length}
+                {pending.items.length}
               </span>
             )}
           </div>
@@ -530,40 +451,35 @@ function InspireContent() {
           </p>
         )}
 
-        {/* Source filter chips */}
-        {availableSources.length > 1 && (
+        {filters.availableSources.length > 1 && (
           <SourceFilterChips
-            sources={availableSources}
+            sources={filters.availableSources}
             activeFilters={filters.sourceFilters}
             onToggle={filters.toggleSourceFilter}
           />
         )}
 
-        {/* Mood filter + sort toggle */}
         <div className="flex items-center gap-2">
           <div className="flex-1 min-w-0">
-            <MoodFilterChips moods={allMoods} activeMood={filters.moodFilter} onSelect={filters.setMoodFilter} />
+            <MoodFilterChips moods={filters.allMoods} activeMood={filters.moodFilter} onSelect={filters.setMoodFilter} />
           </div>
           <SortToggle mode={filters.sortMode} onChange={filters.setSortMode} />
         </div>
 
-        {/* Today's Picks CTA */}
         {showPicksCTA && (
-          <GeneratePicksCTA generating={todaysPicks.picksGenerating} onGenerate={todaysPicks.generatePicks} />
+          <GeneratePicksCTA generating={todaysPicks.generating} onGenerate={todaysPicks.generate} />
         )}
 
-        {/* Today's Picks — promoted section */}
         {filters.filteredPicks.length > 0 && (
           <TodaysPicksSection
             picks={filters.filteredPicks}
-            onAction={handleCardAction}
-            onRefresh={todaysPicks.generatePicks}
-            refreshing={todaysPicks.picksGenerating}
+            onAction={actions.handleCardAction}
+            onRefresh={todaysPicks.generate}
+            refreshing={todaysPicks.generating}
             title={todaysPicks.picks?.title ?? "Today's Picks"}
           />
         )}
 
-        {/* Divider */}
         {filters.filteredPicks.length > 0 && filters.filteredFeed.length > 0 && (
           <div className="border-t border-gray-200 dark:border-gray-800 pt-2">
             <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
@@ -572,7 +488,6 @@ function InspireContent() {
           </div>
         )}
 
-        {/* Loading skeleton */}
         {isLoading && filters.filteredFeed.length === 0 && filters.filteredPicks.length === 0 && (
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
@@ -589,20 +504,18 @@ function InspireContent() {
           </div>
         )}
 
-        {/* Main feed */}
         <div className="space-y-3">
           {filters.filteredFeed.map((item) => (
             <UnifiedCard
               key={item.id}
               item={item}
-              onAction={handleCardAction}
-              onApprove={item.sourceType === "pending" ? handleApproveCard : undefined}
-              onDismiss={item.sourceType === "pending" ? handleDismissCard : undefined}
+              onAction={actions.handleCardAction}
+              onApprove={item.sourceType === "pending" ? actions.handleApproveCard : undefined}
+              onDismiss={item.sourceType === "pending" ? actions.handleDismissCard : undefined}
             />
           ))}
         </div>
 
-        {/* Empty filtered state */}
         {!isLoading && filters.filteredFeed.length === 0 && filters.filteredPicks.length === 0 && !showPicksCTA && (
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 text-center">
             <p className="text-gray-500 dark:text-gray-400 text-sm">
