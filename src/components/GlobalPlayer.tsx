@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
 import {
   PlayIcon,
   PauseIcon,
@@ -32,9 +32,8 @@ import { LyricsPanel } from "./LyricsPanel";
 import { EqualizerPanel } from "./EqualizerPanel";
 import { PlayerWaveform } from "./PlayerWaveform";
 import { EmojiReactionPicker } from "./EmojiReactionPicker";
-import { ReactionTimeline, ReactionItem } from "./ReactionTimeline";
+import { ReactionTimeline } from "./ReactionTimeline";
 import { useToast } from "./Toast";
-import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ExpandedPlayer } from "./ExpandedPlayer";
 import {
@@ -43,8 +42,11 @@ import {
   DrawerHandle,
   DrawerTitle,
 } from "./ui/drawer";
-import { useOutsideClick } from "@/hooks/useOutsideClick";
 import { formatDuration as formatTime } from "@/lib/time-format";
+import { usePlayerFavorite } from "./global-player/use-player-favorite";
+import { usePlayerReactions } from "./global-player/use-player-reactions";
+import { usePlayerCommentPopups } from "./global-player/use-player-comment-popups";
+import { usePlayerPanels } from "./global-player/use-player-panels";
 
 export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean }) {
   const {
@@ -74,266 +76,60 @@ export function GlobalPlayer({ sidebarCollapsed }: { sidebarCollapsed?: boolean 
     activeVersion,
   } = useQueue();
 
-  const [showUpNext, setShowUpNext] = useState(false);
-  const [showLyrics, setShowLyrics] = useState(false);
-  const [showEQ, setShowEQ] = useState(false);
-  const [showReactions, setShowReactions] = useState(false);
-  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [reactions, setReactions] = useState<ReactionItem[]>([]);
-  const reactionSongIdRef = useRef<string | null>(null);
-  const optionsMenuRef = useRef<HTMLDivElement>(null);
-
-  // Expanded player drawer state
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-
-  // Timestamped comments — for waveform markers and playback overlays
-  interface TimestampedComment { id: string; timestamp: number; body: string; username: string | null; }
-  const [timedComments, setTimedComments] = useState<TimestampedComment[]>([]);
-  const timedCommentSongIdRef = useRef<string | null>(null);
-  interface CommentPopup { id: string; body: string; username: string | null; key: number; leftPct: number; }
-  const [activeCommentPopups, setActiveCommentPopups] = useState<CommentPopup[]>([]);
-  const shownCommentIdsRef = useRef<Set<string>>(new Set());
-  const commentPopupKeyRef = useRef(0);
-
-  // Emoji popup state — floats up from the waveform when currentTime passes a reaction
-  interface EmojiPopup { id: string; emoji: string; key: number; leftPct: number; }
-  const [activePopups, setActivePopups] = useState<EmojiPopup[]>([]);
-  const shownReactionIdsRef = useRef<Set<string>>(new Set());
-  const popupKeyRef = useRef(0);
-  const pathname = usePathname();
-  const router = useRouter();
   const { data: session } = useSession();
   const { toast } = useToast();
 
   const currentSong = currentIndex >= 0 ? queue[currentIndex] : null;
 
-  // Cover click: on desktop navigate to song detail, on mobile open drawer.
-  // matchMedia is evaluated at click time so it adapts to viewport changes
-  // without requiring a re-render or relying on CSS-only mutual-exclusion.
-  const handleCoverClick = useCallback(() => {
-    if (!currentSong) return;
-    const isDesktop =
-      typeof window !== "undefined" &&
-      window.matchMedia("(min-width: 768px)").matches;
-    if (isDesktop) {
-      router.push(`/library/${currentSong.id}`);
-    } else {
-      setIsDrawerOpen(true);
-    }
-  }, [currentSong, router]);
+  const { isFavorite, handleToggleFavorite } = usePlayerFavorite(
+    currentSong?.id,
+    !!session?.user
+  );
 
-  // Fetch favorite status when current song changes
-  useEffect(() => {
-    if (!currentSong?.id || !session?.user) {
-      setIsFavorite(false);
-      return;
-    }
-    let cancelled = false;
-    fetch(`/api/songs/${currentSong.id}`)
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => {
-        if (!cancelled && data?.song) setIsFavorite(data.song.isFavorite ?? false);
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [currentSong?.id, session?.user]);
-
-  // Fetch reactions when song changes
-  useEffect(() => {
-    if (!currentSong?.id) {
-      setReactions([]);
-      reactionSongIdRef.current = null;
-      return;
-    }
-    if (reactionSongIdRef.current === currentSong.id) return;
-    reactionSongIdRef.current = currentSong.id;
-    setReactions([]);
-    let cancelled = false;
-    fetch(`/api/songs/${currentSong.id}/reactions`)
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => {
-        if (!cancelled && data?.reactions) setReactions(data.reactions);
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [currentSong?.id]);
-
-  // Fetch timestamped comments when song changes
-  useEffect(() => {
-    if (!currentSong?.id) {
-      setTimedComments([]);
-      timedCommentSongIdRef.current = null;
-      return;
-    }
-    if (timedCommentSongIdRef.current === currentSong.id) return;
-    timedCommentSongIdRef.current = currentSong.id;
-    setTimedComments([]);
-    let cancelled = false;
-    fetch(`/api/songs/${currentSong.id}/comments?page=1`)
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => {
-        if (!cancelled && data?.comments) {
-          const timed: TimestampedComment[] = data.comments
-            .filter((c: { timestamp: number | null }) => c.timestamp !== null)
-            .map((c: { id: string; timestamp: number; body: string; user: { name: string | null } }) => ({
-              id: c.id,
-              timestamp: c.timestamp,
-              body: c.body,
-              username: c.user?.name ?? null,
-            }));
-          setTimedComments(timed);
-        }
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [currentSong?.id]);
-
-  // Reset comment popup tracking when song changes
-  useEffect(() => {
-    shownCommentIdsRef.current = new Set();
-    setActiveCommentPopups([]);
-  }, [currentSong?.id]);
-
-  // Trigger comment overlays as currentTime passes comment timestamps during playback
-  useEffect(() => {
-    if (!isPlaying || timedComments.length === 0 || duration <= 0) return;
-    const newlyTriggered = timedComments.filter(
-      (c) => c.timestamp <= currentTime && !shownCommentIdsRef.current.has(c.id)
-    );
-    if (newlyTriggered.length === 0) return;
-    for (const c of newlyTriggered) {
-      shownCommentIdsRef.current.add(c.id);
-    }
-    const newPopups: CommentPopup[] = newlyTriggered.map((c) => {
-      const key = ++commentPopupKeyRef.current;
-      const leftPct = Math.min(95, Math.max(5, (c.timestamp / duration) * 100));
-      return { id: c.id, body: c.body, username: c.username, key, leftPct };
-    });
-    setActiveCommentPopups((prev) => [...prev, ...newPopups]);
-    const keys = newPopups.map((p) => p.key);
-    const timer = setTimeout(() => {
-      setActiveCommentPopups((prev) => prev.filter((p) => !keys.includes(p.key)));
-    }, 3000);
-    return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTime, isPlaying]);
+  const {
+    reactions,
+    activePopups,
+    showReactions,
+    setShowReactions,
+    handleReact: rawHandleReact,
+  } = usePlayerReactions(
+    currentSong?.id,
+    currentTime,
+    duration,
+    isPlaying,
+    session
+  );
 
   const handleReact = useCallback(
     async (emoji: string) => {
-      if (!currentSong?.id) return;
-      const timestamp = Math.max(0, Math.min(currentTime, duration ?? currentTime));
-
-      // Optimistic update
-      const optimistic: ReactionItem = {
-        id: `optimistic-${Date.now()}`,
-        emoji,
-        timestamp,
-        userId: session?.user?.id ?? "",
-        username: session?.user?.name ?? undefined,
-      };
-      setReactions((prev) => [...prev, optimistic]);
-
-      try {
-        const res = await fetch(`/api/songs/${currentSong.id}/reactions`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ emoji, timestamp }),
-        });
-
-        if (res.status === 429) {
-          // Remove optimistic, show message
-          setReactions((prev) => prev.filter((r) => r.id !== optimistic.id));
-          toast("Slow down! Too many reactions.", "info");
-          return;
-        }
-
-        if (!res.ok) {
-          setReactions((prev) => prev.filter((r) => r.id !== optimistic.id));
-          toast("Couldn't save reaction. Try again.", "error");
-          return;
-        }
-
-        const created: ReactionItem = await res.json();
-        // Replace optimistic entry with real one
-        setReactions((prev) =>
-          prev.map((r) => (r.id === optimistic.id ? { ...created, username: session?.user?.name ?? undefined } : r))
-        );
-      } catch {
-        setReactions((prev) => prev.filter((r) => r.id !== optimistic.id));
-        toast("Couldn't save reaction. Try again.", "error");
-      }
+      const result = await rawHandleReact(emoji);
+      if (result?.rateLimited) toast("Slow down! Too many reactions.", "info");
+      else if (result?.error) toast("Couldn't save reaction. Try again.", "error");
     },
-    [currentSong?.id, currentTime, duration, session, toast]
+    [rawHandleReact, toast]
   );
 
-  async function handleToggleFavorite() {
-    if (!currentSong) return;
-    const prev = isFavorite;
-    const newFav = !prev;
-    setIsFavorite(newFav);
-    try {
-      const res = await fetch(`/api/songs/${currentSong.id}/favorite`, {
-        method: newFav ? "POST" : "DELETE",
-      });
-      if (!res.ok) {
-        setIsFavorite(prev);
-      }
-    } catch {
-      setIsFavorite(prev);
-    }
-  }
+  const { timedComments, activeCommentPopups } = usePlayerCommentPopups(
+    currentSong?.id,
+    currentTime,
+    duration,
+    isPlaying
+  );
 
-  // Reset popup tracking when the song changes
-  useEffect(() => {
-    shownReactionIdsRef.current = new Set();
-    setActivePopups([]);
-  }, [currentSong?.id]);
-
-  // Trigger emoji popups as currentTime passes reaction timestamps
-  useEffect(() => {
-    if (!isPlaying || reactions.length === 0 || duration <= 0) return;
-    const newlyTriggered = reactions.filter(
-      (r) => r.timestamp <= currentTime && !shownReactionIdsRef.current.has(r.id)
-    );
-    if (newlyTriggered.length === 0) return;
-    for (const r of newlyTriggered) {
-      shownReactionIdsRef.current.add(r.id);
-    }
-    const newPopups: EmojiPopup[] = newlyTriggered.map((r) => {
-      const key = ++popupKeyRef.current;
-      const leftPct = Math.min(98, Math.max(2, (r.timestamp / duration) * 100));
-      return { id: r.id, emoji: r.emoji, key, leftPct };
-    });
-    setActivePopups((prev) => [...prev, ...newPopups]);
-    const ids = newPopups.map((p) => p.key);
-    const timer = setTimeout(() => {
-      setActivePopups((prev) => prev.filter((p) => !ids.includes(p.key)));
-    }, 2000);
-    return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTime, isPlaying]);
-
-  // Close reaction picker when playback stops
-  useEffect(() => {
-    if (!isPlaying) setShowReactions(false);
-  }, [isPlaying]);
-
-  // Close lyrics when navigating to song detail page
-  useEffect(() => {
-    if (pathname?.includes("/library/")) {
-      setShowLyrics(false);
-    }
-  }, [pathname]);
-
-  // Close lyrics when current song changes to one without lyrics
-  useEffect(() => {
-    if (!currentSong?.lyrics) {
-      setShowLyrics(false);
-    }
-  }, [currentSong?.id, currentSong?.lyrics]);
-
-  useOutsideClick(optionsMenuRef, () => setShowOptionsMenu(false), showOptionsMenu);
+  const {
+    showUpNext,
+    setShowUpNext,
+    showLyrics,
+    setShowLyrics,
+    showEQ,
+    setShowEQ,
+    showOptionsMenu,
+    setShowOptionsMenu,
+    isDrawerOpen,
+    setIsDrawerOpen,
+    optionsMenuRef,
+    handleCoverClick,
+  } = usePlayerPanels(currentSong);
 
   if (!currentSong) return null;
 
