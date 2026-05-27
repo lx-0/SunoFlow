@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -13,13 +13,27 @@ import {
 } from "@heroicons/react/24/solid";
 import { useOfflineCache } from "@/hooks/useOfflineCache";
 import { useSongStems } from "@/hooks/useSongStems";
-import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 import { useSongRating } from "@/hooks/useSongRating";
 import { useSongVisibility } from "@/hooks/useSongVisibility";
 import { useSongExports } from "@/hooks/useSongExports";
+import { useSongFavorite } from "@/hooks/useSongFavorite";
+import { useSongArchive } from "@/hooks/useSongArchive";
+import { useSongAppeal } from "@/hooks/useSongAppeal";
+import { useSongVariations } from "@/hooks/useSongVariations";
+import { useSongStyleTemplate } from "@/hooks/useSongStyleTemplate";
 import type { SunoSong } from "@/lib/sunoapi";
 import { useToast } from "./Toast";
 import { useQueue } from "./QueueContext";
+import { StarPicker } from "./StarPicker";
+import { StemsPlayer } from "./StemsPlayer";
+import { SeparateVocalsModal } from "./SeparateVocalsModal";
+const EmbedCodeModal = dynamic(() => import("./EmbedCodeModal").then((m) => m.EmbedCodeModal));
+const CreateVariationModal = dynamic(() => import("./CreateVariationModal").then((m) => m.CreateVariationModal));
+const RemixModal = dynamic(() => import("./RemixModal").then((m) => m.RemixModal));
+const ReportModal = dynamic(() => import("./ReportModal").then((m) => m.ReportModal));
+const SectionEditor = dynamic(() => import("./SectionEditor").then((m) => m.SectionEditor));
+const CoverArtModal = dynamic(() => import("./CoverArtModal").then((m) => m.CoverArtModal));
+const RecommendationSection = dynamic(() => import("./SongRecommendations").then((m) => m.RecommendationSection));
 import { TagInput } from "./TagInput";
 import { CoverArtImage } from "./CoverArtImage";
 import { generateCoverArtVariants } from "@/lib/cover-art-generator";
@@ -95,34 +109,25 @@ export function SongDetailView({
   const currentSong = currentIndex >= 0 ? queue[currentIndex] : null;
   const isThisSongPlaying = isPlaying && currentSong?.id === song.id;
 
-  const [confirmPublicOpen, setConfirmPublicOpen] = useState(false);
-  const [confirmArchiveOpen, setConfirmArchiveOpen] = useState(false);
-
   const { isFavorite, favoriteCount, handleToggleFavorite } = useSongFavorite({
     songId: song.id,
     initialFavorite,
     initialFavoriteCount,
     toast,
   });
-  const { isPublic, publicSlug, sharing, setVisibility, handleCopyLink, handleShareOnX } = useSongVisibility({
-    songId: song.id,
-    songTitle: song.title,
-    initialIsPublic,
-    initialPublicSlug,
-    toast,
-  });
-  const { isArchived, archiving, handleArchive, handleRestore } = useSongArchive({
-    songId: song.id,
-    initialIsArchived,
-    toast,
-  });
 
-  // Variation state
-  const [variationModalOpen, setVariationModalOpen] = useState(false);
-  const [creatingVariation, setCreatingVariation] = useState(false);
-  const [compareVariation, setCompareVariation] = useState<VariationSummary | null>(null);
-  const [remixAction, setRemixAction] = useState<RemixAction | null>(null);
-  const [remixSubmitting, setRemixSubmitting] = useState(false);
+  const {
+    variationModalOpen, setVariationModalOpen, creatingVariation,
+    compareVariation, setCompareVariation, remixAction, setRemixAction,
+    remixSubmitting, openVariationModal, handleCreateVariation,
+    handleRemixSubmit, toggleCompareVariation, atVariationLimit,
+  } = useSongVariations({
+    songId: song.id,
+    variationCount: initialVariationCount,
+    maxVariations,
+    toast,
+    onCreated: (id) => router.push(`/library/${id}`),
+  });
 
   const {
     rating, saved, noteDraft, setNoteDraft,
@@ -136,11 +141,36 @@ export function SongDetailView({
     handleCopyLink, handleShareOnX,
   } = useSongVisibility({ songId: song.id, initialIsPublic, initialPublicSlug: initialPublicSlug ?? null, toast });
 
-  // Report modal
   const [reportOpen, setReportOpen] = useState(false);
+
+  const {
+    isArchived, archiving, confirmArchiveOpen,
+    openConfirmArchive, closeConfirmArchive, confirmAndArchive, handleRestore,
+  } = useSongArchive({
+    songId: song.id,
+    initialIsArchived,
+    toast,
+    onArchived: () => router.push("/library"),
+  });
+
+  const {
+    appealOpen, setAppealOpen, appealReason, setAppealReason,
+    appealSubmitting, appealStatus, appealDialogRef, handleSubmitAppeal,
+  } = useSongAppeal({ songId: song.id, toast });
+
   const [embedOpen, setEmbedOpen] = useState(false);
   const [embedTheme, setEmbedTheme] = useState<"dark" | "light">("dark");
   const [embedAutoplay, setEmbedAutoplay] = useState(false);
+
+  const {
+    saveStyleOpen, setSaveStyleOpen, styleTemplateName, setStyleTemplateName,
+    styleTemplateTags, setStyleTemplateTags, isSavingStyle,
+    openSaveStyleModal, handleSaveStyleTemplate,
+  } = useSongStyleTemplate({ songId: song.id, songTags: song.tags ?? null, toast });
+
+  const stemHook = useSongStems({ songId: song.id, songTitle: song.title, toast });
+
+  const [sectionEditorOpen, setSectionEditorOpen] = useState(false);
 
   const [coverArtModalOpen, setCoverArtModalOpen] = useState(false);
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(song.imageUrl ?? null);
@@ -151,170 +181,6 @@ export function SongDetailView({
   } = useSongExports({ songId: song.id, initialVideoUrl: song.videoUrl ?? null, toast });
 
   const hasAudio = Boolean(song.audioUrl);
-
-  async function handleToggleFavorite() {
-    const prev = isFavorite;
-    const prevCount = favoriteCount;
-    const newFav = !prev;
-    setIsFavorite(newFav);
-    setFavoriteCount(newFav ? prevCount + 1 : Math.max(0, prevCount - 1));
-    try {
-      const res = await fetch(`/api/songs/${song.id}/favorite`, {
-        method: newFav ? "POST" : "DELETE",
-      });
-      if (!res.ok) {
-        setIsFavorite(prev);
-        setFavoriteCount(prevCount);
-        toast("Failed to update favorite", "error");
-      } else {
-        const data = await res.json();
-        setFavoriteCount(data.favoriteCount);
-        toast(newFav ? "Added to favorites" : "Removed from favorites", "success");
-      }
-    } catch {
-      setIsFavorite(prev);
-      setFavoriteCount(prevCount);
-      toast("Failed to update favorite", "error");
-    }
-  }
-
-  async function handleArchive() {
-    setArchiving(true);
-    try {
-      const res = await fetch(`/api/songs/${song.id}/archive`, { method: "POST" });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        toast(data.error || "Failed to archive song", "error");
-        return;
-      }
-      setIsArchived(true);
-      toast("Song archived", "success");
-      router.push("/library");
-    } catch {
-      toast("Failed to archive song", "error");
-    } finally {
-      setArchiving(false);
-    }
-  }
-
-  async function handleRestore() {
-    setArchiving(true);
-    try {
-      const res = await fetch(`/api/songs/${song.id}/restore`, { method: "POST" });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        toast(data.error || "Failed to restore song", "error");
-        return;
-      }
-      setIsArchived(false);
-      toast("Song restored", "success");
-    } catch {
-      toast("Failed to restore song", "error");
-    } finally {
-      setArchiving(false);
-    }
-  }
-
-  async function handleCreateVariation(data: { prompt: string; tags: string; lyrics: string; title: string; makeInstrumental: boolean }) {
-    if (creatingVariation) return;
-    if (initialVariationCount >= maxVariations) {
-      toast(`Maximum ${maxVariations} variations reached`, "error");
-      return;
-    }
-    setCreatingVariation(true);
-    try {
-      const res = await fetch(`/api/songs/${song.id}/variations`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: data.prompt || undefined,
-          tags: data.tags || undefined,
-          title: data.title || undefined,
-          makeInstrumental: data.makeInstrumental,
-        }),
-      });
-      const result = await res.json();
-      if (!res.ok) {
-        toast(result.error ?? "Failed to create variation", "error");
-        return;
-      }
-      toast("Variation generation started!", "success");
-      setVariationModalOpen(false);
-      router.push(`/library/${result.song.id}`);
-    } catch {
-      toast("Failed to create variation", "error");
-    } finally {
-      setCreatingVariation(false);
-    }
-  }
-
-  async function handleRemixSubmit(action: RemixAction, data: Record<string, string | number | undefined>) {
-    if (remixSubmitting) return;
-    if (initialVariationCount >= maxVariations) {
-      toast(`Maximum ${maxVariations} variations reached`, "error");
-      return;
-    }
-    setRemixSubmitting(true);
-    try {
-      const res = await fetch(`/api/songs/${song.id}/${action}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const result = await res.json();
-      if (!res.ok) {
-        toast(result.error ?? "Generation failed", "error");
-        return;
-      }
-      toast("Generation started!", "success");
-      setRemixAction(null);
-      router.push(`/library/${result.song.id}`);
-    } catch {
-      toast("Generation failed", "error");
-    } finally {
-      setRemixSubmitting(false);
-    }
-  }
-
-  function openSaveStyleModal() {
-    setStyleTemplateName("");
-    setStyleTemplateTags((song.tags || "").trim());
-    setSaveStyleOpen(true);
-  }
-
-  async function handleSaveStyleTemplate() {
-    if (isSavingStyle || !styleTemplateName.trim() || !styleTemplateTags.trim()) return;
-
-    const name = styleTemplateName.trim();
-    const tags = styleTemplateTags.trim();
-    setIsSavingStyle(true);
-    try {
-      const res = await fetch("/api/style-templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          tags,
-          sourceSongId: song.id,
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast(data.error ?? "Failed to save style template", "error");
-        return;
-      }
-
-      setSaveStyleOpen(false);
-      setStyleTemplateName("");
-      setStyleTemplateTags("");
-      toast("Style template saved", "success");
-    } catch {
-      toast("Failed to save style template", "error");
-    } finally {
-      setIsSavingStyle(false);
-    }
-  }
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -646,7 +512,7 @@ export function SongDetailView({
         }}
         isArchived={isArchived}
         archiving={archiving}
-        onArchive={() => setConfirmArchiveOpen(true)}
+        onArchive={openConfirmArchive}
         onRestore={handleRestore}
       />
 
@@ -686,13 +552,13 @@ export function SongDetailView({
             </p>
             <div className="flex gap-3 justify-end">
               <button
-                onClick={() => setConfirmArchiveOpen(false)}
+                onClick={closeConfirmArchive}
                 className="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={() => { setConfirmArchiveOpen(false); handleArchive(); }}
+                onClick={confirmAndArchive}
                 disabled={archiving}
                 className="px-4 py-2 text-sm font-medium rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
               >
@@ -713,8 +579,302 @@ export function SongDetailView({
 
         <SongVariationTree
           songId={song.id}
-          song={{
-            title: song.title,
+          theme={embedTheme}
+          autoplay={embedAutoplay}
+          onThemeChange={setEmbedTheme}
+          onAutoplayChange={setEmbedAutoplay}
+          onClose={() => setEmbedOpen(false)}
+        />
+      )}
+
+      {saveStyleOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="save-style-title"
+          onClick={() => setSaveStyleOpen(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="save-style-title" className="text-lg font-semibold text-gray-900 dark:text-white">Save Style Template</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Save this song style for quick reuse in future generations.
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label htmlFor="style-template-name" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  Template Name
+                </label>
+                <input
+                  id="style-template-name"
+                  type="text"
+                  value={styleTemplateName}
+                  onChange={(e) => setStyleTemplateName(e.target.value)}
+                  maxLength={100}
+                  autoFocus
+                  className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  placeholder="e.g. Cinematic Piano Ballad"
+                />
+              </div>
+              <div>
+                <label htmlFor="style-template-tags" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  Style Tags
+                </label>
+                <textarea
+                  id="style-template-tags"
+                  value={styleTemplateTags}
+                  onChange={(e) => setStyleTemplateTags(e.target.value)}
+                  rows={3}
+                  maxLength={500}
+                  className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
+                  placeholder="e.g. dreamy synthwave, lush pads, driving bass"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setSaveStyleOpen(false)}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveStyleTemplate}
+                disabled={isSavingStyle || !styleTemplateName.trim() || !styleTemplateTags.trim()}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
+              >
+                {isSavingStyle ? "Saving..." : "Save Style"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* Export / Format Conversion */}
+      {hasAudio && (
+        <div className="space-y-2">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Export</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <button
+              onClick={() => handleExport("wav")}
+              disabled={exports.wav.status === "converting"}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
+            >
+              <ArrowDownTrayIcon className="w-4 h-4" aria-hidden="true" />
+              {exports.wav.status === "converting" ? "Converting..." : exports.wav.status === "done" ? "WAV Sent" : "WAV"}
+            </button>
+            <button
+              onClick={() => handleExport("midi")}
+              disabled={exports.midi.status === "converting"}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
+            >
+              <MusicalNoteIcon className="w-4 h-4" aria-hidden="true" />
+              {exports.midi.status === "converting" ? "Extracting..." : exports.midi.status === "done" ? "MIDI Sent" : "MIDI"}
+            </button>
+            <button
+              onClick={() => handleExport("mp4")}
+              disabled={exports.mp4.status === "converting" || videoStatus === "polling"}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
+            >
+              <FilmIcon className="w-4 h-4" aria-hidden="true" />
+              {exports.mp4.status === "converting" || videoStatus === "polling"
+                ? "Generating..."
+                : videoStatus === "ready"
+                  ? "Regenerate Video"
+                  : "Music Video"}
+            </button>
+          </div>
+          {(exports.wav.status === "error" || exports.midi.status === "error" || exports.mp4.status === "error") && (
+            <p className="text-xs text-red-400">
+              {exports.wav.error || exports.midi.error || exports.mp4.error}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Music Video Player */}
+      {videoStatus === "polling" && (
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Music Video</h2>
+          <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+            <ArrowPathIcon className="w-5 h-5 animate-spin text-purple-500" aria-hidden="true" />
+            <span>Generating your music video&hellip; This may take a minute.</span>
+          </div>
+        </div>
+      )}
+
+      {videoStatus === "ready" && videoUrl && (
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Music Video</h2>
+          <div className="rounded-lg overflow-hidden bg-black">
+            <video
+              src={videoUrl}
+              controls
+              playsInline
+              preload="metadata"
+              className="w-full max-h-[400px]"
+            />
+          </div>
+          <a
+            href={videoUrl}
+            download
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
+          >
+            <ArrowDownTrayIcon className="w-4 h-4" aria-hidden="true" />
+            Download Video
+          </a>
+        </div>
+      )}
+
+      {videoStatus === "error" && (
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Music Video</h2>
+          <p className="text-sm text-red-500">{videoError ?? "Video generation failed."}</p>
+          <button
+            onClick={() => handleExport("mp4")}
+            className="inline-flex items-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
+          >
+            <ArrowPathIcon className="w-4 h-4" aria-hidden="true" />
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Cover art */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Cover Art</h2>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <CoverArtImage
+              src={coverImageUrl || generatedFallbackUrl}
+              alt="Cover art"
+              fill
+              className="object-cover"
+              sizes="56px"
+              fallbackSrc={generatedFallbackUrl}
+              songId={song.id}
+            />
+          </div>
+          <button
+            onClick={() => setCoverArtModalOpen(true)}
+            className="flex items-center gap-2 px-3 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
+          >
+            <PaintBrushIcon className="w-4 h-4" aria-hidden="true" />
+            {coverImageUrl ? "Change Cover" : "Generate Cover"}
+          </button>
+        </div>
+      </div>
+
+      {/* Variation / Remix actions */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Remix & Extend</h2>
+          <span className="text-xs text-gray-400 dark:text-gray-500">{initialVariationCount}/{maxVariations} variations</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={openVariationModal}
+            disabled={atVariationLimit}
+            className="flex items-center justify-center gap-2 px-3 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
+          >
+            <ArrowPathIcon className="w-4 h-4" aria-hidden="true" />
+            Create Variation
+          </button>
+          <button
+            onClick={() => setRemixAction("extend")}
+            disabled={atVariationLimit}
+            className="flex items-center justify-center gap-2 px-3 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
+          >
+            <ForwardIcon className="w-4 h-4" aria-hidden="true" />
+            Extend
+          </button>
+          {isInstrumental ? (
+            <button
+              onClick={() => setRemixAction("add-vocals")}
+              disabled={atVariationLimit}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-pink-600 hover:bg-pink-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
+            >
+              <MicrophoneIcon className="w-4 h-4" aria-hidden="true" />
+              Add Vocals
+            </button>
+          ) : (
+            <button
+              onClick={() => setRemixAction("add-instrumental")}
+              disabled={atVariationLimit}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
+            >
+              <SpeakerWaveIcon className="w-4 h-4" aria-hidden="true" />
+              Add Instrumental
+            </button>
+          )}
+          {canSeparateVocals ? (
+            <button
+              onClick={stemHook.openSeparateModal}
+              disabled={!hasAudio}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
+            >
+              <ScissorsIcon className="w-4 h-4" aria-hidden="true" />
+              Separate Vocals
+            </button>
+          ) : (
+            <Link
+              href="/pricing"
+              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium rounded-xl transition-colors min-h-[44px] hover:bg-violet-100 dark:hover:bg-violet-900/20 hover:text-violet-700 dark:hover:text-violet-400"
+              title="Vocal Separation requires Pro or higher"
+            >
+              <ScissorsIcon className="w-4 h-4" aria-hidden="true" />
+              Separate Vocals <span className="text-xs font-bold">(Pro+)</span>
+            </Link>
+          )}
+          <button
+            onClick={() => setSectionEditorOpen(true)}
+            disabled={!hasAudio || !song.duration || atVariationLimit}
+            className="flex items-center justify-center gap-2 px-3 py-2.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px] col-span-2"
+          >
+            <PaintBrushIcon className="w-4 h-4" aria-hidden="true" />
+            Replace Section
+          </button>
+          <button
+            onClick={() => {
+              const params = new URLSearchParams();
+              if (song.title) params.set("title", song.title);
+              if (song.tags) params.set("tags", song.tags);
+              if (song.prompt) params.set("prompt", song.prompt);
+              if (isInstrumental) params.set("instrumental", "1");
+              params.set("sourceSongId", song.id);
+              if (song.title) params.set("sourceSongTitle", song.title);
+              router.push(`/generate?${params.toString()}`);
+            }}
+            className="flex items-center justify-center gap-2 px-3 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-xl transition-colors min-h-[44px] col-span-2"
+          >
+            <DocumentDuplicateIcon className="w-4 h-4" aria-hidden="true" />
+            Use as Template
+          </button>
+          {song.tags?.trim() && (
+            <button
+              onClick={openSaveStyleModal}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px] col-span-2"
+            >
+              <SwatchIcon className="w-4 h-4" aria-hidden="true" />
+              Save Style
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Remix modal */}
+      {variationModalOpen && (
+        <CreateVariationModal
+          sourceSong={{
+            prompt: song.prompt ?? null,
             tags: song.tags ?? null,
             duration: song.duration ?? null,
             audioUrl: song.audioUrl ?? null,
@@ -813,7 +973,7 @@ export function SongDetailView({
                       Compare
                     </Link>
                     <button
-                      onClick={() => setCompareVariation(compareVariation?.id === v.id ? null : v)}
+                      onClick={() => toggleCompareVariation(v)}
                       className={`px-2 py-1 text-xs font-medium rounded-lg transition-colors ${
                         compareVariation?.id === v.id
                           ? "bg-indigo-600 text-white"
