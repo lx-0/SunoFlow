@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, useMemo } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -25,53 +25,25 @@ import {
 } from "@heroicons/react/24/outline";
 import { PlayIcon as PlayOutlineIcon } from "@heroicons/react/24/outline";
 import type { Song } from "@prisma/client";
-import { downloadSongFile } from "@/lib/download";
-import { exportAsZip, exportAsM3U, type ExportableSong, type AudioFormat } from "@/lib/export";
+import type { AudioFormat } from "@/lib/export";
 import { useToast } from "./Toast";
-import { useQueue, type QueueSong } from "./QueueContext";
+import { useQueue } from "./QueueContext";
 import { RecentlyPlayed } from "./RecentlyPlayed";
 import { LowCreditsBanner } from "./LowCreditsBanner";
 import { useOfflineCache } from "@/hooks/useOfflineCache";
 import { formatBytes } from "@/lib/cache/offline";
 import { LibraryToolbar } from "./LibraryToolbar";
-import { useOutsideClick } from "@/hooks/useOutsideClick";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useLibraryPullToRefresh } from "@/hooks/useLibraryPullToRefresh";
 import { useLibraryFilterState } from "@/hooks/useLibraryFilterState";
-import { songToQueueSong } from "@/lib/song-mappers";
 import { useSongsList, type SongsFilters } from "@/hooks/useSongsList";
 import { useTagsList } from "@/hooks/useTagsList";
-import {
-  fetchPlaylistOptions,
-  runSongsBatchAction,
-  type LibraryBatchAction,
-} from "@/lib/songs/library-client";
 import { SongGridCard } from "./library/song-grid-card";
 import { SwipableSongRow } from "./library/swipable-song-row";
-import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
-import { toggleSelectAll, toggleSelection } from "./library/selection";
-
-// ─── Playlist option type (used for batch operations) ─────────────────────────
-
-interface PlaylistOption {
-  id: string;
-  name: string;
-  _count: { songs: number };
-}
-
-// ─── Main LibraryView ─────────────────────────────────────────────────────────
-
-function toDownloadable(song: Song) {
-  return {
-    id: song.id,
-    title: song.title ?? "Untitled",
-    audioUrl: song.audioUrl ?? "",
-    tags: song.tags ?? undefined,
-  };
-}
-
-// ─── Compact grid card for grid view ──────────────────────────────────────────
-
+import { useLibrarySongActions } from "./library/use-library-song-actions";
+import { useLibrarySelection } from "./library/use-library-selection";
+import { useLibraryBatchMenus } from "./library/use-library-batch-menus";
+import { useLibraryExport } from "./library/use-library-export";
 
 interface LibraryViewProps {
   initialSongs: Song[];
@@ -154,36 +126,44 @@ export function LibraryView({
       await songsQuery.refetch();
     },
   });
-  const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
-  const [downloadErrors, setDownloadErrors] = useState<Record<string, string>>({});
-  const [retryingId, setRetryingId] = useState<string | null>(null);
 
   // ─── Offline cache ────────────────────────────────────────────────────────
   const { cachedIds, stats: offlineStats, saving: offlineSaving, saveOffline, removeOffline, clearAll: clearOffline } = useOfflineCache();
   const isOnline = useOnlineStatus();
 
-  // Selection state
-  const [selectedSongIds, setSelectedSongIds] = useState<Set<string>>(new Set());
-  const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [batchLoading, setBatchLoading] = useState(false);
+  // ─── Extracted hooks ──────────────────────────────────────────────────────
 
-  // Per-song menu action state
-  const [pendingMenuDelete, setPendingMenuDelete] = useState<{ song: Song } | null>(null);
-  const [menuDeleteLoading, setMenuDeleteLoading] = useState(false);
-  const batchDeleteDialogRef = useRef<HTMLDivElement>(null);
-  const pendingDeleteDialogRef = useRef<HTMLDivElement>(null);
-  useDialogFocusTrap(batchDeleteDialogRef, showDeleteConfirm, () => setShowDeleteConfirm(false));
-  useDialogFocusTrap(pendingDeleteDialogRef, Boolean(pendingMenuDelete), () => setPendingMenuDelete(null));
+  const handleSongUpdate = useCallback((updated: Song) => {
+    setSongs((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+  }, []);
 
-  const selectionMode = selectedSongIds.size > 0;
-  const isArchiveView = smartFilter === "archived";
+  const songActions = useLibrarySongActions({
+    songs,
+    currentSongId,
+    togglePlay,
+    playQueue,
+    seek,
+    toast,
+    router,
+    onSongUpdate: handleSongUpdate,
+  });
 
-  // Export state
-  const [exportMenuOpen, setExportMenuOpen] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [exportProgress, setExportProgress] = useState<{ completed: number; total: number } | null>(null);
-  const exportMenuRef = useRef<HTMLDivElement>(null);
+  const selection = useLibrarySelection({
+    songs,
+    setSongs,
+    smartFilter,
+    toast,
+  });
+
+  const batchMenus = useLibraryBatchMenus({
+    songs,
+    selectedSongIds: selection.selectedSongIds,
+    clearSelection: selection.clearSelection,
+    toast,
+    router,
+  });
+
+  const libraryExport = useLibraryExport({ songs, toast });
 
   // Arrow-key navigation for song list
   const songListRef = useRef<HTMLDivElement>(null);
@@ -204,34 +184,29 @@ export function LibraryView({
         const prev = currentIdx > 0 ? currentIdx - 1 : items.length - 1;
         items[prev].focus();
       } else if (e.key === "Enter" && currentIdx >= 0) {
-        // Play the focused song
         const song = songs[currentIdx];
         if (song) {
           e.preventDefault();
-          handleTogglePlay(song);
+          songActions.handleTogglePlay(song);
         }
       } else if (e.key === "f" && currentIdx >= 0) {
-        // Toggle favorite on focused song
         const song = songs[currentIdx];
         if (song) {
           e.preventDefault();
-          handleToggleFavorite(song);
+          songActions.handleToggleFavorite(song);
         }
       } else if (e.key === "Delete" && currentIdx >= 0) {
-        // Remove focused song (with confirmation dialog)
         const song = songs[currentIdx];
         if (song) {
           e.preventDefault();
-          setSelectedSongIds(new Set([song.id]));
-          setShowDeleteConfirm(true);
+          selection.setSelectedSongIds(new Set([song.id]));
+          selection.setShowDeleteConfirm(true);
         }
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [songs]
   );
-
-  useOutsideClick(exportMenuRef, () => setExportMenuOpen(false), exportMenuOpen);
 
   // ─── Fetch user tags for filter ───────────────────────────────────────────
   const tagsQuery = useTagsList();
@@ -240,9 +215,6 @@ export function LibraryView({
   }, [tagsQuery.data]);
 
   // ─── Songs query (filter change, load-more, refresh, pending-poll) ───────
-  // One useInfiniteQuery replaces four hand-rolled fetch sites. React Query
-  // dedupes concurrent requests, cancels stale fetches on key change, and
-  // refetches on focus/reconnect — all of which the previous code did wrong.
   const songsFilters: SongsFilters = useMemo(() => ({
     q: debouncedSearch || undefined,
     status: statusFilter || undefined,
@@ -265,9 +237,6 @@ export function LibraryView({
     pollWhilePending: enableServerSearch,
   });
 
-  // Sync query data → local songs state. Local state is preserved so
-  // optimistic mutations (favorite toggle, retry, batch ops) keep working
-  // via setSongs without needing to reshape the infinite-query cache.
   useEffect(() => {
     if (!songsQuery.data) return;
     const allSongs = songsQuery.data.pages.flatMap((p) => p.songs);
@@ -277,8 +246,6 @@ export function LibraryView({
     setTotalSongs(lastPage?.total ?? allSongs.length);
   }, [songsQuery.data]);
 
-  // Spinner while we have no data for the current filter set; cached data
-  // for previously-seen filters appears instantly without a flash.
   useEffect(() => {
     setLoading(songsQuery.isPending && songs.length === 0);
   }, [songsQuery.isPending, songs.length]);
@@ -292,463 +259,8 @@ export function LibraryView({
     songsQuery.fetchNextPage();
   }, [songsQuery]);
 
-  // ─── Song callbacks ───────────────────────────────────────────────────────
-  const handleSongUpdate = useCallback((updated: Song) => {
-    setSongs((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
-  }, []);
-
-  async function handleTogglePlay(song: Song) {
-    // If the song is already active, just toggle without re-loading
-    if (currentSongId === song.id) {
-      const qs = songToQueueSong(song);
-      if (qs) togglePlay(qs);
-      return;
-    }
-
-    // Check if the audio URL might be expired (within 3 days of expiry or no expiry set)
-    const REFRESH_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000;
-    const rawExpiresAt = (song as Song & { audioUrlExpiresAt?: Date | string | null }).audioUrlExpiresAt;
-    const expiresAtMs = rawExpiresAt ? new Date(rawExpiresAt).getTime() : null;
-    const isNearExpiry =
-      song.audioUrl &&
-      (!expiresAtMs || isNaN(expiresAtMs) || expiresAtMs - Date.now() < REFRESH_THRESHOLD_MS);
-
-    let playSong = song;
-    if (isNearExpiry) {
-      try {
-        const res = await fetch(`/api/songs/${song.id}/refresh`, { method: "POST" });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.song?.audioUrl) {
-            playSong = { ...song, audioUrl: data.song.audioUrl };
-            handleSongUpdate(playSong);
-          }
-        } else if (res.status === 404) {
-          const data = await res.json().catch(() => ({}));
-          if (data.code === "SONG_DELETED") {
-            toast("This song no longer exists on Suno and cannot be played.", "error");
-            return;
-          }
-        }
-      } catch {
-        // Transient error — try playing with whatever URL we have
-      }
-    }
-
-    const qs = songToQueueSong(playSong);
-    if (!qs) return;
-
-    // Build a queue from all playable songs and start at this one
-    const allQueueSongs = songs
-      .map(songToQueueSong)
-      .filter((s): s is QueueSong => s !== null);
-    const idx = allQueueSongs.findIndex((s) => s.id === song.id);
-    playQueue(allQueueSongs, idx >= 0 ? idx : 0);
-  }
-
-  async function handleDownload(song: Song) {
-    if (!song.audioUrl || song.id in downloadProgress) return;
-    setDownloadErrors((e) => { const n = { ...e }; delete n[song.id]; return n; });
-    setDownloadProgress((p) => ({ ...p, [song.id]: 0 }));
-    try {
-      await downloadSongFile(toDownloadable(song), (pct) =>
-        setDownloadProgress((p) => ({ ...p, [song.id]: pct }))
-      );
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Download failed";
-      setDownloadErrors((e) => ({ ...e, [song.id]: msg }));
-      toast(msg, "error");
-    } finally {
-      setTimeout(
-        () => setDownloadProgress((p) => { const n = { ...p }; delete n[song.id]; return n; }),
-        1500
-      );
-    }
-  }
-
-  function handleSeek(pct: number) {
-    seek(pct);
-  }
-
-  async function handleToggleFavorite(song: Song) {
-    const newFav = !song.isFavorite;
-    const prevCount = (song as Song & { favoriteCount?: number }).favoriteCount ?? 0;
-    const optimistic = { ...song, isFavorite: newFav, favoriteCount: newFav ? prevCount + 1 : Math.max(0, prevCount - 1) };
-    handleSongUpdate(optimistic as Song);
-
-    try {
-      const res = await fetch(`/api/songs/${song.id}/favorite`, {
-        method: newFav ? "POST" : "DELETE",
-      });
-      if (!res.ok) {
-        handleSongUpdate(song);
-        toast("Failed to update favorite", "error");
-      } else {
-        const data = await res.json();
-        handleSongUpdate({ ...song, isFavorite: newFav, favoriteCount: data.favoriteCount } as Song);
-        toast(newFav ? "Added to favorites" : "Removed from favorites", "success");
-      }
-    } catch {
-      handleSongUpdate(song);
-      toast("Failed to update favorite", "error");
-    }
-  }
-
-  // ─── Retry handler ──────────────────────────────────────────────────────
-  async function handleRetry(song: Song) {
-    if (retryingId) return;
-    setRetryingId(song.id);
-
-    try {
-      const res = await fetch(`/api/songs/${song.id}/retry`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (res.status === 429 && data.resetAt) {
-          const resetTime = new Date(data.resetAt);
-          const minutesLeft = Math.ceil((resetTime.getTime() - Date.now()) / 60000);
-          toast(`Rate limit reached. Try again in ${minutesLeft} minute${minutesLeft === 1 ? "" : "s"}.`, "error");
-        } else {
-          toast(data.error ?? "Retry failed. Please try again.", "error");
-        }
-        return;
-      }
-
-      if (data.song) {
-        handleSongUpdate(data.song);
-      }
-      toast("Retry started! Song is regenerating.", "success");
-      router.refresh();
-    } catch {
-      toast("Network error. Please check your connection.", "error");
-    } finally {
-      setRetryingId(null);
-    }
-  }
-
-  // ─── Selection handlers ──────────────────────────────────────────────────
-
-  function handleToggleSelect(songId: string, shiftKey: boolean) {
-    const next = toggleSelection({
-      songId,
-      songIds: songs.map((song) => song.id),
-      shiftKey,
-      state: { selectedIds: selectedSongIds, lastSelectedIndex },
-    });
-    setSelectedSongIds(next.selectedIds);
-    setLastSelectedIndex(next.lastSelectedIndex);
-  }
-
-  function handleSelectAll() {
-    const next = toggleSelectAll(
-      songs.map((song) => song.id),
-      selectedSongIds,
-    );
-    setSelectedSongIds(next.selectedIds);
-    setLastSelectedIndex(next.lastSelectedIndex);
-  }
-
-  function clearSelection() {
-    setSelectedSongIds(new Set());
-    setLastSelectedIndex(null);
-  }
-
-  type BatchActionType = Exclude<LibraryBatchAction, "tag" | "add_to_playlist">;
-
-  async function handleBatchAction(action: BatchActionType) {
-    if (selectedSongIds.size === 0) return;
-
-    if (action === "delete" || action === "permanent_delete") {
-      setShowDeleteConfirm(true);
-      return;
-    }
-
-    await executeBatchAction(action);
-  }
-
-  async function executeBatchAction(action: BatchActionType) {
-    const songIds = Array.from(selectedSongIds);
-    setBatchLoading(true);
-
-    try {
-      const result = await runSongsBatchAction({ action, songIds });
-      if (!result.ok) {
-        toast(result.error, "error");
-        return;
-      }
-      const count = result.affected;
-
-      if (action === "favorite") {
-        setSongs((prev) =>
-          prev.map((s) => (selectedSongIds.has(s.id) ? { ...s, isFavorite: true } : s))
-        );
-        toast(`${count} song${count !== 1 ? "s" : ""} added to favorites`, "success");
-      } else if (action === "unfavorite") {
-        setSongs((prev) =>
-          prev.map((s) => (selectedSongIds.has(s.id) ? { ...s, isFavorite: false } : s))
-        );
-        toast(`${count} song${count !== 1 ? "s" : ""} removed from favorites`, "success");
-      } else if (action === "delete") {
-        setSongs((prev) => prev.filter((s) => !selectedSongIds.has(s.id)));
-        toast(`${count} song${count !== 1 ? "s" : ""} moved to archive`, "success");
-      } else if (action === "restore") {
-        setSongs((prev) => prev.filter((s) => !selectedSongIds.has(s.id)));
-        toast(`${count} song${count !== 1 ? "s" : ""} restored`, "success");
-      } else if (action === "permanent_delete") {
-        setSongs((prev) => prev.filter((s) => !selectedSongIds.has(s.id)));
-        toast(`${count} song${count !== 1 ? "s" : ""} permanently deleted`, "success");
-      } else if (action === "make_public") {
-        setSongs((prev) =>
-          prev.map((s) => (selectedSongIds.has(s.id) ? { ...s, isPublic: true } : s))
-        );
-        toast(`${count} song${count !== 1 ? "s" : ""} made public`, "success");
-      } else if (action === "make_private") {
-        setSongs((prev) =>
-          prev.map((s) => (selectedSongIds.has(s.id) ? { ...s, isPublic: false } : s))
-        );
-        toast(`${count} song${count !== 1 ? "s" : ""} made private`, "success");
-      }
-
-      clearSelection();
-    } catch {
-      toast("Batch operation failed", "error");
-    } finally {
-      setBatchLoading(false);
-      setShowDeleteConfirm(false);
-    }
-  }
-
-  // ─── Per-song (menu) actions ──────────────────────────────────────────────
-
-  async function handleSingleSongAction(song: Song, action: "delete" | "restore" | "permanent_delete") {
-    if (action === "permanent_delete") {
-      setPendingMenuDelete({ song });
-      return;
-    }
-
-    try {
-      const result = await runSongsBatchAction({ action, songIds: [song.id] });
-      if (!result.ok) {
-        toast(result.error, "error");
-        return;
-      }
-      if (action === "delete") {
-        setSongs((prev) => prev.filter((s) => s.id !== song.id));
-        toast(`"${song.title ?? "Song"}" moved to archive`, "success");
-      } else if (action === "restore") {
-        setSongs((prev) => prev.filter((s) => s.id !== song.id));
-        toast(`"${song.title ?? "Song"}" restored`, "success");
-      }
-    } catch {
-      toast("Action failed", "error");
-    }
-  }
-
-  async function executePendingMenuDelete() {
-    if (!pendingMenuDelete) return;
-    const { song } = pendingMenuDelete;
-    setMenuDeleteLoading(true);
-    try {
-      const result = await runSongsBatchAction({
-        action: "permanent_delete",
-        songIds: [song.id],
-      });
-      if (!result.ok) {
-        toast(result.error || "Delete failed", "error");
-        return;
-      }
-      setSongs((prev) => prev.filter((s) => s.id !== song.id));
-      toast(`"${song.title ?? "Song"}" permanently deleted`, "success");
-      setPendingMenuDelete(null);
-    } catch {
-      toast("Delete failed", "error");
-    } finally {
-      setMenuDeleteLoading(false);
-    }
-  }
-
-  // ─── Batch tag / playlist / download state ───────────────────────────────
-  const [showBatchTagMenu, setShowBatchTagMenu] = useState(false);
-  const [showBatchPlaylistMenu, setShowBatchPlaylistMenu] = useState(false);
-  const [batchTagLoading, setBatchTagLoading] = useState(false);
-  const [batchPlaylistLoading, setBatchPlaylistLoading] = useState(false);
-  const [batchPlaylists, setBatchPlaylists] = useState<PlaylistOption[]>([]);
-  const [batchDownloading, setBatchDownloading] = useState(false);
-  const [batchDownloadProgress, setBatchDownloadProgress] = useState<{ completed: number; total: number } | null>(null);
-  const [showBatchDownloadFormatMenu, setShowBatchDownloadFormatMenu] = useState(false);
-  const [batchDownloadFormat, setBatchDownloadFormat] = useState<AudioFormat>("mp3");
-  const batchTagMenuRef = useRef<HTMLDivElement>(null);
-  const batchPlaylistMenuRef = useRef<HTMLDivElement>(null);
-  const batchDownloadFormatMenuRef = useRef<HTMLDivElement>(null);
-
-  useOutsideClick(batchTagMenuRef, () => setShowBatchTagMenu(false), showBatchTagMenu);
-
-  useOutsideClick(batchPlaylistMenuRef, () => setShowBatchPlaylistMenu(false), showBatchPlaylistMenu);
-
-  useOutsideClick(
-    batchDownloadFormatMenuRef,
-    () => setShowBatchDownloadFormatMenu(false),
-    showBatchDownloadFormatMenu
-  );
-
-  async function handleBatchTag(tagId: string) {
-    setShowBatchTagMenu(false);
-    if (selectedSongIds.size === 0) return;
-    setBatchTagLoading(true);
-    try {
-      const result = await runSongsBatchAction({
-        action: "tag",
-        songIds: Array.from(selectedSongIds),
-        tagId,
-      });
-      if (!result.ok) {
-        toast(result.error || "Batch tag failed", "error");
-        return;
-      }
-      toast(`Tagged ${result.affected} song${result.affected !== 1 ? "s" : ""}`, "success");
-      clearSelection();
-      // Refresh songs to show updated tags
-      router.refresh();
-    } catch {
-      toast("Batch tag failed", "error");
-    } finally {
-      setBatchTagLoading(false);
-    }
-  }
-
-  async function handleBatchAddToPlaylist(playlistId: string) {
-    setShowBatchPlaylistMenu(false);
-    if (selectedSongIds.size === 0) return;
-    setBatchPlaylistLoading(true);
-    try {
-      const result = await runSongsBatchAction({
-        action: "add_to_playlist",
-        songIds: Array.from(selectedSongIds),
-        playlistId,
-      });
-      if (!result.ok) {
-        toast(result.error || "Batch add to playlist failed", "error");
-        return;
-      }
-      toast(`Added ${result.affected} song${result.affected !== 1 ? "s" : ""} to playlist`, "success");
-      clearSelection();
-    } catch {
-      toast("Batch add to playlist failed", "error");
-    } finally {
-      setBatchPlaylistLoading(false);
-    }
-  }
-
-  async function openBatchPlaylistMenu() {
-    setShowBatchPlaylistMenu(true);
-    const playlists = await fetchPlaylistOptions();
-    if (playlists.length > 0) {
-      setBatchPlaylists(playlists);
-    }
-  }
-
-  async function handleBatchDownload(fmt: AudioFormat = batchDownloadFormat) {
-    setShowBatchDownloadFormatMenu(false);
-    if (selectedSongIds.size === 0) return;
-    const selectedSongs = songs
-      .filter((s) => selectedSongIds.has(s.id) && s.audioUrl && s.generationStatus === "ready")
-      .map((s) => ({
-        id: s.id,
-        title: s.title,
-        audioUrl: s.audioUrl!,
-        tags: s.tags,
-        duration: s.duration,
-        createdAt: s.createdAt,
-      }));
-    if (selectedSongs.length === 0) {
-      toast("No downloadable songs selected", "info");
-      return;
-    }
-    setBatchDownloading(true);
-    setBatchDownloadProgress({ completed: 0, total: selectedSongs.length });
-    try {
-      await exportAsZip(
-        selectedSongs,
-        (completed, total) => setBatchDownloadProgress({ completed, total }),
-        { format: fmt }
-      );
-      toast(`Downloaded ${selectedSongs.length} song${selectedSongs.length !== 1 ? "s" : ""} as ${fmt.toUpperCase()} ZIP`, "success");
-      clearSelection();
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Download failed", "error");
-    } finally {
-      setBatchDownloading(false);
-      setBatchDownloadProgress(null);
-    }
-  }
-
-  // ─── Export helpers ───────────────────────────────────────────────────────
-  const exportableSongs = useMemo<ExportableSong[]>(() => {
-    return songs
-      .filter((s) => s.audioUrl && s.generationStatus === "ready")
-      .map((s) => ({
-        id: s.id,
-        title: s.title,
-        audioUrl: s.audioUrl!,
-        tags: s.tags,
-        duration: s.duration,
-        createdAt: s.createdAt,
-      }));
-  }, [songs]);
-
-  async function handleExportZip() {
-    setExportMenuOpen(false);
-    if (exportableSongs.length === 0) {
-      toast("No songs available to export", "info");
-      return;
-    }
-    if (exportableSongs.length > 50) {
-      toast(`Exporting ${exportableSongs.length} songs — this may take a while`, "info");
-    }
-    setExporting(true);
-    setExportProgress({ completed: 0, total: exportableSongs.length });
-    try {
-      await exportAsZip(exportableSongs, (completed, total) => {
-        setExportProgress({ completed, total });
-      });
-      toast("ZIP export complete!", "success");
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Export failed", "error");
-    } finally {
-      setExporting(false);
-      setExportProgress(null);
-    }
-  }
-
-  function handleExportM3U() {
-    setExportMenuOpen(false);
-    if (exportableSongs.length === 0) {
-      toast("No songs available to export", "info");
-      return;
-    }
-    try {
-      exportAsM3U(exportableSongs);
-      toast("M3U playlist exported!", "success");
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Export failed", "error");
-    }
-  }
-
-  // ─── Play All ──────────────────────────────────────────────────────────────
-  function handlePlayAll() {
-    const allQueueSongs = songs
-      .map(songToQueueSong)
-      .filter((s): s is QueueSong => s !== null);
-    if (allQueueSongs.length > 0) {
-      playQueue(allQueueSongs, 0);
-    }
-  }
-
   const hasPlayableSongs = songs.some((s) => s.audioUrl && s.generationStatus === "ready");
+
   // ─── Virtualizer for list view ───────────────────────────────────────────
   const listScrollMarginRef = useRef(0);
   useLayoutEffect(() => {
@@ -810,10 +322,10 @@ export function LibraryView({
           </p>
           {songs.length > 0 && (
             <button
-              onClick={handleSelectAll}
+              onClick={selection.handleSelectAll}
               className="mt-1 text-xs font-medium text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
             >
-              {selectedSongIds.size === songs.length ? "Deselect all" : "Select all"}
+              {selection.selectedSongIds.size === songs.length ? "Deselect all" : "Select all"}
             </button>
           )}
           {offlineStats.count > 0 && (
@@ -834,33 +346,33 @@ export function LibraryView({
         {/* Header actions */}
         <div className="flex items-center gap-2">
         {/* Export button */}
-        <div className="relative" ref={exportMenuRef}>
+        <div className="relative" ref={libraryExport.exportMenuRef}>
           <button
-            onClick={() => setExportMenuOpen((o) => !o)}
-            disabled={exporting}
+            onClick={() => libraryExport.setExportMenuOpen((o) => !o)}
+            disabled={libraryExport.exporting}
             aria-label="Export library"
             className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
-              exporting
+              libraryExport.exporting
                 ? "bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed"
                 : "bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
             }`}
           >
             <ArrowUpOnSquareStackIcon className="w-4 h-4" />
-            {exporting && exportProgress
-              ? `${exportProgress.completed}/${exportProgress.total}`
+            {libraryExport.exporting && libraryExport.exportProgress
+              ? `${libraryExport.exportProgress.completed}/${libraryExport.exportProgress.total}`
               : "Export"}
           </button>
 
-          {exportMenuOpen && (
+          {libraryExport.exportMenuOpen && (
             <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-20 overflow-hidden">
               <button
-                onClick={handleExportZip}
+                onClick={libraryExport.handleExportZip}
                 className="w-full text-left px-4 py-3 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
                 Download as ZIP
               </button>
               <button
-                onClick={handleExportM3U}
+                onClick={libraryExport.handleExportM3U}
                 className="w-full text-left px-4 py-3 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-t border-gray-200 dark:border-gray-800"
               >
                 Export M3U playlist
@@ -872,24 +384,24 @@ export function LibraryView({
       </div>
 
       {/* Export progress bar */}
-      {exporting && exportProgress && (
+      {libraryExport.exporting && libraryExport.exportProgress && (
         <div className="space-y-1">
           <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <div
               className="h-full bg-violet-500 rounded-full transition-all duration-300"
-              style={{ width: `${Math.round((exportProgress.completed / exportProgress.total) * 100)}%` }}
+              style={{ width: `${Math.round((libraryExport.exportProgress.completed / libraryExport.exportProgress.total) * 100)}%` }}
             />
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            Downloading {exportProgress.completed} of {exportProgress.total} songs…
+            Downloading {libraryExport.exportProgress.completed} of {libraryExport.exportProgress.total} songs…
           </p>
         </div>
       )}
 
       {/* Play All button */}
-      {hasPlayableSongs && !selectionMode && (
+      {hasPlayableSongs && !selection.selectionMode && (
         <button
-          onClick={handlePlayAll}
+          onClick={songActions.handlePlayAll}
           className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors min-h-[44px]"
         >
           <PlayOutlineIcon className="w-4 h-4" />
@@ -946,7 +458,7 @@ export function LibraryView({
       {songs.length === 0 ? (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 text-center">
           <MusicalNoteIcon className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-700 mb-3" aria-hidden="true" />
-          {isArchiveView ? (
+          {selection.isArchiveView ? (
             <p className="text-gray-500 dark:text-gray-400 text-sm">Your archive is empty.</p>
           ) : hasAnyFilter ? (
             <>
@@ -974,21 +486,21 @@ export function LibraryView({
           )}
         </div>
       ) : viewMode === "grid" ? (
-        <ul aria-label="Song library" className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 ${selectionMode ? "pb-20" : ""}`}>
+        <ul aria-label="Song library" className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 ${selection.selectionMode ? "pb-20" : ""}`}>
           {songs.map((song, idx) => (
             <SongGridCard
               key={song.id}
               song={song}
               isActive={currentSongId === song.id}
               isPlaying={isPlaying}
-              isSelected={selectedSongIds.has(song.id)}
-              selectionMode={selectionMode}
+              isSelected={selection.selectedSongIds.has(song.id)}
+              selectionMode={selection.selectionMode}
               searchQuery={debouncedSearch}
               priority={idx < 4}
-              onTogglePlay={handleTogglePlay}
-              onToggleFavorite={handleToggleFavorite}
-              onToggleSelect={(songId) => handleToggleSelect(songId, false)}
-              onLongPress={(songId) => setSelectedSongIds(new Set([songId]))}
+              onTogglePlay={songActions.handleTogglePlay}
+              onToggleFavorite={songActions.handleToggleFavorite}
+              onToggleSelect={(songId) => selection.handleToggleSelect(songId, false)}
+              onLongPress={(songId) => selection.setSelectedSongIds(new Set([songId]))}
             />
           ))}
         </ul>
@@ -999,7 +511,7 @@ export function LibraryView({
           role="listbox"
           aria-orientation="vertical"
           onKeyDown={handleSongListKeyDown}
-          className={selectionMode ? "pb-20" : ""}
+          className={selection.selectionMode ? "pb-20" : ""}
           style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}
         >
           {rowVirtualizer.getVirtualItems().map((virtualRow) => {
@@ -1026,29 +538,29 @@ export function LibraryView({
                   currentTime={currentTime}
                   audioDuration={audioDuration}
                   rating={song.rating ? { stars: song.rating, note: song.ratingNote ?? "" } : undefined}
-                  downloadProgress={downloadProgress[song.id] ?? null}
-                  downloadError={downloadErrors[song.id] ?? null}
-                  isSelected={selectedSongIds.has(song.id)}
-                  selectionMode={selectionMode}
+                  downloadProgress={songActions.downloadProgress[song.id] ?? null}
+                  downloadError={songActions.downloadErrors[song.id] ?? null}
+                  isSelected={selection.selectedSongIds.has(song.id)}
+                  selectionMode={selection.selectionMode}
                   searchQuery={debouncedSearch}
                   isCached={cachedIds.has(song.id)}
                   isSaving={offlineSaving.has(song.id)}
                   isOnline={isOnline}
-                  onTogglePlay={handleTogglePlay}
-                  onDownload={handleDownload}
+                  onTogglePlay={songActions.handleTogglePlay}
+                  onDownload={songActions.handleDownload}
                   onSaveOffline={(s) => saveOffline({ id: s.id, title: s.title, imageUrl: s.imageUrl })}
                   onRemoveOffline={removeOffline}
-                  onSeek={handleSeek}
+                  onSeek={songActions.handleSeek}
                   onUpdate={handleSongUpdate}
-                  onToggleFavorite={handleToggleFavorite}
-                  onToggleSelect={handleToggleSelect}
-                  onLongPress={(songId) => setSelectedSongIds(new Set([songId]))}
-                  onRetry={handleRetry}
-                  retryingId={retryingId}
-                  isArchiveView={isArchiveView}
-                  onSingleArchive={(s) => handleSingleSongAction(s, "delete")}
-                  onSingleRestore={(s) => handleSingleSongAction(s, "restore")}
-                  onSingleDeleteForever={(s) => handleSingleSongAction(s, "permanent_delete")}
+                  onToggleFavorite={songActions.handleToggleFavorite}
+                  onToggleSelect={selection.handleToggleSelect}
+                  onLongPress={(songId) => selection.setSelectedSongIds(new Set([songId]))}
+                  onRetry={songActions.handleRetry}
+                  retryingId={songActions.retryingId}
+                  isArchiveView={selection.isArchiveView}
+                  onSingleArchive={(s) => selection.handleSingleSongAction(s, "delete")}
+                  onSingleRestore={(s) => selection.handleSingleSongAction(s, "restore")}
+                  onSingleDeleteForever={(s) => selection.handleSingleSongAction(s, "permanent_delete")}
                   onTagClick={(tagId) => setTagFilter((prev) => prev.includes(tagId) ? prev : [...prev, tagId])}
                 />
               </div>
@@ -1080,30 +592,30 @@ export function LibraryView({
       )}
 
       {/* Batch download progress bar */}
-      {batchDownloading && batchDownloadProgress && (
+      {batchMenus.batchDownloading && batchMenus.batchDownloadProgress && (
         <div className="space-y-1">
           <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <div
               className="h-full bg-violet-500 rounded-full transition-all duration-300"
-              style={{ width: `${Math.round((batchDownloadProgress.completed / batchDownloadProgress.total) * 100)}%` }}
+              style={{ width: `${Math.round((batchMenus.batchDownloadProgress.completed / batchMenus.batchDownloadProgress.total) * 100)}%` }}
             />
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            Downloading {batchDownloadProgress.completed} of {batchDownloadProgress.total} songs…
+            Downloading {batchMenus.batchDownloadProgress.completed} of {batchMenus.batchDownloadProgress.total} songs…
           </p>
         </div>
       )}
 
       {/* Floating action bar */}
-      {selectionMode && (
+      {selection.selectionMode && (
         <div className="fixed bottom-20 md:bottom-4 left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-40 flex items-center gap-2 px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white rounded-2xl shadow-2xl border border-gray-700 animate-slide-in overflow-x-auto">
           <span className="text-sm font-medium mr-1 flex-shrink-0">
-            {selectedSongIds.size} selected
+            {selection.selectedSongIds.size} selected
           </span>
 
           <button
-            onClick={() => handleBatchAction("favorite")}
-            disabled={batchLoading}
+            onClick={() => selection.handleBatchAction("favorite")}
+            disabled={selection.batchLoading}
             aria-label="Add selected to favorites"
             className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-pink-600 hover:bg-pink-500 disabled:opacity-50 transition-colors min-h-[44px]"
           >
@@ -1112,8 +624,8 @@ export function LibraryView({
           </button>
 
           <button
-            onClick={() => handleBatchAction("unfavorite")}
-            disabled={batchLoading}
+            onClick={() => selection.handleBatchAction("unfavorite")}
+            disabled={selection.batchLoading}
             aria-label="Remove selected from favorites"
             className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gray-700 hover:bg-gray-600 disabled:opacity-50 transition-colors min-h-[44px]"
           >
@@ -1123,8 +635,8 @@ export function LibraryView({
 
           {/* Batch Make Public */}
           <button
-            onClick={() => handleBatchAction("make_public")}
-            disabled={batchLoading}
+            onClick={() => selection.handleBatchAction("make_public")}
+            disabled={selection.batchLoading}
             aria-label="Make selected songs public"
             className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 disabled:opacity-50 transition-colors min-h-[44px]"
           >
@@ -1134,8 +646,8 @@ export function LibraryView({
 
           {/* Batch Make Private */}
           <button
-            onClick={() => handleBatchAction("make_private")}
-            disabled={batchLoading}
+            onClick={() => selection.handleBatchAction("make_private")}
+            disabled={selection.batchLoading}
             aria-label="Make selected songs private"
             className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gray-700 hover:bg-gray-600 disabled:opacity-50 transition-colors min-h-[44px]"
           >
@@ -1144,10 +656,10 @@ export function LibraryView({
           </button>
 
           {/* Batch Tag */}
-          <div className="relative" ref={batchTagMenuRef}>
+          <div className="relative" ref={batchMenus.batchTagMenuRef}>
             <button
-              onClick={() => setShowBatchTagMenu((o) => !o)}
-              disabled={batchTagLoading || availableTags.length === 0}
+              onClick={() => batchMenus.setShowBatchTagMenu((o) => !o)}
+              disabled={batchMenus.batchTagLoading || availableTags.length === 0}
               aria-label="Tag selected songs"
               className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 disabled:opacity-50 transition-colors min-h-[44px]"
             >
@@ -1155,7 +667,7 @@ export function LibraryView({
               <span className="hidden sm:inline">Tag</span>
             </button>
 
-            {showBatchTagMenu && (
+            {batchMenus.showBatchTagMenu && (
               <div className="absolute bottom-full mb-1 left-0 w-48 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 overflow-hidden max-h-60 overflow-y-auto">
                 {availableTags.length === 0 ? (
                   <p className="px-4 py-3 text-sm text-gray-500">No tags yet</p>
@@ -1163,7 +675,7 @@ export function LibraryView({
                   availableTags.map((tag) => (
                     <button
                       key={tag.id}
-                      onClick={() => handleBatchTag(tag.id)}
+                      onClick={() => batchMenus.handleBatchTag(tag.id)}
                       className="w-full text-left px-4 py-3 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-b last:border-b-0 border-gray-200 dark:border-gray-800 flex items-center gap-2"
                     >
                       <span
@@ -1179,10 +691,10 @@ export function LibraryView({
           </div>
 
           {/* Batch Add to Playlist */}
-          <div className="relative" ref={batchPlaylistMenuRef}>
+          <div className="relative" ref={batchMenus.batchPlaylistMenuRef}>
             <button
-              onClick={openBatchPlaylistMenu}
-              disabled={batchPlaylistLoading}
+              onClick={batchMenus.openBatchPlaylistMenu}
+              disabled={batchMenus.batchPlaylistLoading}
               aria-label="Add selected to playlist"
               className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gray-700 hover:bg-gray-600 disabled:opacity-50 transition-colors min-h-[44px]"
             >
@@ -1190,15 +702,15 @@ export function LibraryView({
               <span className="hidden sm:inline">Playlist</span>
             </button>
 
-            {showBatchPlaylistMenu && (
+            {batchMenus.showBatchPlaylistMenu && (
               <div className="absolute bottom-full mb-1 left-0 w-48 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 overflow-hidden max-h-60 overflow-y-auto">
-                {batchPlaylists.length === 0 ? (
+                {batchMenus.batchPlaylists.length === 0 ? (
                   <p className="px-4 py-3 text-sm text-gray-500">No playlists yet</p>
                 ) : (
-                  batchPlaylists.map((pl) => (
+                  batchMenus.batchPlaylists.map((pl) => (
                     <button
                       key={pl.id}
-                      onClick={() => handleBatchAddToPlaylist(pl.id)}
+                      onClick={() => batchMenus.handleBatchAddToPlaylist(pl.id)}
                       className="w-full text-left px-4 py-3 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-b last:border-b-0 border-gray-200 dark:border-gray-800"
                     >
                       {pl.name}
@@ -1213,37 +725,37 @@ export function LibraryView({
           </div>
 
           {/* Batch Download with format picker */}
-          <div className="relative flex-shrink-0" ref={batchDownloadFormatMenuRef}>
+          <div className="relative flex-shrink-0" ref={batchMenus.batchDownloadFormatMenuRef}>
             <div className="flex items-stretch">
               <button
-                onClick={() => handleBatchDownload()}
-                disabled={batchDownloading}
+                onClick={() => batchMenus.handleBatchDownload()}
+                disabled={batchMenus.batchDownloading}
                 aria-label="Download selected songs as ZIP"
                 className="flex items-center gap-1.5 pl-3 pr-2 py-2 rounded-l-lg text-sm font-medium bg-gray-700 hover:bg-gray-600 disabled:opacity-50 transition-colors min-h-[44px]"
               >
                 <ArrowDownTrayIcon className="w-4 h-4" />
                 <span className="hidden sm:inline">
-                  {batchDownloading && batchDownloadProgress
-                    ? `${batchDownloadProgress.completed}/${batchDownloadProgress.total}`
-                    : `${batchDownloadFormat.toUpperCase()} ZIP`}
+                  {batchMenus.batchDownloading && batchMenus.batchDownloadProgress
+                    ? `${batchMenus.batchDownloadProgress.completed}/${batchMenus.batchDownloadProgress.total}`
+                    : `${batchMenus.batchDownloadFormat.toUpperCase()} ZIP`}
                 </span>
               </button>
               <button
-                onClick={() => setShowBatchDownloadFormatMenu((v) => !v)}
-                disabled={batchDownloading}
+                onClick={() => batchMenus.setShowBatchDownloadFormatMenu((v) => !v)}
+                disabled={batchMenus.batchDownloading}
                 aria-label="Choose batch download format"
                 className="flex items-center justify-center px-1.5 py-2 rounded-r-lg bg-gray-700 hover:bg-gray-600 text-white border-l border-gray-600 disabled:opacity-50 transition-colors min-h-[44px]"
               >
-                <ChevronDownIcon className={`w-3 h-3 transition-transform duration-150 ${showBatchDownloadFormatMenu ? "rotate-180" : ""}`} />
+                <ChevronDownIcon className={`w-3 h-3 transition-transform duration-150 ${batchMenus.showBatchDownloadFormatMenu ? "rotate-180" : ""}`} />
               </button>
             </div>
-            {showBatchDownloadFormatMenu && (
+            {batchMenus.showBatchDownloadFormatMenu && (
               <div className="absolute bottom-full mb-1 left-0 w-40 bg-gray-900 border border-gray-700 rounded-xl shadow-lg z-50 overflow-hidden py-1 text-sm">
                 {(["mp3", "wav", "flac"] as AudioFormat[]).map((fmt) => (
                   <button
                     key={fmt}
-                    onClick={() => { setBatchDownloadFormat(fmt); handleBatchDownload(fmt); }}
-                    className={`w-full text-left px-3 py-2 transition-colors ${batchDownloadFormat === fmt ? "bg-gray-700 text-white" : "hover:bg-gray-800 text-gray-300"}`}
+                    onClick={() => { batchMenus.setBatchDownloadFormat(fmt); batchMenus.handleBatchDownload(fmt); }}
+                    className={`w-full text-left px-3 py-2 transition-colors ${batchMenus.batchDownloadFormat === fmt ? "bg-gray-700 text-white" : "hover:bg-gray-800 text-gray-300"}`}
                   >
                     {fmt.toUpperCase()}
                     {fmt === "mp3" && <span className="ml-1 text-xs text-gray-500">· default</span>}
@@ -1255,8 +767,8 @@ export function LibraryView({
           </div>
 
           {/* Compare (only when exactly 2 songs selected) */}
-          {selectedSongIds.size === 2 && (() => {
-            const [idA, idB] = Array.from(selectedSongIds);
+          {selection.selectedSongIds.size === 2 && (() => {
+            const [idA, idB] = Array.from(selection.selectedSongIds);
             return (
               <button
                 onClick={() => router.push(`/compare?a=${idA}&b=${idB}`)}
@@ -1269,11 +781,11 @@ export function LibraryView({
             );
           })()}
 
-          {isArchiveView ? (
+          {selection.isArchiveView ? (
             <>
               <button
-                onClick={() => handleBatchAction("restore")}
-                disabled={batchLoading}
+                onClick={() => selection.handleBatchAction("restore")}
+                disabled={selection.batchLoading}
                 aria-label="Restore selected songs"
                 className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-green-600 hover:bg-green-500 disabled:opacity-50 transition-colors min-h-[44px]"
               >
@@ -1281,8 +793,8 @@ export function LibraryView({
                 <span className="hidden sm:inline">Restore</span>
               </button>
               <button
-                onClick={() => handleBatchAction("permanent_delete")}
-                disabled={batchLoading}
+                onClick={() => selection.handleBatchAction("permanent_delete")}
+                disabled={selection.batchLoading}
                 aria-label="Permanently delete selected songs"
                 className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-500 disabled:opacity-50 transition-colors min-h-[44px]"
               >
@@ -1292,8 +804,8 @@ export function LibraryView({
             </>
           ) : (
             <button
-              onClick={() => handleBatchAction("delete")}
-              disabled={batchLoading}
+              onClick={() => selection.handleBatchAction("delete")}
+              disabled={selection.batchLoading}
               aria-label="Delete selected songs"
               className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-500 disabled:opacity-50 transition-colors min-h-[44px]"
             >
@@ -1303,7 +815,7 @@ export function LibraryView({
           )}
 
           <button
-            onClick={clearSelection}
+            onClick={selection.clearSelection}
             aria-label="Clear selection"
             className="flex-shrink-0 ml-1 p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors min-h-[44px]"
           >
@@ -1313,39 +825,39 @@ export function LibraryView({
       )}
 
       {/* Delete / Permanent delete confirmation dialog */}
-      {showDeleteConfirm && (
+      {selection.showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="delete-dialog-title">
           <div
-            ref={batchDeleteDialogRef}
+            ref={selection.batchDeleteDialogRef}
             tabIndex={-1}
             className="bg-white dark:bg-gray-900 w-full sm:rounded-2xl rounded-t-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 sm:mx-4 sm:max-w-sm"
           >
             <h3 id="delete-dialog-title" className="text-lg font-semibold text-gray-900 dark:text-white">
-              {isArchiveView
-                ? `Permanently delete ${selectedSongIds.size} song${selectedSongIds.size !== 1 ? "s" : ""}?`
-                : `Delete ${selectedSongIds.size} song${selectedSongIds.size !== 1 ? "s" : ""}?`}
+              {selection.isArchiveView
+                ? `Permanently delete ${selection.selectedSongIds.size} song${selection.selectedSongIds.size !== 1 ? "s" : ""}?`
+                : `Delete ${selection.selectedSongIds.size} song${selection.selectedSongIds.size !== 1 ? "s" : ""}?`}
             </h3>
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-              {isArchiveView
+              {selection.isArchiveView
                 ? "This action cannot be undone. The selected songs will be permanently removed from your library."
                 : "The selected songs will be moved to your archive. You can restore them later."}
             </p>
             <div className="mt-4 flex gap-3 justify-end">
               <button
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={batchLoading}
+                onClick={() => selection.setShowDeleteConfirm(false)}
+                disabled={selection.batchLoading}
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors min-h-[44px]"
               >
                 Cancel
               </button>
               <button
-                onClick={() => executeBatchAction(isArchiveView ? "permanent_delete" : "delete")}
-                disabled={batchLoading}
+                onClick={() => selection.executeBatchAction(selection.isArchiveView ? "permanent_delete" : "delete")}
+                disabled={selection.batchLoading}
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-500 disabled:opacity-50 transition-colors min-h-[44px]"
               >
-                {batchLoading
-                  ? (isArchiveView ? "Deleting forever…" : "Archiving…")
-                  : (isArchiveView ? "Delete forever" : "Delete")}
+                {selection.batchLoading
+                  ? (selection.isArchiveView ? "Deleting forever…" : "Archiving…")
+                  : (selection.isArchiveView ? "Delete forever" : "Delete")}
               </button>
             </div>
           </div>
@@ -1353,7 +865,7 @@ export function LibraryView({
       )}
 
       {/* Per-song menu: permanent delete confirmation */}
-      {pendingMenuDelete && (
+      {selection.pendingMenuDelete && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
           role="dialog"
@@ -1361,30 +873,30 @@ export function LibraryView({
           aria-labelledby="menu-delete-dialog-title"
         >
           <div
-            ref={pendingDeleteDialogRef}
+            ref={selection.pendingDeleteDialogRef}
             tabIndex={-1}
             className="bg-white dark:bg-gray-900 w-full sm:rounded-2xl rounded-t-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 sm:mx-4 sm:max-w-sm"
           >
             <h3 id="menu-delete-dialog-title" className="text-lg font-semibold text-gray-900 dark:text-white">
-              Permanently delete &ldquo;{pendingMenuDelete.song.title ?? "this song"}&rdquo;?
+              Permanently delete &ldquo;{selection.pendingMenuDelete.song.title ?? "this song"}&rdquo;?
             </h3>
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
               This action cannot be undone. The song will be permanently removed from your library.
             </p>
             <div className="mt-4 flex gap-3 justify-end">
               <button
-                onClick={() => setPendingMenuDelete(null)}
-                disabled={menuDeleteLoading}
+                onClick={() => selection.setPendingMenuDelete(null)}
+                disabled={selection.menuDeleteLoading}
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors min-h-[44px]"
               >
                 Cancel
               </button>
               <button
-                onClick={executePendingMenuDelete}
-                disabled={menuDeleteLoading}
+                onClick={selection.executePendingMenuDelete}
+                disabled={selection.menuDeleteLoading}
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-500 disabled:opacity-50 transition-colors min-h-[44px]"
               >
-                {menuDeleteLoading ? "Deleting…" : "Delete forever"}
+                {selection.menuDeleteLoading ? "Deleting…" : "Delete forever"}
               </button>
             </div>
           </div>
