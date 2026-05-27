@@ -97,7 +97,7 @@ export async function downloadSongFile(
   }
 
   const mimeType = res.headers.get("content-type") ?? "audio/mpeg";
-  const blob = new Blob(chunks, { type: mimeType });
+  const blob = new Blob(chunks as BlobPart[], { type: mimeType });
   onProgress(100);
   triggerBrowserDownload(blob, extractFilename(res) ?? buildFallbackFilename(song, options.format));
 }
