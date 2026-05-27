@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   MusicalNoteIcon,
   ArrowPathIcon,
@@ -19,20 +18,18 @@ import { BookmarkIcon as BookmarkSolidIcon } from "@heroicons/react/24/solid";
 import { useToast } from "./Toast";
 import { useQueue, type QueueSong } from "./QueueContext";
 import Image from "next/image";
-import { retrySong, pollSongStatus, mergeSongIntoList } from "./generation-history/retry-client";
 import { formatDuration as formatTime } from "@/lib/time-format";
-import {
-  parseHistoryFilterUrlState,
-  toGenerationsApiSearchParams,
-  toHistoryFilterSearchParams,
-  type HistorySortKey,
-} from "./history/filter-url-state";
+import { type HistorySortKey } from "./history/filter-url-state";
 import {
   formatHistoryRelativeDate,
   HISTORY_SORT_OPTIONS,
   HISTORY_STATUS_FILTERS,
   type HistoryStatusFilter,
 } from "./history/view-config";
+import { useHistoryFilters } from "@/hooks/useHistoryFilters";
+import { useHistoryRetry } from "@/hooks/useHistoryRetry";
+import { useHistoryPendingPoll } from "@/hooks/useHistoryPendingPoll";
+import { useHistorySavedPrompts } from "@/hooks/useHistorySavedPrompts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -361,205 +358,32 @@ export function GenerationHistoryView({
   initialNextCursor = null,
   initialTotal,
 }: GenerationHistoryViewProps) {
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
-  const router = useRouter();
-  const { toast } = useToast();
-  const initialFilterState = parseHistoryFilterUrlState(searchParams);
+  const {
+    songs,
+    setSongs,
+    nextCursor,
+    totalSongs,
+    loading,
+    loadingMore,
+    activeFilter,
+    sortKey,
+    searchQuery,
+    setSearchQuery,
+    debouncedQuery,
+    dateFrom,
+    setDateFrom,
+    dateTo,
+    setDateTo,
+    handleFilterChange,
+    handleSortChange,
+    handleDateChange,
+    handleLoadMore,
+  } = useHistoryFilters({ initialSongs, initialNextCursor, initialTotal });
 
-  const [activeFilter, setActiveFilter] = useState(initialFilterState.status);
-  const [sortKey, setSortKey] = useState<HistorySortKey>(initialFilterState.sort);
-  const [searchQuery, setSearchQuery] = useState(initialFilterState.q);
-  const [debouncedQuery, setDebouncedQuery] = useState(initialFilterState.q);
-  const [dateFrom, setDateFrom] = useState(initialFilterState.from);
-  const [dateTo, setDateTo] = useState(initialFilterState.to);
-
-  const [songs, setSongs] = useState<GenerationEntry[]>(initialSongs);
-  const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
-  const [totalSongs, setTotalSongs] = useState(initialTotal ?? initialSongs.length);
-  const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [retryingId, setRetryingId] = useState<string | null>(null);
-  const [savingPromptId, setSavingPromptId] = useState<string | null>(null);
+  const { retryingId, handleRetry, mergeSongUpdate } = useHistoryRetry(setSongs);
+  useHistoryPendingPoll(songs, mergeSongUpdate);
+  const { savingPromptId, handleSavePrompt } = useHistorySavedPrompts();
   const [showSavedPrompts, setShowSavedPrompts] = useState(false);
-  const [filterVersion, setFilterVersion] = useState(0);
-
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Debounce search query
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-      setFilterVersion((v) => v + 1);
-    }, 400);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
-
-  // Sync filter state → URL
-  useEffect(() => {
-    const params = toHistoryFilterSearchParams({
-      status: activeFilter,
-      sort: sortKey,
-      q: debouncedQuery,
-      from: dateFrom,
-      to: dateTo,
-    });
-    const qs = params.toString();
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFilter, sortKey, debouncedQuery, dateFrom, dateTo]);
-
-  // Build query params
-  function buildParams(cursor?: string): URLSearchParams {
-    return toGenerationsApiSearchParams(
-      {
-        status: activeFilter,
-        sort: sortKey,
-        q: debouncedQuery,
-        from: dateFrom,
-        to: dateTo,
-      },
-      cursor
-    );
-  }
-
-  // Re-fetch when filters change
-  useEffect(() => {
-    if (filterVersion === 0) return;
-    let cancelled = false;
-    setLoading(true);
-    setNextCursor(null);
-
-    fetch(`/api/generations?${buildParams().toString()}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (!cancelled && data.songs) {
-          setSongs(data.songs);
-          setNextCursor(data.nextCursor ?? null);
-          setTotalSongs(data.total ?? data.songs.length);
-        }
-      })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setLoading(false); });
-
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterVersion]);
-
-  function handleFilterChange(f: HistoryStatusFilter) { setActiveFilter(f); setFilterVersion((v) => v + 1); }
-  function handleSortChange(s: HistorySortKey) { setSortKey(s); setFilterVersion((v) => v + 1); }
-  function handleDateChange() { setFilterVersion((v) => v + 1); }
-
-  // Load more
-  const handleLoadMore = useCallback(() => {
-    if (!nextCursor || loadingMore) return;
-    setLoadingMore(true);
-    fetch(`/api/generations?${buildParams(nextCursor).toString()}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.songs) {
-          setSongs((prev) => [...prev, ...data.songs]);
-          setNextCursor(data.nextCursor ?? null);
-          setTotalSongs(data.total ?? totalSongs);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoadingMore(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nextCursor, loadingMore, activeFilter, sortKey, debouncedQuery, dateFrom, dateTo]);
-
-  // Merge a server-shaped song into local state by id (immutable replacement).
-  const mergeSongUpdate = useCallback((update: Partial<GenerationEntry> & { id: string }) => {
-    setSongs((prev) => mergeSongIntoList(prev, update));
-  }, []);
-
-  async function handleRetry(entry: GenerationEntry) {
-    if (retryingId) return;
-    setRetryingId(entry.id);
-    const result = await retrySong(entry.id, { fetch });
-    switch (result.kind) {
-      case "ok":
-        mergeSongUpdate(result.song as Partial<GenerationEntry> & { id: string });
-        toast("Retry started! Song is regenerating.", "success");
-        break;
-      case "soft-error":
-        if (result.song) mergeSongUpdate(result.song as Partial<GenerationEntry> & { id: string });
-        toast(result.message, "error");
-        break;
-      case "rate-limit":
-        toast(
-          `Rate limit reached. Try again in ${result.minutesUntilReset} minute${result.minutesUntilReset === 1 ? "" : "s"}.`,
-          "error",
-        );
-        break;
-      case "error":
-        toast(result.message, "error");
-        break;
-      case "network-error":
-        toast("Network error. Please check your connection.", "error");
-        break;
-    }
-    setRetryingId(null);
-  }
-
-  // Poll pending songs so the user sees the pending → ready/failed transition
-  // without having to refresh the page manually.
-  const pendingKey = songs
-    .filter((s) => s.generationStatus === "pending")
-    .map((s) => s.id)
-    .sort()
-    .join(",");
-
-  useEffect(() => {
-    if (!pendingKey) return;
-    const ids = pendingKey.split(",");
-    let cancelled = false;
-
-    const tick = async () => {
-      const results = await Promise.all(ids.map((id) => pollSongStatus(id, { fetch })));
-      if (cancelled) return;
-      for (const r of results) {
-        if (r.kind === "ok") {
-          mergeSongUpdate(r.song as Partial<GenerationEntry> & { id: string });
-        }
-      }
-    };
-
-    void tick();
-    const interval = setInterval(tick, 4000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [pendingKey, mergeSongUpdate]);
-
-  // Save prompt as preset
-  async function handleSavePrompt(entry: GenerationEntry) {
-    if (savingPromptId || !entry.prompt) return;
-    setSavingPromptId(entry.id);
-    try {
-      const name = entry.title || entry.prompt.slice(0, 40) + (entry.prompt.length > 40 ? "…" : "");
-      const res = await fetch("/api/presets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, stylePrompt: entry.prompt, isInstrumental: entry.isInstrumental }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        toast(data.error ?? "Could not save prompt.", "error");
-        return;
-      }
-      toast("Prompt saved to library!", "success");
-    } catch {
-      toast("Network error saving prompt.", "error");
-    } finally {
-      setSavingPromptId(null);
-    }
-  }
 
   const remaining = totalSongs - songs.length;
 
@@ -629,7 +453,7 @@ export function GenerationHistoryView({
         {(dateFrom || dateTo) && (
           <div className="flex items-end pb-0.5">
             <button
-              onClick={() => { setDateFrom(""); setDateTo(""); setFilterVersion((v) => v + 1); }}
+              onClick={() => { setDateFrom(""); setDateTo(""); handleDateChange(); }}
               className="px-3 py-1.5 rounded-xl text-xs text-gray-500 hover:text-gray-900 dark:hover:text-white bg-gray-100 dark:bg-gray-800 transition-colors"
             >
               Clear
