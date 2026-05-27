@@ -17,22 +17,16 @@ import {
   getSubmitPrompt,
   reorderPendingQueueIds,
 } from "./generate-form/helpers";
-import {
-  deletePreset,
-  deletePromptTemplate,
-  autoFillGenerationFields,
-  boostStylePrompt,
-  generateLyricsFromPrompt,
-  savePreset,
-  savePromptTemplate,
-} from "./generate-form/api";
-import type { GenerationPreset, PromptSuggestion, PromptTemplate } from "./generate-form/types";
+import { boostStylePrompt } from "./generate-form/api";
+import type { PromptSuggestion } from "./generate-form/types";
 import { useGenerateFormData } from "./generate-form/useGenerateFormData";
+import { useTemplateActions } from "./generate-form/useTemplateActions";
+import { usePresetActions } from "./generate-form/usePresetActions";
+import { useLyricsGenerator } from "./generate-form/useLyricsGenerator";
 import { GenerationProgress } from "./GenerationProgress";
 import { GenerationQueue } from "./GenerationQueue";
 import { BatchGeneratePanel } from "./BatchGeneratePanel";
 import dynamic from "next/dynamic";
-// Lazy-load confetti — only shown after generation success, not needed on initial render
 const Confetti = dynamic(() => import("./Confetti").then((m) => m.Confetti));
 import { UpgradeModal, shouldShowUpgradeModal } from "./UpgradeModal";
 import { InAppFeedbackWidget, hasFeedbackBeenSubmitted } from "./InAppFeedbackWidget";
@@ -64,23 +58,7 @@ export function GenerateForm() {
   const [promptError, setPromptError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-
-  // Template state
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [templateName, setTemplateName] = useState("");
-  const [templateCategory, setTemplateCategory] = useState("");
-  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
-
-  // Preset state
-  const [showPresetPicker, setShowPresetPicker] = useState(false);
-  const [showPresetSaveDialog, setShowPresetSaveDialog] = useState(false);
-  const [presetName, setPresetName] = useState("");
-  const [isSavingPreset, setIsSavingPreset] = useState(false);
   const [selectedPersonaId, setSelectedPersonaId] = useState("");
-
-  // Style boost state
   const [isBoosting, setIsBoosting] = useState(false);
 
   const {
@@ -100,17 +78,91 @@ export function GenerateForm() {
     fetchTemplates,
   } = useGenerateFormData({ toast });
 
-  // Lyrics generator state
-  const initialLyricsPrompt = searchParams.get("lyricsprompt") ?? "";
-  const [showLyricsGenerator, setShowLyricsGenerator] = useState(Boolean(initialLyricsPrompt));
-  const [lyricsPrompt, setLyricsPrompt] = useState(initialLyricsPrompt);
-  const [generatedLyrics, setGeneratedLyrics] = useState("");
-  const [isGeneratingLyrics, setIsGeneratingLyrics] = useState(false);
+  const {
+    selectedCategory,
+    setSelectedCategory,
+    showTemplatePicker,
+    setShowTemplatePicker,
+    showSaveDialog,
+    setShowSaveDialog,
+    templateName,
+    setTemplateName,
+    templateCategory,
+    setTemplateCategory,
+    isSavingTemplate,
+    builtInTemplates,
+    userTemplates,
+    filteredBuiltIn,
+    filteredUser,
+    applyTemplate,
+    deleteTemplate,
+    saveAsTemplate,
+  } = useTemplateActions({
+    templates,
+    setTemplates,
+    fetchTemplates,
+    onApply: (fields) => {
+      setStyle(fields.style);
+      setPrompt(fields.prompt);
+      setInstrumental(fields.instrumental);
+      setCustomMode(fields.customMode);
+    },
+    toast,
+  });
 
-  // Auto-generate state (generates title + style + lyricsPrompt from a single description)
-  const [showAutoGenerate, setShowAutoGenerate] = useState(false);
-  const [autoPrompt, setAutoPrompt] = useState(searchParams.get("autoprompt") ?? "");
-  const [isAutoGenerating, setIsAutoGenerating] = useState(false);
+  const {
+    showPresetPicker,
+    setShowPresetPicker,
+    showPresetSaveDialog,
+    setShowPresetSaveDialog,
+    presetName,
+    setPresetName,
+    isSavingPreset,
+    applyPreset,
+    handleDeletePreset,
+    saveAsPreset,
+  } = usePresetActions({
+    presets,
+    setPresets,
+    onApply: (fields) => {
+      if (fields.title !== null) setTitle(fields.title ?? "");
+      if (fields.style !== null) setStyle(fields.style ?? "");
+      if (fields.prompt !== null) setPrompt(fields.prompt ?? "");
+      setInstrumental(fields.instrumental);
+      setCustomMode(fields.customMode);
+    },
+    toast,
+  });
+
+  const {
+    showLyricsGenerator,
+    setShowLyricsGenerator,
+    lyricsPrompt,
+    setLyricsPrompt,
+    generatedLyrics,
+    setGeneratedLyrics,
+    isGeneratingLyrics,
+    showAutoGenerate,
+    setShowAutoGenerate,
+    autoPrompt,
+    setAutoPrompt,
+    isAutoGenerating,
+    handleGenerateLyrics,
+    handleUseLyrics,
+    handleAutoGenerate,
+  } = useLyricsGenerator({
+    initialLyricsPrompt: searchParams.get("lyricsprompt") ?? "",
+    initialAutoPrompt: searchParams.get("autoprompt") ?? "",
+    onAutoFill: (fields) => {
+      if (fields.title) setTitle(fields.title);
+      if (fields.style) setStyle(fields.style);
+    },
+    onUseLyrics: (lyrics) => {
+      setPrompt(lyrics);
+      setCustomMode(true);
+    },
+    toast,
+  });
 
   // First-generation confetti celebration
   const [showConfetti, setShowConfetti] = useState(false);
@@ -126,7 +178,6 @@ export function GenerateForm() {
   useEffect(() => {
     const readyCount = trackedSongs.filter((s) => s.status === "ready").length;
     if (readyCount > prevReadyCountRef.current) {
-      // A song just completed — check if this is the user's first ever generation
       try {
         if (!localStorage.getItem("sunoflow-first-gen-celebrated")) {
           setShowConfetti(true);
@@ -138,7 +189,6 @@ export function GenerateForm() {
     }
     prevReadyCountRef.current = readyCount;
 
-    // Auto-process next queue item when a tracked song completes
     for (const song of trackedSongs) {
       if (
         (song.status === "ready" || song.status === "failed") &&
@@ -151,7 +201,6 @@ export function GenerateForm() {
           }
         });
       }
-      // Show feedback widget once per completed song (ready only)
       if (
         song.status === "ready" &&
         !feedbackShownRef.current.has(song.songId) &&
@@ -181,125 +230,6 @@ export function GenerateForm() {
     }
   }
 
-  async function handleGenerateLyrics() {
-    if (isGeneratingLyrics || !lyricsPrompt.trim()) return;
-    setIsGeneratingLyrics(true);
-    try {
-      const data = await generateLyricsFromPrompt(lyricsPrompt.trim());
-      if (data.ok && data.lyrics) {
-        setGeneratedLyrics(data.lyrics);
-        toast("Lyrics generated!", "success");
-      } else {
-        toast(data.error ?? "Lyrics generation failed", "error");
-      }
-    } catch {
-      toast("Lyrics generation failed", "error");
-    } finally {
-      setIsGeneratingLyrics(false);
-    }
-  }
-
-  function handleUseLyrics() {
-    if (!generatedLyrics.trim()) return;
-    setPrompt(generatedLyrics);
-    setCustomMode(true);
-    toast("Lyrics applied!", "success");
-  }
-
-  async function handleAutoGenerate() {
-    if (isAutoGenerating || !autoPrompt.trim()) return;
-    setIsAutoGenerating(true);
-    try {
-      const data = await autoFillGenerationFields(autoPrompt.trim());
-      if (data.ok) {
-        if (data.title) setTitle(data.title);
-        if (data.style) setStyle(data.style);
-        if (data.lyricsPrompt) {
-          setLyricsPrompt(data.lyricsPrompt);
-          setShowLyricsGenerator(true);
-        }
-        toast("Fields filled! Generate lyrics next.", "success");
-      } else {
-        toast(data.error ?? "Auto-generation failed", "error");
-      }
-    } catch {
-      toast("Auto-generation failed", "error");
-    } finally {
-      setIsAutoGenerating(false);
-    }
-  }
-
-  function applyTemplate(template: PromptTemplate) {
-    setStyle(template.style ?? "");
-    setPrompt(template.prompt);
-    setInstrumental(template.isInstrumental);
-    if (template.style) {
-      setCustomMode(false);
-    } else {
-      setCustomMode(true);
-    }
-    setShowTemplatePicker(false);
-    toast(`Loaded "${template.name}" template`, "success");
-  }
-
-  async function deleteTemplate(templateId: string) {
-    const { ok, error } = await deletePromptTemplate(templateId);
-    if (ok) {
-      setTemplates((prev) => prev.filter((t) => t.id !== templateId));
-      toast("Template deleted", "success");
-      return;
-    }
-    toast(error ?? "Failed to delete template", "error");
-  }
-
-  async function saveAsTemplate() {
-    if (!templateName.trim()) {
-      toast("Please enter a template name", "error");
-      return;
-    }
-    const submitPrompt = getSubmitPrompt(customMode, prompt, style);
-    if (!submitPrompt.trim()) {
-      toast("Fill in the prompt fields before saving", "error");
-      return;
-    }
-
-    setIsSavingTemplate(true);
-    try {
-      const result = await savePromptTemplate({
-        name: templateName.trim(),
-        prompt: submitPrompt.trim(),
-        style: style.trim() || null,
-        category: templateCategory.trim() || null,
-        isInstrumental: instrumental,
-      });
-
-      if (result.ok && result.template) {
-        setTemplates((prev) => [...prev, result.template!]);
-        setShowSaveDialog(false);
-        setTemplateName("");
-        setTemplateCategory("");
-        fetchTemplates();
-        toast(`Template "${result.template.name}" saved!`, "success");
-      } else {
-        toast(result.error ?? "Failed to save template", "error");
-      }
-    } catch {
-      toast("Failed to save template", "error");
-    } finally {
-      setIsSavingTemplate(false);
-    }
-  }
-
-  function applyPreset(preset: GenerationPreset) {
-    if (preset.title !== null) setTitle(preset.title ?? "");
-    if (preset.stylePrompt !== null) setStyle(preset.stylePrompt ?? "");
-    if (preset.lyricsPrompt !== null) setPrompt(preset.lyricsPrompt ?? "");
-    setInstrumental(preset.isInstrumental);
-    setCustomMode(preset.customMode);
-    setShowPresetPicker(false);
-    toast(`Loaded "${preset.name}" preset`, "success");
-  }
-
   function applySuggestion(suggestion: PromptSuggestion) {
     setStyle(suggestion.stylePrompt);
     setInstrumental(suggestion.isInstrumental);
@@ -307,58 +237,11 @@ export function GenerateForm() {
     toast(`Applied suggestion`, "success");
   }
 
-  async function handleDeletePreset(presetId: string) {
-    const { ok, error } = await deletePreset(presetId);
-    if (ok) {
-      setPresets((prev) => prev.filter((p) => p.id !== presetId));
-      toast("Preset deleted", "success");
-      return;
-    }
-    toast(error ?? "Failed to delete preset", "error");
-  }
-
-  async function saveAsPreset() {
-    if (!presetName.trim()) {
-      toast("Please enter a preset name", "error");
-      return;
-    }
-    if (!style.trim() && !prompt.trim()) {
-      toast("Fill in style or lyrics before saving", "error");
-      return;
-    }
-
-    setIsSavingPreset(true);
-    try {
-      const result = await savePreset({
-        name: presetName.trim(),
-        title: title.trim() || null,
-        stylePrompt: style.trim() || null,
-        lyricsPrompt: customMode ? prompt.trim() || null : null,
-        isInstrumental: instrumental,
-        customMode,
-      });
-
-      if (result.ok && result.preset) {
-        setPresets((prev) => [result.preset!, ...prev]);
-        setShowPresetSaveDialog(false);
-        setPresetName("");
-        toast(`Preset "${result.preset.name}" saved!`, "success");
-      } else {
-        toast(result.error ?? "Failed to save preset", "error");
-      }
-    } catch {
-      toast("Failed to save preset", "error");
-    } finally {
-      setIsSavingPreset(false);
-    }
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (isSubmitting) return;
     setSubmitError(null);
 
-    // Client-side inline validation before hitting the server
     const submitPromptValue = getSubmitPrompt(customMode, prompt, style);
     const promptValidationError = getPromptValidationError(submitPromptValue, customMode);
     if (promptValidationError) {
@@ -367,7 +250,6 @@ export function GenerateForm() {
     }
     setPromptError(null);
 
-    // Show upgrade modal if user has no credits (client-side check before hitting the server)
     if (creditInfo !== null && creditInfo.creditsRemaining <= 0 && shouldShowUpgradeModal("no_credits")) {
       setShowUpgradeModal(true);
       return;
@@ -426,7 +308,6 @@ export function GenerateForm() {
         return;
       }
 
-      // Update rate limit from response
       if (data.rateLimit) {
         setRateLimit(data.rateLimit);
         if (data.rateLimit.remaining <= 2 && data.rateLimit.remaining > 0) {
@@ -485,7 +366,6 @@ export function GenerateForm() {
     toast("Added to generation queue!", "success");
     track("song_generation_requested", { mode: customMode ? "custom" : "style", instrumental, via: "queue" });
 
-    // If nothing is processing, start processing immediately
     if (!queueIsProcessing && item) {
       const result = await processNext();
       if (result?.song) {
@@ -507,7 +387,6 @@ export function GenerateForm() {
         : activeItems[0]?.status === "pending"
           ? "pending"
           : undefined;
-    // Find the pending item at this visual index (skip processing)
     const pendingIndex = getPendingIndexFromVisualIndex(index, firstActiveStatus);
     const ids = reorderPendingQueueIds(
       pendingItems.map((i) => i.id),
@@ -536,15 +415,6 @@ export function GenerateForm() {
     );
     reorderQueue(ids);
   }
-
-  const builtInTemplates = templates.filter((t) => t.isBuiltIn);
-  const userTemplates = templates.filter((t) => !t.isBuiltIn);
-  const filteredBuiltIn = selectedCategory
-    ? builtInTemplates.filter((t) => t.category === selectedCategory)
-    : builtInTemplates;
-  const filteredUser = selectedCategory
-    ? userTemplates.filter((t) => t.category === selectedCategory)
-    : userTemplates;
 
   return (
     <div className="px-4 py-4 space-y-6">
@@ -788,7 +658,7 @@ export function GenerateForm() {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={saveAsTemplate}
+              onClick={() => saveAsTemplate({ style, prompt, customMode, instrumental })}
               disabled={isSavingTemplate}
               className="flex-1 px-3 py-2 text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-xl transition-colors"
             >
@@ -862,7 +732,7 @@ export function GenerateForm() {
             type="text"
             value={presetName}
             onChange={(e) => setPresetName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveAsPreset(); } }}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveAsPreset({ title, style, prompt, customMode, instrumental }); } }}
             placeholder="Preset name"
             aria-label="Preset name"
             maxLength={100}
@@ -871,7 +741,7 @@ export function GenerateForm() {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={saveAsPreset}
+              onClick={() => saveAsPreset({ title, style, prompt, customMode, instrumental })}
               disabled={isSavingPreset}
               className="flex-1 px-3 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-500 disabled:opacity-50 rounded-xl transition-colors"
             >
