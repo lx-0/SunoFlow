@@ -15,20 +15,17 @@ import {
   type RadioParams,
   type RepeatMode,
 } from "@/components/queue/queue-context-types";
-import {
-  buildPlayQueue,
-  insertAfterCurrent,
-  removeFromQueueState,
-  reorderQueueState,
-  toggleShuffleQueue,
-} from "@/components/queue/queue-ops";
+import { buildPlayQueue } from "@/components/queue/queue-ops";
 import { useAudioPlayback } from "@/components/queue/use-audio-playback";
 import { useMediaSession } from "@/components/queue/use-media-session";
+import { usePlaybackModes } from "@/components/queue/use-playback-modes";
 import { usePlaybackRecovery } from "@/components/queue/use-playback-recovery";
 import { usePlaybackRestore } from "@/components/queue/use-playback-restore";
 import { usePlaybackTracking } from "@/components/queue/use-playback-tracking";
 import { usePlaybackSync } from "@/components/queue/use-playback-sync";
 import { useQueueAudioEvents } from "@/components/queue/use-queue-audio-events";
+import { useQueueMutations } from "@/components/queue/use-queue-mutations";
+import { useQueueNavigation } from "@/components/queue/use-queue-navigation";
 import { useRadioActions } from "@/components/queue/use-radio-actions";
 import { useVolumeControl } from "@/components/queue/use-volume-control";
 
@@ -207,126 +204,44 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     [isPlaying, currentIndex, queue, playQueue, startPlaybackForIndex]
   );
 
-  const skipNext = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio || queue.length === 0) return;
-
-    let next = currentIndex + 1;
-    if (next >= queue.length) {
-      if (repeat === "repeat-all") {
-        next = 0;
-      } else {
-        return; // End of queue
-      }
-    }
-
-    audio.pause();
-    resolveAndPlay(queue[next], next);
-  }, [queue, currentIndex, repeat, resolveAndPlay]);
-
-  const skipPrev = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio || queue.length === 0) return;
-
-    // If more than 3 seconds in, restart current song
-    if (audio.currentTime > 3) {
-      audio.currentTime = 0;
-      return;
-    }
-
-    let prev = currentIndex - 1;
-    if (prev < 0) {
-      if (repeat === "repeat-all") {
-        prev = queue.length - 1;
-      } else {
-        audio.currentTime = 0;
-        return;
-      }
-    }
-
-    audio.pause();
-    resolveAndPlay(queue[prev], prev);
-  }, [queue, currentIndex, repeat, resolveAndPlay]);
+  const { skipNext, skipPrev, seek } = useQueueNavigation({
+    audioRef,
+    queueRef,
+    currentIndexRef,
+    scheduleSyncRef,
+    queue,
+    currentIndex,
+    repeat,
+    duration,
+    resolveAndPlay,
+  });
 
   skipNextRef.current = skipNext;
   skipPrevRef.current = skipPrev;
 
-  const seek = useCallback(
-    (fraction: number) => {
-      const audio = audioRef.current;
-      if (!audio || duration <= 0) return;
-      audio.currentTime = fraction * duration;
-      const q = queueRef.current;
-      const idx = currentIndexRef.current;
-      const currentSong = idx >= 0 ? q[idx] : null;
-      if (currentSong) {
-        scheduleSyncRef.current?.(currentSong.id, fraction * duration, q);
-      }
-    },
-    [duration]
-  );
+  const { toggleShuffle, toggleShuffleVersions, cycleRepeat } = usePlaybackModes({
+    queueRef,
+    currentIndexRef,
+    originalQueueRef,
+    setShuffle,
+    setShuffleVersions,
+    setActiveVersion,
+    setRepeat,
+    setQueue,
+    setCurrentIndex,
+  });
 
-  const toggleShuffle = useCallback(() => {
-    setShuffle((prev) => {
-      const next = !prev;
-      const result = toggleShuffleQueue(
-        queueRef.current,
-        currentIndexRef.current,
-        next,
-        originalQueueRef.current,
-      );
-      setQueue(result.queue);
-      setCurrentIndex(result.currentIndex);
-
-      return next;
-    });
-  }, []);
-
-  const toggleShuffleVersions = useCallback(() => {
-    setShuffleVersions((prev) => {
-      const next = !prev;
-      if (!next) setActiveVersion(null);
-      return next;
-    });
-  }, []);
-
-  const cycleRepeat = useCallback(() => {
-    setRepeat((prev) => {
-      if (prev === "off") return "repeat-all";
-      if (prev === "repeat-all") return "repeat-one";
-      return "off";
-    });
-  }, []);
-
-  const playNext = useCallback((song: QueueSong) => {
-    setQueue((prev) => insertAfterCurrent(prev, currentIndexRef.current, song));
-    originalQueueRef.current = [...originalQueueRef.current, song];
-  }, []);
-
-  const addToQueue = useCallback((song: QueueSong) => {
-    setQueue((prev) => [...prev, song]);
-    originalQueueRef.current = [...originalQueueRef.current, song];
-  }, []);
-
-  const removeFromQueue = useCallback((index: number) => {
-    const audio = audioRef.current;
-    const result = removeFromQueueState(queueRef.current, currentIndexRef.current, index);
-    setQueue(result.queue);
-    setCurrentIndex(result.currentIndex);
-    if (result.removedCurrent) {
-      // Removing the currently-playing song — stop playback
-      if (audio) { audio.pause(); audio.src = ""; }
-      setIsPlaying(false);
-      setCurrentTime(0);
-      setDuration(0);
-    }
-  }, []);
-
-  const reorderQueue = useCallback((fromIndex: number, toIndex: number) => {
-    const result = reorderQueueState(queueRef.current, currentIndexRef.current, fromIndex, toIndex);
-    setQueue(result.queue);
-    setCurrentIndex(result.currentIndex);
-  }, []);
+  const { playNext, addToQueue, removeFromQueue, reorderQueue } = useQueueMutations({
+    audioRef,
+    currentIndexRef,
+    queueRef,
+    originalQueueRef,
+    setQueue,
+    setCurrentIndex,
+    setIsPlaying,
+    setCurrentTime,
+    setDuration,
+  });
 
   // ─── Radio actions ─────────────────────────────────────────────────────────
 
