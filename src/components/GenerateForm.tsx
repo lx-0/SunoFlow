@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { SparklesIcon, BookmarkIcon, TrashIcon } from "@heroicons/react/24/solid";
@@ -8,28 +8,22 @@ import { BookmarkIcon as BookmarkOutline, ClockIcon, BoltIcon, UserCircleIcon, P
 import { useToast } from "./Toast";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { useGenerationQueue } from "@/hooks/useGenerationQueue";
-import { track } from "@/lib/analytics";
-import { fetchWithTimeout, clientFetchErrorMessage } from "@/lib/fetch-client";
-import {
-  getPendingIndexFromVisualIndex,
-  getPromptValidationError,
-  getRateLimitMeta,
-  getSubmitPrompt,
-  reorderPendingQueueIds,
-} from "./generate-form/helpers";
-import { boostStylePrompt } from "./generate-form/api";
-import type { PromptSuggestion } from "./generate-form/types";
+import { getRateLimitMeta } from "./generate-form/helpers";
 import { useGenerateFormData } from "./generate-form/useGenerateFormData";
 import { useTemplateActions } from "./generate-form/useTemplateActions";
 import { usePresetActions } from "./generate-form/usePresetActions";
 import { useLyricsGenerator } from "./generate-form/useLyricsGenerator";
+import { useGenerateSubmit } from "./generate-form/useGenerateSubmit";
+import { useGenerateQueueActions } from "./generate-form/useGenerateQueueActions";
+import { useGenerationTracking } from "./generate-form/useGenerationTracking";
+import { useStyleBoost } from "./generate-form/useStyleBoost";
 import { GenerationProgress } from "./GenerationProgress";
 import { GenerationQueue } from "./GenerationQueue";
 import { BatchGeneratePanel } from "./BatchGeneratePanel";
 import dynamic from "next/dynamic";
 const Confetti = dynamic(() => import("./Confetti").then((m) => m.Confetti));
-import { UpgradeModal, shouldShowUpgradeModal } from "./UpgradeModal";
-import { InAppFeedbackWidget, hasFeedbackBeenSubmitted } from "./InAppFeedbackWidget";
+import { UpgradeModal } from "./UpgradeModal";
+import { InAppFeedbackWidget } from "./InAppFeedbackWidget";
 
 export function GenerateForm() {
   const searchParams = useSearchParams();
@@ -54,12 +48,7 @@ export function GenerateForm() {
   const [customMode, setCustomMode] = useState(Boolean(searchParams.get("prompt") && !searchParams.get("tags")));
   const [prompt, setPrompt] = useState(searchParams.get("prompt") ?? "");
   const [instrumental, setInstrumental] = useState(searchParams.get("instrumental") === "1");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [promptError, setPromptError] = useState<string | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [selectedPersonaId, setSelectedPersonaId] = useState("");
-  const [isBoosting, setIsBoosting] = useState(false);
 
   const {
     rateLimit,
@@ -164,257 +153,75 @@ export function GenerateForm() {
     toast,
   });
 
-  // First-generation confetti celebration
-  const [showConfetti, setShowConfetti] = useState(false);
-  const prevReadyCountRef = useRef(0);
+  const {
+    showConfetti,
+    setShowConfetti,
+    feedbackWidget,
+    setFeedbackWidget,
+  } = useGenerationTracking({
+    trackedSongs,
+    onGenerationComplete,
+    trackSong,
+  });
 
-  // Track completed song IDs so we only process next once per completion
-  const processedCompletionsRef = useRef<Set<string>>(new Set());
+  const {
+    isBoosting,
+    handleBoostStyle,
+    applySuggestion,
+  } = useStyleBoost({
+    style,
+    setStyle,
+    setInstrumental,
+    setCustomMode,
+    toast,
+  });
 
-  // In-app feedback widget after song generation
-  const [feedbackWidget, setFeedbackWidget] = useState<{ songId: string } | null>(null);
-  const feedbackShownRef = useRef<Set<string>>(new Set());
+  const {
+    isSubmitting,
+    promptError,
+    setPromptError,
+    submitError,
+    showUpgradeModal,
+    setShowUpgradeModal,
+    handleSubmit,
+  } = useGenerateSubmit({
+    customMode,
+    prompt,
+    style,
+    title,
+    instrumental,
+    selectedPersonaId,
+    personas,
+    sourceSongId,
+    rateLimit,
+    setRateLimit,
+    creditInfo,
+    trackSong,
+    fetchCredits,
+    toast,
+  });
 
-  useEffect(() => {
-    const readyCount = trackedSongs.filter((s) => s.status === "ready").length;
-    if (readyCount > prevReadyCountRef.current) {
-      try {
-        if (!localStorage.getItem("sunoflow-first-gen-celebrated")) {
-          setShowConfetti(true);
-          localStorage.setItem("sunoflow-first-gen-celebrated", "true");
-        }
-      } catch {
-        // localStorage unavailable
-      }
-    }
-    prevReadyCountRef.current = readyCount;
-
-    for (const song of trackedSongs) {
-      if (
-        (song.status === "ready" || song.status === "failed") &&
-        !processedCompletionsRef.current.has(song.songId)
-      ) {
-        processedCompletionsRef.current.add(song.songId);
-        onGenerationComplete(song.songId).then((result) => {
-          if (result?.song) {
-            trackSong(result.song.id, result.song.title);
-          }
-        });
-      }
-      if (
-        song.status === "ready" &&
-        !feedbackShownRef.current.has(song.songId) &&
-        !hasFeedbackBeenSubmitted("song_generation", song.songId)
-      ) {
-        feedbackShownRef.current.add(song.songId);
-        setFeedbackWidget({ songId: song.songId });
-      }
-    }
-  }, [trackedSongs, onGenerationComplete, trackSong]);
-
-  async function handleBoostStyle() {
-    if (isBoosting || !style.trim()) return;
-    setIsBoosting(true);
-    try {
-      const data = await boostStylePrompt(style.trim());
-      if (data.ok && data.result) {
-        setStyle(data.result);
-        toast("Style enhanced!", "success");
-      } else {
-        toast(data.error ?? "Style boost failed", "error");
-      }
-    } catch {
-      toast("Style boost failed", "error");
-    } finally {
-      setIsBoosting(false);
-    }
-  }
-
-  function applySuggestion(suggestion: PromptSuggestion) {
-    setStyle(suggestion.stylePrompt);
-    setInstrumental(suggestion.isInstrumental);
-    setCustomMode(false);
-    toast(`Applied suggestion`, "success");
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (isSubmitting) return;
-    setSubmitError(null);
-
-    const submitPromptValue = getSubmitPrompt(customMode, prompt, style);
-    const promptValidationError = getPromptValidationError(submitPromptValue, customMode);
-    if (promptValidationError) {
-      setPromptError(promptValidationError);
-      return;
-    }
-    setPromptError(null);
-
-    if (creditInfo !== null && creditInfo.creditsRemaining <= 0 && shouldShowUpgradeModal("no_credits")) {
-      setShowUpgradeModal(true);
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const selectedPersona = personas.find((p) => p.personaId === selectedPersonaId);
-      const body = {
-        prompt: customMode ? prompt : style,
-        title: title || undefined,
-        tags: style || undefined,
-        makeInstrumental: instrumental,
-        personaId: selectedPersona?.personaId || undefined,
-        parentSongId: sourceSongId || undefined,
-      };
-
-      let res: Response;
-      try {
-        res = await fetchWithTimeout("/api/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-      } catch (fetchErr) {
-        const msg = clientFetchErrorMessage(fetchErr);
-        setSubmitError(msg);
-        toast(msg, "error", { label: "Retry", onClick: () => handleSubmit(e) });
-        return;
-      }
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (res.status === 429 && (data.details?.resetAt || data.details?.rateLimit?.resetAt)) {
-          const resetAt = data.details?.resetAt ?? data.details?.rateLimit?.resetAt;
-          const resetTime = new Date(resetAt);
-          const minutesLeft = Math.ceil((resetTime.getTime() - Date.now()) / 60000);
-          const message = `Rate limit reached. Try again in ${minutesLeft} minute${minutesLeft === 1 ? "" : "s"}.`;
-          setSubmitError(message);
-          toast(message, "error");
-          if (data.details?.rateLimit) setRateLimit(data.details.rateLimit);
-        } else if (res.status >= 500) {
-          const message = data.error ?? "Generation failed. Please try again.";
-          setSubmitError(message);
-          toast(message, "error", {
-            label: "Retry",
-            onClick: () => handleSubmit(e),
-          });
-        } else {
-          const message = data.error ?? "Generation failed. Please try again.";
-          setSubmitError(message);
-          toast(message, "error");
-        }
-        return;
-      }
-
-      if (data.rateLimit) {
-        setRateLimit(data.rateLimit);
-        if (data.rateLimit.remaining <= 2 && data.rateLimit.remaining > 0) {
-          toast(`${data.rateLimit.remaining} generation${data.rateLimit.remaining === 1 ? "" : "s"} remaining this hour`, "info");
-        }
-      }
-
-      const song = data.songs?.[0] ?? data.song;
-      const songId = song?.id ?? data.id;
-      const songTitle = song?.title ?? data.title ?? (title || null);
-
-      if (data.error) {
-        setSubmitError(data.error);
-        toast(data.error, "error");
-        return;
-      }
-
-      setSubmitError(null);
-      toast("Song generation started!", "success");
-      track("song_generation_requested", { mode: customMode ? "custom" : "style", instrumental });
-      trackSong(songId, songTitle);
-      fetchCredits();
-    } catch {
-      const message = "Network error. Please check your connection and try again.";
-      setSubmitError(message);
-      toast(message, "error", {
-        label: "Retry",
-        onClick: () => handleSubmit(e),
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  async function handleAddToQueue() {
-    const submitPrompt = getSubmitPrompt(customMode, prompt, style);
-    if (!submitPrompt) {
-      toast("A prompt is required", "error");
-      return;
-    }
-
-    const selectedPersona = personas.find((p) => p.personaId === selectedPersonaId);
-    const { item, error: queueError } = await addToQueue({
-      prompt: submitPrompt.trim(),
-      title: title || undefined,
-      tags: style || undefined,
-      makeInstrumental: instrumental,
-      personaId: selectedPersona?.personaId || undefined,
-    });
-
-    if (queueError) {
-      toast(queueError, "error");
-      return;
-    }
-
-    toast("Added to generation queue!", "success");
-    track("song_generation_requested", { mode: customMode ? "custom" : "style", instrumental, via: "queue" });
-
-    if (!queueIsProcessing && item) {
-      const result = await processNext();
-      if (result?.song) {
-        trackSong(result.song.id, result.song.title);
-        fetchCredits();
-      }
-    }
-  }
-
-  function handleQueueMoveUp(index: number) {
-    const activeItems = queueItems.filter(
-      (i) => i.status === "pending" || i.status === "processing"
-    );
-    const pendingItems = activeItems.filter((i) => i.status === "pending");
-    if (index <= 0) return;
-    const firstActiveStatus =
-      activeItems[0]?.status === "processing"
-        ? "processing"
-        : activeItems[0]?.status === "pending"
-          ? "pending"
-          : undefined;
-    const pendingIndex = getPendingIndexFromVisualIndex(index, firstActiveStatus);
-    const ids = reorderPendingQueueIds(
-      pendingItems.map((i) => i.id),
-      pendingIndex,
-      "up",
-    );
-    reorderQueue(ids);
-  }
-
-  function handleQueueMoveDown(index: number) {
-    const activeItems = queueItems.filter(
-      (i) => i.status === "pending" || i.status === "processing"
-    );
-    const pendingItems = activeItems.filter((i) => i.status === "pending");
-    const firstActiveStatus =
-      activeItems[0]?.status === "processing"
-        ? "processing"
-        : activeItems[0]?.status === "pending"
-          ? "pending"
-          : undefined;
-    const pendingIndex = getPendingIndexFromVisualIndex(index, firstActiveStatus);
-    const ids = reorderPendingQueueIds(
-      pendingItems.map((i) => i.id),
-      pendingIndex,
-      "down",
-    );
-    reorderQueue(ids);
-  }
+  const {
+    handleAddToQueue,
+    handleQueueMoveUp,
+    handleQueueMoveDown,
+  } = useGenerateQueueActions({
+    customMode,
+    prompt,
+    style,
+    title,
+    instrumental,
+    selectedPersonaId,
+    personas,
+    queueItems,
+    queueIsProcessing,
+    addToQueue,
+    reorderQueue,
+    processNext,
+    trackSong,
+    fetchCredits,
+    toast,
+  });
 
   return (
     <div className="px-4 py-4 space-y-6">
