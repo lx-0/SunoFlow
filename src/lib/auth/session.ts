@@ -2,8 +2,8 @@ import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { verifyPassword } from "@/lib/auth/password";
 import { logger } from "@/lib/logger";
 import { ensureFreeSubscription } from "@/lib/billing";
 import { isAdminEmail } from "@/lib/auth/admin";
@@ -54,7 +54,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        const passwordMatch = await bcrypt.compare(
+        const passwordMatch = await verifyPassword(
           credentials.password as string,
           user.passwordHash
         );
