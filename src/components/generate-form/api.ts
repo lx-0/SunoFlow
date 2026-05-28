@@ -1,119 +1,13 @@
-import type {
-  CreditInfo,
-  GenerationPreset,
-  PersonaOption,
-  PromptSuggestion,
-  PromptTemplate,
-  RateLimitStatus,
-  StyleTemplate,
-  TrendingStyleCombo,
-} from "./types";
-
-type ApiError = {
-  error?: string;
-};
-
-async function postJson<TResponse>(url: string, body: Record<string, unknown>): Promise<{
-  ok: boolean;
-  status: number;
-  data: TResponse & ApiError;
-}> {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  let data: TResponse & ApiError;
-  try {
-    data = (await res.json()) as TResponse & ApiError;
-  } catch {
-    data = {} as TResponse & ApiError;
-  }
-  return {
-    ok: res.ok,
-    status: res.status,
-    data,
-  };
-}
-
-export async function fetchRateLimitStatus(): Promise<RateLimitStatus | null> {
-  const res = await fetch("/api/rate-limit");
-  if (!res.ok) return null;
-  return (await res.json()) as RateLimitStatus;
-}
-
-export async function fetchCreditsSummary(): Promise<CreditInfo | null> {
-  const res = await fetch("/api/credits");
-  if (!res.ok) return null;
-  const data = await res.json();
-  return {
-    creditsRemaining: data.creditsRemaining,
-    budget: data.budget,
-    usagePercent: data.usagePercent,
-    isLow: data.isLow,
-  } satisfies CreditInfo;
-}
-
-export async function fetchPersonasList(): Promise<PersonaOption[] | null> {
-  const res = await fetch("/api/personas");
-  if (!res.ok) return null;
-  const data = await res.json();
-  return (data.personas ?? []) as PersonaOption[];
-}
-
-export async function fetchPromptTemplates(): Promise<{
-  templates: PromptTemplate[];
-  categories: string[];
-} | null> {
-  const res = await fetch("/api/prompt-templates");
-  if (!res.ok) return null;
-  const data = await res.json();
-  return {
-    templates: (data.templates ?? []) as PromptTemplate[],
-    categories: (data.categories ?? []) as string[],
-  };
-}
-
-export async function fetchGenerationPresets(): Promise<GenerationPreset[] | null> {
-  const res = await fetch("/api/presets");
-  if (!res.ok) return null;
-  const data = await res.json();
-  return (data.presets ?? []) as GenerationPreset[];
-}
-
-export async function fetchStyleTemplateList(): Promise<StyleTemplate[] | null> {
-  const res = await fetch("/api/style-templates");
-  if (!res.ok) return null;
-  const data = await res.json();
-  return (data.templates ?? []) as StyleTemplate[];
-}
-
-export async function fetchPromptSuggestions(): Promise<PromptSuggestion[] | null> {
-  const res = await fetch("/api/suggestions/prompts");
-  if (!res.ok) return null;
-  const data = await res.json();
-  return (data.suggestions ?? []) as PromptSuggestion[];
-}
-
-export async function fetchTrendingStyleCombos(): Promise<
-  TrendingStyleCombo[] | null
-> {
-  const res = await fetch("/api/suggestions/trending");
-  if (!res.ok) return null;
-  const data = await res.json();
-  return (data.trending ?? []) as TrendingStyleCombo[];
-}
+import { apiDelete, apiPost } from "@/lib/api-client";
+import { clientFetchErrorMessage } from "@/lib/fetch-client";
+import type { GenerationPreset, PromptTemplate } from "./types";
 
 export async function deletePromptTemplate(templateId: string): Promise<{ ok: boolean; error?: string }> {
   try {
-    const res = await fetch(`/api/prompt-templates/${templateId}`, { method: "DELETE" });
-    if (!res.ok) {
-      const data = await res.json();
-      return { ok: false, error: (data?.error as string) ?? "Failed to delete template" };
-    }
+    await apiDelete(`/api/prompt-templates/${templateId}`);
     return { ok: true };
-  } catch {
-    return { ok: false, error: "Failed to delete template" };
+  } catch (err) {
+    return { ok: false, error: clientFetchErrorMessage(err) };
   }
 }
 
@@ -125,31 +19,19 @@ export async function savePromptTemplate(payload: {
   isInstrumental: boolean;
 }): Promise<{ ok: boolean; template?: PromptTemplate; error?: string }> {
   try {
-    const res = await fetch("/api/prompt-templates", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      return { ok: false, error: (data?.error as string) ?? "Failed to save template" };
-    }
-    return { ok: true, template: data.template as PromptTemplate };
-  } catch {
-    return { ok: false, error: "Failed to save template" };
+    const data = await apiPost<{ template: PromptTemplate }>("/api/prompt-templates", payload);
+    return { ok: true, template: data.template };
+  } catch (err) {
+    return { ok: false, error: clientFetchErrorMessage(err) };
   }
 }
 
 export async function deletePreset(presetId: string): Promise<{ ok: boolean; error?: string }> {
   try {
-    const res = await fetch(`/api/presets/${presetId}`, { method: "DELETE" });
-    if (!res.ok) {
-      const data = await res.json();
-      return { ok: false, error: (data?.error as string) ?? "Failed to delete preset" };
-    }
+    await apiDelete(`/api/presets/${presetId}`);
     return { ok: true };
-  } catch {
-    return { ok: false, error: "Failed to delete preset" };
+  } catch (err) {
+    return { ok: false, error: clientFetchErrorMessage(err) };
   }
 }
 
@@ -162,18 +44,10 @@ export async function savePreset(payload: {
   customMode: boolean;
 }): Promise<{ ok: boolean; preset?: GenerationPreset; error?: string }> {
   try {
-    const res = await fetch("/api/presets", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      return { ok: false, error: (data?.error as string) ?? "Failed to save preset" };
-    }
-    return { ok: true, preset: data.preset as GenerationPreset };
-  } catch {
-    return { ok: false, error: "Failed to save preset" };
+    const data = await apiPost<{ preset: GenerationPreset }>("/api/presets", payload);
+    return { ok: true, preset: data.preset };
+  } catch (err) {
+    return { ok: false, error: clientFetchErrorMessage(err) };
   }
 }
 
@@ -182,8 +56,12 @@ export async function boostStylePrompt(content: string): Promise<{
   result?: string;
   error?: string;
 }> {
-  const { ok, data } = await postJson<{ result?: string }>("/api/style-boost", { content });
-  return { ok, result: data.result, error: data.error };
+  try {
+    const data = await apiPost<{ result?: string }>("/api/style-boost", { content });
+    return { ok: true, result: data.result };
+  } catch (err) {
+    return { ok: false, error: clientFetchErrorMessage(err) };
+  }
 }
 
 export async function generateLyricsFromPrompt(prompt: string): Promise<{
@@ -191,8 +69,12 @@ export async function generateLyricsFromPrompt(prompt: string): Promise<{
   lyrics?: string;
   error?: string;
 }> {
-  const { ok, data } = await postJson<{ lyrics?: string }>("/api/lyrics/generate", { prompt });
-  return { ok, lyrics: data.lyrics, error: data.error };
+  try {
+    const data = await apiPost<{ lyrics?: string }>("/api/lyrics/generate", { prompt });
+    return { ok: true, lyrics: data.lyrics };
+  } catch (err) {
+    return { ok: false, error: clientFetchErrorMessage(err) };
+  }
 }
 
 export async function autoFillGenerationFields(prompt: string): Promise<{
@@ -202,15 +84,13 @@ export async function autoFillGenerationFields(prompt: string): Promise<{
   lyricsPrompt?: string;
   error?: string;
 }> {
-  const { ok, data } = await postJson<{ title?: string; style?: string; lyricsPrompt?: string }>(
-    "/api/generate/auto",
-    { prompt },
-  );
-  return {
-    ok,
-    title: data.title,
-    style: data.style,
-    lyricsPrompt: data.lyricsPrompt,
-    error: data.error,
-  };
+  try {
+    const data = await apiPost<{ title?: string; style?: string; lyricsPrompt?: string }>(
+      "/api/generate/auto",
+      { prompt },
+    );
+    return { ok: true, title: data.title, style: data.style, lyricsPrompt: data.lyricsPrompt };
+  } catch (err) {
+    return { ok: false, error: clientFetchErrorMessage(err) };
+  }
 }

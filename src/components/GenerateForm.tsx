@@ -1,29 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { SparklesIcon, BookmarkIcon, TrashIcon } from "@heroicons/react/24/solid";
-import { BookmarkIcon as BookmarkOutline, ClockIcon, BoltIcon, UserCircleIcon, PencilSquareIcon, ChevronDownIcon, ExclamationTriangleIcon, QueueListIcon, AdjustmentsHorizontalIcon, DocumentDuplicateIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { SparklesIcon } from "@heroicons/react/24/solid";
+import { BoltIcon, UserCircleIcon, ExclamationTriangleIcon, QueueListIcon, AdjustmentsHorizontalIcon, DocumentDuplicateIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useToast } from "./Toast";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { useGenerationQueue } from "@/hooks/useGenerationQueue";
-import { getRateLimitMeta } from "./generate-form/helpers";
+import { track } from "@/lib/analytics";
+import { fetchWithTimeout, clientFetchErrorMessage } from "@/lib/fetch-client";
+import {
+  getPendingIndexFromVisualIndex,
+  getPromptValidationError,
+  getSubmitPrompt,
+  reorderPendingQueueIds,
+} from "./generate-form/helpers";
+import {
+  boostStylePrompt,
+} from "./generate-form/api";
+import type { GenerationPreset, PromptSuggestion, PromptTemplate } from "./generate-form/types";
 import { useGenerateFormData } from "./generate-form/useGenerateFormData";
-import { useTemplateActions } from "./generate-form/useTemplateActions";
-import { usePresetActions } from "./generate-form/usePresetActions";
-import { useLyricsGenerator } from "./generate-form/useLyricsGenerator";
-import { useGenerateSubmit } from "./generate-form/useGenerateSubmit";
-import { useGenerateQueueActions } from "./generate-form/useGenerateQueueActions";
-import { useGenerationTracking } from "./generate-form/useGenerationTracking";
-import { useStyleBoost } from "./generate-form/useStyleBoost";
 import { GenerationProgress } from "./GenerationProgress";
 import { GenerationQueue } from "./GenerationQueue";
 import { BatchGeneratePanel } from "./BatchGeneratePanel";
+import { TemplatePickerPanel } from "./generate-form/TemplatePickerPanel";
+import { PresetPickerPanel } from "./generate-form/PresetPickerPanel";
+import { LyricsGeneratorPanel } from "./generate-form/LyricsGeneratorPanel";
+import { AutoGeneratePanel } from "./generate-form/AutoGeneratePanel";
+import { SuggestionsPanel } from "./generate-form/SuggestionsPanel";
+import { RateLimitPanel } from "./generate-form/RateLimitPanel";
 import dynamic from "next/dynamic";
+// Lazy-load confetti — only shown after generation success, not needed on initial render
 const Confetti = dynamic(() => import("./Confetti").then((m) => m.Confetti));
-import { UpgradeModal } from "./UpgradeModal";
-import { InAppFeedbackWidget } from "./InAppFeedbackWidget";
+import { UpgradeModal, shouldShowUpgradeModal } from "./UpgradeModal";
+import { InAppFeedbackWidget, hasFeedbackBeenSubmitted } from "./InAppFeedbackWidget";
 
 export function GenerateForm() {
   const searchParams = useSearchParams();
@@ -48,7 +59,15 @@ export function GenerateForm() {
   const [customMode, setCustomMode] = useState(Boolean(searchParams.get("prompt") && !searchParams.get("tags")));
   const [prompt, setPrompt] = useState(searchParams.get("prompt") ?? "");
   const [instrumental, setInstrumental] = useState(searchParams.get("instrumental") === "1");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [promptError, setPromptError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
   const [selectedPersonaId, setSelectedPersonaId] = useState("");
+
+  // Style boost state
+  const [isBoosting, setIsBoosting] = useState(false);
 
   const {
     rateLimit,
@@ -67,161 +86,289 @@ export function GenerateForm() {
     fetchTemplates,
   } = useGenerateFormData({ toast });
 
-  const {
-    selectedCategory,
-    setSelectedCategory,
-    showTemplatePicker,
-    setShowTemplatePicker,
-    showSaveDialog,
-    setShowSaveDialog,
-    templateName,
-    setTemplateName,
-    templateCategory,
-    setTemplateCategory,
-    isSavingTemplate,
-    builtInTemplates,
-    userTemplates,
-    filteredBuiltIn,
-    filteredUser,
-    applyTemplate,
-    deleteTemplate,
-    saveAsTemplate,
-  } = useTemplateActions({
-    templates,
-    setTemplates,
-    fetchTemplates,
-    onApply: (fields) => {
-      setStyle(fields.style);
-      setPrompt(fields.prompt);
-      setInstrumental(fields.instrumental);
-      setCustomMode(fields.customMode);
-    },
-    toast,
-  });
+  // First-generation confetti celebration
+  const [showConfetti, setShowConfetti] = useState(false);
+  const prevReadyCountRef = useRef(0);
 
-  const {
-    showPresetPicker,
-    setShowPresetPicker,
-    showPresetSaveDialog,
-    setShowPresetSaveDialog,
-    presetName,
-    setPresetName,
-    isSavingPreset,
-    applyPreset,
-    handleDeletePreset,
-    saveAsPreset,
-  } = usePresetActions({
-    presets,
-    setPresets,
-    onApply: (fields) => {
-      if (fields.title !== null) setTitle(fields.title ?? "");
-      if (fields.style !== null) setStyle(fields.style ?? "");
-      if (fields.prompt !== null) setPrompt(fields.prompt ?? "");
-      setInstrumental(fields.instrumental);
-      setCustomMode(fields.customMode);
-    },
-    toast,
-  });
+  // Track completed song IDs so we only process next once per completion
+  const processedCompletionsRef = useRef<Set<string>>(new Set());
 
-  const {
-    showLyricsGenerator,
-    setShowLyricsGenerator,
-    lyricsPrompt,
-    setLyricsPrompt,
-    generatedLyrics,
-    setGeneratedLyrics,
-    isGeneratingLyrics,
-    showAutoGenerate,
-    setShowAutoGenerate,
-    autoPrompt,
-    setAutoPrompt,
-    isAutoGenerating,
-    handleGenerateLyrics,
-    handleUseLyrics,
-    handleAutoGenerate,
-  } = useLyricsGenerator({
-    initialLyricsPrompt: searchParams.get("lyricsprompt") ?? "",
-    initialAutoPrompt: searchParams.get("autoprompt") ?? "",
-    onAutoFill: (fields) => {
-      if (fields.title) setTitle(fields.title);
-      if (fields.style) setStyle(fields.style);
-    },
-    onUseLyrics: (lyrics) => {
-      setPrompt(lyrics);
+  // In-app feedback widget after song generation
+  const [feedbackWidget, setFeedbackWidget] = useState<{ songId: string } | null>(null);
+  const feedbackShownRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const readyCount = trackedSongs.filter((s) => s.status === "ready").length;
+    if (readyCount > prevReadyCountRef.current) {
+      // A song just completed — check if this is the user's first ever generation
+      try {
+        if (!localStorage.getItem("sunoflow-first-gen-celebrated")) {
+          setShowConfetti(true);
+          localStorage.setItem("sunoflow-first-gen-celebrated", "true");
+        }
+      } catch {
+        // localStorage unavailable
+      }
+    }
+    prevReadyCountRef.current = readyCount;
+
+    // Auto-process next queue item when a tracked song completes
+    for (const song of trackedSongs) {
+      if (
+        (song.status === "ready" || song.status === "failed") &&
+        !processedCompletionsRef.current.has(song.songId)
+      ) {
+        processedCompletionsRef.current.add(song.songId);
+        onGenerationComplete(song.songId).then((result) => {
+          if (result?.song) {
+            trackSong(result.song.id, result.song.title);
+          }
+        });
+      }
+      // Show feedback widget once per completed song (ready only)
+      if (
+        song.status === "ready" &&
+        !feedbackShownRef.current.has(song.songId) &&
+        !hasFeedbackBeenSubmitted("song_generation", song.songId)
+      ) {
+        feedbackShownRef.current.add(song.songId);
+        setFeedbackWidget({ songId: song.songId });
+      }
+    }
+  }, [trackedSongs, onGenerationComplete, trackSong]);
+
+  async function handleBoostStyle() {
+    if (isBoosting || !style.trim()) return;
+    setIsBoosting(true);
+    try {
+      const data = await boostStylePrompt(style.trim());
+      if (data.ok && data.result) {
+        setStyle(data.result);
+        toast("Style enhanced!", "success");
+      } else {
+        toast(data.error ?? "Style boost failed", "error");
+      }
+    } catch {
+      toast("Style boost failed", "error");
+    } finally {
+      setIsBoosting(false);
+    }
+  }
+
+  function applyTemplate(template: PromptTemplate) {
+    setStyle(template.style ?? "");
+    setPrompt(template.prompt);
+    setInstrumental(template.isInstrumental);
+    if (template.style) {
+      setCustomMode(false);
+    } else {
       setCustomMode(true);
-    },
-    toast,
-  });
+    }
+    toast(`Loaded "${template.name}" template`, "success");
+  }
 
-  const {
-    showConfetti,
-    setShowConfetti,
-    feedbackWidget,
-    setFeedbackWidget,
-  } = useGenerationTracking({
-    trackedSongs,
-    onGenerationComplete,
-    trackSong,
-  });
+  function applyPreset(preset: GenerationPreset) {
+    if (preset.title !== null) setTitle(preset.title ?? "");
+    if (preset.stylePrompt !== null) setStyle(preset.stylePrompt ?? "");
+    if (preset.lyricsPrompt !== null) setPrompt(preset.lyricsPrompt ?? "");
+    setInstrumental(preset.isInstrumental);
+    setCustomMode(preset.customMode);
+    toast(`Loaded "${preset.name}" preset`, "success");
+  }
 
-  const {
-    isBoosting,
-    handleBoostStyle,
-    applySuggestion,
-  } = useStyleBoost({
-    style,
-    setStyle,
-    setInstrumental,
-    setCustomMode,
-    toast,
-  });
+  function applySuggestion(suggestion: PromptSuggestion) {
+    setStyle(suggestion.stylePrompt);
+    setInstrumental(suggestion.isInstrumental);
+    setCustomMode(false);
+    toast(`Applied suggestion`, "success");
+  }
 
-  const {
-    isSubmitting,
-    promptError,
-    setPromptError,
-    submitError,
-    showUpgradeModal,
-    setShowUpgradeModal,
-    handleSubmit,
-  } = useGenerateSubmit({
-    customMode,
-    prompt,
-    style,
-    title,
-    instrumental,
-    selectedPersonaId,
-    personas,
-    sourceSongId,
-    rateLimit,
-    setRateLimit,
-    creditInfo,
-    trackSong,
-    fetchCredits,
-    toast,
-  });
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (isSubmitting) return;
+    setSubmitError(null);
 
-  const {
-    handleAddToQueue,
-    handleQueueMoveUp,
-    handleQueueMoveDown,
-  } = useGenerateQueueActions({
-    customMode,
-    prompt,
-    style,
-    title,
-    instrumental,
-    selectedPersonaId,
-    personas,
-    queueItems,
-    queueIsProcessing,
-    addToQueue,
-    reorderQueue,
-    processNext,
-    trackSong,
-    fetchCredits,
-    toast,
-  });
+    // Client-side inline validation before hitting the server
+    const submitPromptValue = getSubmitPrompt(customMode, prompt, style);
+    const promptValidationError = getPromptValidationError(submitPromptValue, customMode);
+    if (promptValidationError) {
+      setPromptError(promptValidationError);
+      return;
+    }
+    setPromptError(null);
+
+    // Show upgrade modal if user has no credits (client-side check before hitting the server)
+    if (creditInfo !== null && creditInfo.creditsRemaining <= 0 && shouldShowUpgradeModal("no_credits")) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const selectedPersona = personas.find((p) => p.personaId === selectedPersonaId);
+      const body = {
+        prompt: customMode ? prompt : style,
+        title: title || undefined,
+        tags: style || undefined,
+        makeInstrumental: instrumental,
+        personaId: selectedPersona?.personaId || undefined,
+        parentSongId: sourceSongId || undefined,
+      };
+
+      let res: Response;
+      try {
+        res = await fetchWithTimeout("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      } catch (fetchErr) {
+        const msg = clientFetchErrorMessage(fetchErr);
+        setSubmitError(msg);
+        toast(msg, "error", { label: "Retry", onClick: () => handleSubmit(e) });
+        return;
+      }
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 429 && (data.details?.resetAt || data.details?.rateLimit?.resetAt)) {
+          const resetAt = data.details?.resetAt ?? data.details?.rateLimit?.resetAt;
+          const resetTime = new Date(resetAt);
+          const minutesLeft = Math.ceil((resetTime.getTime() - Date.now()) / 60000);
+          const message = `Rate limit reached. Try again in ${minutesLeft} minute${minutesLeft === 1 ? "" : "s"}.`;
+          setSubmitError(message);
+          toast(message, "error");
+          if (data.details?.rateLimit) setRateLimit(data.details.rateLimit);
+        } else if (res.status >= 500) {
+          const message = data.error ?? "Generation failed. Please try again.";
+          setSubmitError(message);
+          toast(message, "error", {
+            label: "Retry",
+            onClick: () => handleSubmit(e),
+          });
+        } else {
+          const message = data.error ?? "Generation failed. Please try again.";
+          setSubmitError(message);
+          toast(message, "error");
+        }
+        return;
+      }
+
+      // Update rate limit from response
+      if (data.rateLimit) {
+        setRateLimit(data.rateLimit);
+        if (data.rateLimit.remaining <= 2 && data.rateLimit.remaining > 0) {
+          toast(`${data.rateLimit.remaining} generation${data.rateLimit.remaining === 1 ? "" : "s"} remaining this hour`, "info");
+        }
+      }
+
+      const song = data.songs?.[0] ?? data.song;
+      const songId = song?.id ?? data.id;
+      const songTitle = song?.title ?? data.title ?? (title || null);
+
+      if (data.error) {
+        setSubmitError(data.error);
+        toast(data.error, "error");
+        return;
+      }
+
+      setSubmitError(null);
+      toast("Song generation started!", "success");
+      track("song_generation_requested", { mode: customMode ? "custom" : "style", instrumental });
+      trackSong(songId, songTitle);
+      fetchCredits();
+    } catch {
+      const message = "Network error. Please check your connection and try again.";
+      setSubmitError(message);
+      toast(message, "error", {
+        label: "Retry",
+        onClick: () => handleSubmit(e),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleAddToQueue() {
+    const submitPrompt = getSubmitPrompt(customMode, prompt, style);
+    if (!submitPrompt) {
+      toast("A prompt is required", "error");
+      return;
+    }
+
+    const selectedPersona = personas.find((p) => p.personaId === selectedPersonaId);
+    const { item, error: queueError } = await addToQueue({
+      prompt: submitPrompt.trim(),
+      title: title || undefined,
+      tags: style || undefined,
+      makeInstrumental: instrumental,
+      personaId: selectedPersona?.personaId || undefined,
+    });
+
+    if (queueError) {
+      toast(queueError, "error");
+      return;
+    }
+
+    toast("Added to generation queue!", "success");
+    track("song_generation_requested", { mode: customMode ? "custom" : "style", instrumental, via: "queue" });
+
+    // If nothing is processing, start processing immediately
+    if (!queueIsProcessing && item) {
+      const result = await processNext();
+      if (result?.song) {
+        trackSong(result.song.id, result.song.title);
+        fetchCredits();
+      }
+    }
+  }
+
+  function handleQueueMoveUp(index: number) {
+    const activeItems = queueItems.filter(
+      (i) => i.status === "pending" || i.status === "processing"
+    );
+    const pendingItems = activeItems.filter((i) => i.status === "pending");
+    if (index <= 0) return;
+    const firstActiveStatus =
+      activeItems[0]?.status === "processing"
+        ? "processing"
+        : activeItems[0]?.status === "pending"
+          ? "pending"
+          : undefined;
+    // Find the pending item at this visual index (skip processing)
+    const pendingIndex = getPendingIndexFromVisualIndex(index, firstActiveStatus);
+    const ids = reorderPendingQueueIds(
+      pendingItems.map((i) => i.id),
+      pendingIndex,
+      "up",
+    );
+    reorderQueue(ids);
+  }
+
+  function handleQueueMoveDown(index: number) {
+    const activeItems = queueItems.filter(
+      (i) => i.status === "pending" || i.status === "processing"
+    );
+    const pendingItems = activeItems.filter((i) => i.status === "pending");
+    const firstActiveStatus =
+      activeItems[0]?.status === "processing"
+        ? "processing"
+        : activeItems[0]?.status === "pending"
+          ? "pending"
+          : undefined;
+    const pendingIndex = getPendingIndexFromVisualIndex(index, firstActiveStatus);
+    const ids = reorderPendingQueueIds(
+      pendingItems.map((i) => i.id),
+      pendingIndex,
+      "down",
+    );
+    reorderQueue(ids);
+  }
+
+  const initialLyricsPrompt = searchParams.get("lyricsprompt") ?? "";
+  const initialAutoPrompt = searchParams.get("autoprompt") ?? "";
 
   return (
     <div className="px-4 py-4 space-y-6">
@@ -287,404 +434,44 @@ export function GenerateForm() {
       {/* Generation Progress */}
       <GenerationProgress songs={trackedSongs} onDismiss={clearAll} />
 
-      {/* Template Picker Button */}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setShowTemplatePicker(!showTemplatePicker)}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
-        >
-          <BookmarkOutline className="h-4 w-4" />
-          Templates
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowSaveDialog(!showSaveDialog)}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-        >
-          <BookmarkIcon className="h-4 w-4" />
-          Save as template
-        </button>
-      </div>
+      {/* Template Picker */}
+      <TemplatePickerPanel
+        templates={templates}
+        categories={categories}
+        customMode={customMode}
+        prompt={prompt}
+        style={style}
+        instrumental={instrumental}
+        onApplyTemplate={applyTemplate}
+        onTemplatesChange={setTemplates}
+        fetchTemplates={fetchTemplates}
+      />
 
-      {/* Preset Picker Buttons */}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setShowPresetPicker(!showPresetPicker)}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-xl hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors"
-        >
-          <AdjustmentsHorizontalIcon className="h-4 w-4" />
-          Presets{presets.length > 0 ? ` (${presets.length})` : ""}
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowPresetSaveDialog(!showPresetSaveDialog)}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-        >
-          <BookmarkIcon className="h-4 w-4" />
-          Save as preset
-        </button>
-      </div>
+      {/* Preset Picker */}
+      <PresetPickerPanel
+        presets={presets}
+        formState={{ title, style, prompt, customMode, instrumental }}
+        onApplyPreset={applyPreset}
+        onPresetsChange={setPresets}
+      />
 
-      {/* Template Picker Panel */}
-      {showTemplatePicker && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
-          {/* Category Filter */}
-          {categories.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                type="button"
-                onClick={() => setSelectedCategory(null)}
-                className={`px-2.5 py-1 text-xs font-medium rounded-full transition-colors ${
-                  selectedCategory === null
-                    ? "bg-violet-600 text-white"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
-                }`}
-              >
-                All
-              </button>
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-full capitalize transition-colors ${
-                    selectedCategory === cat
-                      ? "bg-violet-600 text-white"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Built-in Templates Grid */}
-          {filteredBuiltIn.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Starter Templates</p>
-              <div className="grid grid-cols-2 gap-2">
-                {filteredBuiltIn.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => applyTemplate(t)}
-                    className="text-left p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/10 transition-colors"
-                  >
-                    <span className="text-sm font-medium text-gray-900 dark:text-white block">{t.name}</span>
-                    {t.description && (
-                      <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{t.description}</span>
-                    )}
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      {t.category && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 capitalize">{t.category}</span>
-                      )}
-                      {t.isInstrumental && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">Instrumental</span>
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* User Templates */}
-          {filteredUser.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">My Templates</p>
-              <div className="grid grid-cols-2 gap-2">
-                {filteredUser.map((t) => (
-                  <div key={t.id} className="relative group">
-                    <button
-                      type="button"
-                      onClick={() => applyTemplate(t)}
-                      className="w-full text-left p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/10 transition-colors"
-                    >
-                      <span className="text-sm font-medium text-gray-900 dark:text-white block pr-6">{t.name}</span>
-                      <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{t.style ?? t.prompt}</span>
-                      {t.category && (
-                        <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 mt-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 capitalize">{t.category}</span>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => deleteTemplate(t.id)}
-                      className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
-                      aria-label="Delete template"
-                      title="Delete template"
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {filteredBuiltIn.length === 0 && filteredUser.length === 0 && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
-              {selectedCategory ? "No templates in this category" : "No templates yet"}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Save Template Dialog */}
-      {showSaveDialog && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
-          <p className="text-sm font-medium text-gray-900 dark:text-white">Save current settings as template</p>
-          <input
-            type="text"
-            value={templateName}
-            onChange={(e) => setTemplateName(e.target.value)}
-            placeholder="Template name"
-            aria-label="Template name"
-            maxLength={50}
-            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-          />
-          <select
-            value={templateCategory}
-            onChange={(e) => setTemplateCategory(e.target.value)}
-            aria-label="Template category"
-            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-          >
-            <option value="">No category</option>
-            <option value="pop">Pop</option>
-            <option value="rock">Rock</option>
-            <option value="hip-hop">Hip-Hop</option>
-            <option value="electronic">Electronic</option>
-            <option value="ambient">Ambient</option>
-            <option value="r&b">R&B</option>
-            <option value="folk">Folk</option>
-            <option value="jazz">Jazz</option>
-            <option value="latin">Latin</option>
-            <option value="other">Other</option>
-          </select>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => saveAsTemplate({ style, prompt, customMode, instrumental })}
-              disabled={isSavingTemplate}
-              className="flex-1 px-3 py-2 text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-xl transition-colors"
-            >
-              {isSavingTemplate ? "Saving…" : "Save"}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setShowSaveDialog(false); setTemplateName(""); setTemplateCategory(""); }}
-              className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {userTemplates.length} / 20 templates used
-          </p>
-        </div>
-      )}
-
-      {/* Preset Picker Panel */}
-      {showPresetPicker && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">My Presets</p>
-          {presets.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
-              No presets yet — save your current form state as a preset.
-            </p>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              {presets.map((p) => (
-                <div key={p.id} className="relative group">
-                  <button
-                    type="button"
-                    onClick={() => applyPreset(p)}
-                    className="w-full text-left p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-teal-400 dark:hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/10 transition-colors"
-                  >
-                    <span className="text-sm font-medium text-gray-900 dark:text-white block pr-6">{p.name}</span>
-                    {p.stylePrompt && (
-                      <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{p.stylePrompt}</span>
-                    )}
-                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                      {p.isInstrumental && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">Instrumental</span>
-                      )}
-                      {p.customMode && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400">Custom lyrics</span>
-                      )}
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeletePreset(p.id)}
-                    className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
-                    aria-label="Delete preset"
-                    title="Delete preset"
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Save Preset Dialog */}
-      {showPresetSaveDialog && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
-          <p className="text-sm font-medium text-gray-900 dark:text-white">Save current settings as preset</p>
-          <input
-            type="text"
-            value={presetName}
-            onChange={(e) => setPresetName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveAsPreset({ title, style, prompt, customMode, instrumental }); } }}
-            placeholder="Preset name"
-            aria-label="Preset name"
-            maxLength={100}
-            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-          />
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => saveAsPreset({ title, style, prompt, customMode, instrumental })}
-              disabled={isSavingPreset}
-              className="flex-1 px-3 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-500 disabled:opacity-50 rounded-xl transition-colors"
-            >
-              {isSavingPreset ? "Saving…" : "Save"}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setShowPresetSaveDialog(false); setPresetName(""); }}
-              className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {presets.length} / 20 presets used
-          </p>
-        </div>
-      )}
-
-      {/* Suggested for you */}
-      {suggestions.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-            Suggested for you
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {suggestions.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => applySuggestion(s)}
-                title={s.stylePrompt}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-full hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/10 hover:text-violet-700 dark:hover:text-violet-300 transition-colors"
-              >
-                {s.source === "personal" && (
-                  <span className="text-amber-500" aria-hidden="true">★</span>
-                )}
-                {s.label}
-                {s.isInstrumental && (
-                  <span className="text-[10px] font-medium px-1 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 ml-0.5">
-                    Instr
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Trending combos */}
-      {trendingCombos.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-            Trending Combos
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {trendingCombos.map((combo) => (
-              <button
-                key={combo.id}
-                type="button"
-                onClick={() => setStyle(combo.stylePrompt)}
-                title={`${combo.combo} — rated ${combo.displayScore}`}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800 rounded-full hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
-              >
-                <span aria-hidden="true">🔥</span>
-                {combo.label}
-                <span className="text-[10px] font-semibold text-violet-500 dark:text-violet-400 ml-0.5">
-                  {combo.displayScore}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Suggestions & Trending */}
+      <SuggestionsPanel
+        suggestions={suggestions}
+        trendingCombos={trendingCombos}
+        onApplySuggestion={applySuggestion}
+        onApplyTrendingCombo={setStyle}
+      />
 
       {/* Auto-generate panel */}
-      <div className="space-y-0 mb-4">
-        <button
-          type="button"
-          onClick={() => setShowAutoGenerate((v) => !v)}
-          aria-expanded={showAutoGenerate}
-          className="w-full flex items-center justify-between bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
-        >
-          <span className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
-            <SparklesIcon className="h-4 w-4" />
-            Auto-generate from description
-          </span>
-          <ChevronDownIcon
-            className={`h-4 w-4 text-amber-500 dark:text-amber-400 transition-transform ${
-              showAutoGenerate ? "rotate-180" : ""
-            }`}
-          />
-        </button>
-
-        {showAutoGenerate && (
-          <div className="mt-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Describe what you want and we&apos;ll suggest a title, style, and prompt prompt all at once.
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={autoPrompt}
-                onChange={(e) => setAutoPrompt(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAutoGenerate(); } }}
-                placeholder="e.g. a nostalgic road trip song, summer vibes, indie feel…"
-                aria-label="Auto-generation description"
-                maxLength={500}
-                disabled={isAutoGenerating}
-                className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-50"
-              />
-              <button
-                type="button"
-                onClick={handleAutoGenerate}
-                disabled={isAutoGenerating || !autoPrompt.trim()}
-                className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-amber-600 hover:bg-amber-500 disabled:opacity-50 rounded-xl transition-colors whitespace-nowrap"
-              >
-                {isAutoGenerating ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Generating…
-                  </>
-                ) : (
-                  <>
-                    <SparklesIcon className="h-4 w-4" />
-                    Fill fields
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      <AutoGeneratePanel
+        initialPrompt={initialAutoPrompt}
+        onFieldsFilled={(fields) => {
+          if (fields.title) setTitle(fields.title);
+          if (fields.style) setStyle(fields.style);
+          if (fields.lyricsPrompt) setPrompt(fields.lyricsPrompt);
+        }}
+      />
 
       <form onSubmit={handleSubmit} className="space-y-4" data-tour="generate-prompt">
         {/* Title */}
@@ -808,87 +595,13 @@ export function GenerateForm() {
         )}
 
         {/* Generate Lyrics panel */}
-        <div className="space-y-0">
-          <button
-            type="button"
-            onClick={() => setShowLyricsGenerator((v) => !v)}
-            aria-expanded={showLyricsGenerator}
-            className="w-full flex items-center justify-between bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl px-4 py-3 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
-          >
-            <span className="flex items-center gap-2 text-sm font-medium text-violet-700 dark:text-violet-300">
-              <PencilSquareIcon className="h-4 w-4" />
-              Generate Lyrics
-            </span>
-            <ChevronDownIcon
-              className={`h-4 w-4 text-violet-500 dark:text-violet-400 transition-transform ${
-                showLyricsGenerator ? "rotate-180" : ""
-              }`}
-            />
-          </button>
-
-          {showLyricsGenerator && (
-            <div className="mt-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
-              <div className="flex gap-2">
-                <textarea
-                  value={lyricsPrompt}
-                  onChange={(e) => setLyricsPrompt(e.target.value)}
-                  placeholder="Describe your song theme, mood, or topic..."
-                  aria-label="Lyrics generation prompt"
-                  maxLength={2000}
-                  rows={3}
-                  disabled={isGeneratingLyrics}
-                  className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50 resize-none"
-                />
-                <button
-                  type="button"
-                  onClick={handleGenerateLyrics}
-                  disabled={isGeneratingLyrics || !lyricsPrompt.trim()}
-                  className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-xl transition-colors whitespace-nowrap"
-                >
-                  {isGeneratingLyrics ? (
-                    <>
-                      <svg
-                        className="animate-spin h-4 w-4"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Generating…
-                    </>
-                  ) : (
-                    <>
-                      <SparklesIcon className="h-4 w-4" />
-                      Generate
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {generatedLyrics && (
-                <div className="space-y-2">
-                  <textarea
-                    value={generatedLyrics}
-                    onChange={(e) => setGeneratedLyrics(e.target.value)}
-                    aria-label="Generated lyrics"
-                    rows={8}
-                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-base sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleUseLyrics}
-                    className="w-full px-4 py-2.5 text-sm font-medium text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/30 border border-violet-300 dark:border-violet-700 rounded-xl hover:bg-violet-200 dark:hover:bg-violet-900/50 transition-colors"
-                  >
-                    Use these prompt
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <LyricsGeneratorPanel
+          initialPrompt={initialLyricsPrompt}
+          onUseLyrics={(lyrics) => {
+            setPrompt(lyrics);
+            setCustomMode(true);
+          }}
+        />
 
         {/* Custom prompt toggle */}
         <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3">
@@ -965,58 +678,7 @@ export function GenerateForm() {
         </div>
 
         {/* Rate limit info panel */}
-        {rateLimit && (() => {
-          const { used, pct, barColor, minsLeft, isAtLimit, isNearLimit } = getRateLimitMeta(rateLimit);
-
-          return (
-            <div className="space-y-2">
-              {/* Warning banner at 80% */}
-              {isNearLimit && (
-                <div className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300">
-                  <span className="font-medium">{rateLimit.remaining} generation{rateLimit.remaining === 1 ? "" : "s"} remaining</span>
-                </div>
-              )}
-
-              {/* Quota panel with progress bar */}
-              <div className={`rounded-xl px-4 py-3 text-sm border ${
-                isAtLimit
-                  ? "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-800"
-                  : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-              }`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className={isAtLimit ? "text-red-700 dark:text-red-300 font-medium" : "text-gray-600 dark:text-gray-400"}>
-                    {isAtLimit ? "Rate limit reached" : "Generation quota"}
-                  </span>
-                  <span className={`font-semibold ${isAtLimit ? "text-red-700 dark:text-red-300" : "text-gray-900 dark:text-white"}`}>
-                    {used} / {rateLimit.limit} used
-                  </span>
-                </div>
-
-                {/* Progress bar */}
-                <div
-                  role="progressbar"
-                  aria-valuenow={used}
-                  aria-valuemin={0}
-                  aria-valuemax={rateLimit.limit}
-                  aria-label={`Generation quota: ${used} of ${rateLimit.limit} used`}
-                  className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"
-                >
-                  <div
-                    className={`h-full rounded-full transition-all duration-300 ${barColor}`}
-                    style={{ width: `${Math.min(pct, 100)}%` }}
-                    aria-hidden="true"
-                  />
-                </div>
-
-                {/* Reset time */}
-                <div className="flex items-center gap-1 mt-2 text-xs text-gray-500 dark:text-gray-400">
-                  <ClockIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span>Resets in {minsLeft} minute{minsLeft === 1 ? "" : "s"}</span>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
+        {rateLimit && <RateLimitPanel rateLimit={rateLimit} />}
 
         {/* Batch Generate Variations */}
         <BatchGeneratePanel

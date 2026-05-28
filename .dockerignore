@@ -9,6 +9,5 @@ e2e
 .env.*
 coverage
 docker-compose*.yml
-mcp
 scripts
 *.log

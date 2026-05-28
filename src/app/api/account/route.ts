@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { authRoute } from "@/lib/route-handler";
 import { badRequest, notFound } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
+import { verifyPassword } from "@/lib/auth/password";
 
 export const DELETE = authRoute(async (_request, { auth, body }) => {
   const { password, confirmEmail } = body;
@@ -25,7 +25,7 @@ export const DELETE = authRoute(async (_request, { auth, body }) => {
     return badRequest("Email does not match your account");
   }
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
+  const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) {
     return badRequest("Password is incorrect");
   }

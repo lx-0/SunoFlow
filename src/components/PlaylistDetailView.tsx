@@ -1,266 +1,36 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
-  PlayIcon,
-  PauseIcon,
   MusicalNoteIcon,
   TrashIcon,
   ArrowLeftIcon,
-  Bars3Icon,
   PencilIcon,
   ShareIcon,
-  ClipboardDocumentIcon,
   GlobeAltIcon,
-  LockClosedIcon,
-  QueueListIcon,
-  ForwardIcon,
-  ArrowDownTrayIcon,
-  XMarkIcon,
   UserGroupIcon,
-  UserPlusIcon,
-  LinkIcon,
   MegaphoneIcon,
 } from "@heroicons/react/24/outline";
-import { PlayIcon as PlaySolidIcon, CheckIcon } from "@heroicons/react/24/solid";
-import type { Song } from "@prisma/client";
+import { PlayIcon as PlaySolidIcon } from "@heroicons/react/24/solid";
+import { exportAsZip } from "@/lib/export";
 import { useToast } from "./Toast";
 import { useQueue, type QueueSong } from "./QueueContext";
 import { SwipeablePlaylistItem } from "./SwipeablePlaylistItem";
 import { BottomSheet } from "./BottomSheet";
 import { songToQueueSong } from "@/lib/song-mappers";
 import { formatDuration as formatTime } from "@/lib/time-format";
-import { usePlaylistCollaboration } from "@/hooks/usePlaylistCollaboration";
-import { usePlaylistPublishing } from "@/hooks/usePlaylistPublishing";
-import { usePlaylistBatchActions } from "@/hooks/usePlaylistBatchActions";
-import { usePlaylistDragReorder } from "@/hooks/usePlaylistDragReorder";
-import { usePlaylistSharing } from "@/hooks/usePlaylistSharing";
-import { usePlaylistActivity } from "@/hooks/usePlaylistActivity";
+import type { PlaylistData, PlaylistSongItem, PlaylistCollaboratorItem, PlaylistActivityItem } from "./playlist-detail/types";
+import { PlaylistSongListItem } from "./playlist-detail/PlaylistSongListItem";
+import { PlaylistSharePanel } from "./playlist-detail/PlaylistSharePanel";
+import { PlaylistCollaboratorsPanel } from "./playlist-detail/PlaylistCollaboratorsPanel";
+import { PlaylistActivityFeed } from "./playlist-detail/PlaylistActivityFeed";
+import { PlaylistBatchToolbar } from "./playlist-detail/PlaylistBatchToolbar";
+import { usePlaylistReorder } from "./playlist-detail/usePlaylistReorder";
 
-interface CollaboratorUser {
-  id: string;
-  name: string | null;
-  image: string | null;
-  avatarUrl: string | null;
-  username?: string | null;
-}
-
-interface PlaylistSongItem {
-  id: string;
-  songId: string;
-  position: number;
-  song: Song;
-  addedByUser: CollaboratorUser | null;
-}
-
-interface PlaylistCollaboratorItem {
-  id: string;
-  userId: string | null;
-  status: string;
-  role?: string;
-  user: CollaboratorUser | null;
-}
-
-interface PlaylistData {
-  id: string;
-  name: string;
-  description: string | null;
-  isPublic: boolean;
-  isPublished?: boolean;
-  publishedAt?: string | null;
-  genre?: string | null;
-  isCollaborative: boolean;
-  slug: string | null;
-  songs: PlaylistSongItem[];
-  _count: { songs: number };
-  collaborators: PlaylistCollaboratorItem[];
-}
-
-interface SongListItemProps {
-  ps: PlaylistSongItem;
-  index: number;
-  isActive: boolean;
-  hasAudio: boolean;
-  isDragOver: boolean;
-  dragIndex: number | null;
-  isSelected: boolean;
-  selectionMode: boolean;
-  isPlaying: boolean;
-  isCollaborative: boolean;
-  onDragStart: () => void;
-  onDragOver: (e: React.DragEvent) => void;
-  onDrop: (e: React.DragEvent) => void;
-  onDragEnd: () => void;
-  onDragHandleTouchStart: () => void;
-  onKeyboardReorder: (direction: "up" | "down") => void;
-  isFirst: boolean;
-  isLast: boolean;
-  onTogglePlay: () => void;
-  onPlayNext: () => void;
-  onAddToQueue: () => void;
-  onRemove: () => void;
-  onToggleSelect: () => void;
-  onLongPress: () => void;
-}
-
-function SongListItem({
-  ps, index, isActive, hasAudio, isDragOver, dragIndex, isSelected, selectionMode, isPlaying, isCollaborative,
-  onDragStart, onDragOver, onDrop, onDragEnd, onDragHandleTouchStart, onKeyboardReorder, isFirst, isLast,
-  onTogglePlay, onPlayNext, onAddToQueue, onRemove, onToggleSelect, onLongPress,
-}: SongListItemProps) {
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
-
-  function handleTouchStart(e: React.TouchEvent) {
-    const target = e.target as HTMLElement;
-    if (target.closest("[data-drag-handle]")) return;
-    const t = e.touches[0];
-    touchStartPos.current = { x: t.clientX, y: t.clientY };
-    longPressTimer.current = setTimeout(() => { onLongPress(); }, 500);
-  }
-  function handleTouchMove(e: React.TouchEvent) {
-    if (!touchStartPos.current || !longPressTimer.current) return;
-    const t = e.touches[0];
-    if (Math.abs(t.clientX - touchStartPos.current.x) > 10 || Math.abs(t.clientY - touchStartPos.current.y) > 10) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  }
-  function handleTouchEnd() {
-    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
-    touchStartPos.current = null;
-  }
-
-  return (
-    <li
-      data-drag-index={index}
-      draggable={!selectionMode}
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      onDragEnd={onDragEnd}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchEnd}
-      className={`flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2.5 rounded-xl transition-colors ${
-        isSelected
-          ? "border border-violet-500 bg-violet-50 dark:bg-violet-950/30"
-          : isActive
-            ? "bg-violet-50 dark:bg-violet-900/20 border border-violet-300 dark:border-violet-700"
-            : "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
-      } ${isDragOver && !selectionMode ? "border-violet-400 dark:border-violet-500" : ""} ${
-        dragIndex === index ? "opacity-50" : ""
-      }`}
-    >
-      {selectionMode ? (
-        <button
-          onClick={onToggleSelect}
-          aria-label={isSelected ? "Deselect song" : "Select song"}
-          className={`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
-            isSelected ? "bg-violet-600 border-violet-600 text-white" : "border-gray-300 dark:border-gray-600 hover:border-violet-400"
-          }`}
-        >
-          {isSelected && <CheckIcon className="w-4 h-4" />}
-        </button>
-      ) : (
-        <div
-          data-drag-handle
-          tabIndex={0}
-          role="button"
-          aria-label={`Reorder ${ps.song.title ?? "song"}. Press arrow keys to move up or down.`}
-          aria-disabled={isFirst && isLast}
-          className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center touch-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 rounded"
-          onTouchStart={onDragHandleTouchStart}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowUp") { e.preventDefault(); onKeyboardReorder("up"); }
-            else if (e.key === "ArrowDown") { e.preventDefault(); onKeyboardReorder("down"); }
-          }}
-        >
-          <Bars3Icon className="w-5 h-5" />
-        </div>
-      )}
-
-      <span className="flex-shrink-0 w-6 text-xs text-gray-400 dark:text-gray-500 text-center hidden sm:block">
-        {index + 1}
-      </span>
-
-      <div className="relative flex-shrink-0 w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center">
-        {ps.song.imageUrl ? (
-          <Image src={ps.song.imageUrl} alt={ps.song.title ?? "Song"} fill className="object-cover" sizes="40px" loading="lazy" />
-        ) : (
-          <MusicalNoteIcon className="w-5 h-5 text-gray-400 dark:text-gray-600" />
-        )}
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <Link
-          href={`/library/${ps.songId}`}
-          className="block text-sm font-medium text-gray-900 dark:text-white truncate hover:text-violet-400 transition-colors"
-        >
-          {ps.song.title ?? "Untitled"}
-        </Link>
-        <div className="flex items-center gap-1.5">
-          {ps.song.duration && (
-            <span className="text-xs text-gray-400 dark:text-gray-500">{formatTime(ps.song.duration)}</span>
-          )}
-          {isCollaborative && ps.addedByUser?.name && (
-            <span className="text-xs text-gray-400 dark:text-gray-500 truncate">
-              · {ps.addedByUser.name}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <button
-        onClick={onTogglePlay}
-        disabled={!hasAudio}
-        aria-label={isActive && isPlaying ? "Pause" : "Play"}
-        className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
-          hasAudio
-            ? "bg-violet-600 hover:bg-violet-500 text-white"
-            : "bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
-        }`}
-      >
-        {isActive && isPlaying ? <PauseIcon className="w-5 h-5" /> : <PlayIcon className="w-5 h-5 ml-0.5" />}
-      </button>
-
-      {hasAudio && !selectionMode && (
-        <div className="hidden sm:flex items-center gap-0.5">
-          <button
-            onClick={onPlayNext}
-            aria-label={`Play ${ps.song.title ?? "song"} next`}
-            title="Play Next"
-            className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-violet-400 transition-colors"
-          >
-            <ForwardIcon className="w-4 h-4" />
-          </button>
-          <button
-            onClick={onAddToQueue}
-            aria-label={`Add ${ps.song.title ?? "song"} to queue`}
-            title="Add to Queue"
-            className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-violet-400 transition-colors"
-          >
-            <QueueListIcon className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {!selectionMode && (
-        <button
-          onClick={onRemove}
-          aria-label="Remove from playlist"
-          className="flex-shrink-0 w-11 h-11 rounded-full hidden sm:flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-red-500 transition-colors"
-        >
-          <TrashIcon className="w-4 h-4" />
-        </button>
-      )}
-    </li>
-  );
-}
+export type { PlaylistData, PlaylistSongItem, PlaylistCollaboratorItem, PlaylistActivityItem };
 
 export function PlaylistDetailView({
   playlist: initialPlaylist,
@@ -291,32 +61,124 @@ export function PlaylistDetailView({
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const sharing = usePlaylistSharing(playlist.id, initialPlaylist.isPublic, initialPlaylist.slug, toast);
+  // Share state
+  const [isPublic, setIsPublic] = useState(initialPlaylist.isPublic);
+  const [slug, setSlug] = useState(initialPlaylist.slug);
+  const [showSharePanel, setShowSharePanel] = useState(false);
+  const [isTogglingShare, setIsTogglingShare] = useState(false);
 
-  const collab = usePlaylistCollaboration(
-    playlist.id,
-    initialPlaylist.isCollaborative,
-    initialPlaylist.collaborators ?? [],
-    toast,
+  // Collaborative state
+  const [isCollaborative, setIsCollaborative] = useState(initialPlaylist.isCollaborative);
+  const [collaborators, setCollaborators] = useState<PlaylistCollaboratorItem[]>(
+    initialPlaylist.collaborators ?? []
   );
+  const [showCollabPanel, setShowCollabPanel] = useState(false);
+  const [isTogglingCollab, setIsTogglingCollab] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
 
-  const publishing = usePlaylistPublishing(
-    playlist.id,
-    initialPlaylist.isPublished ?? false,
-    initialPlaylist.genre ?? "",
-    songs.length,
-    toast,
-    (data) => {
-      sharing.setIsPublic(data.isPublic);
-      sharing.setSlug(data.slug);
-    },
-  );
+  // Publish to Discover state
+  const [isPublished, setIsPublished] = useState(initialPlaylist.isPublished ?? false);
+  const [publishedGenre, setPublishedGenre] = useState(initialPlaylist.genre ?? "");
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
+  const [showUnpublishConfirm, setShowUnpublishConfirm] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [genres, setGenres] = useState<{ name: string; count: number }[]>([]);
+  const [selectedGenre, setSelectedGenre] = useState(initialPlaylist.genre ?? "");
 
-  const batch = usePlaylistBatchActions(playlist.id, songs, setSongs, toast);
+  useEffect(() => {
+    fetch("/api/songs/genres")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => { if (data?.genres) setGenres(data.genres); })
+      .catch(() => {});
+  }, []);
 
-  const drag = usePlaylistDragReorder(playlist.id, songs, setSongs, toast);
+  // Activity feed state
+  const [activities, setActivities] = useState<PlaylistActivityItem[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [showActivityFeed, setShowActivityFeed] = useState(false);
 
-  const activity = usePlaylistActivity(playlist.id);
+  // Batch selection state
+  const [selectedSongIds, setSelectedSongIds] = useState<Set<string>>(new Set());
+  const selectionMode = selectedSongIds.size > 0;
+  const [batchLoading, setBatchLoading] = useState(false);
+  const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
+  const [batchDownloading, setBatchDownloading] = useState(false);
+  const [batchDownloadProgress, setBatchDownloadProgress] = useState<{ completed: number; total: number } | null>(null);
+
+  const handleReorderError = useCallback((msg: string) => toast(msg, "error"), [toast]);
+
+  const {
+    dragIndex,
+    dragOverIndex,
+    handleDragStart,
+    handleDragOver,
+    handleDrop,
+    handleDragEnd,
+    handleDragHandleTouchStart,
+    handleKeyboardReorder,
+  } = usePlaylistReorder({ playlistId: playlist.id, songs, setSongs, onError: handleReorderError });
+
+  function handleToggleSelect(songId: string) {
+    setSelectedSongIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(songId)) next.delete(songId); else next.add(songId);
+      return next;
+    });
+  }
+
+  function handleSelectAll() {
+    if (selectedSongIds.size === songs.length) {
+      setSelectedSongIds(new Set());
+    } else {
+      setSelectedSongIds(new Set(songs.map((ps) => ps.songId)));
+    }
+  }
+
+  async function handleBatchRemoveFromPlaylist() {
+    if (batchLoading || selectedSongIds.size === 0) return;
+    setBatchLoading(true);
+    const idsToRemove = Array.from(selectedSongIds);
+    setSongs((prev) => prev.filter((ps) => !selectedSongIds.has(ps.songId)));
+    setSelectedSongIds(new Set());
+    setShowBatchDeleteConfirm(false);
+    try {
+      await Promise.all(
+        idsToRemove.map((songId) =>
+          fetch(`/api/playlists/${playlist.id}/songs/${songId}`, { method: "DELETE" })
+        )
+      );
+      toast(`Removed ${idsToRemove.length} song${idsToRemove.length !== 1 ? "s" : ""} from playlist`, "success");
+    } catch {
+      toast("Failed to remove some songs", "error");
+    } finally {
+      setBatchLoading(false);
+    }
+  }
+
+  async function handleBatchDownload() {
+    if (batchDownloading || selectedSongIds.size === 0) return;
+    const selectedSongs = songs
+      .filter((ps) => selectedSongIds.has(ps.songId) && ps.song.audioUrl)
+      .map((ps) => ({ ...ps.song, audioUrl: ps.song.audioUrl! }));
+    if (selectedSongs.length === 0) {
+      toast("No downloadable songs selected", "error");
+      return;
+    }
+    setBatchDownloading(true);
+    setBatchDownloadProgress({ completed: 0, total: selectedSongs.length });
+    try {
+      await exportAsZip(selectedSongs, (completed, total) => {
+        setBatchDownloadProgress({ completed, total });
+      });
+      toast(`Downloaded ${selectedSongs.length} song${selectedSongs.length !== 1 ? "s" : ""} as ZIP`, "success");
+    } catch {
+      toast("Download failed", "error");
+    } finally {
+      setBatchDownloading(false);
+      setBatchDownloadProgress(null);
+    }
+  }
 
   function buildPlaylistQueue(): QueueSong[] {
     return songs
@@ -324,7 +186,7 @@ export function PlaylistDetailView({
       .filter((s): s is QueueSong => s !== null);
   }
 
-  function handleTogglePlay(song: Song) {
+  function handleTogglePlay(song: PlaylistSongItem["song"]) {
     const qs = songToQueueSong(song);
     if (!qs) return;
 
@@ -348,7 +210,6 @@ export function PlaylistDetailView({
   const handleRemoveSong = useCallback(
     async (songId: string) => {
       setSongs((prev) => prev.filter((ps) => ps.songId !== songId));
-
       try {
         const res = await fetch(
           `/api/playlists/${playlist.id}/songs/${songId}`,
@@ -371,7 +232,6 @@ export function PlaylistDetailView({
   async function handleSaveEdit(e: React.FormEvent) {
     e.preventDefault();
     if (!editName.trim() || saving) return;
-
     setSaving(true);
     try {
       const res = await fetch(`/api/playlists/${playlist.id}`, {
@@ -411,6 +271,183 @@ export function PlaylistDetailView({
       router.push("/playlists");
     } catch {
       toast("Failed to delete playlist", "error");
+    }
+  }
+
+  async function handleToggleShare() {
+    if (isTogglingShare) return;
+    setIsTogglingShare(true);
+    try {
+      const res = await fetch(`/api/playlists/${playlist.id}/share`, {
+        method: "PATCH",
+      });
+      if (!res.ok) {
+        toast("Failed to update sharing", "error");
+        return;
+      }
+      const data = await res.json();
+      setIsPublic(data.isPublic);
+      setSlug(data.slug);
+      toast(data.isPublic ? "Playlist is now public" : "Playlist is now private", "success");
+    } catch {
+      toast("Failed to update sharing", "error");
+    } finally {
+      setIsTogglingShare(false);
+    }
+  }
+
+  function handleCopyLink() {
+    if (!slug) return;
+    const url = `${window.location.origin}/p/${slug}`;
+    navigator.clipboard.writeText(url).then(() => toast("Link copied!", "success"));
+  }
+
+  function handleCopyEmbed() {
+    if (!slug) return;
+    const url = `${window.location.origin}/embed/playlist/${slug}`;
+    const code = `<iframe src="${url}" width="400" height="500" frameborder="0" allow="autoplay"></iframe>`;
+    navigator.clipboard.writeText(code).then(() => toast("Embed code copied!", "success"));
+  }
+
+  async function handleToggleCollaborative() {
+    if (isTogglingCollab) return;
+    setIsTogglingCollab(true);
+    try {
+      const res = await fetch(`/api/playlists/${playlist.id}/collaborative`, { method: "PATCH" });
+      if (!res.ok) { toast("Failed to update collaborative mode", "error"); return; }
+      const data = await res.json();
+      setIsCollaborative(data.isCollaborative);
+      if (!data.isCollaborative) setInviteLink(null);
+      toast(data.isCollaborative ? "Collaborative mode enabled" : "Collaborative mode disabled", "success");
+    } catch {
+      toast("Failed to update collaborative mode", "error");
+    } finally {
+      setIsTogglingCollab(false);
+    }
+  }
+
+  async function handleGenerateInvite() {
+    if (isGeneratingInvite) return;
+    setIsGeneratingInvite(true);
+    try {
+      const res = await fetch(`/api/playlists/${playlist.id}/collaborators`, { method: "POST" });
+      if (!res.ok) { toast("Failed to generate invite link", "error"); return; }
+      const data = await res.json();
+      const link = `${window.location.origin}/playlists/invite/${data.collaborator.inviteToken}`;
+      setInviteLink(link);
+    } catch {
+      toast("Failed to generate invite link", "error");
+    } finally {
+      setIsGeneratingInvite(false);
+    }
+  }
+
+  function handleCopyInviteLink() {
+    if (!inviteLink) return;
+    navigator.clipboard.writeText(inviteLink).then(() => toast("Invite link copied!", "success"));
+  }
+
+  async function handleRemoveCollaborator(collaboratorId: string) {
+    try {
+      const res = await fetch(`/api/playlists/${playlist.id}/collaborators/${collaboratorId}`, { method: "DELETE" });
+      if (!res.ok) { toast("Failed to remove collaborator", "error"); return; }
+      setCollaborators((prev) => prev.filter((c) => c.id !== collaboratorId));
+      toast("Collaborator removed", "success");
+    } catch {
+      toast("Failed to remove collaborator", "error");
+    }
+  }
+
+  async function handleInviteByUsername(username: string, role: "editor" | "viewer") {
+    try {
+      const res = await fetch(`/api/playlists/${playlist.id}/collaborators`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, role }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast(data.error ?? "Failed to invite user", "error"); return; }
+      setCollaborators((prev) => [...prev, data.collaborator]);
+      toast(`${data.collaborator.user?.name ?? username} added as ${role}`, "success");
+    } catch {
+      toast("Failed to invite user", "error");
+    }
+  }
+
+  async function handleLoadActivity() {
+    if (activityLoading) return;
+    setActivityLoading(true);
+    try {
+      const res = await fetch(`/api/playlists/${playlist.id}/activity`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setActivities(data.activities ?? []);
+    } catch {
+      // non-fatal
+    } finally {
+      setActivityLoading(false);
+    }
+  }
+
+  function handleToggleActivityFeed() {
+    if (!showActivityFeed && activities.length === 0) {
+      handleLoadActivity();
+    }
+    setShowActivityFeed((prev) => !prev);
+  }
+
+  async function handlePublish() {
+    if (isPublishing) return;
+    if (songs.length === 0) {
+      toast("Playlist must have at least 1 song to publish", "error");
+      setShowPublishConfirm(false);
+      return;
+    }
+    setIsPublishing(true);
+    try {
+      const res = await fetch(`/api/playlists/${playlist.id}/publish`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ genre: selectedGenre || null }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        toast(data?.error ?? "Failed to publish", "error");
+        return;
+      }
+      const data = await res.json();
+      setIsPublished(data.isPublished);
+      setIsPublic(data.isPublic);
+      setSlug(data.slug);
+      if (data.genre) setPublishedGenre(data.genre);
+      toast("Playlist published to Discover!", "success");
+    } catch {
+      toast("Failed to publish", "error");
+    } finally {
+      setIsPublishing(false);
+      setShowPublishConfirm(false);
+    }
+  }
+
+  async function handleUnpublish() {
+    if (isPublishing) return;
+    setIsPublishing(true);
+    try {
+      const res = await fetch(`/api/playlists/${playlist.id}/publish`, {
+        method: "PATCH",
+      });
+      if (!res.ok) {
+        toast("Failed to unpublish", "error");
+        return;
+      }
+      const data = await res.json();
+      setIsPublished(data.isPublished);
+      toast("Playlist removed from Discover", "success");
+    } catch {
+      toast("Failed to unpublish", "error");
+    } finally {
+      setIsPublishing(false);
+      setShowUnpublishConfirm(false);
     }
   }
 
@@ -456,7 +493,7 @@ export function PlaylistDetailView({
               disabled={!editName.trim() || saving}
               className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors disabled:opacity-50 min-h-[44px]"
             >
-              {saving ? "Saving…" : "Save"}
+              {saving ? "Saving..." : "Save"}
             </button>
             <button
               type="button"
@@ -487,7 +524,7 @@ export function PlaylistDetailView({
                 {songs.length} song{songs.length !== 1 ? "s" : ""}
                 {totalDuration > 0 && ` · ${formatTime(totalDuration)}`}
               </p>
-              {publishing.isPublished && (
+              {isPublished && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
                   <GlobeAltIcon className="w-3 h-3" />
                   Published
@@ -496,10 +533,10 @@ export function PlaylistDetailView({
             </div>
             {songs.length > 0 && (
               <button
-                onClick={batch.handleSelectAll}
+                onClick={handleSelectAll}
                 className="mt-1 text-xs font-medium text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
               >
-                {batch.selectedSongIds.size === songs.length ? "Deselect all" : "Select all"}
+                {selectedSongIds.size === songs.length ? "Deselect all" : "Select all"}
               </button>
             )}
           </div>
@@ -507,17 +544,17 @@ export function PlaylistDetailView({
             {isOwner && (
               <button
                 onClick={() => {
-                  if (publishing.isPublished) {
-                    publishing.setShowUnpublishConfirm(true);
+                  if (isPublished) {
+                    setShowUnpublishConfirm(true);
                   } else {
-                    publishing.setSelectedGenre(publishing.publishedGenre);
-                    publishing.setShowPublishConfirm(true);
+                    setSelectedGenre(publishedGenre);
+                    setShowPublishConfirm(true);
                   }
                 }}
-                aria-label={publishing.isPublished ? "Unpublish from Discover" : "Publish to Discover"}
-                title={publishing.isPublished ? "Unpublish from Discover" : "Publish to Discover"}
+                aria-label={isPublished ? "Unpublish from Discover" : "Publish to Discover"}
+                title={isPublished ? "Unpublish from Discover" : "Publish to Discover"}
                 className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
-                  publishing.isPublished
+                  isPublished
                     ? "text-green-500 dark:text-green-400 hover:text-green-600"
                     : "text-gray-400 dark:text-gray-500 hover:text-violet-400"
                 }`}
@@ -527,11 +564,11 @@ export function PlaylistDetailView({
             )}
             {isOwner && (
               <button
-                onClick={() => { collab.setShowCollabPanel((v) => !v); sharing.setShowSharePanel(false); }}
+                onClick={() => { setShowCollabPanel((v) => !v); setShowSharePanel(false); }}
                 aria-label="Collaborative mode"
-                aria-expanded={collab.showCollabPanel}
+                aria-expanded={showCollabPanel}
                 className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
-                  collab.isCollaborative
+                  isCollaborative
                     ? "text-violet-500 dark:text-violet-400 hover:text-violet-600"
                     : "text-gray-400 dark:text-gray-500 hover:text-violet-400"
                 }`}
@@ -540,11 +577,11 @@ export function PlaylistDetailView({
               </button>
             )}
             <button
-              onClick={() => { sharing.setShowSharePanel((v) => !v); collab.setShowCollabPanel(false); }}
+              onClick={() => { setShowSharePanel((v) => !v); setShowCollabPanel(false); }}
               aria-label="Share playlist"
-              aria-expanded={sharing.showSharePanel}
+              aria-expanded={showSharePanel}
               className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
-                sharing.isPublic
+                isPublic
                   ? "text-violet-500 dark:text-violet-400 hover:text-violet-600"
                   : "text-gray-400 dark:text-gray-500 hover:text-violet-400"
               }`}
@@ -574,11 +611,11 @@ export function PlaylistDetailView({
       )}
 
       {/* Collaborator avatars */}
-      {collab.isCollaborative && collab.collaborators.filter((c) => c.user).length > 0 && !editing && (
+      {isCollaborative && collaborators.filter((c) => c.user).length > 0 && !editing && (
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500 dark:text-gray-400">Collaborators:</span>
           <div className="flex -space-x-2">
-            {collab.collaborators.filter((c) => c.user).slice(0, 5).map((c) => (
+            {collaborators.filter((c) => c.user).slice(0, 5).map((c) => (
               <div
                 key={c.id}
                 title={c.user?.name ?? "Collaborator"}
@@ -597,9 +634,9 @@ export function PlaylistDetailView({
                 )}
               </div>
             ))}
-            {collab.collaborators.filter((c) => c.user).length > 5 && (
+            {collaborators.filter((c) => c.user).length > 5 && (
               <div className="w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-700 border-2 border-white dark:border-gray-900 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300">
-                +{collab.collaborators.filter((c) => c.user).length - 5}
+                +{collaborators.filter((c) => c.user).length - 5}
               </div>
             )}
           </div>
@@ -607,211 +644,32 @@ export function PlaylistDetailView({
       )}
 
       {/* Collaborative panel (owner only) */}
-      {collab.showCollabPanel && isOwner && !editing && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <UserGroupIcon className={`w-4 h-4 ${collab.isCollaborative ? "text-violet-500" : "text-gray-400 dark:text-gray-500"}`} />
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {collab.isCollaborative ? "Collaborative mode on" : "Collaborative mode off"}
-              </span>
-            </div>
-            <button
-              onClick={collab.handleToggleCollaborative}
-              disabled={collab.isTogglingCollab}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 disabled:opacity-50 ${
-                collab.isCollaborative ? "bg-violet-600" : "bg-gray-400 dark:bg-gray-600"
-              }`}
-              role="switch"
-              aria-checked={collab.isCollaborative}
-              aria-label="Toggle collaborative mode"
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                  collab.isCollaborative ? "translate-x-6" : "translate-x-1"
-                }`}
-              />
-            </button>
-          </div>
-
-          {collab.isCollaborative && (
-            <div className="space-y-3">
-              <form onSubmit={collab.handleInviteByUsername} className="space-y-2">
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Invite by username</p>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    aria-label="Username to invite"
-                    placeholder="@username"
-                    value={collab.inviteUsername}
-                    onChange={(e) => collab.setInviteUsername(e.target.value)}
-                    className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-violet-500"
-                  />
-                  <select
-                    aria-label="Collaborator role"
-                    value={collab.inviteRole}
-                    onChange={(e) => collab.setInviteRole(e.target.value as "editor" | "viewer")}
-                    className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-2 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-violet-500"
-                  >
-                    <option value="editor">Editor</option>
-                    <option value="viewer">Viewer</option>
-                  </select>
-                  <button
-                    type="submit"
-                    disabled={!collab.inviteUsername.trim() || collab.isInvitingByUsername}
-                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-violet-600 hover:bg-violet-500 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    <UserPlusIcon className="w-3.5 h-3.5" />
-                    {collab.isInvitingByUsername ? "Adding…" : "Add"}
-                  </button>
-                </div>
-              </form>
-
-              <div className="space-y-2">
-                <button
-                  onClick={collab.handleGenerateInvite}
-                  disabled={collab.isGeneratingInvite}
-                  className="flex items-center gap-2 text-sm font-medium text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors disabled:opacity-50"
-                >
-                  <LinkIcon className="w-4 h-4" />
-                  {collab.isGeneratingInvite ? "Generating…" : "Generate invite link"}
-                </button>
-
-                {collab.inviteLink && (
-                  <div className="flex gap-2">
-                    <input
-                      readOnly
-                      aria-label="Invite link"
-                      value={collab.inviteLink}
-                      className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500"
-                    />
-                    <button
-                      onClick={collab.handleCopyInviteLink}
-                      className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-lg hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors whitespace-nowrap"
-                    >
-                      <LinkIcon className="w-3.5 h-3.5" />
-                      Copy
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {collab.isCollaborative && collab.collaborators.filter((c) => c.user).length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Current collaborators</p>
-              {collab.collaborators.filter((c) => c.user).map((c) => (
-                <div key={c.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-violet-100 dark:bg-violet-900 flex items-center justify-center text-xs font-medium text-violet-700 dark:text-violet-300 overflow-hidden flex-shrink-0">
-                      {(c.user?.avatarUrl ?? c.user?.image) ? (
-                        <Image
-                          src={(c.user?.avatarUrl ?? c.user?.image)!}
-                          alt={c.user?.name ?? ""}
-                          width={28}
-                          height={28}
-                          className="object-cover w-full h-full"
-                        />
-                      ) : (
-                        (c.user?.name?.[0] ?? "?").toUpperCase()
-                      )}
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-900 dark:text-white">{c.user?.name ?? "Unknown"}</span>
-                      <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full font-medium ${c.role === "viewer" ? "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400" : "bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400"}`}>
-                        {c.role ?? "editor"}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => collab.handleRemoveCollaborator(c.id)}
-                    aria-label={`Remove ${c.user?.name ?? "collaborator"}`}
-                    className="text-xs text-red-500 hover:text-red-600 transition-colors"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      {showCollabPanel && isOwner && !editing && (
+        <PlaylistCollaboratorsPanel
+          playlistId={playlist.id}
+          isCollaborative={isCollaborative}
+          isTogglingCollab={isTogglingCollab}
+          collaborators={collaborators}
+          onToggleCollaborative={handleToggleCollaborative}
+          onRemoveCollaborator={handleRemoveCollaborator}
+          onInviteByUsername={handleInviteByUsername}
+          onGenerateInvite={handleGenerateInvite}
+          isGeneratingInvite={isGeneratingInvite}
+          inviteLink={inviteLink}
+          onCopyInviteLink={handleCopyInviteLink}
+        />
       )}
 
       {/* Share panel */}
-      {sharing.showSharePanel && !editing && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {sharing.isPublic ? (
-                <GlobeAltIcon className="w-4 h-4 text-violet-500" />
-              ) : (
-                <LockClosedIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-              )}
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {sharing.isPublic ? "Public playlist" : "Private playlist"}
-              </span>
-            </div>
-            <button
-              onClick={sharing.handleToggleShare}
-              disabled={sharing.isTogglingShare}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 disabled:opacity-50 ${
-                sharing.isPublic ? "bg-violet-600" : "bg-gray-400 dark:bg-gray-600"
-              }`}
-              role="switch"
-              aria-checked={sharing.isPublic}
-              aria-label="Toggle playlist visibility"
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                  sharing.isPublic ? "translate-x-6" : "translate-x-1"
-                }`}
-              />
-            </button>
-          </div>
-
-          {sharing.isPublic && sharing.slug && (
-            <>
-              <div className="space-y-1.5">
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Share link</p>
-                <div className="flex gap-2">
-                  <input
-                    readOnly
-                    aria-label="Share link"
-                    value={`${typeof window !== "undefined" ? window.location.origin : ""}/p/${sharing.slug}`}
-                    className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500"
-                  />
-                  <button
-                    onClick={sharing.handleCopyLink}
-                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-lg hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors whitespace-nowrap"
-                  >
-                    <ClipboardDocumentIcon className="w-3.5 h-3.5" />
-                    Copy
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Embed code</p>
-                <div className="flex gap-2">
-                  <input
-                    readOnly
-                    aria-label="Embed code"
-                    value={`<iframe src="${typeof window !== "undefined" ? window.location.origin : ""}/embed/playlist/${sharing.slug}" width="400" height="500" frameborder="0" allow="autoplay"></iframe>`}
-                    className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500 font-mono"
-                  />
-                  <button
-                    onClick={sharing.handleCopyEmbed}
-                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-lg hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors whitespace-nowrap"
-                  >
-                    <ClipboardDocumentIcon className="w-3.5 h-3.5" />
-                    Copy
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+      {showSharePanel && !editing && (
+        <PlaylistSharePanel
+          isPublic={isPublic}
+          slug={slug}
+          isTogglingShare={isTogglingShare}
+          onToggleShare={handleToggleShare}
+          onCopyLink={handleCopyLink}
+          onCopyEmbed={handleCopyEmbed}
+        />
       )}
 
       {/* Play all button */}
@@ -854,13 +712,13 @@ export function PlaylistDetailView({
 
       {/* Publish confirmation */}
       <BottomSheet
-        open={publishing.showPublishConfirm}
-        onClose={() => publishing.setShowPublishConfirm(false)}
+        open={showPublishConfirm}
+        onClose={() => setShowPublishConfirm(false)}
         title="Publish to Discover"
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-600 dark:text-gray-300">
-            This will make your playlist visible on the Discover page{!sharing.isPublic ? " and set it to public" : ""}.
+            This will make your playlist visible on the Discover page{!isPublic ? " and set it to public" : ""}.
           </p>
           {songs.length === 0 && (
             <p className="text-sm text-red-600 dark:text-red-400 font-medium">
@@ -873,26 +731,26 @@ export function PlaylistDetailView({
             </label>
             <select
               id="publish-genre"
-              value={publishing.selectedGenre}
-              onChange={(e) => publishing.setSelectedGenre(e.target.value)}
+              value={selectedGenre}
+              onChange={(e) => setSelectedGenre(e.target.value)}
               className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             >
               <option value="">No genre</option>
-              {publishing.genres.map((g) => (
+              {genres.map((g) => (
                 <option key={g.name} value={g.name}>{g.name}</option>
               ))}
             </select>
           </div>
           <div className="flex gap-2">
             <button
-              onClick={publishing.handlePublish}
-              disabled={publishing.isPublishing || songs.length === 0}
+              onClick={handlePublish}
+              disabled={isPublishing || songs.length === 0}
               className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors disabled:opacity-50 min-h-[44px]"
             >
-              {publishing.isPublishing ? "Publishing…" : "Publish"}
+              {isPublishing ? "Publishing..." : "Publish"}
             </button>
             <button
-              onClick={() => publishing.setShowPublishConfirm(false)}
+              onClick={() => setShowPublishConfirm(false)}
               className="px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors min-h-[44px]"
             >
               Cancel
@@ -903,8 +761,8 @@ export function PlaylistDetailView({
 
       {/* Unpublish confirmation */}
       <BottomSheet
-        open={publishing.showUnpublishConfirm}
-        onClose={() => publishing.setShowUnpublishConfirm(false)}
+        open={showUnpublishConfirm}
+        onClose={() => setShowUnpublishConfirm(false)}
         title="Unpublish playlist"
       >
         <div className="space-y-3">
@@ -913,14 +771,14 @@ export function PlaylistDetailView({
           </p>
           <div className="flex gap-2">
             <button
-              onClick={publishing.handleUnpublish}
-              disabled={publishing.isPublishing}
+              onClick={handleUnpublish}
+              disabled={isPublishing}
               className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-500 text-white transition-colors disabled:opacity-50 min-h-[44px]"
             >
-              {publishing.isPublishing ? "Unpublishing…" : "Unpublish"}
+              {isPublishing ? "Unpublishing..." : "Unpublish"}
             </button>
             <button
-              onClick={() => publishing.setShowUnpublishConfirm(false)}
+              onClick={() => setShowUnpublishConfirm(false)}
               className="px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors min-h-[44px]"
             >
               Cancel
@@ -945,43 +803,43 @@ export function PlaylistDetailView({
           </Link>
         </div>
       ) : (
-        <ul className={`space-y-1 ${batch.selectionMode ? "pb-20" : ""}`}>
+        <ul className={`space-y-1 ${selectionMode ? "pb-20" : ""}`}>
           {songs.map((ps, index) => {
             const isActive = currentSongId === ps.songId;
             const hasAudio = Boolean(ps.song.audioUrl);
-            const isDragOver = drag.dragOverIndex === index;
-            const isSelected = batch.selectedSongIds.has(ps.songId);
+            const isDragOver = dragOverIndex === index;
+            const isSelected = selectedSongIds.has(ps.songId);
 
             return (
               <SwipeablePlaylistItem
                 key={ps.id}
-                onSwipeRemove={batch.selectionMode ? () => {} : () => handleRemoveSong(ps.songId)}
+                onSwipeRemove={selectionMode ? () => {} : () => handleRemoveSong(ps.songId)}
               >
-                <SongListItem
+                <PlaylistSongListItem
                   ps={ps}
                   index={index}
                   isActive={isActive}
                   hasAudio={hasAudio}
                   isDragOver={isDragOver}
-                  dragIndex={drag.dragIndex}
+                  dragIndex={dragIndex}
                   isSelected={isSelected}
-                  selectionMode={batch.selectionMode}
+                  selectionMode={selectionMode}
                   isPlaying={isPlaying}
-                  isCollaborative={collab.isCollaborative}
-                  onDragStart={() => drag.handleDragStart(index)}
-                  onDragOver={(e: React.DragEvent) => drag.handleDragOver(e, index)}
-                  onDrop={(e: React.DragEvent) => drag.handleDrop(e, index)}
-                  onDragEnd={drag.handleDragEnd}
-                  onDragHandleTouchStart={() => drag.handleDragHandleTouchStart(index)}
-                  onKeyboardReorder={(dir) => drag.handleKeyboardReorder(index, dir)}
+                  isCollaborative={isCollaborative}
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={(e: React.DragEvent) => handleDragOver(e, index)}
+                  onDrop={(e: React.DragEvent) => handleDrop(e, index)}
+                  onDragEnd={handleDragEnd}
+                  onDragHandleTouchStart={() => handleDragHandleTouchStart(index)}
+                  onKeyboardReorder={(dir) => handleKeyboardReorder(index, dir)}
                   isFirst={index === 0}
                   isLast={index === songs.length - 1}
                   onTogglePlay={() => handleTogglePlay(ps.song)}
                   onPlayNext={() => { const qs = songToQueueSong(ps.song); if (qs) playNext(qs); }}
                   onAddToQueue={() => { const qs = songToQueueSong(ps.song); if (qs) addToQueue(qs); }}
                   onRemove={() => handleRemoveSong(ps.songId)}
-                  onToggleSelect={() => batch.handleToggleSelect(ps.songId)}
-                  onLongPress={() => batch.setSelectedSongIds(new Set([ps.songId]))}
+                  onToggleSelect={() => handleToggleSelect(ps.songId)}
+                  onLongPress={() => setSelectedSongIds(new Set([ps.songId]))}
                 />
               </SwipeablePlaylistItem>
             );
@@ -990,129 +848,58 @@ export function PlaylistDetailView({
       )}
 
       {/* Batch toolbar */}
-      {batch.selectionMode && (
-        <div className="fixed bottom-20 md:bottom-4 left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-40 flex items-center gap-2 px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white rounded-2xl shadow-2xl border border-gray-700 animate-slide-in">
-          <span className="text-sm font-medium mr-1 flex-shrink-0">
-            {batch.selectedSongIds.size} selected
-          </span>
-          <button
-            onClick={batch.handleBatchDownload}
-            disabled={batch.batchDownloading}
-            aria-label="Download selected songs as ZIP"
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gray-700 hover:bg-gray-600 disabled:opacity-50 transition-colors min-h-[44px]"
-          >
-            <ArrowDownTrayIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">
-              {batch.batchDownloading && batch.batchDownloadProgress
-                ? `${batch.batchDownloadProgress.completed}/${batch.batchDownloadProgress.total}`
-                : "Download"}
-            </span>
-          </button>
-          <button
-            onClick={() => batch.setShowBatchDeleteConfirm(true)}
-            disabled={batch.batchLoading}
-            aria-label="Remove selected from playlist"
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-500 disabled:opacity-50 transition-colors min-h-[44px]"
-          >
-            <TrashIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">Remove</span>
-          </button>
-          <button
-            onClick={() => batch.setSelectedSongIds(new Set())}
-            aria-label="Clear selection"
-            className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-          >
-            <XMarkIcon className="w-4 h-4" />
-          </button>
-        </div>
+      {selectionMode && (
+        <PlaylistBatchToolbar
+          selectedCount={selectedSongIds.size}
+          batchDownloading={batchDownloading}
+          batchDownloadProgress={batchDownloadProgress}
+          batchLoading={batchLoading}
+          onDownload={handleBatchDownload}
+          onRemove={() => setShowBatchDeleteConfirm(true)}
+          onClearSelection={() => setSelectedSongIds(new Set())}
+        />
       )}
 
-      {/* Activity feed */}
-      {collab.isCollaborative && (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
-          <button
-            onClick={activity.handleToggleActivityFeed}
-            className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-          >
-            <span className="flex items-center gap-2">
-              <UserGroupIcon className="w-4 h-4 text-violet-500" />
-              Activity feed
-            </span>
-            <span className="text-xs text-gray-400">{activity.showActivityFeed ? "▲" : "▼"}</span>
-          </button>
-
-          {activity.showActivityFeed && (
-            <div className="border-t border-gray-100 dark:border-gray-800 px-4 py-3 space-y-3">
-              {activity.activityLoading ? (
-                <p className="text-xs text-gray-400 text-center py-2">Loading…</p>
-              ) : activity.activities.length === 0 ? (
-                <p className="text-xs text-gray-400 text-center py-2">No activity yet. Start adding songs!</p>
-              ) : (
-                activity.activities.map((a) => (
-                  <div key={a.id} className="flex items-start gap-3">
-                    <div className="w-7 h-7 rounded-full bg-violet-100 dark:bg-violet-900 flex items-center justify-center text-xs font-medium text-violet-700 dark:text-violet-300 overflow-hidden flex-shrink-0 mt-0.5">
-                      {(a.user?.avatarUrl ?? a.user?.image) ? (
-                        <Image
-                          src={(a.user?.avatarUrl ?? a.user?.image)!}
-                          alt={a.user?.name ?? "User"}
-                          width={28}
-                          height={28}
-                          className="object-cover w-full h-full"
-                        />
-                      ) : (
-                        (a.user?.name?.[0] ?? "?").toUpperCase()
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-700 dark:text-gray-300">
-                        <span className="font-medium">{a.user?.name ?? "Someone"}</span>
-                        {" "}
-                        {a.type === "song_added_to_playlist" ? "added" : "removed"}
-                        {" "}
-                        <span className="font-medium">{a.song?.title ?? "a song"}</span>
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {new Date(a.createdAt).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-        </div>
+      {/* Activity feed — collaborative playlists only */}
+      {isCollaborative && (
+        <PlaylistActivityFeed
+          activities={activities}
+          activityLoading={activityLoading}
+          showActivityFeed={showActivityFeed}
+          onToggle={handleToggleActivityFeed}
+        />
       )}
 
       {/* Batch delete confirmation */}
-      {batch.showBatchDeleteConfirm && (
+      {showBatchDeleteConfirm && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="batch-remove-dialog-title"
-          onKeyDown={(e) => { if (e.key === "Escape") batch.setShowBatchDeleteConfirm(false); }}
+          onKeyDown={(e) => { if (e.key === "Escape") setShowBatchDeleteConfirm(false); }}
         >
           <div className="bg-white dark:bg-gray-900 w-full sm:rounded-2xl rounded-t-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 sm:mx-4 sm:max-w-sm">
             <h3 id="batch-remove-dialog-title" className="text-lg font-semibold text-gray-900 dark:text-white">
-              Remove {batch.selectedSongIds.size} song{batch.selectedSongIds.size !== 1 ? "s" : ""} from playlist?
+              Remove {selectedSongIds.size} song{selectedSongIds.size !== 1 ? "s" : ""} from playlist?
             </h3>
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
               The songs will remain in your library.
             </p>
             <div className="mt-4 flex gap-3 justify-end">
               <button
-                onClick={() => batch.setShowBatchDeleteConfirm(false)}
-                disabled={batch.batchLoading}
+                onClick={() => setShowBatchDeleteConfirm(false)}
+                disabled={batchLoading}
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors min-h-[44px]"
               >
                 Cancel
               </button>
               <button
-                onClick={batch.handleBatchRemoveFromPlaylist}
-                disabled={batch.batchLoading}
+                onClick={handleBatchRemoveFromPlaylist}
+                disabled={batchLoading}
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-500 disabled:opacity-50 transition-colors min-h-[44px]"
               >
-                {batch.batchLoading ? "Removing…" : "Remove"}
+                {batchLoading ? "Removing..." : "Remove"}
               </button>
             </div>
           </div>

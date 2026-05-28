@@ -8,6 +8,7 @@ import {
   addInstrumental,
   replaceSection,
   extendSong,
+  separateVocals,
 } from "@/lib/songs/variations/generate";
 import type {
   VariationFamily,
@@ -16,6 +17,7 @@ import type {
   AddInstrumentalInput,
   ReplaceSectionInput,
   ExtendSongInput,
+  SeparateVocalsInput,
   VariationRow,
 } from "@/lib/songs/variations/types";
 
@@ -27,7 +29,8 @@ export type {
   AddInstrumentalInput,
   ReplaceSectionInput,
   ExtendSongInput,
+  SeparateVocalsInput,
   VariationRow,
 };
 export { normalizeVariationTags, variationTitle, resolveRootId };
-export { getVariationFamily, createVariation, addVocals, addInstrumental, replaceSection, extendSong };
+export { getVariationFamily, createVariation, addVocals, addInstrumental, replaceSection, extendSong, separateVocals };
