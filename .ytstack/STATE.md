@@ -1,25 +1,22 @@
 ---
 project: SunoFlow
 slug: SunoFlow
-last_updated: 2026-05-21T10:00:00Z
-current_milestone: M002
-active_slice: none
+last_updated: 2026-05-28T10:55:00Z
+current_milestone: M003
+active_slice: S04
 active_task: none
 status: brownfield-imported
 ---
 
 # State
 
-**Status:** M001 DONE (3/3 slices, 15/15 tasks). Plan-only UX overhaul abgeschlossen 2026-05-18T11:15Z.
+**Status:** M003 -- S01+S02+S03 done (origin guard + rate-limit + Sentry logging live). S04 next: plugin ship.
 
 ## Next action
 
-M001 ist Plan-only -- naechster Schritt ist **M002 Generate-Refactor** (Implementation). Vor M002-Start:
-1. **D15 Naming-Drift Decision** ist bereits in DECISIONS.md (durch T03).
-2. **M002 Plan** kann mit `/ytstack:plan-milestone` neu erstellt werden -- Goal: GenerateForm 30→13 useState + 5 Sub-Components + 4 Tabs.
-3. M002-M007 Sequenz dokumentiert in `.ytstack/M001-FOLLOWUP-ROADMAP.md`.
+S04: .mcp.json, version bump 0.2.2→0.3.0, both marketplaces updated, stdio deprecated, fresh-install smoke-test. See `M003-S04-PLAN.md`. NOTE: marketplace updates touch lx-0/skills (separate repo) — needs user approval before write.
 
-Alternative: BAU weiter auf Paperclip SUNAA bis M002 manuell gestartet wird.
+M002 (Generate-Refactor) stays planned with S01 done; S02-S04 wait until M003 closes.
 
 ## M001 progress
 

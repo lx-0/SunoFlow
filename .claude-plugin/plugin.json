@@ -1,7 +1,7 @@
 {
   "name": "sunoflow",
-  "version": "0.2.2",
-  "description": "SunoFlow MCP skill -- AI music creation and management (song generation, lyrics, stem separation, music videos, playlists, exports) via the SunoFlow MCP server. Ships the sunoflow skill; the MCP server itself runs from the SunoFlow repo (stdio transport) against a self-hosted or hosted SunoFlow instance.",
+  "version": "0.3.0",
+  "description": "SunoFlow plugin -- AI music creation and management (song generation, lyrics, stem separation, music videos, playlists, exports) via the remote SunoFlow MCP server. Ships the sunoflow skill plus a .mcp.json pointing at the hosted Streamable-HTTP endpoint -- just set SUNOFLOW_API_KEY and you are connected. Self-hosters can override SUNOFLOW_BASE_URL.",
   "author": {
     "name": "lx-0",
     "url": "https://github.com/lx-0"

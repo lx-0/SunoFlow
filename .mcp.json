@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "sunoflow": {
+      "type": "http",
+      "url": "${SUNOFLOW_BASE_URL:-https://sunoflow.app}/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SUNOFLOW_API_KEY}"
+      }
+    }
+  }
+}
