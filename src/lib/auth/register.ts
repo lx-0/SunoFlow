@@ -1,5 +1,5 @@
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { hashPassword } from "@/lib/auth/password";
 import { logger } from "@/lib/logger";
 import { sendVerificationEmail, sendWelcomeEmail } from "@/lib/email";
 import { stripHtml } from "@/lib/sanitize";
@@ -83,7 +83,7 @@ export async function registerUser(input: RegisterInput): Promise<RegisterResult
     inviteCodeId = invite.id;
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
+  const passwordHash = await hashPassword(password);
   const shouldAutoVerify = isAdmin;
   const verificationToken = shouldAutoVerify ? null : createVerificationToken();
   const sanitizedName = name ? stripHtml(name).trim() || null : null;
