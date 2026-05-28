@@ -32,6 +32,9 @@ const PUBLIC_PATHS = [
   "/login", "/register", "/forgot-password", "/reset-password", "/verify-email",
   "/api/auth", "/api/register", "/api/health", "/api/agent-skill", "/api/test/login",
   "/api/songs/public",
+  // MCP HTTP endpoint — auth is Bearer header, not JWT cookie. Route enforces
+  // its own origin allowlist + rate limit + bearer auth.
+  "/api/mcp",
   // Media proxies — the route handlers enforce their own auth/visibility checks
   // (authRoute / publicRoute). Without bypassing the edge redirect here, the
   // <audio>/<img> element follows the 307 to /login HTML and treats the HTML
