@@ -16,7 +16,7 @@ interface TemplatePickerPanelProps {
   style: string;
   instrumental: boolean;
   onApplyTemplate: (template: PromptTemplate) => void;
-  onTemplatesChange: React.Dispatch<React.SetStateAction<PromptTemplate[]>>;
+  onTemplatesChange: (updater: (prev: PromptTemplate[]) => PromptTemplate[]) => void;
   fetchTemplates: () => void;
 }
 

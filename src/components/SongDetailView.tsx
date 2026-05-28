@@ -5,7 +5,6 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { type SubscriptionTier } from "@/lib/feature-gates";
-import { track } from "@/lib/analytics";
 import {
   PlayIcon,
   PauseIcon,
@@ -29,6 +28,7 @@ import { SongRemixPanel } from "./song-detail/SongRemixPanel";
 import { SongVariationTree } from "./song-detail/SongVariationTree";
 import { SongRatingPanel } from "./song-detail/SongRatingPanel";
 import type { SongTag, VariationSummary } from "./song-detail/types";
+import { useSongFavorite, useSongVisibility, useSongArchive } from "./song-detail/hooks";
 
 const EmbedCodeModal = dynamic(() => import("./EmbedCodeModal").then((m) => m.EmbedCodeModal));
 const ReportModal = dynamic(() => import("./ReportModal").then((m) => m.ReportModal));
@@ -87,163 +87,20 @@ export function SongDetailView({
   const currentSong = currentIndex >= 0 ? queue[currentIndex] : null;
   const isThisSongPlaying = isPlaying && currentSong?.id === song.id;
 
-  const [isFavorite, setIsFavorite] = useState(initialFavorite);
-  const [favoriteCount, setFavoriteCount] = useState(initialFavoriteCount);
+  const favorite = useSongFavorite({ songId: song.id, initialFavorite, initialCount: initialFavoriteCount, toast });
+  const visibility = useSongVisibility({ songId: song.id, songTitle: song.title, initialIsPublic, initialSlug: initialPublicSlug, toast });
+  const archiveHook = useSongArchive({ songId: song.id, initialIsArchived, toast, onArchived: () => router.push("/library") });
 
-  // Share / visibility state
-  const [isPublic, setIsPublic] = useState(initialIsPublic);
-  const [publicSlug, setPublicSlug] = useState(initialPublicSlug);
-  const [sharing, setSharing] = useState(false);
-  const [confirmPublicOpen, setConfirmPublicOpen] = useState(false);
-
-  // Report & embed modals
   const [reportOpen, setReportOpen] = useState(false);
   const [embedOpen, setEmbedOpen] = useState(false);
   const [embedTheme, setEmbedTheme] = useState<"dark" | "light">("dark");
   const [embedAutoplay, setEmbedAutoplay] = useState(false);
 
-  // Archive state
-  const [isArchived, setIsArchived] = useState(initialIsArchived);
-  const [archiving, setArchiving] = useState(false);
-  const [confirmArchiveOpen, setConfirmArchiveOpen] = useState(false);
-
-  // Cover art state
   const [coverArtModalOpen, setCoverArtModalOpen] = useState(false);
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(song.imageUrl ?? null);
   const generatedFallbackUrl = generateCoverArtVariants({ songId: song.id, title: song.title, tags: song.tags })[0].dataUrl;
 
   const hasAudio = Boolean(song.audioUrl);
-
-  async function handleToggleFavorite() {
-    const prev = isFavorite;
-    const prevCount = favoriteCount;
-    const newFav = !prev;
-    setIsFavorite(newFav);
-    setFavoriteCount(newFav ? prevCount + 1 : Math.max(0, prevCount - 1));
-    try {
-      const res = await fetch(`/api/songs/${song.id}/favorite`, {
-        method: newFav ? "POST" : "DELETE",
-      });
-      if (!res.ok) {
-        setIsFavorite(prev);
-        setFavoriteCount(prevCount);
-        toast("Failed to update favorite", "error");
-      } else {
-        const data = await res.json();
-        setFavoriteCount(data.favoriteCount);
-        toast(newFav ? "Added to favorites" : "Removed from favorites", "success");
-      }
-    } catch {
-      setIsFavorite(prev);
-      setFavoriteCount(prevCount);
-      toast("Failed to update favorite", "error");
-    }
-  }
-
-  async function setVisibility(visibility: "public" | "private") {
-    setSharing(true);
-    try {
-      const res = await fetch(`/api/songs/${song.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ visibility }),
-      });
-      if (!res.ok) {
-        toast("Failed to update visibility", "error");
-        return;
-      }
-      const data = await res.json();
-      setIsPublic(data.isPublic);
-      setPublicSlug(data.publicSlug);
-
-      if (data.isPublic && data.publicSlug) {
-        const url = `${window.location.origin}/s/${data.publicSlug}`;
-        await navigator.clipboard.writeText(url);
-        toast("Public link copied to clipboard", "success");
-        track("song_shared", { songId: song.id, source: "song_detail" });
-      } else {
-        toast("Song is now private", "success");
-      }
-    } catch {
-      toast("Failed to update visibility", "error");
-    } finally {
-      setSharing(false);
-    }
-  }
-
-  function handleVisibilityToggle() {
-    if (!isPublic) {
-      setConfirmPublicOpen(true);
-    } else {
-      setVisibility("private");
-    }
-  }
-
-  async function handleCopyLink() {
-    if (!publicSlug) return;
-    const url = `${window.location.origin}/s/${publicSlug}`;
-
-    if (typeof navigator.share === "function") {
-      try {
-        await navigator.share({ title: song.title ?? "Check out this song", url });
-        track("song_shared", { songId: song.id, source: "song_detail", method: "web_share_api" });
-        return;
-      } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") return;
-      }
-    }
-
-    await navigator.clipboard.writeText(url);
-    toast("Link copied!", "success");
-    track("song_link_copied", { songId: song.id, source: "song_detail" });
-  }
-
-  function handleShareOnX() {
-    if (!publicSlug) return;
-    const url = `${window.location.origin}/s/${publicSlug}`;
-    const songTitle = song.title ?? "Check out this song";
-    const tweetText = `${songTitle} — listen on SunoFlow`;
-    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(url)}`;
-    window.open(twitterUrl, "_blank", "noopener,noreferrer");
-    track("song_shared", { songId: song.id, source: "song_detail", method: "twitter" });
-  }
-
-  async function handleArchive() {
-    setArchiving(true);
-    try {
-      const res = await fetch(`/api/songs/${song.id}/archive`, { method: "POST" });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        toast(data.error || "Failed to archive song", "error");
-        return;
-      }
-      setIsArchived(true);
-      toast("Song archived", "success");
-      router.push("/library");
-    } catch {
-      toast("Failed to archive song", "error");
-    } finally {
-      setArchiving(false);
-    }
-  }
-
-  async function handleRestore() {
-    setArchiving(true);
-    try {
-      const res = await fetch(`/api/songs/${song.id}/restore`, { method: "POST" });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        toast(data.error || "Failed to restore song", "error");
-        return;
-      }
-      setIsArchived(false);
-      toast("Song restored", "success");
-    } catch {
-      toast("Failed to restore song", "error");
-    } finally {
-      setArchiving(false);
-    }
-  }
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -253,9 +110,9 @@ export function SongDetailView({
         isHidden={isHidden}
         coverImageUrl={coverImageUrl}
         generatedFallbackUrl={generatedFallbackUrl}
-        isFavorite={isFavorite}
-        favoriteCount={favoriteCount}
-        onToggleFavorite={handleToggleFavorite}
+        isFavorite={favorite.isFavorite}
+        favoriteCount={favorite.favoriteCount}
+        onToggleFavorite={favorite.toggle}
         onOpenCoverArt={() => setCoverArtModalOpen(true)}
       />
 
@@ -304,15 +161,15 @@ export function SongDetailView({
         <SongActionsBar
           song={song}
           hasAudio={hasAudio}
-          isPublic={isPublic}
-          publicSlug={publicSlug}
+          isPublic={visibility.isPublic}
+          publicSlug={visibility.publicSlug}
           isCached={isCached}
           isSavingOffline={isSavingOffline}
-          sharing={sharing}
+          sharing={visibility.sharing}
           coverImageUrl={coverImageUrl}
-          onVisibilityToggle={handleVisibilityToggle}
-          onCopyLink={handleCopyLink}
-          onShareOnX={handleShareOnX}
+          onVisibilityToggle={visibility.toggle}
+          onCopyLink={visibility.copyLink}
+          onShareOnX={visibility.shareOnX}
           onEmbedOpen={() => setEmbedOpen(true)}
           onReportOpen={() => setReportOpen(true)}
           onSaveOffline={() => saveOffline({ id: song.id, title: song.title, imageUrl: song.imageUrl ?? null })}
@@ -325,14 +182,13 @@ export function SongDetailView({
             addToQueue({ id: song.id, title: song.title, audioUrl: song.audioUrl!, imageUrl: coverImageUrl ?? null, duration: song.duration ?? null, lyrics: song.lyrics });
             toast("Added to queue", "success");
           }}
-          isArchived={isArchived}
-          archiving={archiving}
-          onArchive={() => setConfirmArchiveOpen(true)}
-          onRestore={handleRestore}
+          isArchived={archiveHook.isArchived}
+          archiving={archiveHook.archiving}
+          onArchive={() => archiveHook.setConfirmOpen(true)}
+          onRestore={archiveHook.restore}
         />
 
-        {/* Make public confirmation dialog */}
-        {confirmPublicOpen && (
+        {visibility.confirmOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-public-title">
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4">
               <h2 id="confirm-public-title" className="text-lg font-semibold text-gray-900 dark:text-white">Make song public?</h2>
@@ -341,13 +197,13 @@ export function SongDetailView({
               </p>
               <div className="flex gap-3 justify-end">
                 <button
-                  onClick={() => setConfirmPublicOpen(false)}
+                  onClick={() => visibility.setConfirmOpen(false)}
                   className="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={() => { setConfirmPublicOpen(false); setVisibility("public"); }}
+                  onClick={visibility.confirmPublic}
                   className="px-4 py-2 text-sm font-medium rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors"
                 >
                   Make public
@@ -357,8 +213,7 @@ export function SongDetailView({
           </div>
         )}
 
-        {/* Archive confirmation dialog */}
-        {confirmArchiveOpen && (
+        {archiveHook.confirmOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-archive-title">
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4">
               <h2 id="confirm-archive-title" className="text-lg font-semibold text-gray-900 dark:text-white">Archive this song?</h2>
@@ -367,17 +222,17 @@ export function SongDetailView({
               </p>
               <div className="flex gap-3 justify-end">
                 <button
-                  onClick={() => setConfirmArchiveOpen(false)}
+                  onClick={() => archiveHook.setConfirmOpen(false)}
                   className="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={() => { setConfirmArchiveOpen(false); handleArchive(); }}
-                  disabled={archiving}
+                  onClick={archiveHook.archive}
+                  disabled={archiveHook.archiving}
                   className="px-4 py-2 text-sm font-medium rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
                 >
-                  {archiving ? "Archiving…" : "Archive"}
+                  {archiveHook.archiving ? "Archiving…" : "Archive"}
                 </button>
               </div>
             </div>
@@ -409,7 +264,6 @@ export function SongDetailView({
           initialVideoUrl={song.videoUrl ?? null}
         />
 
-        {/* Cover art */}
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Cover Art</h2>

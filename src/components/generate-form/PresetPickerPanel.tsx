@@ -17,7 +17,7 @@ interface PresetPickerPanelProps {
     instrumental: boolean;
   };
   onApplyPreset: (preset: GenerationPreset) => void;
-  onPresetsChange: React.Dispatch<React.SetStateAction<GenerationPreset[]>>;
+  onPresetsChange: (updater: (prev: GenerationPreset[]) => GenerationPreset[]) => void;
 }
 
 export function PresetPickerPanel({
