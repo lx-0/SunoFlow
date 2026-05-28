@@ -4,29 +4,41 @@ SunoFlow exposes a [Model Context Protocol (MCP)](https://modelcontextprotocol.i
 
 ## Transport
 
-The server uses **stdio transport** — the host spawns it as a subprocess, communicates over stdin/stdout, and the server logs to stderr.
+Two transports are supported:
+
+- **Streamable HTTP (recommended, hosted)** — SunoFlow hosts the server at `https://sunoflow.app/api/mcp`. Clients connect remotely with a Bearer API key. No local install or database required.
+- **stdio (legacy, self-hosted only)** — the host spawns `mcp/server.ts` as a subprocess. Requires the SunoFlow repo + a local `DATABASE_URL` because the stdio server validates keys against Prisma directly. Deprecated as of 0.3.0; will be removed in a future release.
 
 ## Authentication
 
-Generate a personal API key in your SunoFlow account settings (`/settings/api-keys`).
-Set it as `SUNOFLOW_API_KEY` when launching the server. The server exits immediately if the key is missing or revoked.
+Generate a personal API key in your SunoFlow account settings (`/settings/api-keys`). Both transports use the same key.
 
-## Quick start (local)
+- Streamable HTTP: send as `Authorization: Bearer sk-...`
+- stdio: set as `SUNOFLOW_API_KEY` env var when spawning the process
 
-```bash
-SUNOFLOW_API_KEY=sk-... tsx mcp/server.ts
-```
+## Claude Code (Streamable HTTP, recommended)
 
-Or compile first:
+The SunoFlow plugin ships a `.mcp.json` that points at the hosted endpoint. Install the plugin and export the API key — no other config needed:
 
 ```bash
-pnpm build:mcp
-node dist/mcp/server.js
+/plugin install sunoflow
+export SUNOFLOW_API_KEY=sk-...
 ```
 
-## Claude Desktop
+Equivalent manual config:
 
-Add the following to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+```bash
+claude mcp add --transport http sunoflow https://sunoflow.app/api/mcp \
+  --header "Authorization: Bearer sk-your-key-here"
+```
+
+For a self-hosted instance, override the base URL:
+
+```bash
+SUNOFLOW_BASE_URL=https://sunoflow.example.com SUNOFLOW_API_KEY=sk-... /plugin install sunoflow
+```
+
+## Claude Desktop (stdio, legacy)
 
 ```json
 {
@@ -43,10 +55,21 @@ Add the following to `~/Library/Application Support/Claude/claude_desktop_config
 }
 ```
 
-> **Note:** The server needs a `DATABASE_URL` that points to the SunoFlow Postgres database, because it validates your API key on startup.
+> The stdio server validates keys against `DATABASE_URL` on startup; not appropriate for non-self-hosted users.
 
-For a self-hosted instance, set `DATABASE_URL` to your database connection string.
-For the hosted service, contact support for a read-only replica credential suitable for MCP use.
+## Smoke test
+
+The `scripts/smoke-mcp.mjs` script drives `initialize` → `tools/list` → `tools/call sunoflow_info` against any HTTP MCP endpoint and verifies the responses. Use it to confirm a deploy is healthy or to probe a self-hosted instance.
+
+```bash
+# Against production
+SUNOFLOW_API_KEY=sk-... node scripts/smoke-mcp.mjs https://sunoflow.app/api/mcp
+
+# Against local dev server (pnpm dev, requires DB)
+SUNOFLOW_API_KEY=sk-... node scripts/smoke-mcp.mjs
+```
+
+Exits 0 on full success; non-zero on the first failed check. Output is one line per protocol step.
 
 ## Available tools
 
