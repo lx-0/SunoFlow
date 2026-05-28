@@ -235,3 +235,42 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  e2e-staging:
+    name: E2E Tests (Staging)
+    needs: [qa, secrets-scan]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && vars.STAGING_URL != ''
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run E2E tests against staging
+        run: pnpm test:e2e
+        env:
+          BASE_URL: ${{ vars.STAGING_URL }}
+          PLAYWRIGHT_REMOTE: "true"
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-staging
+          path: playwright-report/
+          retention-days: 14
