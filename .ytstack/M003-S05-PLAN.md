@@ -3,14 +3,16 @@ milestone: M003
 slice: S05
 project: SunoFlow
 created: 2026-05-28T09:30:43Z
-status: planned
+status: deferred-to-M004
 task_count: 4
 completed_tasks: 0
 ---
 
-# M003-S05 -- Slice Plan
+# M003-S05 -- Slice Plan (DEFERRED to M004)
 
-**Goal:** OAuth-2.0-Pfad als Alternative zu Bearer-API-Key implementiert. User kann `claude mcp add --transport http sunoflow https://sunoflow.app/api/mcp` ohne `--header` ausführen, Claude Code discovered die OAuth-Endpoints via RFC 9728 / RFC 8414, User logged sich im Browser ein. Exit Criterion #7 erfüllt.
+**Status as of 2026-05-28:** S05 ist nicht im M003-Scope geblieben. M003-Goal ("Plugin install + Env-Var → works") wurde durch Bearer-Auth in S01-S04 vollständig eingelöst. OAuth (Exit Criterion #7) war erweiterte Härtung und wird als eigene Milestone M004 geplant -- saubere Scope-Definition, eigene Architektur-Diskussion (better-auth-Provider-Mode vs node-oauth2-server vs minimal eigen). Ursprüngliche Slice-Inhalte unten als Ausgangspunkt für M004-Plan erhalten.
+
+**Original Goal (für M004 Referenz):** OAuth-2.0-Pfad als Alternative zu Bearer-API-Key implementiert. User kann `claude mcp add --transport http sunoflow https://sunoflow.app/api/mcp` ohne `--header` ausführen, Claude Code discovered die OAuth-Endpoints via RFC 9728 / RFC 8414, User logged sich im Browser ein.
 
 ## Tasks
 
