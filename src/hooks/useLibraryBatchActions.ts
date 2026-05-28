@@ -29,7 +29,7 @@ interface UseLibraryBatchActionsOptions {
 }
 
 export function useLibraryBatchActions(options: UseLibraryBatchActionsOptions) {
-  const { songs, setSongs, selectedSongIds, clearSelection, isArchiveView } = options;
+  const { songs, setSongs, selectedSongIds, clearSelection } = options;
   const { toast } = useToast();
   const router = useRouter();
 

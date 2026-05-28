@@ -6,6 +6,7 @@ export default defineConfig({
     jsx: "automatic",
   },
   test: {
+    env: { NODE_ENV: "test" },
     environment: "node",
     globals: true,
     exclude: ["**/node_modules/**", "**/.worktrees/**", "e2e", ".claude/**"],
