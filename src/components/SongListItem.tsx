@@ -1,7 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { useTrackPendingSong } from "@/hooks/useTrackPendingSong";
+import { memo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   PlayIcon,
@@ -37,6 +36,9 @@ import { HighlightText } from "./HighlightText";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
 import { formatDuration as formatTime } from "@/lib/time-format";
 import { firstTag } from "@/lib/tags";
+import { useLongPress } from "./song-list-item/use-long-press";
+import { useSongTracking } from "./song-list-item/use-song-tracking";
+import { useSaveStyleTemplate } from "./song-list-item/use-save-style-template";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -150,14 +152,21 @@ function SongRowMenu({
   onSingleDeleteForever,
 }: SongRowMenuProps) {
   const [open, setOpen] = useState(false);
-  const [saveStyleOpen, setSaveStyleOpen] = useState(false);
-  const [styleTemplateName, setStyleTemplateName] = useState("");
-  const [styleTemplateTags, setStyleTemplateTags] = useState("");
-  const [isSavingStyle, setIsSavingStyle] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { playNext, addToQueue } = useQueue();
   const { toast } = useToast();
   const router = useRouter();
+  const {
+    saveStyleOpen,
+    styleTemplateName,
+    setStyleTemplateName,
+    styleTemplateTags,
+    setStyleTemplateTags,
+    isSavingStyle,
+    openSaveStyle,
+    closeSaveStyle,
+    submitSaveStyle,
+  } = useSaveStyleTemplate();
 
   useOutsideClick(menuRef, () => setOpen(false), open);
 
@@ -238,9 +247,7 @@ function SongRowMenu({
             <button
               onClick={() => {
                 setOpen(false);
-                setStyleTemplateTags(song.tags!);
-                setStyleTemplateName("");
-                setSaveStyleOpen(true);
+                openSaveStyle(song.tags!);
               }}
               className={itemClass}
             >
@@ -289,7 +296,7 @@ function SongRowMenu({
       {saveStyleOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => setSaveStyleOpen(false)}
+          onClick={closeSaveStyle}
         >
           <div
             className="bg-white dark:bg-gray-900 rounded-xl shadow-xl p-5 w-80 space-y-3"
@@ -313,7 +320,7 @@ function SongRowMenu({
             <div className="flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setSaveStyleOpen(false)}
+                onClick={closeSaveStyle}
                 className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
               >
                 Cancel
@@ -321,27 +328,7 @@ function SongRowMenu({
               <button
                 type="button"
                 disabled={!styleTemplateName.trim() || !styleTemplateTags.trim() || isSavingStyle}
-                onClick={async () => {
-                  setIsSavingStyle(true);
-                  try {
-                    const res = await fetch("/api/style-templates", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ name: styleTemplateName.trim(), tags: styleTemplateTags.trim(), sourceSongId: song.id }),
-                    });
-                    if (res.ok) {
-                      toast("Style template saved", "success");
-                      setSaveStyleOpen(false);
-                    } else {
-                      const data = await res.json();
-                      toast(data.error ?? "Failed to save template", "error");
-                    }
-                  } catch {
-                    toast("Failed to save template", "error");
-                  } finally {
-                    setIsSavingStyle(false);
-                  }
-                }}
+                onClick={() => submitSaveStyle(song.id)}
                 className="px-3 py-1.5 text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 rounded-lg disabled:opacity-50 transition-colors"
               >
                 {isSavingStyle ? "Saving…" : "Save"}
@@ -423,61 +410,10 @@ export const SongListItem = memo(function SongListItem({
   onSingleDeleteForever,
   onTagClick,
 }: SongListItemProps) {
-  const { toast } = useToast();
-  const [song, setSong] = useState(initialSong);
+  const { song, setSong, isPending, isFailed, hasAudio } = useSongTracking(initialSong, onUpdate);
+  const { handleTouchStart, handleTouchMove, handleTouchEnd } = useLongPress(() => onLongPress(song.id));
 
-  // Long-press to enter selection mode on mobile
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
-  function handleTouchStart(e: React.TouchEvent) {
-    const t = e.touches[0];
-    touchStartPos.current = { x: t.clientX, y: t.clientY };
-    longPressTimer.current = setTimeout(() => {
-      onLongPress(song.id);
-    }, 500);
-  }
-  function handleTouchMove(e: React.TouchEvent) {
-    if (!touchStartPos.current || !longPressTimer.current) return;
-    const t = e.touches[0];
-    const dx = t.clientX - touchStartPos.current.x;
-    const dy = t.clientY - touchStartPos.current.y;
-    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  }
-  function handleTouchEnd() {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-    touchStartPos.current = null;
-  }
-
-  useEffect(() => { setSong(initialSong); }, [initialSong]);
-
-  const handleUpdate = useCallback((updated: Song) => {
-    if (song.generationStatus === "pending" && updated.generationStatus !== "pending") {
-      if (updated.generationStatus === "ready") {
-        const vc = (updated as Song & { variationCount?: number }).variationCount ?? 0;
-        const msg = vc > 0
-          ? `${vc + 1} versions ready — click to compare`
-          : `"${updated.title ?? "Song"}" is ready!`;
-        toast(msg, "success");
-      } else if (updated.generationStatus === "failed") {
-        toast(`"${updated.title ?? "Song"}" generation failed`, "error");
-      }
-    }
-    setSong(updated);
-    onUpdate(updated);
-  }, [onUpdate, song.generationStatus, toast]);
-
-  useTrackPendingSong(song, handleUpdate);
-
-  const isPending = song.generationStatus === "pending";
-  const isFailed = song.generationStatus === "failed";
   const isRetrying = retryingId === song.id;
-  const hasAudio = Boolean(song.audioUrl) && !isPending;
   const isDownloading = downloadProgress !== null;
 
   const songTitle = song.title ?? "Untitled";

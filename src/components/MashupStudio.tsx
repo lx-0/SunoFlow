@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   ArrowUpTrayIcon,
   XMarkIcon,
@@ -9,12 +9,16 @@ import {
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/solid";
 import Image from "next/image";
-import { useToast } from "./Toast";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { GenerationProgress } from "./GenerationProgress";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
-
-type TrackSourceType = "library" | "upload" | "url";
+import { useMashupRateLimit } from "./mashup-studio/use-mashup-rate-limit";
+import { useMashupSubmission } from "./mashup-studio/use-mashup-submission";
+import {
+  useTrackFileHandler,
+  emptyTrack,
+  type TrackState,
+} from "./mashup-studio/use-track-file-handler";
 
 interface LibrarySong {
   id: string;
@@ -23,50 +27,6 @@ interface LibrarySong {
   audioUrl: string | null;
   imageUrl: string | null;
   duration: number | null;
-}
-
-interface TrackState {
-  sourceType: TrackSourceType;
-  // Library selection
-  songId: string | null;
-  songTitle: string | null;
-  songImageUrl: string | null;
-  // File upload
-  file: File | null;
-  previewUrl: string | null;
-  duration: number | null;
-  // URL
-  fileUrl: string;
-}
-
-interface RateLimitStatus {
-  remaining: number;
-  limit: number;
-  resetAt: string;
-}
-
-const ACCEPTED_TYPES = [
-  "audio/mpeg",
-  "audio/wav",
-  "audio/ogg",
-  "audio/flac",
-  "audio/mp4",
-  "audio/x-m4a",
-  "audio/aac",
-];
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
-
-function emptyTrack(): TrackState {
-  return {
-    sourceType: "library",
-    songId: null,
-    songTitle: null,
-    songImageUrl: null,
-    file: null,
-    previewUrl: null,
-    duration: null,
-    fileUrl: "",
-  };
 }
 
 function formatFileSize(bytes: number): string {
@@ -251,66 +211,17 @@ function TrackSelector({
   track: TrackState;
   onChange: (t: TrackState) => void;
 }) {
-  const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
-
-  const handleFileSelect = useCallback(
-    (selectedFile: File) => {
-      if (!ACCEPTED_TYPES.includes(selectedFile.type)) {
-        toast(
-          "Unsupported file type. Please upload an audio file (MP3, WAV, OGG, FLAC, M4A).",
-          "error"
-        );
-        return;
-      }
-      if (selectedFile.size > MAX_FILE_SIZE) {
-        toast("File too large (max 10MB). Try using a URL instead.", "error");
-        return;
-      }
-
-      const url = URL.createObjectURL(selectedFile);
-      const audio = new Audio(url);
-      audio.addEventListener("loadedmetadata", () => {
-        onChange({
-          ...emptyTrack(),
-          sourceType: "upload",
-          file: selectedFile,
-          previewUrl: url,
-          duration: audio.duration,
-        });
-      });
-      audio.addEventListener("error", () => {
-        onChange({
-          ...emptyTrack(),
-          sourceType: "upload",
-          file: selectedFile,
-          previewUrl: url,
-          duration: null,
-        });
-      });
-    },
-    [onChange, toast]
-  );
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragging(false);
-      const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile) handleFileSelect(droppedFile);
-    },
-    [handleFileSelect]
-  );
-
-  const clearTrack = useCallback(() => {
-    if (track.previewUrl) URL.revokeObjectURL(track.previewUrl);
-    onChange(emptyTrack());
-  }, [track.previewUrl, onChange]);
-
-  const hasSelection =
-    track.songId || track.file || track.fileUrl.trim();
+  const {
+    fileInputRef,
+    isDragging,
+    setIsDragging,
+    pickerOpen,
+    setPickerOpen,
+    handleFileSelect,
+    handleDrop,
+    clearTrack,
+    hasSelection,
+  } = useTrackFileHandler(track, onChange);
 
   return (
     <div className="space-y-2">
@@ -514,136 +425,29 @@ function TrackSelector({
   );
 }
 
-// --- File to Base64 ---
-
-function fileToBase64(f: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result.split(",")[1]);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(f);
-  });
-}
-
-// --- Build track payload ---
-
-async function buildTrackPayload(track: TrackState) {
-  if (track.sourceType === "library" && track.songId) {
-    return { songId: track.songId };
-  }
-  if (track.sourceType === "upload" && track.file) {
-    const base64Data = await fileToBase64(track.file);
-    return { base64Data };
-  }
-  if (track.sourceType === "url" && track.fileUrl.trim()) {
-    return { fileUrl: track.fileUrl.trim() };
-  }
-  return null;
-}
-
 // --- Main Component ---
 
 export function MashupStudio() {
-  const { toast } = useToast();
   const { songs: trackedSongs, trackSong, clearAll } = useGenerationPoller();
+  const { rateLimit, setRateLimit, rateLimitExhausted } = useMashupRateLimit();
 
   const [trackA, setTrackA] = useState<TrackState>(emptyTrack());
   const [trackB, setTrackB] = useState<TrackState>(emptyTrack());
-  const [title, setTitle] = useState("");
-  const [style, setStyle] = useState("");
-  const [prompt, setPrompt] = useState("");
-  const [instrumental, setInstrumental] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [rateLimit, setRateLimit] = useState<RateLimitStatus | null>(null);
 
-  // Fetch rate limit on mount
-  const rateLimitFetched = useRef(false);
-  if (!rateLimitFetched.current) {
-    rateLimitFetched.current = true;
-    fetch("/api/rate-limit/status")
-      .then((r) => r.json())
-      .then((d) => setRateLimit(d))
-      .catch(() => {});
-  }
-
-  const trackAReady =
-    (trackA.sourceType === "library" && trackA.songId) ||
-    (trackA.sourceType === "upload" && trackA.file) ||
-    (trackA.sourceType === "url" && trackA.fileUrl.trim());
-
-  const trackBReady =
-    (trackB.sourceType === "library" && trackB.songId) ||
-    (trackB.sourceType === "upload" && trackB.file) ||
-    (trackB.sourceType === "url" && trackB.fileUrl.trim());
-
-  const rateLimitExhausted = rateLimit && rateLimit.remaining <= 0;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!trackAReady || !trackBReady) {
-      toast("Please select two tracks for the mashup.", "error");
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      const [payloadA, payloadB] = await Promise.all([
-        buildTrackPayload(trackA),
-        buildTrackPayload(trackB),
-      ]);
-
-      if (!payloadA || !payloadB) {
-        toast("Could not prepare track data. Please try again.", "error");
-        setSubmitting(false);
-        return;
-      }
-
-      const res = await fetch("/api/mashup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          trackA: payloadA,
-          trackB: payloadB,
-          title: title.trim() || undefined,
-          prompt: prompt.trim() || undefined,
-          style: style.trim() || undefined,
-          instrumental,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.rateLimit) setRateLimit(data.rateLimit);
-
-      if (!res.ok && res.status !== 201) {
-        toast(data.error || "Mashup generation failed", "error");
-        setSubmitting(false);
-        return;
-      }
-
-      if (data.error) {
-        toast(data.error, "error");
-      } else {
-        toast("Mashup generation started!", "success");
-      }
-
-      if (data.songs?.length) {
-        for (const song of data.songs) {
-          trackSong(song.id, song.title);
-        }
-      }
-
-      setSubmitting(false);
-    } catch {
-      toast("Failed to start mashup. Please try again.", "error");
-      setSubmitting(false);
-    }
-  };
+  const {
+    title,
+    setTitle,
+    style,
+    setStyle,
+    prompt,
+    setPrompt,
+    instrumental,
+    setInstrumental,
+    submitting,
+    trackAReady,
+    trackBReady,
+    handleSubmit,
+  } = useMashupSubmission(trackA, trackB, trackSong, setRateLimit);
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
