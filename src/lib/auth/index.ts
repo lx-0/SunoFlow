@@ -1,6 +1,7 @@
 export { auth, handlers, signIn, signOut, googleEnabled } from "./session";
 export { registerUser } from "./register";
 export type { RegisterInput, RegisterResult } from "./register";
+export { hashPassword, verifyPassword } from "./password";
 
 import { randomBytes, createHash, timingSafeEqual } from "crypto";
 import type { Session } from "next-auth";
