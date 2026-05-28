@@ -52,6 +52,13 @@ import "./providers/feed";
 import "./providers/credits";
 
 async function main(): Promise<void> {
+  process.stderr.write(
+    "⚠ DEPRECATED: stdio MCP transport is legacy as of 0.3.0.\n" +
+      "  Prefer the remote Streamable-HTTP endpoint at https://sunoflow.app/api/mcp\n" +
+      "  (install the sunoflow Claude Code plugin + set SUNOFLOW_API_KEY).\n" +
+      "  This stdio binary will be removed in a future release.\n",
+  );
+
   const userId = await resolveApiKeyFromEnv();
   if (!userId) {
     process.stderr.write(
@@ -62,7 +69,7 @@ async function main(): Promise<void> {
   }
 
   const server = new Server(
-    { name: "sunoflow-mcp", version: "0.2.1" },
+    { name: "sunoflow-mcp", version: "0.3.0" },
     { capabilities: { tools: {}, resources: {} } }
   );
 
