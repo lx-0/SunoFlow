@@ -21,12 +21,12 @@ import {
   ErrorCode,
 } from "@modelcontextprotocol/sdk/types.js";
 
-import { getTool, getTools } from "../../../mcp/registry";
+import { getTool, getTools } from "@mcp/registry";
 import {
   getStaticResources,
   getTemplateResources,
   resolveResource,
-} from "../../../mcp/resources";
+} from "@mcp/resources";
 
 export function registerMcpHandlers(server: Server, userId: string): void {
   server.setRequestHandler(ListToolsRequestSchema, async () => ({

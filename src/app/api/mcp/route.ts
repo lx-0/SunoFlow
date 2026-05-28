@@ -21,7 +21,7 @@ import "@/lib/mcp/registry-bootstrap";
 import { checkOrigin } from "@/lib/mcp/origin-guard";
 import { checkMcpRateLimit } from "@/lib/mcp/rate-limit";
 import { logServerError } from "@/lib/error-logger/server";
-import { resolveApiKeyFromHeader } from "../../../../mcp/auth";
+import { resolveApiKeyFromHeader } from "@mcp/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
