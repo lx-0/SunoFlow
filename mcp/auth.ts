@@ -1,20 +1,19 @@
 /**
- * Auth middleware for the SunoFlow MCP server (stdio transport).
+ * Auth middleware for the SunoFlow MCP server.
  *
- * For stdio, the API key is passed as the SUNOFLOW_API_KEY environment variable
- * when the host (e.g. Claude Desktop) spawns this process.
+ * Supports two entry points:
+ * - stdio transport: API key from SUNOFLOW_API_KEY env var
+ * - HTTP transport: API key from `Authorization: Bearer ...` request header
+ *
+ * Both paths share the same lookup + hash + lastUsedAt-update logic.
  */
 
 import { createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
 
-/**
- * Resolve a userId from the SUNOFLOW_API_KEY environment variable.
- * Returns the userId if the key is valid and not revoked, null otherwise.
- * Updates lastUsedAt fire-and-forget on success.
- */
-export async function resolveApiKeyFromEnv(): Promise<string | null> {
-  const rawKey = process.env.SUNOFLOW_API_KEY;
+async function resolveApiKey(
+  rawKey: string | null | undefined,
+): Promise<string | null> {
   if (!rawKey || !rawKey.startsWith("sk-")) return null;
 
   const keyHash = createHash("sha256").update(rawKey).digest("hex");
@@ -26,10 +25,31 @@ export async function resolveApiKeyFromEnv(): Promise<string | null> {
 
   if (!apiKey) return null;
 
-  // Fire-and-forget lastUsedAt update
   prisma.apiKey
     .update({ where: { id: apiKey.id }, data: { lastUsedAt: new Date() } })
     .catch(() => {});
 
   return apiKey.userId;
+}
+
+/**
+ * Resolve a userId from the SUNOFLOW_API_KEY environment variable.
+ * Returns the userId if the key is valid and not revoked, null otherwise.
+ */
+export async function resolveApiKeyFromEnv(): Promise<string | null> {
+  return resolveApiKey(process.env.SUNOFLOW_API_KEY);
+}
+
+/**
+ * Resolve a userId from an `Authorization: Bearer sk-...` header value.
+ * Returns the userId if the key is valid and not revoked, null otherwise.
+ * Returns null for missing header, malformed scheme, or unknown/revoked keys.
+ */
+export async function resolveApiKeyFromHeader(
+  authHeader: string | null | undefined,
+): Promise<string | null> {
+  if (!authHeader) return null;
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  if (!match) return null;
+  return resolveApiKey(match[1].trim());
 }

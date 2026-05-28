@@ -17,7 +17,7 @@ registerTool({
     const tools = getTools();
     return {
       server: "sunoflow-mcp",
-      version: "0.2.1",
+      version: "0.3.0",
       tools: tools.map((t) => ({ name: t.name, description: t.description })),
     };
   },

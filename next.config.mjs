@@ -59,6 +59,11 @@ const nextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
       ...corejs3Stubs,
+      // Repo-root `mcp/` directory contains the legacy stdio modules + tools
+      // shared with the HTTP route. Webpack can't traverse outside `src/`
+      // via relative `../../../mcp/...` in production builds, so expose them
+      // under the `@mcp/*` alias instead.
+      "@mcp": path.resolve(__dirname, "mcp"),
     };
 
     // Catch-all: redirect any remaining core-js-pure/features/* imports that

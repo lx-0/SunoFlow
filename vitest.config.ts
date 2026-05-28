@@ -6,6 +6,7 @@ export default defineConfig({
     jsx: "automatic",
   },
   test: {
+    env: { NODE_ENV: "test" },
     environment: "node",
     globals: true,
     exclude: ["**/node_modules/**", "**/.worktrees/**", "e2e", ".claude/**"],
@@ -58,6 +59,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "./src"),
+      "@mcp": resolve(__dirname, "./mcp"),
     },
   },
 });
