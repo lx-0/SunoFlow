@@ -8,8 +8,10 @@ import {
   addVocals as sunoAddVocals,
   addInstrumental as sunoAddInstrumental,
   replaceSection as sunoReplaceSection,
+  separateVocals as sunoSeparateVocals,
   mockSongs,
 } from "@/lib/sunoapi";
+import type { SeparationType } from "@/lib/sunoapi";
 import { normalizeVariationTags, variationTitle } from "@/lib/songs/variations/helpers";
 import { resolveParent } from "@/lib/songs/variations/parent-context";
 import { validateReplaceSectionRange } from "@/lib/songs/variations/section-validation";
@@ -19,6 +21,7 @@ import type {
   AddInstrumentalInput,
   ReplaceSectionInput,
   ExtendSongInput,
+  SeparateVocalsInput,
 } from "@/lib/songs/variations/types";
 
 export async function createVariation(
@@ -327,6 +330,58 @@ export async function extendSong(
       },
       userApiKey,
     ),
+  });
+
+  return success(outcome);
+}
+
+export async function separateVocals(
+  userId: string,
+  parentSongId: string,
+  input: SeparateVocalsInput,
+): Promise<Result<GenerationOutcome>> {
+  const ctx = await resolveParent(userId, parentSongId);
+  if (!ctx.ok) return ctx;
+  const { parentSong, rootId, userApiKey, hasApiKey } = ctx.data;
+
+  if (parentSong.generationStatus !== "ready") {
+    return Err.validation("Song must be fully generated before separating vocals.");
+  }
+  if (hasApiKey && (!parentSong.sunoJobId || !parentSong.sunoAudioId)) {
+    return Err.validation("Song is missing Suno identifiers for vocal separation.");
+  }
+
+  const separationType: SeparationType = input.type === "split_stem"
+    ? "split_stem"
+    : "separate_vocal";
+
+  const suffix = separationType === "split_stem" ? "stems" : "vocals";
+  const title = `${parentSong.title || "Untitled"} (${suffix})`;
+  const mock = mockSongs[0];
+
+  const outcome = await executeGeneration({
+    userId,
+    action: "generate",
+    songParams: {
+      title,
+      prompt: `Vocal separation of "${parentSong.title || "Untitled"}"`,
+      tags: parentSong.tags,
+      isInstrumental: false,
+      parentSongId: rootId,
+    },
+    apiCall: () => sunoSeparateVocals(
+      { taskId: parentSong.sunoJobId!, audioId: parentSong.sunoAudioId!, type: separationType },
+      userApiKey,
+    ),
+    mockFallback: {
+      audioUrl: mock.audioUrl,
+      imageUrl: parentSong.imageUrl,
+      duration: parentSong.duration,
+      model: parentSong.sunoModel,
+    },
+    hasApiKey,
+    guards: "free",
+    description: "separate-vocals",
   });
 
   return success(outcome);

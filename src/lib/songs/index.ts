@@ -24,6 +24,7 @@ export {
   addInstrumental,
   replaceSection,
   extendSong,
+  separateVocals,
   normalizeVariationTags,
   variationTitle,
   resolveRootId,
@@ -36,6 +37,7 @@ export type {
   AddInstrumentalInput,
   ReplaceSectionInput,
   ExtendSongInput,
+  SeparateVocalsInput,
 } from "./variations";
 
 export { querySongLibrary } from "./library";

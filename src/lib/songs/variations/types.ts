@@ -34,6 +34,10 @@ export interface ExtendSongInput {
   continueAt?: number;
 }
 
+export interface SeparateVocalsInput {
+  type?: string;
+}
+
 export type VariationRow = Pick<
   Song,
   "id" | "title" | "prompt" | "tags" | "audioUrl" | "imageUrl" | "duration" | "lyrics" | "generationStatus" | "isInstrumental" | "createdAt"

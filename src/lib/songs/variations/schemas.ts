@@ -38,3 +38,8 @@ export const extendSongBody = z.object({
   continueAt: z.number().optional(),
 });
 export type ExtendSongBody = z.infer<typeof extendSongBody>;
+
+export const separateVocalsBody = z.object({
+  type: z.string().optional(),
+});
+export type SeparateVocalsBody = z.infer<typeof separateVocalsBody>;
