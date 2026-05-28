@@ -40,13 +40,78 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y postgresql-client-16
 
+      - name: Resolve production database URL
+        id: resolve-db
+        env:
+          PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${PRODUCTION_DATABASE_URL:-}" ]; then
+            echo "::add-mask::$PRODUCTION_DATABASE_URL"
+            echo "url=$PRODUCTION_DATABASE_URL" >> "$GITHUB_OUTPUT"
+            echo "Resolved via PRODUCTION_DATABASE_URL secret"
+            exit 0
+          fi
+
+          if [ -z "${RAILWAY_TOKEN:-}" ]; then
+            echo "::error::Neither PRODUCTION_DATABASE_URL nor RAILWAY_TOKEN secret is set. See docs/backup-runbook.md."
+            exit 1
+          fi
+
+          echo "PRODUCTION_DATABASE_URL not set — fetching DATABASE_PUBLIC_URL from Railway API…"
+
+          RAILWAY_API="https://backboard.railway.app/graphql/v2"
+
+          gql() {
+            curl -sf "$RAILWAY_API" \
+              -H "Authorization: Bearer $RAILWAY_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$1"
+          }
+
+          PROJ=$(gql '{"query":"{ projects { edges { node { id environments { edges { node { id name } } } services { edges { node { id name } } } } } } }"}')
+
+          PROJECT_ID=$(echo "$PROJ" | jq -r '.data.projects.edges[0].node.id')
+          ENV_ID=$(echo "$PROJ" | jq -r '[.data.projects.edges[0].node.environments.edges[].node | select(.name == "production")][0].id')
+
+          if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" = "null" ]; then
+            echo "::error::Could not resolve Railway project. Is RAILWAY_TOKEN valid?"
+            exit 1
+          fi
+          if [ -z "$ENV_ID" ] || [ "$ENV_ID" = "null" ]; then
+            echo "::error::No 'production' environment found in Railway project."
+            exit 1
+          fi
+
+          SERVICES=$(echo "$PROJ" | jq -r '.data.projects.edges[0].node.services.edges[].node | "\(.id)\t\(.name)"')
+          DB_URL=""
+          while IFS=$'\t' read -r svc_id svc_name; do
+            VARS=$(gql "{\"query\":\"query { variables(projectId: \\\"$PROJECT_ID\\\", environmentId: \\\"$ENV_ID\\\", serviceId: \\\"$svc_id\\\") }\"}")
+            CANDIDATE=$(echo "$VARS" | jq -r '.data.variables.DATABASE_PUBLIC_URL // empty')
+            if [ -n "$CANDIDATE" ]; then
+              DB_URL="$CANDIDATE"
+              echo "Found DATABASE_PUBLIC_URL on service: $svc_name"
+              break
+            fi
+          done <<< "$SERVICES"
+
+          if [ -z "$DB_URL" ]; then
+            echo "::error::No service with DATABASE_PUBLIC_URL found. Set PRODUCTION_DATABASE_URL manually — see docs/backup-runbook.md."
+            exit 1
+          fi
+
+          echo "::add-mask::$DB_URL"
+          echo "url=$DB_URL" >> "$GITHUB_OUTPUT"
+
       - name: Take production backup
         env:
-          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          DATABASE_URL: ${{ steps.resolve-db.outputs.url }}
           BACKUP_DIR: backups
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "::error::PRODUCTION_DATABASE_URL secret is not set. See docs/backup-runbook.md."
+            echo "::error::Database URL resolution failed. See docs/backup-runbook.md."
             exit 1
           fi
           mkdir -p "$BACKUP_DIR"

@@ -1,5 +1,5 @@
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { verifyPassword } from "@/lib/auth/password";
 import { stripHtml } from "@/lib/sanitize";
 import { type Result, success, Err } from "@/lib/result";
 
@@ -141,7 +141,7 @@ export async function deleteAccount(
     return Err.validation("Email does not match your account");
   }
 
-  const valid = await bcrypt.compare(input.password, user.passwordHash);
+  const valid = await verifyPassword(input.password, user.passwordHash);
   if (!valid) return Err.validation("Password is incorrect");
 
   await prisma.user.delete({ where: { id: userId } });

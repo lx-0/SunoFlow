@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import bcrypt from "bcryptjs";
 import { authRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { badRequest, notFound } from "@/lib/api-error";
+import { hashPassword, verifyPassword } from "@/lib/auth/password";
 
 const changePasswordBody = z
   .object({
@@ -27,12 +27,12 @@ export const POST = authRoute(
       return notFound("User not found");
     }
 
-    const valid = await bcrypt.compare(body.currentPassword, user.passwordHash);
+    const valid = await verifyPassword(body.currentPassword, user.passwordHash);
     if (!valid) {
       return badRequest("Current password is incorrect");
     }
 
-    const passwordHash = await bcrypt.hash(body.newPassword, 12);
+    const passwordHash = await hashPassword(body.newPassword);
     await prisma.user.update({
       where: { id: auth.userId },
       data: { passwordHash },

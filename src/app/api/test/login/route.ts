@@ -10,10 +10,10 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { encode } from "next-auth/jwt";
-import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { publicRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
+import { verifyPassword } from "@/lib/auth/password";
 
 const testLoginSchema = z.object({
   email: z.string().email(),
@@ -36,7 +36,7 @@ export const POST = publicRoute<
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
-  const passwordMatch = await bcrypt.compare(password, user.passwordHash);
+  const passwordMatch = await verifyPassword(password, user.passwordHash);
   if (!passwordMatch) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
