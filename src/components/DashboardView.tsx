@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { MusicalNoteIcon, SparklesIcon } from "@heroicons/react/24/solid";
 import { formatDuration as formatTime } from "@/lib/time-format";
 import { firstTag } from "@/lib/tags";
+import { useQuery } from "@tanstack/react-query";
+import { HttpError } from "./QueryProvider";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,24 @@ interface RateLimitStatusFull {
   percentUsed: number;
   resetAt: string;
   dailyCounts: { date: string; count: number }[];
+}
+
+interface DiscoverySong {
+  id: string;
+  title: string | null;
+  tags: string | null;
+  imageUrl: string | null;
+  duration: number | null;
+  createdAt: string;
+  rating: number | null;
+}
+
+// ─── Fetchers ────────────────────────────────────────────────────────────────
+
+async function fetchJson<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) throw new HttpError(res.status);
+  return res.json() as Promise<T>;
 }
 
 // ─── Skeleton components ─────────────────────────────────────────────────────
@@ -157,62 +176,26 @@ function UsageChartSkeleton() {
   );
 }
 
-// ─── Daily discovery types ────────────────────────────────────────────────────
-
-interface DiscoverySong {
-  id: string;
-  title: string | null;
-  tags: string | null;
-  imageUrl: string | null;
-  duration: number | null;
-  createdAt: string;
-  rating: number | null;
-}
-
 // ─── DashboardView ───────────────────────────────────────────────────────────
 
 export function DashboardView({ userName }: { userName?: string | null }) {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [rateLimitStatus, setRateLimitStatus] = useState<RateLimitStatusFull | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [dailySongs, setDailySongs] = useState<DiscoverySong[] | null>(null);
-  const [dailyLoading, setDailyLoading] = useState(true);
+  const { data: stats, isPending: statsLoading } = useQuery<DashboardStats>({
+    queryKey: ["dashboard", "stats"],
+    queryFn: () => fetchJson("/api/dashboard/stats"),
+  });
 
-  const fetchStats = useCallback(async () => {
-    try {
-      const [statsRes, rlRes] = await Promise.all([
-        fetch("/api/dashboard/stats"),
-        fetch("/api/rate-limit/status"),
-      ]);
-      if (statsRes.ok) {
-        setStats(await statsRes.json());
-      }
-      if (rlRes.ok) {
-        setRateLimitStatus(await rlRes.json());
-      }
-    } catch {
-      // Keep existing data on error
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data: rateLimitStatus, isPending: rlLoading } = useQuery<RateLimitStatusFull>({
+    queryKey: ["rate-limit", "status"],
+    queryFn: () => fetchJson("/api/rate-limit/status"),
+  });
 
-  // Initial fetch
-  useEffect(() => {
-    fetchStats();
-    fetch("/api/recommendations/daily")
-      .then((r) => r.json())
-      .then((data) => setDailySongs(data.songs ?? []))
-      .catch(() => setDailySongs([]))
-      .finally(() => setDailyLoading(false));
-  }, [fetchStats]);
+  const { data: dailyData, isPending: dailyLoading } = useQuery<{ songs: DiscoverySong[] }>({
+    queryKey: ["recommendations", "daily"],
+    queryFn: () => fetchJson("/api/recommendations/daily"),
+  });
 
-  // Revalidate on page focus
-  useEffect(() => {
-    const handleFocus = () => fetchStats();
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [fetchStats]);
+  const loading = statsLoading || rlLoading;
+  const dailySongs = dailyData?.songs ?? null;
 
   return (
     <div className="px-4 py-6 space-y-6">
@@ -249,8 +232,8 @@ export function DashboardView({ userName }: { userName?: string | null }) {
             label="Avg rating"
             value={
               stats.averageRating !== null
-                ? `${stats.averageRating}\u2605`
-                : "\u2014"
+                ? `${stats.averageRating}★`
+                : "—"
             }
           />
         </div>
