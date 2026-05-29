@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import type { Song } from "@prisma/client";
 import { toggleSelection, toggleSelectAll } from "@/components/library/selection";
 import { runSongsBatchAction, type LibraryBatchAction } from "@/lib/songs/library-client";
+import { applyBatchActionToSongs, batchActionMessage } from "@/lib/songs/batch-action-helpers";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 
 type BatchActionType = Exclude<LibraryBatchAction, "tag" | "add_to_playlist">;
@@ -70,38 +71,8 @@ export function useLibrarySelection({
           return;
         }
         const count = result.affected;
-
-        if (action === "favorite") {
-          setSongs((prev) =>
-            prev.map((s) => (selectedSongIds.has(s.id) ? { ...s, isFavorite: true } : s))
-          );
-          toast(`${count} song${count !== 1 ? "s" : ""} added to favorites`, "success");
-        } else if (action === "unfavorite") {
-          setSongs((prev) =>
-            prev.map((s) => (selectedSongIds.has(s.id) ? { ...s, isFavorite: false } : s))
-          );
-          toast(`${count} song${count !== 1 ? "s" : ""} removed from favorites`, "success");
-        } else if (action === "delete") {
-          setSongs((prev) => prev.filter((s) => !selectedSongIds.has(s.id)));
-          toast(`${count} song${count !== 1 ? "s" : ""} moved to archive`, "success");
-        } else if (action === "restore") {
-          setSongs((prev) => prev.filter((s) => !selectedSongIds.has(s.id)));
-          toast(`${count} song${count !== 1 ? "s" : ""} restored`, "success");
-        } else if (action === "permanent_delete") {
-          setSongs((prev) => prev.filter((s) => !selectedSongIds.has(s.id)));
-          toast(`${count} song${count !== 1 ? "s" : ""} permanently deleted`, "success");
-        } else if (action === "make_public") {
-          setSongs((prev) =>
-            prev.map((s) => (selectedSongIds.has(s.id) ? { ...s, isPublic: true } : s))
-          );
-          toast(`${count} song${count !== 1 ? "s" : ""} made public`, "success");
-        } else if (action === "make_private") {
-          setSongs((prev) =>
-            prev.map((s) => (selectedSongIds.has(s.id) ? { ...s, isPublic: false } : s))
-          );
-          toast(`${count} song${count !== 1 ? "s" : ""} made private`, "success");
-        }
-
+        setSongs((prev) => applyBatchActionToSongs(prev, selectedSongIds, action));
+        toast(batchActionMessage(action, count), "success");
         clearSelection();
       } catch {
         toast("Batch operation failed", "error");
