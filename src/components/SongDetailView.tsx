@@ -28,7 +28,9 @@ import { SongRemixPanel } from "./song-detail/SongRemixPanel";
 import { SongVariationTree } from "./song-detail/SongVariationTree";
 import { SongRatingPanel } from "./song-detail/SongRatingPanel";
 import type { SongTag, VariationSummary } from "./song-detail/types";
-import { useSongFavorite, useSongVisibility, useSongArchive } from "./song-detail/hooks";
+import { useSongFavorite } from "@/hooks/song-actions/use-song-favorite";
+import { useSongVisibility } from "@/hooks/song-actions/use-song-visibility";
+import { useSongArchive } from "@/hooks/song-actions/use-song-archive";
 
 const EmbedCodeModal = dynamic(() => import("./EmbedCodeModal").then((m) => m.EmbedCodeModal));
 const ReportModal = dynamic(() => import("./ReportModal").then((m) => m.ReportModal));
@@ -87,9 +89,27 @@ export function SongDetailView({
   const currentSong = currentIndex >= 0 ? queue[currentIndex] : null;
   const isThisSongPlaying = isPlaying && currentSong?.id === song.id;
 
-  const favorite = useSongFavorite({ songId: song.id, initialFavorite, initialCount: initialFavoriteCount, toast });
-  const visibility = useSongVisibility({ songId: song.id, songTitle: song.title, initialIsPublic, initialSlug: initialPublicSlug, toast });
-  const archiveHook = useSongArchive({ songId: song.id, initialIsArchived, toast, onArchived: () => router.push("/library") });
+  const [confirmPublicOpen, setConfirmPublicOpen] = useState(false);
+  const [confirmArchiveOpen, setConfirmArchiveOpen] = useState(false);
+
+  const { isFavorite, favoriteCount, handleToggleFavorite } = useSongFavorite({
+    songId: song.id,
+    initialFavorite,
+    initialFavoriteCount,
+    toast,
+  });
+  const { isPublic, publicSlug, sharing, setVisibility, handleCopyLink, handleShareOnX } = useSongVisibility({
+    songId: song.id,
+    songTitle: song.title,
+    initialIsPublic,
+    initialPublicSlug,
+    toast,
+  });
+  const { isArchived, archiving, handleArchive, handleRestore } = useSongArchive({
+    songId: song.id,
+    initialIsArchived,
+    toast,
+  });
 
   const [reportOpen, setReportOpen] = useState(false);
   const [embedOpen, setEmbedOpen] = useState(false);
@@ -110,9 +130,9 @@ export function SongDetailView({
         isHidden={isHidden}
         coverImageUrl={coverImageUrl}
         generatedFallbackUrl={generatedFallbackUrl}
-        isFavorite={favorite.isFavorite}
-        favoriteCount={favorite.favoriteCount}
-        onToggleFavorite={favorite.toggle}
+        isFavorite={isFavorite}
+        favoriteCount={favoriteCount}
+        onToggleFavorite={handleToggleFavorite}
         onOpenCoverArt={() => setCoverArtModalOpen(true)}
       />
 
@@ -161,15 +181,21 @@ export function SongDetailView({
         <SongActionsBar
           song={song}
           hasAudio={hasAudio}
-          isPublic={visibility.isPublic}
-          publicSlug={visibility.publicSlug}
+          isPublic={isPublic}
+          publicSlug={publicSlug}
           isCached={isCached}
           isSavingOffline={isSavingOffline}
-          sharing={visibility.sharing}
+          sharing={sharing}
           coverImageUrl={coverImageUrl}
-          onVisibilityToggle={visibility.toggle}
-          onCopyLink={visibility.copyLink}
-          onShareOnX={visibility.shareOnX}
+          onVisibilityToggle={() => {
+            if (!isPublic) {
+              setConfirmPublicOpen(true);
+            } else {
+              setVisibility("private");
+            }
+          }}
+          onCopyLink={handleCopyLink}
+          onShareOnX={handleShareOnX}
           onEmbedOpen={() => setEmbedOpen(true)}
           onReportOpen={() => setReportOpen(true)}
           onSaveOffline={() => saveOffline({ id: song.id, title: song.title, imageUrl: song.imageUrl ?? null })}
@@ -182,13 +208,13 @@ export function SongDetailView({
             addToQueue({ id: song.id, title: song.title, audioUrl: song.audioUrl!, imageUrl: coverImageUrl ?? null, duration: song.duration ?? null, lyrics: song.lyrics });
             toast("Added to queue", "success");
           }}
-          isArchived={archiveHook.isArchived}
-          archiving={archiveHook.archiving}
-          onArchive={() => archiveHook.setConfirmOpen(true)}
-          onRestore={archiveHook.restore}
+          isArchived={isArchived}
+          archiving={archiving}
+          onArchive={() => setConfirmArchiveOpen(true)}
+          onRestore={handleRestore}
         />
 
-        {visibility.confirmOpen && (
+        {confirmPublicOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-public-title">
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4">
               <h2 id="confirm-public-title" className="text-lg font-semibold text-gray-900 dark:text-white">Make song public?</h2>
@@ -197,13 +223,13 @@ export function SongDetailView({
               </p>
               <div className="flex gap-3 justify-end">
                 <button
-                  onClick={() => visibility.setConfirmOpen(false)}
+                  onClick={() => setConfirmPublicOpen(false)}
                   className="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={visibility.confirmPublic}
+                  onClick={() => { setConfirmPublicOpen(false); setVisibility("public"); }}
                   className="px-4 py-2 text-sm font-medium rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors"
                 >
                   Make public
@@ -213,7 +239,7 @@ export function SongDetailView({
           </div>
         )}
 
-        {archiveHook.confirmOpen && (
+        {confirmArchiveOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-archive-title">
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4">
               <h2 id="confirm-archive-title" className="text-lg font-semibold text-gray-900 dark:text-white">Archive this song?</h2>
@@ -222,17 +248,17 @@ export function SongDetailView({
               </p>
               <div className="flex gap-3 justify-end">
                 <button
-                  onClick={() => archiveHook.setConfirmOpen(false)}
+                  onClick={() => setConfirmArchiveOpen(false)}
                   className="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={archiveHook.archive}
-                  disabled={archiveHook.archiving}
+                  onClick={() => { setConfirmArchiveOpen(false); handleArchive(); }}
+                  disabled={archiving}
                   className="px-4 py-2 text-sm font-medium rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
                 >
-                  {archiveHook.archiving ? "Archiving…" : "Archive"}
+                  {archiving ? "Archiving…" : "Archive"}
                 </button>
               </div>
             </div>

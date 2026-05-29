@@ -39,7 +39,7 @@ import {
 import { useTheme } from "./ThemeProvider";
 import dynamic from "next/dynamic";
 import { ErrorBoundary } from "./ErrorBoundary";
-const GlobalPlayer = dynamic(() => import("./GlobalPlayer").then((m) => m.GlobalPlayer));
+const GlobalPlayer = dynamic(() => import("./global-player").then((m) => m.GlobalPlayer));
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 const KeyboardShortcutsModal = dynamic(() => import("./KeyboardShortcutsModal").then((m) => m.KeyboardShortcutsModal));
 import { NotificationBell } from "./NotificationBell";
