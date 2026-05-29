@@ -37,7 +37,7 @@ export function usePlaylistEditing({
 
   const handleSaveEdit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editName.trim()) return;
+    if (!editName.trim() || saving) return;
     setSaving(true);
     try {
       const res = await fetch(`/api/playlists/${playlistId}`, {
