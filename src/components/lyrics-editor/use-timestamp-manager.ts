@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "../Toast";
+import { fetchWithTimeout } from "@/lib/fetch-client";
 
 interface Timestamp {
   lineIndex: number;
@@ -36,7 +37,7 @@ export function useTimestampManager(
   })();
 
   useEffect(() => {
-    fetch(`/api/songs/${songId}/lyrics/timestamps`)
+    fetchWithTimeout(`/api/songs/${songId}/lyrics/timestamps`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data) {
@@ -77,7 +78,7 @@ export function useTimestampManager(
       startTime,
     }));
     try {
-      const res = await fetch(`/api/songs/${songId}/lyrics/timestamps`, {
+      const res = await fetchWithTimeout(`/api/songs/${songId}/lyrics/timestamps`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ timestamps: entries }),
