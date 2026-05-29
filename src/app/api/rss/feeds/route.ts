@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { authDataRoute, authRoute } from "@/lib/route-handler";
+import { authDataRoute, authRoute, successResponse } from "@/lib/route-handler";
 import { badRequest, conflict, notFound } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 
@@ -57,5 +57,5 @@ export const DELETE = authRoute(async (_req, { auth, query }) => {
   }
 
   await prisma.rssFeedSubscription.delete({ where: { id: query.id } });
-  return NextResponse.json({ ok: true });
+  return successResponse();
 }, { route: "/api/rss/feeds", query: deleteFeedQuery });

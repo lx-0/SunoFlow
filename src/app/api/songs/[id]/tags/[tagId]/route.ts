@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import { authRoute, resultResponse } from "@/lib/route-handler";
+import { authRoute, resultResponse, successResponse } from "@/lib/route-handler";
 import { Tags } from "@/lib/tags";
 
 export const DELETE = authRoute<{ id: string; tagId: string }>(
@@ -10,7 +9,7 @@ export const DELETE = authRoute<{ id: string; tagId: string }>(
       params.tagId,
     );
     if (!result.ok) return resultResponse(result);
-    return NextResponse.json({ success: true });
+    return successResponse();
   },
   { route: "/api/songs/[id]/tags/[tagId]" },
 );

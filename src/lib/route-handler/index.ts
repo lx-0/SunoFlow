@@ -27,7 +27,7 @@ import type {
   RateLimitConfig,
 } from "@/lib/route-handler/types";
 
-export { requireOwned, resultResponse } from "@/lib/route-response";
+export { requireOwned, resultResponse, successResponse } from "@/lib/route-response";
 export type {
   AdminContext,
   AnonContext,

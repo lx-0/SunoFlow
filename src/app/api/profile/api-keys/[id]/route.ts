@@ -1,6 +1,5 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authRoute } from "@/lib/route-handler";
+import { authRoute, successResponse } from "@/lib/route-handler";
 import { notFound } from "@/lib/api-error";
 
 export const DELETE = authRoute<{ id: string }>(async (_request, { auth, params }) => {
@@ -21,5 +20,5 @@ export const DELETE = authRoute<{ id: string }>(async (_request, { auth, params 
     data: { revokedAt: new Date() },
   });
 
-  return NextResponse.json({ success: true });
+  return successResponse();
 });
