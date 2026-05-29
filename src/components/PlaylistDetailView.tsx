@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -15,7 +15,6 @@ import {
   MegaphoneIcon,
 } from "@heroicons/react/24/outline";
 import { PlayIcon as PlaySolidIcon } from "@heroicons/react/24/solid";
-import { exportAsZip } from "@/lib/export";
 import { useToast } from "./Toast";
 import { useQueue, type QueueSong } from "./QueueContext";
 import { SwipeablePlaylistItem } from "./SwipeablePlaylistItem";
@@ -29,6 +28,12 @@ import { PlaylistCollaboratorsPanel } from "./playlist-detail/PlaylistCollaborat
 import { PlaylistActivityFeed } from "./playlist-detail/PlaylistActivityFeed";
 import { PlaylistBatchToolbar } from "./playlist-detail/PlaylistBatchToolbar";
 import { usePlaylistReorder } from "./playlist-detail/usePlaylistReorder";
+import { usePlaylistEditing } from "./playlist-detail/usePlaylistEditing";
+import { usePlaylistSharing } from "./playlist-detail/usePlaylistSharing";
+import { usePlaylistCollaboration } from "./playlist-detail/usePlaylistCollaboration";
+import { usePlaylistPublishing } from "./playlist-detail/usePlaylistPublishing";
+import { usePlaylistActivityFeed } from "./playlist-detail/usePlaylistActivityFeed";
+import { usePlaylistBatchActions } from "./playlist-detail/usePlaylistBatchActions";
 
 export type { PlaylistData, PlaylistSongItem, PlaylistCollaboratorItem, PlaylistActivityItem };
 
@@ -55,56 +60,50 @@ export function PlaylistDetailView({
 
   const [playlist, setPlaylist] = useState(initialPlaylist);
   const [songs, setSongs] = useState(initialPlaylist.songs);
-  const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState(initialPlaylist.name);
-  const [editDesc, setEditDesc] = useState(initialPlaylist.description || "");
-  const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Share state
-  const [isPublic, setIsPublic] = useState(initialPlaylist.isPublic);
-  const [slug, setSlug] = useState(initialPlaylist.slug);
-  const [showSharePanel, setShowSharePanel] = useState(false);
-  const [isTogglingShare, setIsTogglingShare] = useState(false);
+  const editing_ = usePlaylistEditing({
+    playlistId: playlist.id,
+    initialName: initialPlaylist.name,
+    initialDescription: initialPlaylist.description,
+    toast,
+    onSaved: (updates) => setPlaylist((prev) => ({ ...prev, ...updates })),
+  });
 
-  // Collaborative state
-  const [isCollaborative, setIsCollaborative] = useState(initialPlaylist.isCollaborative);
-  const [collaborators, setCollaborators] = useState<PlaylistCollaboratorItem[]>(
-    initialPlaylist.collaborators ?? []
-  );
-  const [showCollabPanel, setShowCollabPanel] = useState(false);
-  const [isTogglingCollab, setIsTogglingCollab] = useState(false);
-  const [inviteLink, setInviteLink] = useState<string | null>(null);
-  const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
+  const sharing = usePlaylistSharing({
+    playlistId: playlist.id,
+    initialIsPublic: initialPlaylist.isPublic,
+    initialSlug: initialPlaylist.slug,
+    toast,
+  });
 
-  // Publish to Discover state
-  const [isPublished, setIsPublished] = useState(initialPlaylist.isPublished ?? false);
-  const [publishedGenre, setPublishedGenre] = useState(initialPlaylist.genre ?? "");
-  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
-  const [showUnpublishConfirm, setShowUnpublishConfirm] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [genres, setGenres] = useState<{ name: string; count: number }[]>([]);
-  const [selectedGenre, setSelectedGenre] = useState(initialPlaylist.genre ?? "");
+  const collab = usePlaylistCollaboration({
+    playlistId: playlist.id,
+    initialIsCollaborative: initialPlaylist.isCollaborative,
+    initialCollaborators: initialPlaylist.collaborators ?? [],
+    toast,
+  });
 
-  useEffect(() => {
-    fetch("/api/songs/genres")
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => { if (data?.genres) setGenres(data.genres); })
-      .catch(() => {});
-  }, []);
+  const publishing = usePlaylistPublishing({
+    playlistId: playlist.id,
+    initialIsPublished: initialPlaylist.isPublished ?? false,
+    initialGenre: initialPlaylist.genre ?? null,
+    songCount: songs.length,
+    toast,
+    onPublished: (data) => {
+      sharing.setIsPublic(data.isPublic);
+      sharing.setSlug(data.slug);
+    },
+  });
 
-  // Activity feed state
-  const [activities, setActivities] = useState<PlaylistActivityItem[]>([]);
-  const [activityLoading, setActivityLoading] = useState(false);
-  const [showActivityFeed, setShowActivityFeed] = useState(false);
+  const activity = usePlaylistActivityFeed({ playlistId: playlist.id });
 
-  // Batch selection state
-  const [selectedSongIds, setSelectedSongIds] = useState<Set<string>>(new Set());
-  const selectionMode = selectedSongIds.size > 0;
-  const [batchLoading, setBatchLoading] = useState(false);
-  const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
-  const [batchDownloading, setBatchDownloading] = useState(false);
-  const [batchDownloadProgress, setBatchDownloadProgress] = useState<{ completed: number; total: number } | null>(null);
+  const batch = usePlaylistBatchActions({
+    playlistId: playlist.id,
+    songs,
+    setSongs,
+    toast,
+  });
 
   const handleReorderError = useCallback((msg: string) => toast(msg, "error"), [toast]);
 
@@ -119,67 +118,6 @@ export function PlaylistDetailView({
     handleKeyboardReorder,
   } = usePlaylistReorder({ playlistId: playlist.id, songs, setSongs, onError: handleReorderError });
 
-  function handleToggleSelect(songId: string) {
-    setSelectedSongIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(songId)) next.delete(songId); else next.add(songId);
-      return next;
-    });
-  }
-
-  function handleSelectAll() {
-    if (selectedSongIds.size === songs.length) {
-      setSelectedSongIds(new Set());
-    } else {
-      setSelectedSongIds(new Set(songs.map((ps) => ps.songId)));
-    }
-  }
-
-  async function handleBatchRemoveFromPlaylist() {
-    if (batchLoading || selectedSongIds.size === 0) return;
-    setBatchLoading(true);
-    const idsToRemove = Array.from(selectedSongIds);
-    setSongs((prev) => prev.filter((ps) => !selectedSongIds.has(ps.songId)));
-    setSelectedSongIds(new Set());
-    setShowBatchDeleteConfirm(false);
-    try {
-      await Promise.all(
-        idsToRemove.map((songId) =>
-          fetch(`/api/playlists/${playlist.id}/songs/${songId}`, { method: "DELETE" })
-        )
-      );
-      toast(`Removed ${idsToRemove.length} song${idsToRemove.length !== 1 ? "s" : ""} from playlist`, "success");
-    } catch {
-      toast("Failed to remove some songs", "error");
-    } finally {
-      setBatchLoading(false);
-    }
-  }
-
-  async function handleBatchDownload() {
-    if (batchDownloading || selectedSongIds.size === 0) return;
-    const selectedSongs = songs
-      .filter((ps) => selectedSongIds.has(ps.songId) && ps.song.audioUrl)
-      .map((ps) => ({ ...ps.song, audioUrl: ps.song.audioUrl! }));
-    if (selectedSongs.length === 0) {
-      toast("No downloadable songs selected", "error");
-      return;
-    }
-    setBatchDownloading(true);
-    setBatchDownloadProgress({ completed: 0, total: selectedSongs.length });
-    try {
-      await exportAsZip(selectedSongs, (completed, total) => {
-        setBatchDownloadProgress({ completed, total });
-      });
-      toast(`Downloaded ${selectedSongs.length} song${selectedSongs.length !== 1 ? "s" : ""} as ZIP`, "success");
-    } catch {
-      toast("Download failed", "error");
-    } finally {
-      setBatchDownloading(false);
-      setBatchDownloadProgress(null);
-    }
-  }
-
   function buildPlaylistQueue(): QueueSong[] {
     return songs
       .map((ps) => songToQueueSong(ps.song))
@@ -189,12 +127,10 @@ export function PlaylistDetailView({
   function handleTogglePlay(song: PlaylistSongItem["song"]) {
     const qs = songToQueueSong(song);
     if (!qs) return;
-
     if (currentSongId === song.id) {
       togglePlay(qs);
       return;
     }
-
     const queueSongs = buildPlaylistQueue();
     const idx = queueSongs.findIndex((s) => s.id === song.id);
     playQueue(queueSongs, idx >= 0 ? idx : 0, playlist.name);
@@ -229,40 +165,10 @@ export function PlaylistDetailView({
     [playlist.id, songs, toast]
   );
 
-  async function handleSaveEdit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!editName.trim() || saving) return;
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/playlists/${playlist.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editName.trim(),
-          description: editDesc.trim() || null,
-        }),
-      });
-      if (!res.ok) {
-        toast("Failed to update playlist", "error");
-        return;
-      }
-      const data = await res.json();
-      setPlaylist((prev) => ({ ...prev, ...data.playlist }));
-      setEditing(false);
-      toast("Playlist updated", "success");
-    } catch {
-      toast("Failed to update playlist", "error");
-    } finally {
-      setSaving(false);
-    }
-  }
-
   async function handleDelete() {
     setShowDeleteConfirm(false);
     try {
-      const res = await fetch(`/api/playlists/${playlist.id}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(`/api/playlists/${playlist.id}`, { method: "DELETE" });
       if (!res.ok) {
         toast("Failed to delete playlist", "error");
         return;
@@ -274,187 +180,12 @@ export function PlaylistDetailView({
     }
   }
 
-  async function handleToggleShare() {
-    if (isTogglingShare) return;
-    setIsTogglingShare(true);
-    try {
-      const res = await fetch(`/api/playlists/${playlist.id}/share`, {
-        method: "PATCH",
-      });
-      if (!res.ok) {
-        toast("Failed to update sharing", "error");
-        return;
-      }
-      const data = await res.json();
-      setIsPublic(data.isPublic);
-      setSlug(data.slug);
-      toast(data.isPublic ? "Playlist is now public" : "Playlist is now private", "success");
-    } catch {
-      toast("Failed to update sharing", "error");
-    } finally {
-      setIsTogglingShare(false);
-    }
-  }
-
-  function handleCopyLink() {
-    if (!slug) return;
-    const url = `${window.location.origin}/p/${slug}`;
-    navigator.clipboard.writeText(url).then(() => toast("Link copied!", "success"));
-  }
-
-  function handleCopyEmbed() {
-    if (!slug) return;
-    const url = `${window.location.origin}/embed/playlist/${slug}`;
-    const code = `<iframe src="${url}" width="400" height="500" frameborder="0" allow="autoplay"></iframe>`;
-    navigator.clipboard.writeText(code).then(() => toast("Embed code copied!", "success"));
-  }
-
-  async function handleToggleCollaborative() {
-    if (isTogglingCollab) return;
-    setIsTogglingCollab(true);
-    try {
-      const res = await fetch(`/api/playlists/${playlist.id}/collaborative`, { method: "PATCH" });
-      if (!res.ok) { toast("Failed to update collaborative mode", "error"); return; }
-      const data = await res.json();
-      setIsCollaborative(data.isCollaborative);
-      if (!data.isCollaborative) setInviteLink(null);
-      toast(data.isCollaborative ? "Collaborative mode enabled" : "Collaborative mode disabled", "success");
-    } catch {
-      toast("Failed to update collaborative mode", "error");
-    } finally {
-      setIsTogglingCollab(false);
-    }
-  }
-
-  async function handleGenerateInvite() {
-    if (isGeneratingInvite) return;
-    setIsGeneratingInvite(true);
-    try {
-      const res = await fetch(`/api/playlists/${playlist.id}/collaborators`, { method: "POST" });
-      if (!res.ok) { toast("Failed to generate invite link", "error"); return; }
-      const data = await res.json();
-      const link = `${window.location.origin}/playlists/invite/${data.collaborator.inviteToken}`;
-      setInviteLink(link);
-    } catch {
-      toast("Failed to generate invite link", "error");
-    } finally {
-      setIsGeneratingInvite(false);
-    }
-  }
-
-  function handleCopyInviteLink() {
-    if (!inviteLink) return;
-    navigator.clipboard.writeText(inviteLink).then(() => toast("Invite link copied!", "success"));
-  }
-
-  async function handleRemoveCollaborator(collaboratorId: string) {
-    try {
-      const res = await fetch(`/api/playlists/${playlist.id}/collaborators/${collaboratorId}`, { method: "DELETE" });
-      if (!res.ok) { toast("Failed to remove collaborator", "error"); return; }
-      setCollaborators((prev) => prev.filter((c) => c.id !== collaboratorId));
-      toast("Collaborator removed", "success");
-    } catch {
-      toast("Failed to remove collaborator", "error");
-    }
-  }
-
-  async function handleInviteByUsername(username: string, role: "editor" | "viewer") {
-    try {
-      const res = await fetch(`/api/playlists/${playlist.id}/collaborators`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, role }),
-      });
-      const data = await res.json();
-      if (!res.ok) { toast(data.error ?? "Failed to invite user", "error"); return; }
-      setCollaborators((prev) => [...prev, data.collaborator]);
-      toast(`${data.collaborator.user?.name ?? username} added as ${role}`, "success");
-    } catch {
-      toast("Failed to invite user", "error");
-    }
-  }
-
-  async function handleLoadActivity() {
-    if (activityLoading) return;
-    setActivityLoading(true);
-    try {
-      const res = await fetch(`/api/playlists/${playlist.id}/activity`);
-      if (!res.ok) return;
-      const data = await res.json();
-      setActivities(data.activities ?? []);
-    } catch {
-      // non-fatal
-    } finally {
-      setActivityLoading(false);
-    }
-  }
-
-  function handleToggleActivityFeed() {
-    if (!showActivityFeed && activities.length === 0) {
-      handleLoadActivity();
-    }
-    setShowActivityFeed((prev) => !prev);
-  }
-
-  async function handlePublish() {
-    if (isPublishing) return;
-    if (songs.length === 0) {
-      toast("Playlist must have at least 1 song to publish", "error");
-      setShowPublishConfirm(false);
-      return;
-    }
-    setIsPublishing(true);
-    try {
-      const res = await fetch(`/api/playlists/${playlist.id}/publish`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ genre: selectedGenre || null }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        toast(data?.error ?? "Failed to publish", "error");
-        return;
-      }
-      const data = await res.json();
-      setIsPublished(data.isPublished);
-      setIsPublic(data.isPublic);
-      setSlug(data.slug);
-      if (data.genre) setPublishedGenre(data.genre);
-      toast("Playlist published to Discover!", "success");
-    } catch {
-      toast("Failed to publish", "error");
-    } finally {
-      setIsPublishing(false);
-      setShowPublishConfirm(false);
-    }
-  }
-
-  async function handleUnpublish() {
-    if (isPublishing) return;
-    setIsPublishing(true);
-    try {
-      const res = await fetch(`/api/playlists/${playlist.id}/publish`, {
-        method: "PATCH",
-      });
-      if (!res.ok) {
-        toast("Failed to unpublish", "error");
-        return;
-      }
-      const data = await res.json();
-      setIsPublished(data.isPublished);
-      toast("Playlist removed from Discover", "success");
-    } catch {
-      toast("Failed to unpublish", "error");
-    } finally {
-      setIsPublishing(false);
-      setShowUnpublishConfirm(false);
-    }
-  }
-
   const totalDuration = songs.reduce(
     (sum, ps) => sum + (ps.song.duration ?? 0),
     0
   );
+
+  const filteredCollaborators = collab.collaborators.filter((c) => c.user);
 
   return (
     <div className="px-4 py-4 space-y-4">
@@ -468,13 +199,13 @@ export function PlaylistDetailView({
       </Link>
 
       {/* Header */}
-      {editing ? (
-        <form onSubmit={handleSaveEdit} className="space-y-3">
+      {editing_.editing ? (
+        <form onSubmit={editing_.handleSaveEdit} className="space-y-3">
           <input
             type="text"
             aria-label="Playlist name"
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
+            value={editing_.editName}
+            onChange={(e) => editing_.setEditName(e.target.value)}
             maxLength={100}
             autoFocus
             className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
@@ -482,26 +213,22 @@ export function PlaylistDetailView({
           <input
             type="text"
             aria-label="Playlist description"
-            value={editDesc}
-            onChange={(e) => setEditDesc(e.target.value)}
+            value={editing_.editDesc}
+            onChange={(e) => editing_.setEditDesc(e.target.value)}
             placeholder="Description (optional)"
             className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
           />
           <div className="flex gap-2">
             <button
               type="submit"
-              disabled={!editName.trim() || saving}
+              disabled={!editing_.editName.trim() || editing_.saving}
               className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors disabled:opacity-50 min-h-[44px]"
             >
-              {saving ? "Saving..." : "Save"}
+              {editing_.saving ? "Saving..." : "Save"}
             </button>
             <button
               type="button"
-              onClick={() => {
-                setEditing(false);
-                setEditName(playlist.name);
-                setEditDesc(playlist.description || "");
-              }}
+              onClick={() => editing_.cancelEdit(playlist.name, playlist.description)}
               className="px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white transition-colors min-h-[44px]"
             >
               Cancel
@@ -524,7 +251,7 @@ export function PlaylistDetailView({
                 {songs.length} song{songs.length !== 1 ? "s" : ""}
                 {totalDuration > 0 && ` · ${formatTime(totalDuration)}`}
               </p>
-              {isPublished && (
+              {publishing.isPublished && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
                   <GlobeAltIcon className="w-3 h-3" />
                   Published
@@ -533,10 +260,10 @@ export function PlaylistDetailView({
             </div>
             {songs.length > 0 && (
               <button
-                onClick={handleSelectAll}
+                onClick={batch.handleSelectAll}
                 className="mt-1 text-xs font-medium text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
               >
-                {selectedSongIds.size === songs.length ? "Deselect all" : "Select all"}
+                {batch.selectedSongIds.size === songs.length ? "Deselect all" : "Select all"}
               </button>
             )}
           </div>
@@ -544,17 +271,16 @@ export function PlaylistDetailView({
             {isOwner && (
               <button
                 onClick={() => {
-                  if (isPublished) {
-                    setShowUnpublishConfirm(true);
+                  if (publishing.isPublished) {
+                    publishing.setShowUnpublishConfirm(true);
                   } else {
-                    setSelectedGenre(publishedGenre);
-                    setShowPublishConfirm(true);
+                    publishing.openPublishDialog();
                   }
                 }}
-                aria-label={isPublished ? "Unpublish from Discover" : "Publish to Discover"}
-                title={isPublished ? "Unpublish from Discover" : "Publish to Discover"}
+                aria-label={publishing.isPublished ? "Unpublish from Discover" : "Publish to Discover"}
+                title={publishing.isPublished ? "Unpublish from Discover" : "Publish to Discover"}
                 className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
-                  isPublished
+                  publishing.isPublished
                     ? "text-green-500 dark:text-green-400 hover:text-green-600"
                     : "text-gray-400 dark:text-gray-500 hover:text-violet-400"
                 }`}
@@ -564,11 +290,11 @@ export function PlaylistDetailView({
             )}
             {isOwner && (
               <button
-                onClick={() => { setShowCollabPanel((v) => !v); setShowSharePanel(false); }}
+                onClick={() => { collab.setShowCollabPanel((v) => !v); sharing.setShowSharePanel(false); }}
                 aria-label="Collaborative mode"
-                aria-expanded={showCollabPanel}
+                aria-expanded={collab.showCollabPanel}
                 className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
-                  isCollaborative
+                  collab.isCollaborative
                     ? "text-violet-500 dark:text-violet-400 hover:text-violet-600"
                     : "text-gray-400 dark:text-gray-500 hover:text-violet-400"
                 }`}
@@ -577,11 +303,11 @@ export function PlaylistDetailView({
               </button>
             )}
             <button
-              onClick={() => { setShowSharePanel((v) => !v); setShowCollabPanel(false); }}
+              onClick={() => { sharing.setShowSharePanel((v) => !v); collab.setShowCollabPanel(false); }}
               aria-label="Share playlist"
-              aria-expanded={showSharePanel}
+              aria-expanded={sharing.showSharePanel}
               className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
-                isPublic
+                sharing.isPublic
                   ? "text-violet-500 dark:text-violet-400 hover:text-violet-600"
                   : "text-gray-400 dark:text-gray-500 hover:text-violet-400"
               }`}
@@ -591,7 +317,7 @@ export function PlaylistDetailView({
             {isOwner && (
               <>
                 <button
-                  onClick={() => setEditing(true)}
+                  onClick={() => editing_.setEditing(true)}
                   aria-label="Edit playlist"
                   className="w-11 h-11 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-violet-400 transition-colors"
                 >
@@ -611,11 +337,11 @@ export function PlaylistDetailView({
       )}
 
       {/* Collaborator avatars */}
-      {isCollaborative && collaborators.filter((c) => c.user).length > 0 && !editing && (
+      {collab.isCollaborative && filteredCollaborators.length > 0 && !editing_.editing && (
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500 dark:text-gray-400">Collaborators:</span>
           <div className="flex -space-x-2">
-            {collaborators.filter((c) => c.user).slice(0, 5).map((c) => (
+            {filteredCollaborators.slice(0, 5).map((c) => (
               <div
                 key={c.id}
                 title={c.user?.name ?? "Collaborator"}
@@ -634,9 +360,9 @@ export function PlaylistDetailView({
                 )}
               </div>
             ))}
-            {collaborators.filter((c) => c.user).length > 5 && (
+            {filteredCollaborators.length > 5 && (
               <div className="w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-700 border-2 border-white dark:border-gray-900 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300">
-                +{collaborators.filter((c) => c.user).length - 5}
+                +{filteredCollaborators.length - 5}
               </div>
             )}
           </div>
@@ -644,36 +370,36 @@ export function PlaylistDetailView({
       )}
 
       {/* Collaborative panel (owner only) */}
-      {showCollabPanel && isOwner && !editing && (
+      {collab.showCollabPanel && isOwner && !editing_.editing && (
         <PlaylistCollaboratorsPanel
           playlistId={playlist.id}
-          isCollaborative={isCollaborative}
-          isTogglingCollab={isTogglingCollab}
-          collaborators={collaborators}
-          onToggleCollaborative={handleToggleCollaborative}
-          onRemoveCollaborator={handleRemoveCollaborator}
-          onInviteByUsername={handleInviteByUsername}
-          onGenerateInvite={handleGenerateInvite}
-          isGeneratingInvite={isGeneratingInvite}
-          inviteLink={inviteLink}
-          onCopyInviteLink={handleCopyInviteLink}
+          isCollaborative={collab.isCollaborative}
+          isTogglingCollab={collab.isTogglingCollab}
+          collaborators={collab.collaborators}
+          onToggleCollaborative={collab.handleToggleCollaborative}
+          onRemoveCollaborator={collab.handleRemoveCollaborator}
+          onInviteByUsername={collab.handleInviteByUsername}
+          onGenerateInvite={collab.handleGenerateInvite}
+          isGeneratingInvite={collab.isGeneratingInvite}
+          inviteLink={collab.inviteLink}
+          onCopyInviteLink={collab.handleCopyInviteLink}
         />
       )}
 
       {/* Share panel */}
-      {showSharePanel && !editing && (
+      {sharing.showSharePanel && !editing_.editing && (
         <PlaylistSharePanel
-          isPublic={isPublic}
-          slug={slug}
-          isTogglingShare={isTogglingShare}
-          onToggleShare={handleToggleShare}
-          onCopyLink={handleCopyLink}
-          onCopyEmbed={handleCopyEmbed}
+          isPublic={sharing.isPublic}
+          slug={sharing.slug}
+          isTogglingShare={sharing.isTogglingShare}
+          onToggleShare={sharing.handleToggleShare}
+          onCopyLink={sharing.handleCopyLink}
+          onCopyEmbed={sharing.handleCopyEmbed}
         />
       )}
 
       {/* Play all button */}
-      {songs.length > 0 && !editing && (
+      {songs.length > 0 && !editing_.editing && (
         <button
           onClick={handlePlayAll}
           className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors min-h-[44px]"
@@ -712,13 +438,13 @@ export function PlaylistDetailView({
 
       {/* Publish confirmation */}
       <BottomSheet
-        open={showPublishConfirm}
-        onClose={() => setShowPublishConfirm(false)}
+        open={publishing.showPublishConfirm}
+        onClose={() => publishing.setShowPublishConfirm(false)}
         title="Publish to Discover"
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-600 dark:text-gray-300">
-            This will make your playlist visible on the Discover page{!isPublic ? " and set it to public" : ""}.
+            This will make your playlist visible on the Discover page{!sharing.isPublic ? " and set it to public" : ""}.
           </p>
           {songs.length === 0 && (
             <p className="text-sm text-red-600 dark:text-red-400 font-medium">
@@ -731,26 +457,26 @@ export function PlaylistDetailView({
             </label>
             <select
               id="publish-genre"
-              value={selectedGenre}
-              onChange={(e) => setSelectedGenre(e.target.value)}
+              value={publishing.selectedGenre}
+              onChange={(e) => publishing.setSelectedGenre(e.target.value)}
               className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             >
               <option value="">No genre</option>
-              {genres.map((g) => (
+              {publishing.genres.map((g) => (
                 <option key={g.name} value={g.name}>{g.name}</option>
               ))}
             </select>
           </div>
           <div className="flex gap-2">
             <button
-              onClick={handlePublish}
-              disabled={isPublishing || songs.length === 0}
+              onClick={publishing.handlePublish}
+              disabled={publishing.isPublishing || songs.length === 0}
               className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors disabled:opacity-50 min-h-[44px]"
             >
-              {isPublishing ? "Publishing..." : "Publish"}
+              {publishing.isPublishing ? "Publishing..." : "Publish"}
             </button>
             <button
-              onClick={() => setShowPublishConfirm(false)}
+              onClick={() => publishing.setShowPublishConfirm(false)}
               className="px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors min-h-[44px]"
             >
               Cancel
@@ -761,8 +487,8 @@ export function PlaylistDetailView({
 
       {/* Unpublish confirmation */}
       <BottomSheet
-        open={showUnpublishConfirm}
-        onClose={() => setShowUnpublishConfirm(false)}
+        open={publishing.showUnpublishConfirm}
+        onClose={() => publishing.setShowUnpublishConfirm(false)}
         title="Unpublish playlist"
       >
         <div className="space-y-3">
@@ -771,14 +497,14 @@ export function PlaylistDetailView({
           </p>
           <div className="flex gap-2">
             <button
-              onClick={handleUnpublish}
-              disabled={isPublishing}
+              onClick={publishing.handleUnpublish}
+              disabled={publishing.isPublishing}
               className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-500 text-white transition-colors disabled:opacity-50 min-h-[44px]"
             >
-              {isPublishing ? "Unpublishing..." : "Unpublish"}
+              {publishing.isPublishing ? "Unpublishing..." : "Unpublish"}
             </button>
             <button
-              onClick={() => setShowUnpublishConfirm(false)}
+              onClick={() => publishing.setShowUnpublishConfirm(false)}
               className="px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors min-h-[44px]"
             >
               Cancel
@@ -803,17 +529,17 @@ export function PlaylistDetailView({
           </Link>
         </div>
       ) : (
-        <ul className={`space-y-1 ${selectionMode ? "pb-20" : ""}`}>
+        <ul className={`space-y-1 ${batch.selectionMode ? "pb-20" : ""}`}>
           {songs.map((ps, index) => {
             const isActive = currentSongId === ps.songId;
             const hasAudio = Boolean(ps.song.audioUrl);
             const isDragOver = dragOverIndex === index;
-            const isSelected = selectedSongIds.has(ps.songId);
+            const isSelected = batch.selectedSongIds.has(ps.songId);
 
             return (
               <SwipeablePlaylistItem
                 key={ps.id}
-                onSwipeRemove={selectionMode ? () => {} : () => handleRemoveSong(ps.songId)}
+                onSwipeRemove={batch.selectionMode ? () => {} : () => handleRemoveSong(ps.songId)}
               >
                 <PlaylistSongListItem
                   ps={ps}
@@ -823,9 +549,9 @@ export function PlaylistDetailView({
                   isDragOver={isDragOver}
                   dragIndex={dragIndex}
                   isSelected={isSelected}
-                  selectionMode={selectionMode}
+                  selectionMode={batch.selectionMode}
                   isPlaying={isPlaying}
-                  isCollaborative={isCollaborative}
+                  isCollaborative={collab.isCollaborative}
                   onDragStart={() => handleDragStart(index)}
                   onDragOver={(e: React.DragEvent) => handleDragOver(e, index)}
                   onDrop={(e: React.DragEvent) => handleDrop(e, index)}
@@ -838,8 +564,8 @@ export function PlaylistDetailView({
                   onPlayNext={() => { const qs = songToQueueSong(ps.song); if (qs) playNext(qs); }}
                   onAddToQueue={() => { const qs = songToQueueSong(ps.song); if (qs) addToQueue(qs); }}
                   onRemove={() => handleRemoveSong(ps.songId)}
-                  onToggleSelect={() => handleToggleSelect(ps.songId)}
-                  onLongPress={() => setSelectedSongIds(new Set([ps.songId]))}
+                  onToggleSelect={() => batch.handleToggleSelect(ps.songId)}
+                  onLongPress={() => batch.setSelectedSongIds(new Set([ps.songId]))}
                 />
               </SwipeablePlaylistItem>
             );
@@ -848,58 +574,58 @@ export function PlaylistDetailView({
       )}
 
       {/* Batch toolbar */}
-      {selectionMode && (
+      {batch.selectionMode && (
         <PlaylistBatchToolbar
-          selectedCount={selectedSongIds.size}
-          batchDownloading={batchDownloading}
-          batchDownloadProgress={batchDownloadProgress}
-          batchLoading={batchLoading}
-          onDownload={handleBatchDownload}
-          onRemove={() => setShowBatchDeleteConfirm(true)}
-          onClearSelection={() => setSelectedSongIds(new Set())}
+          selectedCount={batch.selectedSongIds.size}
+          batchDownloading={batch.batchDownloading}
+          batchDownloadProgress={batch.batchDownloadProgress}
+          batchLoading={batch.batchLoading}
+          onDownload={batch.handleBatchDownload}
+          onRemove={() => batch.setShowBatchDeleteConfirm(true)}
+          onClearSelection={() => batch.setSelectedSongIds(new Set())}
         />
       )}
 
       {/* Activity feed — collaborative playlists only */}
-      {isCollaborative && (
+      {collab.isCollaborative && (
         <PlaylistActivityFeed
-          activities={activities}
-          activityLoading={activityLoading}
-          showActivityFeed={showActivityFeed}
-          onToggle={handleToggleActivityFeed}
+          activities={activity.activities}
+          activityLoading={activity.activityLoading}
+          showActivityFeed={activity.showActivityFeed}
+          onToggle={activity.handleToggleActivityFeed}
         />
       )}
 
       {/* Batch delete confirmation */}
-      {showBatchDeleteConfirm && (
+      {batch.showBatchDeleteConfirm && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="batch-remove-dialog-title"
-          onKeyDown={(e) => { if (e.key === "Escape") setShowBatchDeleteConfirm(false); }}
+          onKeyDown={(e) => { if (e.key === "Escape") batch.setShowBatchDeleteConfirm(false); }}
         >
           <div className="bg-white dark:bg-gray-900 w-full sm:rounded-2xl rounded-t-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 sm:mx-4 sm:max-w-sm">
             <h3 id="batch-remove-dialog-title" className="text-lg font-semibold text-gray-900 dark:text-white">
-              Remove {selectedSongIds.size} song{selectedSongIds.size !== 1 ? "s" : ""} from playlist?
+              Remove {batch.selectedSongIds.size} song{batch.selectedSongIds.size !== 1 ? "s" : ""} from playlist?
             </h3>
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
               The songs will remain in your library.
             </p>
             <div className="mt-4 flex gap-3 justify-end">
               <button
-                onClick={() => setShowBatchDeleteConfirm(false)}
-                disabled={batchLoading}
+                onClick={() => batch.setShowBatchDeleteConfirm(false)}
+                disabled={batch.batchLoading}
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors min-h-[44px]"
               >
                 Cancel
               </button>
               <button
-                onClick={handleBatchRemoveFromPlaylist}
-                disabled={batchLoading}
+                onClick={batch.handleBatchRemoveFromPlaylist}
+                disabled={batch.batchLoading}
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-500 disabled:opacity-50 transition-colors min-h-[44px]"
               >
-                {batchLoading ? "Removing..." : "Remove"}
+                {batch.batchLoading ? "Removing..." : "Remove"}
               </button>
             </div>
           </div>
