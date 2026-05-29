@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveUserApiKey } from "@/lib/sunoapi";
 import { proxyAudio } from "@/lib/audio";
 import { publicRoute } from "@/lib/route-handler";
+import { notFound } from "@/lib/api-error";
 
 export const GET = publicRoute<{ songId: string }>(async (request, { params }) => {
   const { songId } = params;
@@ -20,7 +20,7 @@ export const GET = publicRoute<{ songId: string }>(async (request, { params }) =
   });
 
   if (!song?.audioUrl) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return notFound();
   }
 
   return proxyAudio({

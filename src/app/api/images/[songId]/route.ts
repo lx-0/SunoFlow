@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { imageCache } from "@/lib/cache";
 import { fetchFreshUrls, resolveUserApiKey } from "@/lib/sunoapi";
 import { logger } from "@/lib/logger";
 import { publicRoute } from "@/lib/route-handler";
+import { notFound } from "@/lib/api-error";
 
 const CDN_URL_TTL_MS = 12 * 24 * 60 * 60 * 1000;
 
@@ -36,7 +36,7 @@ export const GET = publicRoute<{ songId: string }>(async (_request, { params }) 
   });
 
   if (!song?.imageUrl) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return notFound();
   }
 
   const buf = await imageCache.downloadAndPut(songId, song.imageUrl);
@@ -81,5 +81,5 @@ export const GET = publicRoute<{ songId: string }>(async (_request, { params }) 
     }
   }
 
-  return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return notFound();
 }, { route: "/api/images/[songId]" });

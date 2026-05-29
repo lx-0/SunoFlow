@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authRoute } from "@/lib/route-handler";
+import { notFound } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 
 const batchStatusQuery = z.object({
@@ -29,10 +30,7 @@ export const GET = authRoute<Record<string, never>, undefined, z.infer<typeof ba
   });
 
   if (songs.length === 0) {
-    return NextResponse.json(
-      { error: "Batch not found", code: "NOT_FOUND" },
-      { status: 404 }
-    );
+    return notFound("Batch not found");
   }
 
   const pending = songs.filter((s) => s.generationStatus === "pending").length;

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { authRoute } from "@/lib/route-handler";
+import { notFound } from "@/lib/api-error";
 import { requireOwnedSong } from "@/lib/songs/ownership";
 import { prisma } from "@/lib/prisma";
 
@@ -48,10 +49,7 @@ export const GET = authRoute<{ id: string }>(
     ]);
 
     if (!root) {
-      return NextResponse.json(
-        { error: "Not found", code: "NOT_FOUND" },
-        { status: 404 },
-      );
+      return notFound();
     }
 
     const versions = [root, ...variations];

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { authRoute } from "@/lib/route-handler";
+import { notFound } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 
 export const GET = authRoute<{ id: string }>(
@@ -17,10 +18,7 @@ export const GET = authRoute<{ id: string }>(
     });
 
     if (!song) {
-      return NextResponse.json(
-        { error: "Song not found", code: "NOT_FOUND" },
-        { status: 404 },
-      );
+      return notFound("Song not found");
     }
 
     const sevenDaysAgo = new Date();

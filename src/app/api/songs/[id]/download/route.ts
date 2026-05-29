@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authRoute, resultResponse } from "@/lib/route-handler";
+import { notFound } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { rateLimitCheck } from "@/lib/rate-limit";
 import { prepareSongDownload } from "@/lib/songs";
@@ -24,7 +25,7 @@ export const GET = authRoute<
     ]);
 
     if (!song) {
-      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
+      return notFound();
     }
 
     const rl = await rateLimitCheck(auth.userId, "download", DOWNLOAD_RATE_LIMIT);

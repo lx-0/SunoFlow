@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { computeETag, CacheControl } from "@/lib/cache";
 import { authRoute, resultResponse } from "@/lib/route-handler";
+import { notFound } from "@/lib/api-error";
 import { findUserSong } from "@/lib/songs";
 import { updateSongMetadata } from "@/lib/songs";
 
@@ -18,7 +19,7 @@ export const GET = authRoute<{ id: string }>(async (request, { auth, params }) =
   const song = await findUserSong(auth.userId, params.id);
 
   if (!song) {
-    return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
+    return notFound();
   }
 
   const etag = computeETag(song);
