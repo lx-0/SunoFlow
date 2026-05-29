@@ -9,6 +9,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { Bars3Icon } from "@heroicons/react/24/outline";
 import { useQueue } from "./QueueContext";
+import { getCurrentQueueSong, getUpcomingQueueCount } from "@/components/queue/queue-selectors";
 import { formatDuration as formatTime } from "@/lib/time-format";
 
 interface UpNextPanelProps {
@@ -22,9 +23,8 @@ export function UpNextPanel({ onClose }: UpNextPanelProps) {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragNodeRef = useRef<HTMLLIElement | null>(null);
 
-  const currentSong = currentIndex >= 0 ? queue[currentIndex] : null;
-  // upcoming = everything after currentIndex
-  const upcomingCount = queue.length - (currentIndex + 1);
+  const currentSong = getCurrentQueueSong(queue, currentIndex);
+  const upcomingCount = getUpcomingQueueCount(queue.length, currentIndex);
 
   function handleDragStart(e: React.DragEvent<HTMLLIElement>, upcomingIdx: number) {
     setDragIndex(upcomingIdx);

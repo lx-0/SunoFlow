@@ -2,6 +2,7 @@
 
 import { useEffect, type MutableRefObject } from "react";
 import type { QueueSong, RadioParams, RepeatMode } from "@/components/queue/queue-context-types";
+import { getNextQueueIndex } from "@/components/queue/queue-navigation";
 
 type UseQueueAudioEventsParams = {
   audioRef: MutableRefObject<HTMLAudioElement | null>;
@@ -114,8 +115,8 @@ export function useQueueAudioEvents({
         return;
       }
 
-      if (idx < q.length - 1) {
-        const next = idx + 1;
+      const next = getNextQueueIndex(idx, q.length, rep);
+      if (next !== null) {
         resolveAndPlayRef.current?.(q[next], next);
 
         if (radioStateRef.current && q.length - next <= 3) {
@@ -123,8 +124,6 @@ export function useQueueAudioEvents({
         }
       } else if (radioStateRef.current) {
         radioRefillRef.current?.();
-      } else if (rep === "repeat-all" && q.length > 0) {
-        resolveAndPlayRef.current?.(q[0], 0);
       } else {
         setIsPlaying(false);
       }

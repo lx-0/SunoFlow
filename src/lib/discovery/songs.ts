@@ -8,6 +8,7 @@ import {
 import { buildDiscoverableFilter, SongSelect } from "@/lib/songs";
 import { trendingScore } from "@/lib/feed/rank";
 import { cached, cacheKey, CacheTTL } from "@/lib/cache";
+import type { DiscoverSongsQuery } from "./request";
 import { asIsoDate, TRENDING_POOL_SIZE, trendingCutoff, paginationMeta } from "./shared";
 
 export interface TrendingSongsQuery {
@@ -102,15 +103,6 @@ export async function trendingSongs(q: TrendingSongsQuery) {
     sort: q.sort,
     pagination: offsetWindowPagination(q.offset, q.limit, total),
   };
-}
-
-export interface DiscoverSongsQuery {
-  sortBy: "newest" | "highest_rated" | "most_played";
-  tag?: string;
-  mood?: string;
-  tempoMin?: number | null;
-  tempoMax?: number | null;
-  page: number;
 }
 
 export async function discoverSongs(q: DiscoverSongsQuery) {

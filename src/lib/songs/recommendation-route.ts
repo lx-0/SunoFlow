@@ -1,13 +1,9 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { authRoute, publicRoute } from "@/lib/route-handler";
-import { zLimitParam } from "@/lib/query-params";
-
-export const recommendationQuerySchema = z.object({
-  limit: zLimitParam(8, 8),
-});
-
-type RecommendationQuery = z.infer<typeof recommendationQuerySchema>;
+import {
+  recommendationQuerySchema,
+  type RecommendationQuery,
+} from "@/lib/songs/recommendation-request";
 
 type AuthRecommendationFetcher<TSong> = (
   songId: string,

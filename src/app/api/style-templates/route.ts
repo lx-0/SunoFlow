@@ -1,14 +1,13 @@
-import { NextResponse } from "next/server";
-import { authRoute, resultResponse } from "@/lib/route-handler";
+import { authDataRoute, authRoute, resultResponse } from "@/lib/route-handler";
 import {
   createStyleTemplate,
   createTemplateSchema,
   listStyleTemplates,
 } from "@/lib/style-templates";
 
-export const GET = authRoute(async (_request, { auth }) => {
+export const GET = authDataRoute(async (_request, { auth }) => {
   const templates = await listStyleTemplates(auth.userId);
-  return NextResponse.json({ templates });
+  return { templates };
 }, { route: "/api/style-templates" });
 
 export const POST = authRoute(async (_request, { auth, body }) => {

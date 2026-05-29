@@ -1,3 +1,5 @@
+export { paginatedQuery } from "./paginated-query";
+
 export const DEFAULT_PAGE_SIZE = 20;
 
 export interface OffsetPagination {

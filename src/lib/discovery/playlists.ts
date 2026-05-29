@@ -2,14 +2,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { trendingScore } from "@/lib/feed/rank";
 import { cached, cacheKey, CacheTTL } from "@/lib/cache";
+import type { DiscoverPlaylistsQuery } from "./request";
 import { asIsoDate, paginationMeta, TRENDING_POOL_SIZE, trendingCutoff } from "./shared";
-
-export interface DiscoverPlaylistsQuery {
-  sort: "trending" | "recent" | "popular";
-  genre?: string;
-  page: number;
-  limit: number;
-}
 
 const PLAYLIST_DISCOVER_SELECT = {
   id: true,

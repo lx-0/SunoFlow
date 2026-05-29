@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { NextResponse } from "next/server";
-import { adminRoute } from "@/lib/route-handler";
+import { adminDataRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
-import { DEFAULT_PAGE_SIZE, offsetPagination, pageSkip } from "@/lib/pagination";
+import { DEFAULT_PAGE_SIZE, pageSkip, paginatedQuery } from "@/lib/pagination";
+import { SELECT_USER_BRIEF } from "@/lib/prisma-selects";
 import { zIntParam, zPageParam, zTrimmedParam } from "@/lib/query-params";
 
 const feedbackQuery = z.object({
@@ -11,29 +11,27 @@ const feedbackQuery = z.object({
   page: zPageParam(1),
 });
 
-export const GET = adminRoute<Record<string, never>, undefined, z.infer<typeof feedbackQuery>>(async (_request, { query }) => {
+export const GET = adminDataRoute<Record<string, never>, undefined, z.infer<typeof feedbackQuery>>(async (_request, { query }) => {
   const { category, score, page } = query;
-  const skip = pageSkip(page, DEFAULT_PAGE_SIZE);
 
   const where: Record<string, unknown> = {};
   if (category) where.category = category;
   if (typeof score === "number") where.score = score;
 
-  const [feedbacks, total] = await Promise.all([
-    prisma.userFeedback.findMany({
+  const { items: feedbacks, ...pagination } = await paginatedQuery({
+    findMany: () => prisma.userFeedback.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      skip,
+      skip: pageSkip(page, DEFAULT_PAGE_SIZE),
       take: DEFAULT_PAGE_SIZE,
       include: {
-        user: { select: { id: true, name: true, email: true } },
+        user: { select: SELECT_USER_BRIEF },
       },
     }),
-    prisma.userFeedback.count({ where }),
-  ]);
-
-  return NextResponse.json({
-    feedbacks,
-    ...offsetPagination(page, DEFAULT_PAGE_SIZE, total),
+    count: () => prisma.userFeedback.count({ where }),
+    page,
+    limit: DEFAULT_PAGE_SIZE,
   });
+
+  return { feedbacks, ...pagination };
 }, { route: "/api/admin/feedback", query: feedbackQuery });

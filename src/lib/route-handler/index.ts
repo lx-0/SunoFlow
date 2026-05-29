@@ -13,8 +13,8 @@ import {
   createJsonDataRoute,
   createKeyedRoute,
 } from "@/lib/route-handler/builders";
-import type { PipelineCtx } from "@/lib/route-handler/types";
 import type {
+  PipelineCtx,
   RouteOptions,
   RoutePipelineOptions,
   RouteSchemas,

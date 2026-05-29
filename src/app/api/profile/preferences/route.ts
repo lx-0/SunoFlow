@@ -1,4 +1,4 @@
-import { authRoute, resultResponse } from "@/lib/route-handler";
+import { authDataRoute, authRoute, resultResponse } from "@/lib/route-handler";
 import { getPreferences, updatePreferences } from "@/lib/profile";
 import { z } from "zod";
 
@@ -7,8 +7,10 @@ const updatePreferencesBody = z.object({
   preferredGenres: z.array(z.string()).optional(),
 });
 
-export const GET = authRoute(async (_request, { auth }) => {
-  return resultResponse(await getPreferences(auth.userId));
+export const GET = authDataRoute(async (_request, { auth }) => {
+  const result = await getPreferences(auth.userId);
+  if (!result.ok) return resultResponse(result);
+  return result.data;
 }, { route: "/api/profile/preferences" });
 
 export const PATCH = authRoute(async (_request, { auth, body }) => {

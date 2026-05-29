@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
-import { publicRoute } from "@/lib/route-handler";
+import { publicDataRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { buildDiscoverableFilter } from "@/lib/songs";
 import {
+  isRouteResponse,
   pageQuery,
   pagedResponse,
   pageSlice,
@@ -11,10 +11,10 @@ import {
   resolveRouteUsernameOrResponse,
 } from "../route-shared";
 
-export const GET = publicRoute<{ username: string }, undefined, z.infer<typeof pageQuery>>(
+export const GET = publicDataRoute<{ username: string }, undefined, z.infer<typeof pageQuery>>(
   async (_request, { params, query }) => {
     const user = await resolveRouteUsernameOrResponse(params.username);
-    if ("status" in user) return user;
+    if (isRouteResponse(user)) return user;
 
     const where = { ...buildDiscoverableFilter(), userId: user.userId };
 
@@ -28,10 +28,10 @@ export const GET = publicRoute<{ username: string }, undefined, z.infer<typeof p
       prisma.song.count({ where }),
     ]);
 
-    return NextResponse.json({
+    return {
       songs,
       pagination: pagedResponse(query.page, total),
-    });
+    };
   },
   { query: pageQuery, route: "/api/u/[username]/songs" }
 );

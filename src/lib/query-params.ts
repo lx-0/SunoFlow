@@ -54,6 +54,13 @@ export function zPaginationQuery(fallbackLimit = 20, maxLimit = 100) {
   });
 }
 
+export function zCursorPaginationQuery(fallbackLimit = 20, maxLimit = 100) {
+  return z.object({
+    limit: zLimitParam(fallbackLimit, maxLimit),
+    cursor: zCursorParam,
+  });
+}
+
 export const zCursorParam = z
   .string()
   .optional()

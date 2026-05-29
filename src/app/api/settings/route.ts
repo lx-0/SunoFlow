@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { authRoute } from "@/lib/route-handler";
+import { authDataRoute, authRoute, resultResponse } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { stripHtml } from "@/lib/sanitize";
 import { getUserOrNotFound } from "@/lib/profile/user";
@@ -18,19 +18,19 @@ const SETTINGS_SELECT = {
   ...EMAIL_PREFERENCES_SELECT,
 } as const;
 
-export const GET = authRoute(async (_request, { auth }) => {
+export const GET = authDataRoute(async (_request, { auth }) => {
   const result = await getUserOrNotFound(auth.userId, {
     ...SETTINGS_SELECT,
     accounts: { select: { provider: true, type: true } },
   });
 
-  if (!result.ok) return result.response;
+  if (!result.ok) return resultResponse(result);
 
-  const { accounts, ...rest } = result.user;
-  return NextResponse.json({
+  const { accounts, ...rest } = result.data;
+  return {
     ...rest,
     connectedProviders: accounts.map((a: { provider: string; type: string }) => a.provider),
-  });
+  };
 }, { route: "/api/settings" });
 
 const updateSettingsBody = z

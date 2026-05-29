@@ -1,13 +1,18 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
-import { publicRoute } from "@/lib/route-handler";
+import { publicDataRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
-import { pageQuery, pagedResponse, pageSlice, resolveRouteUsernameOrResponse } from "../route-shared";
+import {
+  isRouteResponse,
+  pageQuery,
+  pagedResponse,
+  pageSlice,
+  resolveRouteUsernameOrResponse,
+} from "../route-shared";
 
-export const GET = publicRoute<{ username: string }, undefined, z.infer<typeof pageQuery>>(
+export const GET = publicDataRoute<{ username: string }, undefined, z.infer<typeof pageQuery>>(
   async (_request, { params, query }) => {
     const user = await resolveRouteUsernameOrResponse(params.username);
-    if ("status" in user) return user;
+    if (isRouteResponse(user)) return user;
 
     const [playlists, total] = await Promise.all([
       prisma.playlist.findMany({
@@ -37,7 +42,7 @@ export const GET = publicRoute<{ username: string }, undefined, z.infer<typeof p
       }),
     ]);
 
-    return NextResponse.json({
+    return {
       playlists: playlists.map((pl) => ({
         id: pl.id,
         name: pl.name,
@@ -48,7 +53,7 @@ export const GET = publicRoute<{ username: string }, undefined, z.infer<typeof p
         createdAt: pl.createdAt,
       })),
       pagination: pagedResponse(query.page, total),
-    });
+    };
   },
   { query: pageQuery, route: "/api/u/[username]/playlists" }
 );

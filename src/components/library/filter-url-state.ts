@@ -1,3 +1,10 @@
+import {
+  parseCsvParam,
+  setSearchParamIfNotDefault,
+  setSearchParamIfPresent,
+  type SearchParamsLike,
+} from "@/lib/url-state";
+
 export interface LibraryFilterUrlState {
   searchText: string;
   statusFilter: string;
@@ -14,7 +21,6 @@ export interface LibraryFilterUrlState {
   includeVariations: boolean;
 }
 
-type SearchParamsLike = { get: (key: string) => string | null };
 type ActiveFilterOptions = {
   includeSearchText?: boolean;
   includeSortBy?: boolean;
@@ -55,15 +61,6 @@ export const DEFAULT_LIBRARY_FILTER_URL_STATE: LibraryFilterUrlState = {
   includeVariations: false,
 };
 
-function parseCsvParam(value: string | null): string[] {
-  return value
-    ? value
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean)
-    : [];
-}
-
 export function parseLibraryFilterUrlState(searchParams: SearchParamsLike): LibraryFilterUrlState {
   const tagParam = searchParams.get(URL_KEYS.tagFilter) ?? searchParams.get(URL_KEYS.tagFilterLegacy);
   return {
@@ -85,18 +82,18 @@ export function parseLibraryFilterUrlState(searchParams: SearchParamsLike): Libr
 
 export function toLibraryFilterSearchParams(state: LibraryFilterUrlState): URLSearchParams {
   const params = new URLSearchParams();
-  if (state.searchText) params.set(URL_KEYS.searchText, state.searchText);
-  if (state.statusFilter) params.set(URL_KEYS.statusFilter, state.statusFilter);
-  if (state.ratingFilter) params.set(URL_KEYS.ratingFilter, state.ratingFilter);
-  if (state.dateFrom) params.set(URL_KEYS.dateFrom, state.dateFrom);
-  if (state.dateTo) params.set(URL_KEYS.dateTo, state.dateTo);
-  if (state.sortBy && state.sortBy !== DEFAULT_SORT) params.set(URL_KEYS.sortBy, state.sortBy);
+  setSearchParamIfPresent(params, URL_KEYS.searchText, state.searchText);
+  setSearchParamIfPresent(params, URL_KEYS.statusFilter, state.statusFilter);
+  setSearchParamIfPresent(params, URL_KEYS.ratingFilter, state.ratingFilter);
+  setSearchParamIfPresent(params, URL_KEYS.dateFrom, state.dateFrom);
+  setSearchParamIfPresent(params, URL_KEYS.dateTo, state.dateTo);
+  setSearchParamIfNotDefault(params, URL_KEYS.sortBy, state.sortBy, DEFAULT_SORT);
   if (state.tagFilter.length > 0) params.set(URL_KEYS.tagFilter, state.tagFilter.join(","));
-  if (state.smartFilter) params.set(URL_KEYS.smartFilter, state.smartFilter);
+  setSearchParamIfPresent(params, URL_KEYS.smartFilter, state.smartFilter);
   if (state.genreFilter.length > 0) params.set(URL_KEYS.genreFilter, state.genreFilter.join(","));
   if (state.moodFilter.length > 0) params.set(URL_KEYS.moodFilter, state.moodFilter.join(","));
-  if (state.tempoMin) params.set(URL_KEYS.tempoMin, state.tempoMin);
-  if (state.tempoMax) params.set(URL_KEYS.tempoMax, state.tempoMax);
+  setSearchParamIfPresent(params, URL_KEYS.tempoMin, state.tempoMin);
+  setSearchParamIfPresent(params, URL_KEYS.tempoMax, state.tempoMax);
   if (state.includeVariations) params.set(URL_KEYS.includeVariations, "true");
   return params;
 }

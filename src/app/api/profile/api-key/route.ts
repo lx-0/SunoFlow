@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { authRoute } from "@/lib/route-handler";
+import { authDataRoute, authRoute, resultResponse } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { buildApiKeyUpdateData, toApiKeyResponse } from "@/lib/profile/api-key";
 import { getUserOrNotFound } from "@/lib/profile/user";
@@ -14,17 +14,15 @@ const updateApiKeySchema = z
     { message: "Provide sunoApiKey or usePersonalApiKey" },
   );
 
-export const GET = authRoute(async (_request, { auth }) => {
+export const GET = authDataRoute(async (_request, { auth }) => {
   const userResult = await getUserOrNotFound(auth.userId, {
     sunoApiKey: true,
     usePersonalApiKey: true,
   });
 
-  if (!userResult.ok) {
-    return userResult.response;
-  }
+  if (!userResult.ok) return resultResponse(userResult);
 
-  return Response.json(toApiKeyResponse(userResult.user));
+  return toApiKeyResponse(userResult.data);
 }, { route: "/api/profile/api-key" });
 
 export const PATCH = authRoute(async (_request, { auth, body }) => {
