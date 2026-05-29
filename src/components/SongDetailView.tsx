@@ -10,7 +10,24 @@ import {
   PlayIcon,
   PauseIcon,
   PaintBrushIcon,
+  ArrowDownTrayIcon,
+  MusicalNoteIcon,
+  FilmIcon,
+  ArrowPathIcon,
+  ForwardIcon,
+  MicrophoneIcon,
+  SpeakerWaveIcon,
+  ScissorsIcon,
+  DocumentDuplicateIcon,
+  SwatchIcon,
+  ArrowsRightLeftIcon,
+  HandThumbUpIcon,
+  HandThumbDownIcon,
 } from "@heroicons/react/24/solid";
+import {
+  HandThumbUpIcon as HandThumbUpOutlineIcon,
+  HandThumbDownIcon as HandThumbDownOutlineIcon,
+} from "@heroicons/react/24/outline";
 import { useOfflineCache } from "@/hooks/useOfflineCache";
 import { useSongStems } from "@/hooks/useSongStems";
 import { useSongRating } from "@/hooks/useSongRating";
@@ -576,15 +593,6 @@ export function SongDetailView({
           songTitle={song.title}
           onClose={() => setReportOpen(false)}
         />
-
-        <SongVariationTree
-          songId={song.id}
-          theme={embedTheme}
-          autoplay={embedAutoplay}
-          onThemeChange={setEmbedTheme}
-          onAutoplayChange={setEmbedAutoplay}
-          onClose={() => setEmbedOpen(false)}
-        />
       )}
 
       {saveStyleOpen && (
@@ -885,10 +893,10 @@ export function SongDetailView({
           parentSongId={parentSongId}
           parentSongTitle={parentSongTitle}
         />
+      )}
 
-        <RecommendationSection songId={song.id} type="similar" title="Similar songs" />
-        <RecommendationSection songId={song.id} type="also-liked" title="Listeners also liked" />
-
+      {/* Section editor */}
+      {sectionEditorOpen && (
         <SongLyricsSection
           songId={song.id}
           songTitle={song.title}
@@ -1147,6 +1155,8 @@ export function SongDetailView({
           onSave={(newUrl) => setCoverImageUrl(newUrl)}
         />
       )}
+      </div>
     </div>
+  </div>
   );
 }

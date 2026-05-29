@@ -386,19 +386,6 @@ export function PublicSongView({
             onPlay={playerActions.onPlay}
             onPause={playerActions.onPause}
             onEnded={handleEnded}
-            onTimeUpdate={() => playerActions.syncCurrentTime(audioRef.current)}
-            onDurationChange={() => playerActions.syncDuration(audioRef.current)}
-            onWaiting={playerActions.onWaiting}
-            onCanPlay={playerActions.onCanPlay}
-            onError={() => {
-              playerActions.onError();
-              const code = audioRef.current?.error?.code;
-              Sentry.captureMessage(`Audio load error on public song`, {
-                level: "error",
-                tags: { component: "PublicSongView", songId: activeSongId, errorCode: String(code ?? "unknown") },
-                extra: { audioUrl: resolvedAudioUrl },
-              });
-            }}
             onTimeUpdate={audio.onTimeUpdate}
             onDurationChange={audio.onDurationChange}
             onWaiting={audio.onWaiting}

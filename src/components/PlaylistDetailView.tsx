@@ -12,7 +12,7 @@ import {
   TrashIcon,
   ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
-import { PlayIcon as PlaySolidIcon, CheckIcon } from "@heroicons/react/24/solid";
+import { PlayIcon, PauseIcon, CheckIcon } from "@heroicons/react/24/solid";
 import type { Song } from "@prisma/client";
 import { useToast } from "./Toast";
 import { SwipeablePlaylistItem } from "./SwipeablePlaylistItem";
@@ -33,6 +33,7 @@ import { SharePanel } from "./playlist-detail/SharePanel";
 import { ActivityFeed } from "./playlist-detail/ActivityFeed";
 import { PublishSheets } from "./playlist-detail/PublishSheets";
 import { BatchToolbar } from "./playlist-detail/BatchToolbar";
+import { PlaylistSongListItem } from "./playlist-detail/PlaylistSongListItem";
 
 interface PlaylistCollaboratorItem {
   id: string;
@@ -358,7 +359,7 @@ export function PlaylistDetailView({
           onClick={playback.handlePlayAll}
           className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors min-h-[44px]"
         >
-          <PlaySolidIcon className="w-4 h-4" />
+          <PlayIcon className="w-4 h-4" />
           Play All
         </button>
       )}

@@ -31,6 +31,8 @@ import { useLibrarySelection } from "@/hooks/useLibrarySelection";
 import { useLibraryBatchOps } from "@/hooks/useLibraryBatchOps";
 import { useLibrarySongActions } from "@/hooks/useLibrarySongActions";
 import { useLibraryExport } from "@/hooks/useLibraryExport";
+import { LibraryBatchActionBar } from "./library/batch-action-bar";
+import { LibraryDeleteDialogs } from "./library/delete-dialogs";
 
 interface LibraryViewProps {
   initialSongs: Song[];
