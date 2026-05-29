@@ -9,3 +9,5 @@ export {
 } from "./db";
 
 export { applyRequestRateLimits, type RequestRateLimitParams } from "./sliding-window";
+
+export { rateLimitCheck } from "./check";

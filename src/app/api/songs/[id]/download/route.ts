@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authRoute, resultResponse } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
-import { acquireRateLimitSlot } from "@/lib/rate-limit";
+import { rateLimitCheck } from "@/lib/rate-limit";
 import { prepareSongDownload } from "@/lib/songs";
 import type { DownloadFormat } from "@/lib/songs";
 
@@ -27,27 +27,9 @@ export const GET = authRoute<
       return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
-    const { acquired, status } = await acquireRateLimitSlot(auth.userId, "download");
-    if (!acquired) {
-      return NextResponse.json(
-        {
-          error: "Download rate limit exceeded. Try again later.",
-          code: "RATE_LIMIT",
-          resetAt: status.resetAt,
-        },
-        {
-          status: 429,
-          headers: {
-            "Retry-After": Math.ceil(
-              (new Date(status.resetAt).getTime() - Date.now()) / 1000,
-            ).toString(),
-            "X-RateLimit-Limit": DOWNLOAD_RATE_LIMIT.toString(),
-            "X-RateLimit-Remaining": "0",
-            "X-RateLimit-Reset": status.resetAt,
-          },
-        },
-      );
-    }
+    const rl = await rateLimitCheck(auth.userId, "download", DOWNLOAD_RATE_LIMIT);
+    if (!rl.ok) return rl.response;
+    const status = rl.status;
 
     const requestedFormat = query.format as DownloadFormat | "native";
     const embedMetadata = query.metadata !== "false";

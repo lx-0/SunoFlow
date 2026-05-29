@@ -3,7 +3,7 @@ import { authRoute } from "@/lib/route-handler";
 import { requireOwnedSong } from "@/lib/songs/ownership";
 import { generateSong, resolveUserApiKey } from "@/lib/sunoapi";
 import { prisma } from "@/lib/prisma";
-import { acquireRateLimitSlot } from "@/lib/rate-limit";
+import { rateLimitCheck } from "@/lib/rate-limit";
 import { logServerError } from "@/lib/error-logger";
 import { invalidateByPrefix } from "@/lib/cache";
 import { SUNOAPI_KEY } from "@/lib/env";
@@ -23,25 +23,9 @@ export const POST = authRoute<{ id: string }>(
       );
     }
 
-    const { acquired, status: rateLimitStatus } = await acquireRateLimitSlot(auth.userId);
-    if (!acquired) {
-      const retryAfterSec = Math.max(
-        1,
-        Math.ceil((new Date(rateLimitStatus.resetAt).getTime() - Date.now()) / 1000),
-      );
-      return NextResponse.json(
-        {
-          error: `Rate limit exceeded. You can generate up to ${rateLimitStatus.limit} songs per hour.`,
-          code: "RATE_LIMIT",
-          resetAt: rateLimitStatus.resetAt,
-          rateLimit: rateLimitStatus,
-        },
-        {
-          status: 429,
-          headers: { "Retry-After": String(retryAfterSec) },
-        },
-      );
-    }
+    const rl = await rateLimitCheck(auth.userId);
+    if (!rl.ok) return rl.response;
+    const rateLimitStatus = rl.status;
 
     const userApiKey = await resolveUserApiKey(auth.userId);
     const hasApiKey = !!(userApiKey || SUNOAPI_KEY);

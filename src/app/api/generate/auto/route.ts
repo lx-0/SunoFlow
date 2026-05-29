@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import * as Sentry from "@sentry/nextjs";
 import { authRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
-import { acquireRateLimitSlot } from "@/lib/rate-limit";
+import { rateLimitCheck } from "@/lib/rate-limit";
 import { logServerError } from "@/lib/error-logger";
-import { logger } from "@/lib/logger";
 import {
   generateAutoSongDetails,
   MAX_REFERENCE_SONGS,
@@ -22,25 +20,8 @@ const generateAutoBodySchema = z.object({
 export const POST = authRoute(async (_request, { auth, body }) => {
   try {
     if (!auth.isAdmin) {
-      const { acquired, status: rateLimitStatus } = await acquireRateLimitSlot(
-        auth.userId,
-        "lyrics_generate"
-      );
-      if (!acquired) {
-        const resetAt = new Date(rateLimitStatus.resetAt);
-        const retryAfterSec = Math.ceil((resetAt.getTime() - Date.now()) / 1000);
-        logger.warn({ userId: auth.userId, action: "lyrics_generate", limit: rateLimitStatus.limit, resetAt: rateLimitStatus.resetAt }, "rate-limit: lyrics_generate limit exceeded");
-        Sentry.addBreadcrumb({
-          category: "rate-limit",
-          message: "Lyrics generate rate limit exceeded",
-          level: "warning",
-          data: { userId: auth.userId, action: "lyrics_generate", limit: rateLimitStatus.limit, resetAt: rateLimitStatus.resetAt },
-        });
-        return NextResponse.json(
-          { error: "Rate limit exceeded. Please try again later.", code: "RATE_LIMIT", resetAt: rateLimitStatus.resetAt },
-          { status: 429, headers: { "Retry-After": String(Math.max(1, retryAfterSec)) } }
-        );
-      }
+      const rl = await rateLimitCheck(auth.userId, "lyrics_generate");
+      if (!rl.ok) return rl.response;
     }
 
     const favoriteSongs = await prisma.song.findMany({
