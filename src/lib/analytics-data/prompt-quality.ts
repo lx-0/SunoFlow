@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getDateRangeMeta, dateRangeStart, mondayOfWeeksAgo } from "@/lib/date-series";
+import { normalizedTagList, normalizeTagCombo } from "@/lib/tags";
 
 interface FeedbackStat {
   likes: number;
@@ -41,10 +42,7 @@ export async function getPromptQuality(range: string): Promise<PromptQualityAnal
     const rawTags = fb.song.tags;
     if (!rawTags) continue;
 
-    const tags = rawTags
-      .split(",")
-      .map((t) => t.trim().toLowerCase())
-      .filter(Boolean);
+    const tags = normalizedTagList(rawTags);
     if (tags.length === 0) continue;
 
     const isLike = fb.rating === "thumbs_up";
@@ -56,7 +54,7 @@ export async function getPromptQuality(range: string): Promise<PromptQualityAnal
       tagAccum[tag].plays += fb.song.playCount ?? 0;
     }
 
-    const combo = [...tags].sort().join(", ");
+    const combo = normalizeTagCombo(rawTags);
     if (!comboAccum[combo]) comboAccum[combo] = { likes: 0, dislikes: 0, plays: 0 };
     if (isLike) comboAccum[combo].likes++;
     else comboAccum[combo].dislikes++;

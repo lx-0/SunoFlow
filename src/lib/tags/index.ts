@@ -18,12 +18,16 @@ export function splitTagCsv(raw: string | null): string[] {
     .filter(Boolean);
 }
 
+export function normalizedTagList(raw: string | null): string[] {
+  return splitTagCsv(raw).map((tag) => tag.toLowerCase());
+}
+
 export function firstTag(raw: string | null): string | null {
   return splitTagCsv(raw)[0] ?? null;
 }
 
 export function normalizeTagCombo(raw: string | null): string {
-  return parseTags(raw).sort().join(", ");
+  return normalizedTagList(raw).sort().join(", ");
 }
 
 export function collectSongTokens(

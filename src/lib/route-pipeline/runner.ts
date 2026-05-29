@@ -1,8 +1,7 @@
 import { NextRequest } from "next/server";
 import { internalError } from "@/lib/api-error";
 import { logServerError } from "@/lib/error-logger";
-import type { PipelineCtx } from "@/lib/route-handler/types";
-import type { RoutePipelineOptions, SegmentData } from "@/lib/route-pipeline/types";
+import type { PipelineCtx, RoutePipelineOptions, SegmentData } from "@/lib/route-pipeline/types";
 import {
   parseValidatedBody,
   parseValidatedQuery,

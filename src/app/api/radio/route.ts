@@ -1,21 +1,10 @@
-import { z } from "zod";
 import { NextResponse } from "next/server";
 import { authRoute } from "@/lib/route-handler";
 import { curateRadio } from "@/lib/radio";
+import { radioQuerySchema, type RadioQueryInput } from "@/lib/radio/request";
 import { CacheControl } from "@/lib/cache";
-import { zCsvParam, zIntParam, zLimitParam, zTrimmedParam } from "@/lib/query-params";
 
-const radioQuery = z.object({
-  mood: zTrimmedParam,
-  genre: zTrimmedParam,
-  tempoMin: zIntParam,
-  tempoMax: zIntParam,
-  excludeIds: zCsvParam,
-  seedSongId: zTrimmedParam,
-  limit: zLimitParam(20, 50),
-});
-
-export const GET = authRoute<Record<string, never>, undefined, z.infer<typeof radioQuery>>(async (_request, { auth, query }) => {
+export const GET = authRoute<Record<string, never>, undefined, RadioQueryInput>(async (_request, { auth, query }) => {
   const { mood, genre, tempoMin, tempoMax, excludeIds, seedSongId, limit } = query;
 
   const result = await curateRadio({
@@ -32,4 +21,4 @@ export const GET = authRoute<Record<string, never>, undefined, z.infer<typeof ra
   return NextResponse.json(result, {
     headers: { "Cache-Control": CacheControl.privateNoCache },
   });
-}, { route: "/api/radio", query: radioQuery });
+}, { route: "/api/radio", query: radioQuerySchema });

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { cycleRepeatMode } from "@/components/queue/queue-navigation";
 import { useQueue } from "./QueueContext";
 
 // ─── Shortcut definitions ────────────────────────────────────────────────────
@@ -253,12 +254,7 @@ export function useKeyboardShortcuts(
       if (key === "l") {
         e.preventDefault();
         cycleRepeat();
-        const next =
-          repeatRef.current === "off"
-            ? "repeat-all"
-            : repeatRef.current === "repeat-all"
-            ? "repeat-one"
-            : "off";
+        const next = cycleRepeatMode(repeatRef.current);
         const loopLabels: Record<string, string> = {
           off: "Loop: Off",
           "repeat-all": "Loop: All",
@@ -271,12 +267,7 @@ export function useKeyboardShortcuts(
       if (key === "r") {
         e.preventDefault();
         cycleRepeat();
-        const next =
-          repeatRef.current === "off"
-            ? "repeat-all"
-            : repeatRef.current === "repeat-all"
-            ? "repeat-one"
-            : "off";
+        const next = cycleRepeatMode(repeatRef.current);
         const labels: Record<string, string> = {
           off: "Repeat: Off",
           "repeat-all": "Repeat: All",

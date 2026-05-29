@@ -1,17 +1,16 @@
 import { z } from "zod";
-import { NextResponse } from "next/server";
-import { adminRoute } from "@/lib/route-handler";
+import { adminDataRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
-import { offsetPagination, pageSkip } from "@/lib/pagination";
+import { pageSkip, paginatedQuery } from "@/lib/pagination";
 import { zPaginationQuery } from "@/lib/query-params";
 
 const logsQuery = zPaginationQuery(50, 100);
 
-export const GET = adminRoute<Record<string, never>, undefined, z.infer<typeof logsQuery>>(async (_request, { query }) => {
+export const GET = adminDataRoute<Record<string, never>, undefined, z.infer<typeof logsQuery>>(async (_request, { query }) => {
   const { page, limit } = query;
 
-  const [logs, total] = await Promise.all([
-    prisma.adminLog.findMany({
+  const { items: logs, ...pagination } = await paginatedQuery({
+    findMany: () => prisma.adminLog.findMany({
       orderBy: { createdAt: "desc" },
       skip: pageSkip(page, limit),
       take: limit,
@@ -19,11 +18,10 @@ export const GET = adminRoute<Record<string, never>, undefined, z.infer<typeof l
         admin: { select: { name: true, email: true } },
       },
     }),
-    prisma.adminLog.count(),
-  ]);
-
-  return NextResponse.json({
-    logs,
-    ...offsetPagination(page, limit, total),
+    count: () => prisma.adminLog.count(),
+    page,
+    limit,
   });
+
+  return { logs, ...pagination };
 }, { route: "/api/admin/logs", query: logsQuery });

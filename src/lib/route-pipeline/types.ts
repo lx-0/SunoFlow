@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+export type PipelineCtx<P extends Record<string, string>, B, Q> = {
+  params: P;
+  body: B;
+  query: Q;
+};
+
 export type RouteOptions = {
   route?: string;
 };

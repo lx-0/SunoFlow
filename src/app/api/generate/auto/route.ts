@@ -3,22 +3,13 @@ import { z } from "zod";
 import * as Sentry from "@sentry/nextjs";
 import { authRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
-import { generateText } from "@/lib/llm";
 import { acquireRateLimitSlot } from "@/lib/rate-limit";
 import { logServerError } from "@/lib/error-logger";
 import { logger } from "@/lib/logger";
-
-const MAX_REFERENCE_SONGS = 3;
-
-const SYSTEM_PROMPT = `You are a creative music generator. Given a description or prompt, generate:
-1. A catchy song title (short, 2-6 words)
-2. A music style/genre description (comma-separated tags, 3-8 words, e.g. "dreamy indie pop, ethereal vocals, reverb guitar")
-3. A lyrics prompt (a vivid 1-2 sentence description of the song's theme and mood, used to generate lyrics)
-
-Respond ONLY with valid JSON in this exact format:
-{"title": "...", "style": "...", "lyricsPrompt": "..."}
-
-Consider the user's musical taste if reference songs are provided. Be creative and specific.`;
+import {
+  generateAutoSongDetails,
+  MAX_REFERENCE_SONGS,
+} from "@/lib/generate-auto";
 
 const generateAutoBodySchema = z.object({
   prompt: z
@@ -62,31 +53,11 @@ export const POST = authRoute(async (_request, { auth, body }) => {
       select: { title: true, tags: true },
     });
 
-    let userPrompt = `Description: ${body.prompt}`;
+    const result = await generateAutoSongDetails(body.prompt, favoriteSongs);
 
-    if (favoriteSongs.length > 0) {
-      const refContext = favoriteSongs
-        .map((s) => `"${s.title ?? "Untitled"}"${s.tags ? ` (${s.tags})` : ""}`)
-        .join(", ");
-      userPrompt += `\n\nUser's favorite songs for style reference: ${refContext}`;
-    }
-
-    const raw = await generateText(SYSTEM_PROMPT, userPrompt);
-
-    if (!raw) {
+    if (!result) {
       return NextResponse.json(
         { error: "Generation failed. Please try again.", code: "INTERNAL_ERROR" },
-        { status: 500 }
-      );
-    }
-
-    let result: { title: string; style: string; lyricsPrompt: string };
-    try {
-      const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      result = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
-    } catch {
-      return NextResponse.json(
-        { error: "Generation returned unexpected format. Please try again.", code: "INTERNAL_ERROR" },
         { status: 500 }
       );
     }

@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import { authRoute, requireOwned } from "@/lib/route-handler";
+import { authRoute, requireOwned, successResponse } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 
 export const DELETE = authRoute<{ id: string }>(async (_request, { auth, params }) => {
@@ -9,5 +8,5 @@ export const DELETE = authRoute<{ id: string }>(async (_request, { auth, params 
 
   await prisma.generationPreset.delete({ where: { id: params.id } });
 
-  return NextResponse.json({ success: true });
+  return successResponse();
 });

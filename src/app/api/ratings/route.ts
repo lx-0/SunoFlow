@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { authRoute } from "@/lib/route-handler";
+import { authDataRoute, authRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { invalidateByPrefix } from "@/lib/cache";
 import { notFound } from "@/lib/api-error";
@@ -9,7 +9,7 @@ const ratingsQuery = z.object({
   songId: z.string().optional(),
 });
 
-export const GET = authRoute(async (_request, { auth, query }) => {
+export const GET = authDataRoute(async (_request, { auth, query }) => {
   const songId = query.songId;
 
   const where: { userId: string; songId?: string } = { userId: auth.userId };
@@ -29,7 +29,7 @@ export const GET = authRoute(async (_request, { auth, query }) => {
     orderBy: { updatedAt: "desc" },
   });
 
-  return NextResponse.json({ ratings });
+  return { ratings };
 }, { route: "/api/ratings", query: ratingsQuery });
 
 const createRatingBody = z.object({

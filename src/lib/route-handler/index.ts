@@ -13,8 +13,8 @@ import {
   createJsonDataRoute,
   createKeyedRoute,
 } from "@/lib/route-handler/builders";
-import type { PipelineCtx } from "@/lib/route-handler/types";
 import type {
+  PipelineCtx,
   RouteOptions,
   RoutePipelineOptions,
   RouteSchemas,
@@ -27,7 +27,7 @@ import type {
   RateLimitConfig,
 } from "@/lib/route-handler/types";
 
-export { requireOwned, resultResponse } from "@/lib/route-response";
+export { requireOwned, resultResponse, successResponse } from "@/lib/route-response";
 export type {
   AdminContext,
   AnonContext,

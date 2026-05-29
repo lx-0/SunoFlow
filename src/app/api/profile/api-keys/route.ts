@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { generateApiKey } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { authRoute } from "@/lib/route-handler";
+import { authDataRoute, authRoute } from "@/lib/route-handler";
 import { canUseFeature, SubscriptionTier } from "@/lib/feature-gates";
 import { badRequest, forbidden } from "@/lib/api-error";
 
 const MAX_ACTIVE_KEYS = 5;
 
-export const GET = authRoute(async (_request, { auth }) => {
+export const GET = authDataRoute(async (_request, { auth }) => {
   const keys = await prisma.apiKey.findMany({
     where: { userId: auth.userId, revokedAt: null },
     select: {
@@ -21,7 +21,7 @@ export const GET = authRoute(async (_request, { auth }) => {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ keys });
+  return { keys };
 });
 
 const createKeyBody = z.object({
