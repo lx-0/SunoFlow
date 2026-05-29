@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import * as Sentry from "@sentry/nextjs";
 import Image from "next/image";
 import Link from "next/link";
 import { PlayIcon, PauseIcon, MusicalNoteIcon, FlagIcon, SparklesIcon, SpeakerWaveIcon, SpeakerXMarkIcon, CodeBracketIcon, HeartIcon } from "@heroicons/react/24/solid";
@@ -169,10 +170,10 @@ export function PublicSongView({
       <div className="md:sticky md:top-8">
       <div className="relative w-full overflow-hidden rounded-b-3xl md:rounded-3xl mb-6 md:mb-0">
         {/* Blurred background layer */}
-        {variant.activeImageUrl && (
+        {activeImageUrl && (
           <div className="absolute inset-0">
             <Image
-              src={variant.activeImageUrl}
+              src={activeImageUrl}
               alt=""
               fill
               className="object-cover scale-110 blur-2xl opacity-60"
@@ -186,8 +187,8 @@ export function PublicSongView({
         <div className="relative px-4 pt-4 pb-6 space-y-4">
           {/* Cover art */}
           <div className="relative aspect-square w-full rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 overflow-hidden flex items-center justify-center shadow-xl ring-1 ring-black/5 dark:ring-white/10">
-            {variant.activeImageUrl ? (
-              <Image src={variant.activeImageUrl} alt={variant.activeTitle} fill className="object-cover" sizes="(max-width: 768px) 100vw, 400px" priority />
+            {activeImageUrl ? (
+              <Image src={activeImageUrl} alt={activeTitle} fill className="object-cover" sizes="(max-width: 768px) 100vw, 400px" priority />
             ) : (
               <MusicalNoteIcon className="w-20 h-20 text-gray-300 dark:text-gray-700" />
             )}
@@ -195,7 +196,7 @@ export function PublicSongView({
 
           {/* Song info */}
           <div className="text-center md:text-left space-y-1.5">
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">{variant.activeTitle}</h1>
+            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">{activeTitle}</h1>
             {creatorName && (
               <div className="flex items-center justify-center md:justify-start gap-2 flex-wrap">
                 {creatorUsername ? (
@@ -213,8 +214,8 @@ export function PublicSongView({
                 )}
               </div>
             )}
-            {variant.activeTags && (
-              <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">{variant.activeTags}</p>
+            {activeTags && (
+              <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">{activeTags}</p>
             )}
             <p className="text-xs text-gray-400 dark:text-gray-500">
               {new Date(createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
@@ -243,7 +244,7 @@ export function PublicSongView({
       )}
 
       {/* Audio player */}
-      {variant.activeAudioUrl && (
+      {activeAudioUrl && (
         <div className="space-y-3">
           {/* Play button */}
           <div className="flex flex-col items-center gap-1.5">
@@ -272,9 +273,9 @@ export function PublicSongView({
           {/* Waveform + reaction timeline + floating popups */}
           <div className="relative space-y-1">
             {/* Floating emoji popups */}
-            {reactionPopups.activePopups.length > 0 && (
+            {activePopups.length > 0 && (
               <div className="pointer-events-none absolute inset-x-2 bottom-8 h-0 z-10">
-                {reactionPopups.activePopups.map((popup) => (
+                {activePopups.map((popup) => (
                   <span
                     key={popup.key}
                     className="absolute text-2xl leading-none animate-emoji-float"
@@ -288,9 +289,9 @@ export function PublicSongView({
             )}
 
             {/* Floating comment popups */}
-            {commentPopups.activeCommentPopups.length > 0 && (
+            {activeCommentPopups.length > 0 && (
               <div className="pointer-events-none absolute inset-x-2 bottom-8 h-0 z-20">
-                {commentPopups.activeCommentPopups.map((popup) => (
+                {activeCommentPopups.map((popup) => (
                   <div
                     key={popup.key}
                     className="absolute bottom-2 flex flex-col items-center gap-0.5 animate-emoji-float"
@@ -364,8 +365,8 @@ export function PublicSongView({
               <EmojiReactionPicker
                 isPlaying={playerState.isPlaying}
                 isAuthenticated={true}
-                onReact={reactionPopups.handleReact}
-                reactionEmojis={reactionPopups.reactions.map((r) => r.emoji)}
+                onReact={handleReact}
+                reactionEmojis={reactions.map((r) => r.emoji)}
               />
             ) : (
               playerState.isPlaying && (
@@ -380,17 +381,17 @@ export function PublicSongView({
           </div>
 
           <audio
-            ref={audio.audioRef}
-            src={variant.resolvedAudioUrl ?? undefined}
+            ref={audioRef}
+            src={resolvedAudioUrl ?? undefined}
             preload="metadata"
             onPlay={playerActions.onPlay}
             onPause={playerActions.onPause}
             onEnded={handleEnded}
-            onTimeUpdate={audio.onTimeUpdate}
-            onDurationChange={audio.onDurationChange}
-            onWaiting={audio.onWaiting}
-            onCanPlay={audio.onCanPlay}
-            onError={() => audio.onError(variant.activeSongId, variant.resolvedAudioUrl)}
+            onTimeUpdate={(e) => playerActions.syncCurrentTime(e.currentTarget)}
+            onDurationChange={(e) => playerActions.syncDuration(e.currentTarget)}
+            onWaiting={playerActions.onWaiting}
+            onCanPlay={playerActions.onCanPlay}
+            onError={playerActions.onError}
           />
         </div>
       )}
@@ -433,7 +434,7 @@ export function PublicSongView({
           className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all duration-200 active:scale-95 min-h-[44px]"
         />
         <button
-          onClick={() => embed.setEmbedOpen(true)}
+          onClick={() => setEmbedOpen(true)}
           className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all duration-200 active:scale-95 min-h-[44px]"
           aria-label="Get embed code"
         >
@@ -451,13 +452,13 @@ export function PublicSongView({
       </div>
 
       {/* Embed modal */}
-      {embed.embedOpen && (
+      {embedOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-label="Embed player"
-          onClick={(e) => { if (e.target === e.currentTarget) embed.setEmbedOpen(false); }}
+          onClick={(e) => { if (e.target === e.currentTarget) setEmbedOpen(false); }}
         >
           <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between">
@@ -466,7 +467,7 @@ export function PublicSongView({
                 Embed player
               </h2>
               <button
-                onClick={() => embed.setEmbedOpen(false)}
+                onClick={() => setEmbedOpen(false)}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
                 aria-label="Close"
               >
@@ -482,8 +483,8 @@ export function PublicSongView({
                   {(["dark", "light"] as const).map((t) => (
                     <button
                       key={t}
-                      onClick={() => embed.setEmbedTheme(t)}
-                      className={`px-2.5 py-1 rounded-md border capitalize transition-colors ${embed.embedTheme === t ? "border-violet-500 bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400" : "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-400"}`}
+                      onClick={() => setEmbedTheme(t)}
+                      className={`px-2.5 py-1 rounded-md border capitalize transition-colors ${embedTheme === t ? "border-violet-500 bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400" : "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-400"}`}
                     >
                       {t}
                     </button>
@@ -496,8 +497,8 @@ export function PublicSongView({
                   {["100%", "480px", "320px"].map((w) => (
                     <button
                       key={w}
-                      onClick={() => embed.setEmbedWidth(w)}
-                      className={`px-2.5 py-1 rounded-md border transition-colors ${embed.embedWidth === w ? "border-violet-500 bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400" : "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-400"}`}
+                      onClick={() => setEmbedWidth(w)}
+                      className={`px-2.5 py-1 rounded-md border transition-colors ${embedWidth === w ? "border-violet-500 bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400" : "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-400"}`}
                     >
                       {w}
                     </button>
@@ -509,7 +510,7 @@ export function PublicSongView({
             {/* Preview */}
             <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
               <iframe
-                src={`/embed/${songId}?theme=${embed.embedTheme}`}
+                src={`/embed/${songId}?theme=${embedTheme}`}
                 width="100%"
                 height="96"
                 style={{ border: "none", display: "block" }}
@@ -523,17 +524,17 @@ export function PublicSongView({
                 readOnly
                 rows={3}
                 aria-label="Embed code"
-                value={embed.getEmbedCode()}
+                value={getEmbedCode()}
                 className="w-full text-xs font-mono bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 resize-none text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500"
                 onClick={(e) => (e.target as HTMLTextAreaElement).select()}
               />
             </div>
 
             <button
-              onClick={embed.handleCopyEmbed}
+              onClick={handleCopyEmbed}
               className="w-full py-2 text-sm font-medium rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors"
             >
-              {embed.embedCopied ? "Copied!" : "Copy embed code"}
+              {embedCopied ? "Copied!" : "Copy embed code"}
             </button>
           </div>
         </div>
@@ -576,7 +577,7 @@ export function PublicSongView({
           </h2>
           <div className="space-y-2">
             {variants.map((v) => {
-              const isActive = v.id === variant.activeSongId;
+              const isActive = v.id === activeSongId;
               return (
                 <button
                   key={v.id}
