@@ -56,43 +56,6 @@
     "web-push": "^3.6.7",
     "zod": "^4.4.2"
   },
-  "pnpm": {
-    "overrides": {
-      "picomatch": ">=4.0.4",
-      "brace-expansion@5": ">=5.0.5",
-      "brace-expansion@<2": ">=1.1.13",
-      "brace-expansion@>=2 <3": ">=2.0.3",
-      "lodash": ">=4.18.0",
-      "axios": ">=1.15.2",
-      "protobufjs": ">=7.5.5",
-      "hono": ">=4.12.18",
-      "@hono/node-server": ">=1.19.13",
-      "follow-redirects": ">=1.16.0",
-      "dompurify": ">=3.4.0",
-      "fast-uri": ">=3.1.2",
-      "postcss": ">=8.5.10",
-      "icu-minify": ">=4.9.2",
-      "ip-address": ">=10.1.1"
-    },
-    "onlyBuiltDependencies": [
-      "@parcel/watcher",
-      "@prisma/client",
-      "@prisma/engines",
-      "@scarf/scarf",
-      "@sentry/cli",
-      "@swc/core",
-      "@tree-sitter-grammars/tree-sitter-yaml",
-      "core-js",
-      "core-js-pure",
-      "esbuild",
-      "prisma",
-      "protobufjs",
-      "sharp",
-      "tree-sitter",
-      "tree-sitter-json",
-      "unrs-resolver"
-    ]
-  },
   "devDependencies": {
     "@next/bundle-analyzer": "^15.5.18",
     "@playwright/test": "^1.58.2",
@@ -117,5 +80,40 @@
     "typescript": "^5.9.3",
     "vite": "^7.3.2",
     "vitest": "^3.2.4"
-  }
+  },
+  "overrides": {
+    "picomatch": ">=4.0.4",
+    "brace-expansion@5": ">=5.0.5",
+    "brace-expansion@<2": ">=1.1.13",
+    "brace-expansion@>=2 <3": ">=2.0.3",
+    "lodash": ">=4.18.0",
+    "axios": ">=1.15.2",
+    "protobufjs": ">=7.5.5",
+    "hono": ">=4.12.18",
+    "@hono/node-server": ">=1.19.13",
+    "follow-redirects": ">=1.16.0",
+    "dompurify": ">=3.4.0",
+    "fast-uri": ">=3.1.2",
+    "postcss": ">=8.5.10",
+    "icu-minify": ">=4.9.2",
+    "ip-address": ">=10.1.1"
+  },
+  "onlyBuiltDependencies": [
+    "@parcel/watcher",
+    "@prisma/client",
+    "@prisma/engines",
+    "@scarf/scarf",
+    "@sentry/cli",
+    "@swc/core",
+    "@tree-sitter-grammars/tree-sitter-yaml",
+    "core-js",
+    "core-js-pure",
+    "esbuild",
+    "prisma",
+    "protobufjs",
+    "sharp",
+    "tree-sitter",
+    "tree-sitter-json",
+    "unrs-resolver"
+  ]
 }
