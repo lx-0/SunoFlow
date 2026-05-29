@@ -5,6 +5,7 @@ import { requireOwnedSong } from "@/lib/songs/ownership";
 import { prisma } from "@/lib/prisma";
 import { getMusicVideoDetail, SunoApiError, resolveUserApiKey } from "@/lib/sunoapi";
 import { logServerError } from "@/lib/error-logger";
+import { badGateway } from "@/lib/api-error";
 
 const querySchema = z.object({
   taskId: z.string().min(1, "Missing required query parameter: taskId"),
@@ -35,7 +36,7 @@ export const GET = authRoute<{ id: string }, undefined, z.infer<typeof querySche
         apiError instanceof SunoApiError && apiError.status === 404
           ? "Music video task not found. The task ID may be invalid or expired."
           : "Failed to check music video status. Please try again.";
-      return NextResponse.json({ error: message, code: "API_ERROR" }, { status: 502 });
+      return badGateway(message);
     }
 
     const videoUrl = detail.response?.videoUrl ?? null;

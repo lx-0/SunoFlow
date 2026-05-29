@@ -3,6 +3,7 @@ import { z } from "zod";
 import { publicRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import { badRequest, notFound } from "@/lib/api-error";
 
 const VALID_TYPES = ["generation_complete", "weekly_highlights"] as const;
 type UnsubscribeType = (typeof VALID_TYPES)[number];
@@ -17,7 +18,7 @@ export const GET = publicRoute<Record<string, never>, undefined, z.infer<typeof 
   const type = query.type as UnsubscribeType | undefined;
 
   if (!token || !type || !VALID_TYPES.includes(type)) {
-    return NextResponse.json({ error: "Invalid unsubscribe link", code: "INVALID_LINK" }, { status: 400 });
+    return badRequest("Invalid unsubscribe link");
   }
 
   const user = await prisma.user.findUnique({
@@ -26,7 +27,7 @@ export const GET = publicRoute<Record<string, never>, undefined, z.infer<typeof 
   });
 
   if (!user) {
-    return NextResponse.json({ error: "Invalid or expired unsubscribe link", code: "NOT_FOUND" }, { status: 404 });
+    return notFound("Invalid or expired unsubscribe link");
   }
 
   const updateData =

@@ -109,6 +109,10 @@ export const internalError = (msg = "Internal server error") =>
 export const insufficientCredits = (msg = "Insufficient credits") =>
   apiError(msg, ErrorCode.INSUFFICIENT_CREDITS, 402);
 
+/** 502 — upstream API returned an error */
+export const badGateway = (msg: string) =>
+  apiError(msg, ErrorCode.SUNO_API_ERROR, 502);
+
 /** 503 — upstream/external service unavailable */
 export const serviceUnavailable = (msg: string) =>
   apiError(msg, ErrorCode.SERVICE_UNAVAILABLE, 503);
