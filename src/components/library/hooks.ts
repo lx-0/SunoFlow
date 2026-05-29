@@ -12,7 +12,7 @@ import {
   type LibraryBatchAction,
 } from "@/lib/songs/library-client";
 import { applyBatchActionToSongs, batchActionMessage } from "@/lib/songs/batch-action-helpers";
-import { useOutsideClick } from "@/hooks/useOutsideClick";
+import { useMenuState } from "@/hooks/useMenuState";
 import { toggleSelectAll, toggleSelection } from "./selection";
 
 type ToastFn = (message: string, variant?: "success" | "error" | "info") => void;
@@ -294,25 +294,17 @@ export function useLibraryBatchActions({
   const [menuDeleteLoading, setMenuDeleteLoading] = useState(false);
 
   // Batch tag
-  const [showBatchTagMenu, setShowBatchTagMenu] = useState(false);
-  const [batchTagLoading, setBatchTagLoading] = useState(false);
-  const batchTagMenuRef = useRef<HTMLDivElement>(null);
-  useOutsideClick(batchTagMenuRef, () => setShowBatchTagMenu(false), showBatchTagMenu);
+  const { show: showBatchTagMenu, setShow: setShowBatchTagMenu, loading: batchTagLoading, setLoading: setBatchTagLoading, ref: batchTagMenuRef } = useMenuState();
 
   // Batch playlist
-  const [showBatchPlaylistMenu, setShowBatchPlaylistMenu] = useState(false);
-  const [batchPlaylistLoading, setBatchPlaylistLoading] = useState(false);
+  const { show: showBatchPlaylistMenu, setShow: setShowBatchPlaylistMenu, loading: batchPlaylistLoading, setLoading: setBatchPlaylistLoading, ref: batchPlaylistMenuRef } = useMenuState();
   const [batchPlaylists, setBatchPlaylists] = useState<PlaylistOption[]>([]);
-  const batchPlaylistMenuRef = useRef<HTMLDivElement>(null);
-  useOutsideClick(batchPlaylistMenuRef, () => setShowBatchPlaylistMenu(false), showBatchPlaylistMenu);
 
   // Batch download
   const [batchDownloading, setBatchDownloading] = useState(false);
   const [batchDownloadProgress, setBatchDownloadProgress] = useState<{ completed: number; total: number } | null>(null);
-  const [showBatchDownloadFormatMenu, setShowBatchDownloadFormatMenu] = useState(false);
+  const { show: showBatchDownloadFormatMenu, setShow: setShowBatchDownloadFormatMenu, ref: batchDownloadFormatMenuRef } = useMenuState();
   const [batchDownloadFormat, setBatchDownloadFormat] = useState<AudioFormat>("mp3");
-  const batchDownloadFormatMenuRef = useRef<HTMLDivElement>(null);
-  useOutsideClick(batchDownloadFormatMenuRef, () => setShowBatchDownloadFormatMenu(false), showBatchDownloadFormatMenu);
 
   type BatchActionType = Exclude<LibraryBatchAction, "tag" | "add_to_playlist">;
 
@@ -505,12 +497,9 @@ interface UseLibraryExportOptions {
 }
 
 export function useLibraryExport({ songs, toast }: UseLibraryExportOptions) {
-  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const { show: exportMenuOpen, setShow: setExportMenuOpen, ref: exportMenuRef } = useMenuState();
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState<{ completed: number; total: number } | null>(null);
-  const exportMenuRef = useRef<HTMLDivElement>(null);
-
-  useOutsideClick(exportMenuRef, () => setExportMenuOpen(false), exportMenuOpen);
 
   const exportableSongs = useMemo<ExportableSong[]>(() => {
     return songs

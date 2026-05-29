@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -157,6 +158,7 @@ function SongCard({ song, selected, onToggle }: SongCardProps) {
 
 export function SunoImportModal({ onClose, onImportComplete }: SunoImportModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocusTrap(dialogRef, true, onClose);
   const { addNotification } = useNotifications();
 
   const [songs, setSongs] = useState<RemoteSong[]>([]);
@@ -206,23 +208,6 @@ export function SunoImportModal({ onClose, onImportComplete }: SunoImportModalPr
   useEffect(() => {
     fetchSongs(1);
   }, [fetchSongs]);
-
-  // ── Keyboard handling ─────────────────────────────────────────────────────
-
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onClose]);
-
-  useEffect(() => {
-    const el = dialogRef.current?.querySelector<HTMLElement>(
-      'button, [href], input, [tabindex]:not([tabindex="-1"])'
-    );
-    el?.focus();
-  }, []);
 
   // ── Selection helpers ──────────────────────────────────────────────────────
 

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useToast } from "./Toast";
+import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 
 const REASONS = [
   { value: "offensive", label: "Offensive content" },
@@ -25,23 +26,7 @@ export function ReportModal({ songId, playlistId, songTitle, onClose }: ReportMo
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onClose]);
-
-  // Move focus to dialog on mount
-  useEffect(() => {
-    if (!dialogRef.current) return;
-    const firstFocusable = dialogRef.current.querySelector<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    firstFocusable?.focus();
-  }, []);
+  useDialogFocusTrap(dialogRef, true, onClose);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
