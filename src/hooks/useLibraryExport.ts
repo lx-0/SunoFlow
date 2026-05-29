@@ -1,30 +1,20 @@
 "use client";
 
-import { Song } from "@prisma/client";
 import { useMemo, useRef, useState } from "react";
+import type { Song } from "@prisma/client";
 import { exportAsZip, exportAsM3U, type ExportableSong } from "@/lib/export";
+import { useToast } from "@/components/Toast";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
 
-interface UseLibraryExportOptions {
-  songs: Song[];
-  toast: (message: string, variant?: "success" | "error" | "info") => void;
-}
+export function useLibraryExport(songs: Song[]) {
+  const { toast } = useToast();
 
-export function useLibraryExport({ songs, toast }: UseLibraryExportOptions) {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [exportProgress, setExportProgress] = useState<{
-    completed: number;
-    total: number;
-  } | null>(null);
-
+  const [exportProgress, setExportProgress] = useState<{ completed: number; total: number } | null>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
 
-  useOutsideClick(
-    exportMenuRef,
-    () => setExportMenuOpen(false),
-    exportMenuOpen
-  );
+  useOutsideClick(exportMenuRef, () => setExportMenuOpen(false), exportMenuOpen);
 
   const exportableSongs = useMemo<ExportableSong[]>(() => {
     return songs
@@ -46,10 +36,7 @@ export function useLibraryExport({ songs, toast }: UseLibraryExportOptions) {
       return;
     }
     if (exportableSongs.length > 50) {
-      toast(
-        `Exporting ${exportableSongs.length} songs — this may take a while`,
-        "info"
-      );
+      toast(`Exporting ${exportableSongs.length} songs — this may take a while`, "info");
     }
     setExporting(true);
     setExportProgress({ completed: 0, total: exportableSongs.length });
@@ -86,7 +73,6 @@ export function useLibraryExport({ songs, toast }: UseLibraryExportOptions) {
     exporting,
     exportProgress,
     exportMenuRef,
-    exportableSongs,
     handleExportZip,
     handleExportM3U,
   };

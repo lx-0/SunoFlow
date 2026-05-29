@@ -1,14 +1,431 @@
 "use client";
 
-import { useState } from "react";
-import { SparklesIcon } from "@heroicons/react/24/solid";
-import { useToast } from "./Toast";
+import { useState, useRef, useEffect } from "react";
+import {
+  ArrowUpTrayIcon,
+  XMarkIcon,
+  MusicalNoteIcon,
+  SparklesIcon,
+  MagnifyingGlassIcon,
+} from "@heroicons/react/24/solid";
+import Image from "next/image";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { GenerationProgress } from "./GenerationProgress";
-import { TrackSelector } from "./mashup-studio/TrackSelector";
-import { useMashupSubmit } from "./mashup-studio/useMashupSubmit";
-import { emptyTrack } from "./mashup-studio/types";
-import type { TrackState } from "./mashup-studio/types";
+import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
+import { useMashupRateLimit } from "./mashup-studio/use-mashup-rate-limit";
+import { useMashupSubmission } from "./mashup-studio/use-mashup-submission";
+import {
+  useTrackFileHandler,
+  emptyTrack,
+  type TrackState,
+} from "./mashup-studio/use-track-file-handler";
+
+interface LibrarySong {
+  id: string;
+  title: string | null;
+  tags: string | null;
+  audioUrl: string | null;
+  imageUrl: string | null;
+  duration: number | null;
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+// --- Song Picker Modal ---
+
+function SongPickerModal({
+  open,
+  onClose,
+  onSelect,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSelect: (song: LibrarySong) => void;
+}) {
+  const [songs, setSongs] = useState<LibrarySong[]>([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocusTrap(dialogRef, open, onClose);
+
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    fetch("/api/songs?status=ready&limit=100")
+      .then((r) => r.json())
+      .then((data) => {
+        setSongs(data.songs ?? data ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [open]);
+
+  const filtered = songs.filter((s) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      (s.title && s.title.toLowerCase().includes(q)) ||
+      (s.tags && s.tags.toLowerCase().includes(q))
+    );
+  });
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="song-picker-title"
+        tabIndex={-1}
+        className="relative w-full max-w-lg max-h-[70vh] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl flex flex-col"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <h3 id="song-picker-title" className="text-sm font-semibold text-gray-900 dark:text-white">
+            Pick a song from your library
+          </h3>
+          <button
+            onClick={onClose}
+            aria-label="Close song picker"
+            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            <XMarkIcon className="h-5 w-5 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="px-4 py-2">
+          <div className="relative">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              aria-label="Search songs to pick"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search songs..."
+              className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+
+        {/* Song list */}
+        <div className="flex-1 overflow-y-auto px-2 pb-2">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <svg
+                className="animate-spin h-6 w-6 text-violet-500"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
+              </svg>
+            </div>
+          ) : filtered.length === 0 ? (
+            <p className="text-center text-sm text-gray-500 dark:text-gray-400 py-8">
+              {search.trim()
+                ? "No songs match your search"
+                : "No completed songs in your library"}
+            </p>
+          ) : (
+            <div className="space-y-1">
+              {filtered.map((song) => (
+                <button
+                  key={song.id}
+                  type="button"
+                  onClick={() => {
+                    onSelect(song);
+                    onClose();
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors"
+                >
+                  {song.imageUrl ? (
+                    <Image
+                      src={song.imageUrl}
+                      alt={song.title || "Song cover"}
+                      width={40}
+                      height={40}
+                      className="rounded-lg object-cover flex-shrink-0"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
+                      <MusicalNoteIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {song.title || "Untitled"}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      {song.tags || "No tags"}
+                      {song.duration != null &&
+                        ` · ${formatDuration(song.duration)}`}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Track Selector ---
+
+function TrackSelector({
+  label,
+  track,
+  onChange,
+}: {
+  label: string;
+  track: TrackState;
+  onChange: (t: TrackState) => void;
+}) {
+  const {
+    fileInputRef,
+    isDragging,
+    setIsDragging,
+    pickerOpen,
+    setPickerOpen,
+    handleFileSelect,
+    handleDrop,
+    clearTrack,
+    hasSelection,
+  } = useTrackFileHandler(track, onChange);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          {label}
+        </label>
+        {hasSelection && (
+          <button
+            type="button"
+            onClick={clearTrack}
+            className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {/* Source type tabs */}
+      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+        {(["library", "upload", "url"] as const).map((type) => (
+          <button
+            key={type}
+            type="button"
+            onClick={() => {
+              if (type !== track.sourceType) {
+                clearTrack();
+                onChange({ ...emptyTrack(), sourceType: type });
+              }
+            }}
+            className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-colors ${
+              track.sourceType === type
+                ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+          >
+            {type === "library"
+              ? "Library"
+              : type === "upload"
+                ? "Upload"
+                : "URL"}
+          </button>
+        ))}
+      </div>
+
+      {/* Library source */}
+      {track.sourceType === "library" && (
+        <>
+          {track.songId ? (
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 flex items-center gap-3">
+              {track.songImageUrl ? (
+                <Image
+                  src={track.songImageUrl}
+                  alt={track.songTitle || "Song cover"}
+                  width={40}
+                  height={40}
+                  className="rounded-lg object-cover flex-shrink-0"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="h-10 w-10 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
+                  <MusicalNoteIcon className="h-5 w-5 text-violet-500" />
+                </div>
+              )}
+              <p className="text-sm font-medium text-gray-900 dark:text-white truncate flex-1">
+                {track.songTitle || "Untitled"}
+              </p>
+              <button
+                type="button"
+                onClick={() => setPickerOpen(true)}
+                className="text-xs text-violet-600 dark:text-violet-400 hover:underline flex-shrink-0"
+              >
+                Change
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              className="w-full flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:border-violet-400 dark:hover:border-violet-500 bg-gray-50 dark:bg-gray-800/50 transition-colors"
+            >
+              <MusicalNoteIcon className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Choose from library
+              </span>
+            </button>
+          )}
+          <SongPickerModal
+            open={pickerOpen}
+            onClose={() => setPickerOpen(false)}
+            onSelect={(song) =>
+              onChange({
+                ...emptyTrack(),
+                sourceType: "library",
+                songId: song.id,
+                songTitle: song.title,
+                songImageUrl: song.imageUrl,
+              })
+            }
+          />
+        </>
+      )}
+
+      {/* Upload source */}
+      {track.sourceType === "upload" && (
+        <>
+          {!track.file ? (
+            <div
+              onDrop={handleDrop}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                setIsDragging(false);
+              }}
+              onClick={() => fileInputRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              aria-label="Upload audio file"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+              className={`flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
+                isDragging
+                  ? "border-violet-500 bg-violet-50 dark:bg-violet-900/20"
+                  : "border-gray-300 dark:border-gray-600 hover:border-violet-400 dark:hover:border-violet-500 bg-gray-50 dark:bg-gray-800/50"
+              }`}
+            >
+              <ArrowUpTrayIcon
+                className={`h-6 w-6 ${
+                  isDragging
+                    ? "text-violet-500"
+                    : "text-gray-400 dark:text-gray-500"
+                }`}
+              />
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Drop audio file or click to browse
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  MP3, WAV, OGG, FLAC, M4A (max 10MB)
+                </p>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="audio/*"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleFileSelect(f);
+                }}
+                className="hidden"
+              />
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                  <MusicalNoteIcon className="h-5 w-5 text-violet-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {track.file.name}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {formatFileSize(track.file.size)}
+                    {track.duration != null &&
+                      ` · ${formatDuration(track.duration)}`}
+                  </p>
+                </div>
+              </div>
+              {track.previewUrl && (
+                <audio
+                  src={track.previewUrl}
+                  controls
+                  className="w-full h-8"
+                  preload="metadata"
+                />
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* URL source */}
+      {track.sourceType === "url" && (
+        <input
+          type="url"
+          value={track.fileUrl}
+          onChange={(e) => onChange({ ...track, fileUrl: e.target.value })}
+          placeholder="https://example.com/song.mp3"
+          className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+        />
+      )}
+    </div>
+  );
+}
+
+// --- Main Component ---
 
 export function MashupStudio() {
   const { songs: trackedSongs, trackSong, clearAll } = useGenerationPoller();
@@ -27,12 +444,10 @@ export function MashupStudio() {
     instrumental,
     setInstrumental,
     submitting,
-    rateLimit,
-    rateLimitExhausted,
     trackAReady,
     trackBReady,
     handleSubmit,
-  } = useMashupSubmit({ trackA, trackB, toast, trackSong });
+  } = useMashupSubmission(trackA, trackB, trackSong, setRateLimit);
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
@@ -46,6 +461,7 @@ export function MashupStudio() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Track selectors side by side on desktop */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <TrackSelector
             label="Track A"
@@ -59,6 +475,7 @@ export function MashupStudio() {
           />
         </div>
 
+        {/* Generation options */}
         <div className="space-y-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
             Mashup options
@@ -130,6 +547,7 @@ export function MashupStudio() {
           </label>
         </div>
 
+        {/* Rate limit */}
         {rateLimit && (
           <div
             className={`text-xs px-3 py-2 rounded-lg ${
@@ -146,6 +564,7 @@ export function MashupStudio() {
           </div>
         )}
 
+        {/* Submit */}
         <button
           type="submit"
           disabled={
@@ -188,6 +607,7 @@ export function MashupStudio() {
         </button>
       </form>
 
+      {/* Generation progress */}
       <GenerationProgress songs={trackedSongs} onDismiss={clearAll} />
     </div>
   );

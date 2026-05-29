@@ -1,22 +1,108 @@
 "use client";
 
-import { TrashIcon, BookmarkIcon } from "@heroicons/react/24/solid";
+import { useState } from "react";
+import { BookmarkIcon, TrashIcon } from "@heroicons/react/24/solid";
 import { BookmarkIcon as BookmarkOutline } from "@heroicons/react/24/outline";
-import type { useTemplateManager } from "@/hooks/useTemplateManager";
+import { useToast } from "../Toast";
+import { deletePromptTemplate, savePromptTemplate } from "./api";
+import { getSubmitPrompt } from "./helpers";
+import type { PromptTemplate } from "./types";
 
 interface TemplatePickerPanelProps {
-  templateMgr: ReturnType<typeof useTemplateManager>;
+  templates: PromptTemplate[];
   categories: string[];
+  customMode: boolean;
+  prompt: string;
+  style: string;
+  instrumental: boolean;
+  onApplyTemplate: (template: PromptTemplate) => void;
+  onTemplatesChange: (updater: (prev: PromptTemplate[]) => PromptTemplate[]) => void;
+  fetchTemplates: () => void;
 }
 
-export function TemplatePickerPanel({ templateMgr, categories }: TemplatePickerPanelProps) {
+export function TemplatePickerPanel({
+  templates,
+  categories,
+  customMode,
+  prompt,
+  style,
+  instrumental,
+  onApplyTemplate,
+  onTemplatesChange,
+  fetchTemplates,
+}: TemplatePickerPanelProps) {
+  const { toast } = useToast();
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [templateCategory, setTemplateCategory] = useState("");
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+
+  const builtInTemplates = templates.filter((t) => t.isBuiltIn);
+  const userTemplates = templates.filter((t) => !t.isBuiltIn);
+  const filteredBuiltIn = selectedCategory
+    ? builtInTemplates.filter((t) => t.category === selectedCategory)
+    : builtInTemplates;
+  const filteredUser = selectedCategory
+    ? userTemplates.filter((t) => t.category === selectedCategory)
+    : userTemplates;
+
+  async function deleteTemplate(templateId: string) {
+    const { ok, error } = await deletePromptTemplate(templateId);
+    if (ok) {
+      onTemplatesChange((prev) => prev.filter((t) => t.id !== templateId));
+      toast("Template deleted", "success");
+      return;
+    }
+    toast(error ?? "Failed to delete template", "error");
+  }
+
+  async function saveAsTemplate() {
+    if (!templateName.trim()) {
+      toast("Please enter a template name", "error");
+      return;
+    }
+    const submitPrompt = getSubmitPrompt(customMode, prompt, style);
+    if (!submitPrompt.trim()) {
+      toast("Fill in the prompt fields before saving", "error");
+      return;
+    }
+
+    setIsSavingTemplate(true);
+    try {
+      const result = await savePromptTemplate({
+        name: templateName.trim(),
+        prompt: submitPrompt.trim(),
+        style: style.trim() || null,
+        category: templateCategory.trim() || null,
+        isInstrumental: instrumental,
+      });
+
+      if (result.ok && result.template) {
+        onTemplatesChange((prev) => [...prev, result.template!]);
+        setShowSaveDialog(false);
+        setTemplateName("");
+        setTemplateCategory("");
+        fetchTemplates();
+        toast(`Template "${result.template.name}" saved!`, "success");
+      } else {
+        toast(result.error ?? "Failed to save template", "error");
+      }
+    } catch {
+      toast("Failed to save template", "error");
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  }
+
   return (
     <>
-      {/* Template / Save Buttons */}
+      {/* Template Picker Button */}
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={() => templateMgr.setShowTemplatePicker(!templateMgr.showTemplatePicker)}
+          onClick={() => setShowTemplatePicker(!showTemplatePicker)}
           className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
         >
           <BookmarkOutline className="h-4 w-4" />
@@ -24,7 +110,7 @@ export function TemplatePickerPanel({ templateMgr, categories }: TemplatePickerP
         </button>
         <button
           type="button"
-          onClick={() => templateMgr.setShowSaveDialog(!templateMgr.showSaveDialog)}
+          onClick={() => setShowSaveDialog(!showSaveDialog)}
           className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
         >
           <BookmarkIcon className="h-4 w-4" />
@@ -33,15 +119,16 @@ export function TemplatePickerPanel({ templateMgr, categories }: TemplatePickerP
       </div>
 
       {/* Template Picker Panel */}
-      {templateMgr.showTemplatePicker && (
+      {showTemplatePicker && (
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
+          {/* Category Filter */}
           {categories.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               <button
                 type="button"
-                onClick={() => templateMgr.setSelectedCategory(null)}
+                onClick={() => setSelectedCategory(null)}
                 className={`px-2.5 py-1 text-xs font-medium rounded-full transition-colors ${
-                  templateMgr.selectedCategory === null
+                  selectedCategory === null
                     ? "bg-violet-600 text-white"
                     : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
                 }`}
@@ -52,9 +139,9 @@ export function TemplatePickerPanel({ templateMgr, categories }: TemplatePickerP
                 <button
                   key={cat}
                   type="button"
-                  onClick={() => templateMgr.setSelectedCategory(templateMgr.selectedCategory === cat ? null : cat)}
+                  onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
                   className={`px-2.5 py-1 text-xs font-medium rounded-full capitalize transition-colors ${
-                    templateMgr.selectedCategory === cat
+                    selectedCategory === cat
                       ? "bg-violet-600 text-white"
                       : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
                   }`}
@@ -65,15 +152,16 @@ export function TemplatePickerPanel({ templateMgr, categories }: TemplatePickerP
             </div>
           )}
 
-          {templateMgr.filteredBuiltIn.length > 0 && (
+          {/* Built-in Templates Grid */}
+          {filteredBuiltIn.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Starter Templates</p>
               <div className="grid grid-cols-2 gap-2">
-                {templateMgr.filteredBuiltIn.map((t) => (
+                {filteredBuiltIn.map((t) => (
                   <button
                     key={t.id}
                     type="button"
-                    onClick={() => templateMgr.applyTemplate(t)}
+                    onClick={() => onApplyTemplate(t)}
                     className="text-left p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/10 transition-colors"
                   >
                     <span className="text-sm font-medium text-gray-900 dark:text-white block">{t.name}</span>
@@ -94,15 +182,16 @@ export function TemplatePickerPanel({ templateMgr, categories }: TemplatePickerP
             </div>
           )}
 
-          {templateMgr.filteredUser.length > 0 && (
+          {/* User Templates */}
+          {filteredUser.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">My Templates</p>
               <div className="grid grid-cols-2 gap-2">
-                {templateMgr.filteredUser.map((t) => (
+                {filteredUser.map((t) => (
                   <div key={t.id} className="relative group">
                     <button
                       type="button"
-                      onClick={() => templateMgr.applyTemplate(t)}
+                      onClick={() => onApplyTemplate(t)}
                       className="w-full text-left p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/10 transition-colors"
                     >
                       <span className="text-sm font-medium text-gray-900 dark:text-white block pr-6">{t.name}</span>
@@ -113,7 +202,7 @@ export function TemplatePickerPanel({ templateMgr, categories }: TemplatePickerP
                     </button>
                     <button
                       type="button"
-                      onClick={() => templateMgr.deleteTemplate(t.id)}
+                      onClick={() => deleteTemplate(t.id)}
                       className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
                       aria-label="Delete template"
                       title="Delete template"
@@ -125,30 +214,30 @@ export function TemplatePickerPanel({ templateMgr, categories }: TemplatePickerP
               </div>
             </div>
           )}
-          {templateMgr.filteredBuiltIn.length === 0 && templateMgr.filteredUser.length === 0 && (
+          {filteredBuiltIn.length === 0 && filteredUser.length === 0 && (
             <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
-              {templateMgr.selectedCategory ? "No templates in this category" : "No templates yet"}
+              {selectedCategory ? "No templates in this category" : "No templates yet"}
             </p>
           )}
         </div>
       )}
 
       {/* Save Template Dialog */}
-      {templateMgr.showSaveDialog && (
+      {showSaveDialog && (
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
           <p className="text-sm font-medium text-gray-900 dark:text-white">Save current settings as template</p>
           <input
             type="text"
-            value={templateMgr.templateName}
-            onChange={(e) => templateMgr.setTemplateName(e.target.value)}
+            value={templateName}
+            onChange={(e) => setTemplateName(e.target.value)}
             placeholder="Template name"
             aria-label="Template name"
             maxLength={50}
             className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
           />
           <select
-            value={templateMgr.templateCategory}
-            onChange={(e) => templateMgr.setTemplateCategory(e.target.value)}
+            value={templateCategory}
+            onChange={(e) => setTemplateCategory(e.target.value)}
             aria-label="Template category"
             className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
           >
@@ -167,22 +256,22 @@ export function TemplatePickerPanel({ templateMgr, categories }: TemplatePickerP
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={templateMgr.saveAsTemplate}
-              disabled={templateMgr.isSavingTemplate}
+              onClick={saveAsTemplate}
+              disabled={isSavingTemplate}
               className="flex-1 px-3 py-2 text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-xl transition-colors"
             >
-              {templateMgr.isSavingTemplate ? "Saving…" : "Save"}
+              {isSavingTemplate ? "Saving…" : "Save"}
             </button>
             <button
               type="button"
-              onClick={() => { templateMgr.setShowSaveDialog(false); templateMgr.setTemplateName(""); templateMgr.setTemplateCategory(""); }}
+              onClick={() => { setShowSaveDialog(false); setTemplateName(""); setTemplateCategory(""); }}
               className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
               Cancel
             </button>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            {templateMgr.userTemplates.length} / 20 templates used
+            {userTemplates.length} / 20 templates used
           </p>
         </div>
       )}

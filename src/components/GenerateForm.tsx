@@ -1,25 +1,26 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { SparklesIcon } from "@heroicons/react/24/solid";
-import { ClockIcon, BoltIcon, UserCircleIcon, PencilSquareIcon, ChevronDownIcon, ExclamationTriangleIcon, QueueListIcon, AdjustmentsHorizontalIcon, DocumentDuplicateIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { BoltIcon, UserCircleIcon, ExclamationTriangleIcon, QueueListIcon, AdjustmentsHorizontalIcon, DocumentDuplicateIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useToast } from "./Toast";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { useGenerationQueue } from "@/hooks/useGenerationQueue";
-import { useStyleBoost } from "@/hooks/useStyleBoost";
-import { useLyricsGeneration } from "@/hooks/useLyricsGeneration";
-import { useAutoGenerate } from "@/hooks/useAutoGenerate";
-import { useTemplateManager } from "@/hooks/useTemplateManager";
-import { usePresetManager } from "@/hooks/usePresetManager";
-import { getRateLimitMeta } from "./generate-form/helpers";
-import type { PromptSuggestion } from "./generate-form/types";
+import { track } from "@/lib/analytics";
+import { fetchWithTimeout, clientFetchErrorMessage } from "@/lib/fetch-client";
+import {
+  getPendingIndexFromVisualIndex,
+  getPromptValidationError,
+  getSubmitPrompt,
+  reorderPendingQueueIds,
+} from "./generate-form/helpers";
+import {
+  boostStylePrompt,
+} from "./generate-form/api";
+import type { GenerationPreset, PromptSuggestion, PromptTemplate } from "./generate-form/types";
 import { useGenerateFormData } from "./generate-form/useGenerateFormData";
-import { useGenerateSubmit } from "./generate-form/useGenerateSubmit";
-import { useGenerationCelebration } from "./generate-form/useGenerationCelebration";
-import { TemplatePickerPanel } from "./generate-form/TemplatePickerPanel";
-import { PresetPickerPanel } from "./generate-form/PresetPickerPanel";
 import { GenerationProgress } from "./GenerationProgress";
 import { GenerationQueue } from "./GenerationQueue";
 import { BatchGeneratePanel } from "./BatchGeneratePanel";
@@ -30,9 +31,10 @@ import { AutoGeneratePanel } from "./generate-form/AutoGeneratePanel";
 import { SuggestionsPanel } from "./generate-form/SuggestionsPanel";
 import { RateLimitPanel } from "./generate-form/RateLimitPanel";
 import dynamic from "next/dynamic";
+// Lazy-load confetti — only shown after generation success, not needed on initial render
 const Confetti = dynamic(() => import("./Confetti").then((m) => m.Confetti));
-import { UpgradeModal } from "./UpgradeModal";
-import { InAppFeedbackWidget } from "./InAppFeedbackWidget";
+import { UpgradeModal, shouldShowUpgradeModal } from "./UpgradeModal";
+import { InAppFeedbackWidget, hasFeedbackBeenSubmitted } from "./InAppFeedbackWidget";
 
 export function GenerateForm() {
   const searchParams = useSearchParams();
@@ -57,7 +59,15 @@ export function GenerateForm() {
   const [customMode, setCustomMode] = useState(Boolean(searchParams.get("prompt") && !searchParams.get("tags")));
   const [prompt, setPrompt] = useState(searchParams.get("prompt") ?? "");
   const [instrumental, setInstrumental] = useState(searchParams.get("instrumental") === "1");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [promptError, setPromptError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
   const [selectedPersonaId, setSelectedPersonaId] = useState("");
+
+  // Style boost state
+  const [isBoosting, setIsBoosting] = useState(false);
 
   const {
     rateLimit,
@@ -76,120 +86,294 @@ export function GenerateForm() {
     fetchTemplates,
   } = useGenerateFormData({ toast });
 
-  const getFormState = useCallback(() => ({
-    title, style, prompt, customMode, instrumental,
-  }), [title, style, prompt, customMode, instrumental]);
+  // First-generation confetti celebration
+  const [showConfetti, setShowConfetti] = useState(false);
+  const prevReadyCountRef = useRef(0);
 
-  const { isBoosting, handleBoostStyle } = useStyleBoost({
-    style,
-    onStyleChange: setStyle,
-    toast,
-  });
+  // Track completed song IDs so we only process next once per completion
+  const processedCompletionsRef = useRef<Set<string>>(new Set());
 
-  const lyrics = useLyricsGeneration({
-    initialPrompt: searchParams.get("lyricsprompt") ?? "",
-    toast,
-    onUseLyrics: (lyricsText) => {
-      setPrompt(lyricsText);
-      setCustomMode(true);
-    },
-  });
+  // In-app feedback widget after song generation
+  const [feedbackWidget, setFeedbackWidget] = useState<{ songId: string } | null>(null);
+  const feedbackShownRef = useRef<Set<string>>(new Set());
 
-  const autoGen = useAutoGenerate({
-    initialPrompt: searchParams.get("autoprompt") ?? "",
-    toast,
-    onResult: (result) => {
-      if (result.title) setTitle(result.title);
-      if (result.style) setStyle(result.style);
-      if (result.lyricsPrompt) {
-        lyrics.setLyricsPrompt(result.lyricsPrompt);
-        lyrics.setShowLyricsGenerator(true);
+  useEffect(() => {
+    const readyCount = trackedSongs.filter((s) => s.status === "ready").length;
+    if (readyCount > prevReadyCountRef.current) {
+      // A song just completed — check if this is the user's first ever generation
+      try {
+        if (!localStorage.getItem("sunoflow-first-gen-celebrated")) {
+          setShowConfetti(true);
+          localStorage.setItem("sunoflow-first-gen-celebrated", "true");
+        }
+      } catch {
+        // localStorage unavailable
       }
-    },
-  });
+    }
+    prevReadyCountRef.current = readyCount;
 
-  const templateMgr = useTemplateManager({
-    templates,
-    setTemplates,
-    categories,
-    fetchTemplates,
-    toast,
-    getFormState,
-    onApply: (fields) => {
-      setStyle(fields.style);
-      setPrompt(fields.prompt);
-      setInstrumental(fields.instrumental);
-      setCustomMode(fields.customMode);
-    },
-  });
+    // Auto-process next queue item when a tracked song completes
+    for (const song of trackedSongs) {
+      if (
+        (song.status === "ready" || song.status === "failed") &&
+        !processedCompletionsRef.current.has(song.songId)
+      ) {
+        processedCompletionsRef.current.add(song.songId);
+        onGenerationComplete(song.songId).then((result) => {
+          if (result?.song) {
+            trackSong(result.song.id, result.song.title);
+          }
+        });
+      }
+      // Show feedback widget once per completed song (ready only)
+      if (
+        song.status === "ready" &&
+        !feedbackShownRef.current.has(song.songId) &&
+        !hasFeedbackBeenSubmitted("song_generation", song.songId)
+      ) {
+        feedbackShownRef.current.add(song.songId);
+        setFeedbackWidget({ songId: song.songId });
+      }
+    }
+  }, [trackedSongs, onGenerationComplete, trackSong]);
 
-  const presetMgr = usePresetManager({
-    setPresets,
-    toast,
-    getFormState,
-    onApply: (fields) => {
-      if (fields.title !== null) setTitle(fields.title ?? "");
-      if (fields.style !== null) setStyle(fields.style ?? "");
-      if (fields.prompt !== null) setPrompt(fields.prompt ?? "");
-      setInstrumental(fields.instrumental);
-      setCustomMode(fields.customMode);
-    },
-  });
+  async function handleBoostStyle() {
+    if (isBoosting || !style.trim()) return;
+    setIsBoosting(true);
+    try {
+      const data = await boostStylePrompt(style.trim());
+      if (data.ok && data.result) {
+        setStyle(data.result);
+        toast("Style enhanced!", "success");
+      } else {
+        toast(data.error ?? "Style boost failed", "error");
+      }
+    } catch {
+      toast("Style boost failed", "error");
+    } finally {
+      setIsBoosting(false);
+    }
+  }
 
-  const {
-    showConfetti,
-    dismissConfetti,
-    feedbackWidget,
-    dismissFeedback,
-  } = useGenerationCelebration({
-    trackedSongs,
-    onGenerationComplete,
-    trackSong,
-  });
+  function applyTemplate(template: PromptTemplate) {
+    setStyle(template.style ?? "");
+    setPrompt(template.prompt);
+    setInstrumental(template.isInstrumental);
+    if (template.style) {
+      setCustomMode(false);
+    } else {
+      setCustomMode(true);
+    }
+    toast(`Loaded "${template.name}" template`, "success");
+  }
 
-  const {
-    isSubmitting,
-    promptError,
-    setPromptError,
-    submitError,
-    showUpgradeModal,
-    setShowUpgradeModal,
-    handleSubmit,
-    handleAddToQueue,
-    handleQueueMoveUp,
-    handleQueueMoveDown,
-  } = useGenerateSubmit({
-    toast,
-    customMode,
-    prompt,
-    style,
-    title,
-    instrumental,
-    selectedPersonaId,
-    sourceSongId,
-    creditInfo,
-    personas,
-    rateLimit,
-    setRateLimit,
-    trackSong,
-    fetchCredits,
-    queueItems,
-    addToQueue,
-    reorderQueue,
-    processNext,
-    queueIsProcessing,
-  });
+  function applyPreset(preset: GenerationPreset) {
+    if (preset.title !== null) setTitle(preset.title ?? "");
+    if (preset.stylePrompt !== null) setStyle(preset.stylePrompt ?? "");
+    if (preset.lyricsPrompt !== null) setPrompt(preset.lyricsPrompt ?? "");
+    setInstrumental(preset.isInstrumental);
+    setCustomMode(preset.customMode);
+    toast(`Loaded "${preset.name}" preset`, "success");
+  }
 
   function applySuggestion(suggestion: PromptSuggestion) {
     setStyle(suggestion.stylePrompt);
     setInstrumental(suggestion.isInstrumental);
     setCustomMode(false);
-    toast("Applied suggestion", "success");
+    toast(`Applied suggestion`, "success");
   }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (isSubmitting) return;
+    setSubmitError(null);
+
+    // Client-side inline validation before hitting the server
+    const submitPromptValue = getSubmitPrompt(customMode, prompt, style);
+    const promptValidationError = getPromptValidationError(submitPromptValue, customMode);
+    if (promptValidationError) {
+      setPromptError(promptValidationError);
+      return;
+    }
+    setPromptError(null);
+
+    // Show upgrade modal if user has no credits (client-side check before hitting the server)
+    if (creditInfo !== null && creditInfo.creditsRemaining <= 0 && shouldShowUpgradeModal("no_credits")) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const selectedPersona = personas.find((p) => p.personaId === selectedPersonaId);
+      const body = {
+        prompt: customMode ? prompt : style,
+        title: title || undefined,
+        tags: style || undefined,
+        makeInstrumental: instrumental,
+        personaId: selectedPersona?.personaId || undefined,
+        parentSongId: sourceSongId || undefined,
+      };
+
+      let res: Response;
+      try {
+        res = await fetchWithTimeout("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      } catch (fetchErr) {
+        const msg = clientFetchErrorMessage(fetchErr);
+        setSubmitError(msg);
+        toast(msg, "error", { label: "Retry", onClick: () => handleSubmit(e) });
+        return;
+      }
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 429 && (data.details?.resetAt || data.details?.rateLimit?.resetAt)) {
+          const resetAt = data.details?.resetAt ?? data.details?.rateLimit?.resetAt;
+          const resetTime = new Date(resetAt);
+          const minutesLeft = Math.ceil((resetTime.getTime() - Date.now()) / 60000);
+          const message = `Rate limit reached. Try again in ${minutesLeft} minute${minutesLeft === 1 ? "" : "s"}.`;
+          setSubmitError(message);
+          toast(message, "error");
+          if (data.details?.rateLimit) setRateLimit(data.details.rateLimit);
+        } else if (res.status >= 500) {
+          const message = data.error ?? "Generation failed. Please try again.";
+          setSubmitError(message);
+          toast(message, "error", {
+            label: "Retry",
+            onClick: () => handleSubmit(e),
+          });
+        } else {
+          const message = data.error ?? "Generation failed. Please try again.";
+          setSubmitError(message);
+          toast(message, "error");
+        }
+        return;
+      }
+
+      // Update rate limit from response
+      if (data.rateLimit) {
+        setRateLimit(data.rateLimit);
+        if (data.rateLimit.remaining <= 2 && data.rateLimit.remaining > 0) {
+          toast(`${data.rateLimit.remaining} generation${data.rateLimit.remaining === 1 ? "" : "s"} remaining this hour`, "info");
+        }
+      }
+
+      const song = data.songs?.[0] ?? data.song;
+      const songId = song?.id ?? data.id;
+      const songTitle = song?.title ?? data.title ?? (title || null);
+
+      if (data.error) {
+        setSubmitError(data.error);
+        toast(data.error, "error");
+        return;
+      }
+
+      setSubmitError(null);
+      toast("Song generation started!", "success");
+      track("song_generation_requested", { mode: customMode ? "custom" : "style", instrumental });
+      trackSong(songId, songTitle);
+      fetchCredits();
+    } catch {
+      const message = "Network error. Please check your connection and try again.";
+      setSubmitError(message);
+      toast(message, "error", {
+        label: "Retry",
+        onClick: () => handleSubmit(e),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleAddToQueue() {
+    const submitPrompt = getSubmitPrompt(customMode, prompt, style);
+    if (!submitPrompt) {
+      toast("A prompt is required", "error");
+      return;
+    }
+
+    const selectedPersona = personas.find((p) => p.personaId === selectedPersonaId);
+    const { item, error: queueError } = await addToQueue({
+      prompt: submitPrompt.trim(),
+      title: title || undefined,
+      tags: style || undefined,
+      makeInstrumental: instrumental,
+      personaId: selectedPersona?.personaId || undefined,
+    });
+
+    if (queueError) {
+      toast(queueError, "error");
+      return;
+    }
+
+    toast("Added to generation queue!", "success");
+    track("song_generation_requested", { mode: customMode ? "custom" : "style", instrumental, via: "queue" });
+
+    // If nothing is processing, start processing immediately
+    if (!queueIsProcessing && item) {
+      const result = await processNext();
+      if (result?.song) {
+        trackSong(result.song.id, result.song.title);
+        fetchCredits();
+      }
+    }
+  }
+
+  function handleQueueMoveUp(index: number) {
+    const activeItems = queueItems.filter(
+      (i) => i.status === "pending" || i.status === "processing"
+    );
+    const pendingItems = activeItems.filter((i) => i.status === "pending");
+    if (index <= 0) return;
+    const firstActiveStatus =
+      activeItems[0]?.status === "processing"
+        ? "processing"
+        : activeItems[0]?.status === "pending"
+          ? "pending"
+          : undefined;
+    // Find the pending item at this visual index (skip processing)
+    const pendingIndex = getPendingIndexFromVisualIndex(index, firstActiveStatus);
+    const ids = reorderPendingQueueIds(
+      pendingItems.map((i) => i.id),
+      pendingIndex,
+      "up",
+    );
+    reorderQueue(ids);
+  }
+
+  function handleQueueMoveDown(index: number) {
+    const activeItems = queueItems.filter(
+      (i) => i.status === "pending" || i.status === "processing"
+    );
+    const pendingItems = activeItems.filter((i) => i.status === "pending");
+    const firstActiveStatus =
+      activeItems[0]?.status === "processing"
+        ? "processing"
+        : activeItems[0]?.status === "pending"
+          ? "pending"
+          : undefined;
+    const pendingIndex = getPendingIndexFromVisualIndex(index, firstActiveStatus);
+    const ids = reorderPendingQueueIds(
+      pendingItems.map((i) => i.id),
+      pendingIndex,
+      "down",
+    );
+    reorderQueue(ids);
+  }
+
+  const initialLyricsPrompt = searchParams.get("lyricsprompt") ?? "";
+  const initialAutoPrompt = searchParams.get("autoprompt") ?? "";
 
   return (
     <div className="px-4 py-4 space-y-6">
-      {showConfetti && <Confetti onDone={dismissConfetti} />}
+      {/* First-generation celebration */}
+      {showConfetti && <Confetti onDone={() => setShowConfetti(false)} />}
 
       {/* Header */}
       <div>
@@ -239,6 +423,7 @@ export function GenerateForm() {
         </div>
       )}
 
+      {/* Generation Queue */}
       <GenerationQueue
         items={queueItems}
         onRemove={removeFromQueue}
@@ -246,128 +431,47 @@ export function GenerateForm() {
         onMoveDown={handleQueueMoveDown}
       />
 
+      {/* Generation Progress */}
       <GenerationProgress songs={trackedSongs} onDismiss={clearAll} />
 
-      <TemplatePickerPanel templateMgr={templateMgr} categories={categories} />
-      <PresetPickerPanel presetMgr={presetMgr} presets={presets} />
+      {/* Template Picker */}
+      <TemplatePickerPanel
+        templates={templates}
+        categories={categories}
+        customMode={customMode}
+        prompt={prompt}
+        style={style}
+        instrumental={instrumental}
+        onApplyTemplate={applyTemplate}
+        onTemplatesChange={setTemplates}
+        fetchTemplates={fetchTemplates}
+      />
 
-      {/* Suggested for you */}
-      {suggestions.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-            Suggested for you
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {suggestions.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => applySuggestion(s)}
-                title={s.stylePrompt}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-full hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/10 hover:text-violet-700 dark:hover:text-violet-300 transition-colors"
-              >
-                {s.source === "personal" && (
-                  <span className="text-amber-500" aria-hidden="true">★</span>
-                )}
-                {s.label}
-                {s.isInstrumental && (
-                  <span className="text-[10px] font-medium px-1 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 ml-0.5">
-                    Instr
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Preset Picker */}
+      <PresetPickerPanel
+        presets={presets}
+        formState={{ title, style, prompt, customMode, instrumental }}
+        onApplyPreset={applyPreset}
+        onPresetsChange={setPresets}
+      />
 
-      {/* Trending combos */}
-      {trendingCombos.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-            Trending Combos
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {trendingCombos.map((combo) => (
-              <button
-                key={combo.id}
-                type="button"
-                onClick={() => setStyle(combo.stylePrompt)}
-                title={`${combo.combo} — rated ${combo.displayScore}`}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800 rounded-full hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
-              >
-                <span aria-hidden="true">🔥</span>
-                {combo.label}
-                <span className="text-[10px] font-semibold text-violet-500 dark:text-violet-400 ml-0.5">
-                  {combo.displayScore}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Suggestions & Trending */}
+      <SuggestionsPanel
+        suggestions={suggestions}
+        trendingCombos={trendingCombos}
+        onApplySuggestion={applySuggestion}
+        onApplyTrendingCombo={setStyle}
+      />
 
       {/* Auto-generate panel */}
-      <div className="space-y-0 mb-4">
-        <button
-          type="button"
-          onClick={() => autoGen.setShowAutoGenerate((v) => !v)}
-          aria-expanded={autoGen.showAutoGenerate}
-          className="w-full flex items-center justify-between bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
-        >
-          <span className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
-            <SparklesIcon className="h-4 w-4" />
-            Auto-generate from description
-          </span>
-          <ChevronDownIcon
-            className={`h-4 w-4 text-amber-500 dark:text-amber-400 transition-transform ${
-              autoGen.showAutoGenerate ? "rotate-180" : ""
-            }`}
-          />
-        </button>
-
-        {autoGen.showAutoGenerate && (
-          <div className="mt-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Describe what you want and we&apos;ll suggest a title, style, and prompt prompt all at once.
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={autoGen.autoPrompt}
-                onChange={(e) => autoGen.setAutoPrompt(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); autoGen.handleAutoGenerate(); } }}
-                placeholder="e.g. a nostalgic road trip song, summer vibes, indie feel…"
-                aria-label="Auto-generation description"
-                maxLength={500}
-                disabled={autoGen.isAutoGenerating}
-                className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-50"
-              />
-              <button
-                type="button"
-                onClick={autoGen.handleAutoGenerate}
-                disabled={autoGen.isAutoGenerating || !autoGen.autoPrompt.trim()}
-                className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-amber-600 hover:bg-amber-500 disabled:opacity-50 rounded-xl transition-colors whitespace-nowrap"
-              >
-                {autoGen.isAutoGenerating ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Generating…
-                  </>
-                ) : (
-                  <>
-                    <SparklesIcon className="h-4 w-4" />
-                    Fill fields
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      <AutoGeneratePanel
+        initialPrompt={initialAutoPrompt}
+        onFieldsFilled={(fields) => {
+          if (fields.title) setTitle(fields.title);
+          if (fields.style) setStyle(fields.style);
+          if (fields.lyricsPrompt) setPrompt(fields.lyricsPrompt);
+        }}
+      />
 
       <form onSubmit={handleSubmit} className="space-y-4" data-tour="generate-prompt">
         {/* Title */}
@@ -491,87 +595,13 @@ export function GenerateForm() {
         )}
 
         {/* Generate Lyrics panel */}
-        <div className="space-y-0">
-          <button
-            type="button"
-            onClick={() => lyrics.setShowLyricsGenerator((v) => !v)}
-            aria-expanded={lyrics.showLyricsGenerator}
-            className="w-full flex items-center justify-between bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl px-4 py-3 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
-          >
-            <span className="flex items-center gap-2 text-sm font-medium text-violet-700 dark:text-violet-300">
-              <PencilSquareIcon className="h-4 w-4" />
-              Generate Lyrics
-            </span>
-            <ChevronDownIcon
-              className={`h-4 w-4 text-violet-500 dark:text-violet-400 transition-transform ${
-                lyrics.showLyricsGenerator ? "rotate-180" : ""
-              }`}
-            />
-          </button>
-
-          {lyrics.showLyricsGenerator && (
-            <div className="mt-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
-              <div className="flex gap-2">
-                <textarea
-                  value={lyrics.lyricsPrompt}
-                  onChange={(e) => lyrics.setLyricsPrompt(e.target.value)}
-                  placeholder="Describe your song theme, mood, or topic..."
-                  aria-label="Lyrics generation prompt"
-                  maxLength={2000}
-                  rows={3}
-                  disabled={lyrics.isGeneratingLyrics}
-                  className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50 resize-none"
-                />
-                <button
-                  type="button"
-                  onClick={lyrics.handleGenerateLyrics}
-                  disabled={lyrics.isGeneratingLyrics || !lyrics.lyricsPrompt.trim()}
-                  className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-xl transition-colors whitespace-nowrap"
-                >
-                  {lyrics.isGeneratingLyrics ? (
-                    <>
-                      <svg
-                        className="animate-spin h-4 w-4"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Generating…
-                    </>
-                  ) : (
-                    <>
-                      <SparklesIcon className="h-4 w-4" />
-                      Generate
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {lyrics.generatedLyrics && (
-                <div className="space-y-2">
-                  <textarea
-                    value={lyrics.generatedLyrics}
-                    onChange={(e) => lyrics.setGeneratedLyrics(e.target.value)}
-                    aria-label="Generated lyrics"
-                    rows={8}
-                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-base sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={lyrics.handleUseLyrics}
-                    className="w-full px-4 py-2.5 text-sm font-medium text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/30 border border-violet-300 dark:border-violet-700 rounded-xl hover:bg-violet-200 dark:hover:bg-violet-900/50 transition-colors"
-                  >
-                    Use these prompt
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <LyricsGeneratorPanel
+          initialPrompt={initialLyricsPrompt}
+          onUseLyrics={(lyrics) => {
+            setPrompt(lyrics);
+            setCustomMode(true);
+          }}
+        />
 
         {/* Custom prompt toggle */}
         <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3">
@@ -648,55 +678,9 @@ export function GenerateForm() {
         </div>
 
         {/* Rate limit info panel */}
-        {rateLimit && (() => {
-          const { used, pct, barColor, minsLeft, isAtLimit, isNearLimit } = getRateLimitMeta(rateLimit);
+        {rateLimit && <RateLimitPanel rateLimit={rateLimit} />}
 
-          return (
-            <div className="space-y-2">
-              {isNearLimit && (
-                <div className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300">
-                  <span className="font-medium">{rateLimit.remaining} generation{rateLimit.remaining === 1 ? "" : "s"} remaining</span>
-                </div>
-              )}
-
-              <div className={`rounded-xl px-4 py-3 text-sm border ${
-                isAtLimit
-                  ? "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-800"
-                  : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-              }`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className={isAtLimit ? "text-red-700 dark:text-red-300 font-medium" : "text-gray-600 dark:text-gray-400"}>
-                    {isAtLimit ? "Rate limit reached" : "Generation quota"}
-                  </span>
-                  <span className={`font-semibold ${isAtLimit ? "text-red-700 dark:text-red-300" : "text-gray-900 dark:text-white"}`}>
-                    {used} / {rateLimit.limit} used
-                  </span>
-                </div>
-
-                <div
-                  role="progressbar"
-                  aria-valuenow={used}
-                  aria-valuemin={0}
-                  aria-valuemax={rateLimit.limit}
-                  aria-label={`Generation quota: ${used} of ${rateLimit.limit} used`}
-                  className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"
-                >
-                  <div
-                    className={`h-full rounded-full transition-all duration-300 ${barColor}`}
-                    style={{ width: `${Math.min(pct, 100)}%` }}
-                    aria-hidden="true"
-                  />
-                </div>
-
-                <div className="flex items-center gap-1 mt-2 text-xs text-gray-500 dark:text-gray-400">
-                  <ClockIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span>Resets in {minsLeft} minute{minsLeft === 1 ? "" : "s"}</span>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
+        {/* Batch Generate Variations */}
         <BatchGeneratePanel
           basePrompt={customMode ? prompt : style}
           baseTitle={title}
@@ -751,6 +735,7 @@ export function GenerateForm() {
                 </>
               )}
             </button>
+            {/* Tooltip when limit reached */}
             {rateLimit?.remaining === 0 && (
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                 Rate limit reached — resets in {Math.max(0, Math.ceil((new Date(rateLimit.resetAt).getTime() - Date.now()) / 60000))} min
@@ -775,15 +760,17 @@ export function GenerateForm() {
         )}
       </form>
 
+      {/* Upgrade modal — shown when user has no credits and tries to generate */}
       {showUpgradeModal && (
         <UpgradeModal trigger="no_credits" onClose={() => setShowUpgradeModal(false)} />
       )}
 
+      {/* In-app feedback widget — shown after song generation completes */}
       {feedbackWidget && (
         <InAppFeedbackWidget
           source="song_generation"
           entityId={feedbackWidget.songId}
-          onClose={dismissFeedback}
+          onClose={() => setFeedbackWidget(null)}
         />
       )}
     </div>
