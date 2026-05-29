@@ -1,32 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { ChatBubbleLeftIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { ClockIcon } from "@heroicons/react/24/solid";
-
-interface CommentUser {
-  id: string;
-  name: string | null;
-  image: string | null;
-}
-
-interface Comment {
-  id: string;
-  body: string;
-  timestamp: number | null;
-  createdAt: string;
-  user: CommentUser;
-}
-
-interface Pagination {
-  page: number;
-  totalPages: number;
-  total: number;
-  hasMore: boolean;
-}
+import { useComments } from "@/hooks/useComments";
+import type { Comment, CommentUser } from "@/hooks/useComments";
 
 function formatRelativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -78,35 +59,12 @@ export function CommentsSection({
   onSeek?: (seconds: number) => void;
 }) {
   const { data: session } = useSession();
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [pagination, setPagination] = useState<Pagination | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const { comments, pagination, loading, loadingMore, postComment, deleteComment, loadMore } =
+    useComments(songId);
   const [draft, setDraft] = useState("");
   const [pendingTimestamp, setPendingTimestamp] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const fetchComments = useCallback(async (page: number, append = false) => {
-    if (append) setLoadingMore(true);
-    else setLoading(true);
-    try {
-      const res = await fetch(`/api/songs/${songId}/comments?page=${page}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      setComments((prev) => append ? [...prev, ...data.comments] : data.comments);
-      setPagination(data.pagination);
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [songId]);
-
-  useEffect(() => {
-    fetchComments(1);
-  }, [fetchComments]);
 
   // Capture current playback position as the pending timestamp
   function captureTimestamp() {
@@ -126,49 +84,17 @@ export function CommentsSection({
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch(`/api/songs/${songId}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: text, timestamp: pendingTimestamp }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Failed to post comment");
-      } else {
-        setComments((prev) => {
-          // Insert comment in sorted position (by timestamp, then date)
-          const next = [data, ...prev];
-          return next.sort((a, b) => {
-            if (a.timestamp !== null && b.timestamp !== null) return a.timestamp - b.timestamp;
-            if (a.timestamp !== null) return -1;
-            if (b.timestamp !== null) return 1;
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-          });
-        });
-        setPagination((prev) => prev ? { ...prev, total: prev.total + 1 } : prev);
-        setDraft("");
-        setPendingTimestamp(null);
-      }
-    } catch {
-      setError("Network error");
+      await postComment(text, pendingTimestamp);
+      setDraft("");
+      setPendingTimestamp(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDelete = async (commentId: string) => {
-    try {
-      const res = await fetch(`/api/songs/${songId}/comments/${commentId}`, {
-        method: "DELETE",
-      });
-      if (res.ok || res.status === 204) {
-        setComments((prev) => prev.filter((c) => c.id !== commentId));
-        setPagination((prev) => prev ? { ...prev, total: Math.max(0, prev.total - 1) } : prev);
-      }
-    } catch {
-      // ignore
-    }
-  };
+  const handleDelete = (commentId: string) => deleteComment(commentId);
 
   const canAttachTimestamp = currentTime !== undefined && duration !== undefined && duration > 0;
 
@@ -298,7 +224,7 @@ export function CommentsSection({
       {pagination?.hasMore && (
         <div className="text-center">
           <button
-            onClick={() => fetchComments(pagination.page + 1, true)}
+            onClick={loadMore}
             disabled={loadingMore}
             className="text-xs text-violet-500 hover:text-violet-400 disabled:opacity-50"
           >
