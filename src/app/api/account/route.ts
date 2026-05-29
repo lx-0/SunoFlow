@@ -1,6 +1,5 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
-import { authRoute } from "@/lib/route-handler";
+import { authRoute, successResponse } from "@/lib/route-handler";
 import { badRequest, notFound } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth/password";
@@ -32,7 +31,7 @@ export const DELETE = authRoute(async (_request, { auth, body }) => {
 
   await prisma.user.delete({ where: { id: auth.userId } });
 
-  return NextResponse.json({ success: true });
+  return successResponse();
 }, {
   route: "/api/account",
   body: z.object({

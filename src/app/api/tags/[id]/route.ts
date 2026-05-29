@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authRoute, resultResponse } from "@/lib/route-handler";
+import { authRoute, resultResponse, successResponse } from "@/lib/route-handler";
 import { Tags } from "@/lib/tags";
 import {
   updateTagBodySchema,
@@ -18,5 +18,5 @@ export const PATCH = authRoute<{ id: string }, UpdateTagBody>(async (_request, {
 export const DELETE = authRoute<{ id: string }>(async (_request, { auth, params }) => {
   const result = await Tags.remove(auth.userId, params.id);
   if (!result.ok) return resultResponse(result);
-  return NextResponse.json({ success: true });
+  return successResponse();
 }, { route: "/api/tags/[id]" });

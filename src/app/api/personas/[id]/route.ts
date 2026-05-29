@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import { authRoute, requireOwned } from "@/lib/route-handler";
+import { authRoute, requireOwned, successResponse } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 
 export const DELETE = authRoute<{ id: string }>(
@@ -13,7 +12,7 @@ export const DELETE = authRoute<{ id: string }>(
 
     await prisma.persona.delete({ where: { id: persona.id } });
 
-    return NextResponse.json({ success: true });
+    return successResponse();
   },
   { route: "/api/personas/[id]" },
 );

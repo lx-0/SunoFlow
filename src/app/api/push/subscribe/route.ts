@@ -1,6 +1,5 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
-import { authRoute } from "@/lib/route-handler";
+import { authRoute, successResponse } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 
 const subscribeBody = z.object({
@@ -23,7 +22,7 @@ export const POST = authRoute(async (_request, { auth, body }) => {
     create: { userId: auth.userId, endpoint: body.endpoint, p256dh: body.keys.p256dh, auth: body.keys.auth },
   });
 
-  return NextResponse.json({ ok: true }, { status: 201 });
+  return successResponse(201);
 }, { route: "/api/push/subscribe", body: subscribeBody });
 
 // DELETE /api/push/subscribe — remove a push subscription
@@ -32,5 +31,5 @@ export const DELETE = authRoute(async (_request, { auth, body }) => {
     where: { userId: auth.userId, endpoint: body.endpoint },
   });
 
-  return NextResponse.json({ ok: true });
+  return successResponse();
 }, { route: "/api/push/subscribe", body: unsubscribeBody });
