@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { useToast } from "../Toast";
+import { fetchWithTimeout } from "@/lib/fetch-client";
 
 export function useLyricsEditor(
   songId: string,
@@ -21,7 +22,7 @@ export function useLyricsEditor(
   const handleSaveLyrics = useCallback(async () => {
     setSaving(true);
     try {
-      const res = await fetch(`/api/songs/${songId}/lyrics`, {
+      const res = await fetchWithTimeout(`/api/songs/${songId}/lyrics`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ edited: editDraft || null }),
@@ -41,7 +42,7 @@ export function useLyricsEditor(
   const handleDiscardEdits = useCallback(async () => {
     setSaving(true);
     try {
-      const res = await fetch(`/api/songs/${songId}/lyrics`, {
+      const res = await fetchWithTimeout(`/api/songs/${songId}/lyrics`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ edited: null }),

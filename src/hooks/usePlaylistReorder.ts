@@ -15,6 +15,28 @@ interface UsePlaylistReorderOptions<T extends PlaylistSongItemBase> {
   toast: (message: string, type: "success" | "error") => void;
 }
 
+async function persistReorder<T extends PlaylistSongItemBase>(
+  playlistId: string,
+  reordered: T[],
+  onError: () => void,
+  toast: (message: string, type: "success" | "error") => void,
+) {
+  try {
+    const res = await fetch(`/api/playlists/${playlistId}/reorder`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ songIds: reordered.map((ps) => ps.songId) }),
+    });
+    if (!res.ok) {
+      onError();
+      toast("Failed to reorder", "error");
+    }
+  } catch {
+    onError();
+    toast("Failed to reorder", "error");
+  }
+}
+
 export function usePlaylistReorder<T extends PlaylistSongItemBase>({
   playlistId,
   songs,
@@ -66,19 +88,7 @@ export function usePlaylistReorder<T extends PlaylistSongItemBase>({
       const [moved] = reordered.splice(from, 1);
       reordered.splice(to, 0, moved);
       setSongs(reordered);
-      fetch(`/api/playlists/${playlistId}/reorder`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songIds: reordered.map((ps) => ps.songId) }),
-      }).then((res) => {
-        if (!res.ok) {
-          setSongs(prev);
-          toast("Failed to reorder", "error");
-        }
-      }).catch(() => {
-        setSongs(prev);
-        toast("Failed to reorder", "error");
-      });
+      persistReorder(playlistId, reordered, () => setSongs(prev), toast);
     }
 
     document.addEventListener("touchmove", onTouchMove, { passive: false });
@@ -106,20 +116,7 @@ export function usePlaylistReorder<T extends PlaylistSongItemBase>({
     const [moved] = reordered.splice(index, 1);
     reordered.splice(newIndex, 0, moved);
     setSongs(reordered);
-    try {
-      const res = await fetch(`/api/playlists/${playlistId}/reorder`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songIds: reordered.map((ps) => ps.songId) }),
-      });
-      if (!res.ok) {
-        setSongs(prev);
-        toast("Failed to reorder", "error");
-      }
-    } catch {
-      setSongs(prev);
-      toast("Failed to reorder", "error");
-    }
+    await persistReorder(playlistId, reordered, () => setSongs(prev), toast);
   }, [playlistId, setSongs, toast]);
 
   const handleDragStart = useCallback((index: number) => {
@@ -149,20 +146,7 @@ export function usePlaylistReorder<T extends PlaylistSongItemBase>({
     setDragIndex(null);
     setDragOverIndex(null);
 
-    try {
-      const res = await fetch(`/api/playlists/${playlistId}/reorder`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songIds: reordered.map((ps) => ps.songId) }),
-      });
-      if (!res.ok) {
-        setSongs(currentSongs);
-        toast("Failed to reorder", "error");
-      }
-    } catch {
-      setSongs(currentSongs);
-      toast("Failed to reorder", "error");
-    }
+    await persistReorder(playlistId, reordered, () => setSongs(currentSongs), toast);
   }, [dragIndex, playlistId, setSongs, toast]);
 
   const handleDragEnd = useCallback(() => {

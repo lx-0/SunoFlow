@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useToast } from "../Toast";
+import { fetchWithTimeout } from "@/lib/fetch-client";
 
 interface Annotation {
   lineIndex: number;
@@ -21,7 +22,7 @@ export function useAnnotationEditor(songId: string) {
   );
 
   useEffect(() => {
-    fetch(`/api/songs/${songId}/lyrics/annotations`)
+    fetchWithTimeout(`/api/songs/${songId}/lyrics/annotations`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data) {
@@ -34,7 +35,7 @@ export function useAnnotationEditor(songId: string) {
     async (lineIndex: number, body: string) => {
       setSavingAnnotation(true);
       try {
-        const res = await fetch(`/api/songs/${songId}/lyrics/annotations`, {
+        const res = await fetchWithTimeout(`/api/songs/${songId}/lyrics/annotations`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ lineIndex, body }),
