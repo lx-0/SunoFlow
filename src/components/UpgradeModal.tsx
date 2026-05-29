@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { XMarkIcon, SparklesIcon, BoltIcon, ClockIcon } from "@heroicons/react/24/outline";
 import { track } from "@/lib/analytics";
+import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 
 interface UpgradeModalProps {
   trigger: "no_credits" | "low_credits" | "feature_gate";
@@ -34,6 +35,8 @@ const PLAN_HIGHLIGHTS = [
 export function UpgradeModal({ trigger, onClose }: UpgradeModalProps) {
   const { title, body } = COPY[trigger];
   const [stripeConfigured, setStripeConfigured] = useState(true);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocusTrap(dialogRef, true, onClose);
 
   useEffect(() => {
     track("upgrade_modal_shown", { trigger });
@@ -52,14 +55,6 @@ export function UpgradeModal({ trigger, onClose }: UpgradeModalProps) {
       .catch(() => {/* keep optimistic default */});
   }, []);
 
-  // Close on Escape
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
 
   function handleViewPlans() {
     track("upgrade_modal_view_plans_clicked", { trigger });
@@ -87,7 +82,7 @@ export function UpgradeModal({ trigger, onClose }: UpgradeModalProps) {
         aria-labelledby="upgrade-modal-title"
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
       >
-        <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+        <div ref={dialogRef} className="relative w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
           {/* Header */}
           <div className="relative bg-gradient-to-br from-violet-600 to-purple-700 px-6 py-8 text-center">
             <button

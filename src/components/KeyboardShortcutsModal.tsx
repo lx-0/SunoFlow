@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { SHORTCUTS, type Shortcut } from "./useKeyboardShortcuts";
+import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 
 function KeyLabel({ keyName }: { keyName: string }) {
   const display =
@@ -55,26 +56,7 @@ export function KeyboardShortcutsModal({
   onClose: () => void;
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
-
-  // Close on Escape
-  useEffect(() => {
-    if (!open) return;
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onClose();
-      }
-    }
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [open, onClose]);
-
-  // Focus trap
-  useEffect(() => {
-    if (!open || !dialogRef.current) return;
-    const btn = dialogRef.current.querySelector<HTMLElement>("button");
-    btn?.focus();
-  }, [open]);
+  useDialogFocusTrap(dialogRef, open, onClose);
 
   if (!open) return null;
 
