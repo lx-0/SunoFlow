@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authRoute } from "@/lib/route-handler";
+import { authRoute, successResponse } from "@/lib/route-handler";
 import { requireOwnedSongWithParent } from "@/lib/songs/ownership";
 import { notFound } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
@@ -43,5 +43,5 @@ export const POST = authRoute<{ id: string }>(async (_request, { auth, params })
     return notFound("Song not found");
   }
 
-  return NextResponse.json({ ok: true });
+  return successResponse();
 }, { route: "/api/songs/[id]/play" });

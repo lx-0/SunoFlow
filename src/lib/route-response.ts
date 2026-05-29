@@ -36,3 +36,11 @@ export function resultResponse<T>(
 
   return NextResponse.json(result.data, options);
 }
+
+/**
+ * Standardised void-mutation response for routes that perform a side-effect
+ * and have no meaningful data to return.
+ */
+export function successResponse(status = 200): NextResponse {
+  return NextResponse.json({ success: true }, { status });
+}
