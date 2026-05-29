@@ -15,7 +15,13 @@ import {
   type RadioParams,
   type RepeatMode,
 } from "@/components/queue/queue-context-types";
-import { buildPlayQueue } from "@/components/queue/queue-ops";
+import {
+  buildPlayQueue,
+  insertAfterCurrent,
+  removeFromQueueState,
+  reorderQueueState,
+  toggleShuffleQueue,
+} from "@/components/queue/queue-ops";
 import { useAudioPlayback } from "@/components/queue/use-audio-playback";
 import { useMediaSession } from "@/components/queue/use-media-session";
 import { usePlaybackModes } from "@/components/queue/use-playback-modes";
@@ -26,7 +32,7 @@ import { usePlaybackSync } from "@/components/queue/use-playback-sync";
 import { useQueueAudioEvents } from "@/components/queue/use-queue-audio-events";
 import { useQueueMutations } from "@/components/queue/use-queue-mutations";
 import { useQueueNavigation } from "@/components/queue/use-queue-navigation";
-import { useRadioActions } from "@/components/queue/use-radio-actions";
+import { useQueueRadio } from "@/components/queue/use-queue-radio";
 import { useVolumeControl } from "@/components/queue/use-volume-control";
 
 export type { QueueSong, RepeatMode, RadioParams } from "@/components/queue/queue-context-types";
@@ -64,11 +70,16 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   const [shuffleVersions, setShuffleVersions] = useState(false);
   const [activeVersion, setActiveVersion] = useState<QueueSong | null>(null);
   const [restoredEQ, setRestoredEQ] = useState<{ gains: number[]; speed: number; pitch: number } | null>(null);
+  const [radioState, setRadioState] = useState<RadioParams | null>(null);
+  const [isRadioLoading, setIsRadioLoading] = useState(false);
   const eqSettingsRef = useRef({ gains: [0, 0, 0, 0, 0], speed: 1, pitch: 0 });
   const { trackPlay, clearHistoryTimer } = usePlaybackTracking();
 
-  // Shared refs for radio (used by useQueueAudioEvents and useRadioActions)
+  // Shared refs for radio (used by useQueueAudioEvents and useQueueRadio)
   const radioStateRef = useRef<RadioParams | null>(null);
+  radioStateRef.current = radioState;
+
+  // Ref to the radio refill function — set after actions are defined
   const radioRefillRef = useRef<(() => void) | null>(null);
 
   // Refs for event handlers (avoid stale closures)
@@ -119,27 +130,6 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     setCurrentTime,
     setDuration,
     setActiveVersion,
-  });
-
-  useQueueAudioEvents({
-    audioRef,
-    queueRef,
-    currentIndexRef,
-    repeatRef,
-    radioStateRef,
-    radioRefillRef,
-    resolveAndPlayRef,
-    retryPlay,
-    scheduleSyncRef,
-    cdnFallbackRef,
-    loadGenerationRef,
-    pendingCanPlayRef,
-    retryTimerRef,
-    pendingPlayRef,
-    setIsPlaying,
-    setIsBuffering,
-    setCurrentTime,
-    setDuration,
   });
 
   // ─── Actions ──────────────────────────────────────────────────────────────
@@ -243,18 +233,6 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     setDuration,
   });
 
-  // ─── Radio actions ─────────────────────────────────────────────────────────
-
-  const {
-    radioState, isRadioLoading,
-    startRadio, stopRadio, radioThumbsDown, clearRadio,
-  } = useRadioActions({
-    audioRef, queueRef, currentIndexRef, loadGenerationRef,
-    radioStateRef, radioRefillRef,
-    playQueue, skipNext, startPlaybackForIndex,
-    setQueue, setPlaylistSource,
-  });
-
   const clearQueue = useCallback(() => {
     const audio = audioRef.current;
     if (audio) {
@@ -269,11 +247,54 @@ export function QueueProvider({ children }: { children: ReactNode }) {
     setCurrentTime(0);
     setDuration(0);
     setPlaylistSource(null);
-    clearRadio();
+    setRadioState(null);
     originalQueueRef.current = [];
     setActiveVersion(null);
     versionCacheRef.current = new Map();
-  }, [clearHistoryTimer, clearSyncTimer, clearRadio, versionCacheRef]);
+  }, [clearHistoryTimer, clearSyncTimer, versionCacheRef]);
+
+  const {
+    startRadio,
+    stopRadio,
+    radioThumbsDown,
+    radioRefill,
+  } = useQueueRadio({
+    loadGenerationRef,
+    radioStateRef,
+    currentIndexRef,
+    queueRef,
+    audioRef,
+    setQueue,
+    setRadioState,
+    setPlaylistSource,
+    setIsRadioLoading,
+    playQueue,
+    startPlaybackForIndex,
+    skipNext,
+  });
+
+  radioRefillRef.current = radioRefill;
+
+  useQueueAudioEvents({
+    audioRef,
+    queueRef,
+    currentIndexRef,
+    repeatRef,
+    radioStateRef,
+    radioRefillRef,
+    resolveAndPlayRef,
+    retryPlay,
+    scheduleSyncRef,
+    cdnFallbackRef,
+    loadGenerationRef,
+    pendingCanPlayRef,
+    retryTimerRef,
+    pendingPlayRef,
+    setIsPlaying,
+    setIsBuffering,
+    setCurrentTime,
+    setDuration,
+  });
 
   usePlaybackRecovery({
     audioRef,

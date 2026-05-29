@@ -22,6 +22,37 @@ export async function withRequiredSunoApiKey<T>(
   return run(apiKey);
 }
 
+export async function runSunoRoute<T>(
+  run: () => Promise<T | Response>,
+  config: {
+    logLabel: string;
+    route: string;
+    mapOptions?: MapSunoApiErrorOptions;
+    transformMappedResponse?: (response: Response) => Response;
+    fallbackResponse?: Response;
+  }
+): Promise<T | Response> {
+  try {
+    return await run();
+  } catch (error) {
+    return handleSunoRouteError(error, config);
+  }
+}
+
+export async function runSunoUserRoute<T>(
+  userId: string,
+  run: (apiKey: string) => Promise<T | Response>,
+  config: {
+    logLabel: string;
+    route: string;
+    mapOptions?: MapSunoApiErrorOptions;
+    transformMappedResponse?: (response: Response) => Response;
+    fallbackResponse?: Response;
+  }
+): Promise<T | Response> {
+  return runSunoRoute(() => withRequiredSunoApiKey(userId, run), config);
+}
+
 export function handleSunoRouteError(
   error: unknown,
   config: {

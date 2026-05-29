@@ -1,6 +1,5 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
-import { adminRoute } from "@/lib/route-handler";
+import { adminDataRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { offsetPagination, pageSkip } from "@/lib/pagination";
 import { TIER_LIMITS } from "@/lib/billing";
@@ -12,7 +11,7 @@ const usersQuery = zPaginationQuery(20, 100).extend({
   order: zEnumParam(["asc", "desc"] as const, "desc"),
 });
 
-export const GET = adminRoute<Record<string, never>, undefined, z.infer<typeof usersQuery>>(async (_request, { query }) => {
+export const GET = adminDataRoute<Record<string, never>, undefined, z.infer<typeof usersQuery>>(async (_request, { query }) => {
   const { search, sortBy, order, page, limit } = query;
 
   const where = search
@@ -93,8 +92,8 @@ export const GET = adminRoute<Record<string, never>, undefined, z.infer<typeof u
     );
   }
 
-  return NextResponse.json({
+  return {
     users: result,
     ...offsetPagination(page, limit, total),
-  });
+  };
 }, { route: "/api/admin/users", query: usersQuery });

@@ -1,5 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { parseTags, splitTagCsv, firstTag, normalizeTagCombo, collectSongTokens, tagOverlapScore, countGenres } from "./index";
+import {
+  parseTags,
+  splitTagCsv,
+  normalizedTagList,
+  firstTag,
+  normalizeTagCombo,
+  collectSongTokens,
+  tagOverlapScore,
+  countGenres,
+} from "./index";
 
 describe("parseTags", () => {
   it("splits comma-separated tags", () => {
@@ -61,6 +70,20 @@ describe("splitTagCsv", () => {
 
   it("returns empty array for null", () => {
     expect(splitTagCsv(null)).toEqual([]);
+  });
+});
+
+describe("normalizedTagList", () => {
+  it("trims and lowercases comma-separated tags", () => {
+    expect(normalizedTagList(" Pop , drum and bass, LO-FI ")).toEqual([
+      "pop",
+      "drum and bass",
+      "lo-fi",
+    ]);
+  });
+
+  it("returns empty array for null", () => {
+    expect(normalizedTagList(null)).toEqual([]);
   });
 });
 

@@ -1,25 +1,18 @@
-import { z } from "zod";
 import { NextResponse } from "next/server";
-import { authRoute } from "@/lib/route-handler";
+import { authDataRoute, authRoute } from "@/lib/route-handler";
 import { notFound } from "@/lib/api-error";
-import { zLimitParam, zCursorParam, zTrimmedParam } from "@/lib/query-params";
+import { zCursorPaginationQuery, zTrimmedParam } from "@/lib/query-params";
 import { listPlayHistory, recordPlay, clearHistory } from "@/lib/history";
 import { recordHistoryRequestSchema } from "@/lib/history/request";
 
-const historyQuery = z.object({
-  limit: zLimitParam(20, 50),
-  cursor: zCursorParam,
+const historyQuery = zCursorPaginationQuery(20, 50).extend({
   dateFrom: zTrimmedParam,
   dateTo: zTrimmedParam,
 });
 
-export const GET = authRoute(
-  async (_request, { auth, query }) => {
-    const result = await listPlayHistory(auth.userId, query);
-    return NextResponse.json(result);
-  },
-  { route: "/api/history", query: historyQuery },
-);
+export const GET = authDataRoute(async (_request, { auth, query }) => {
+  return await listPlayHistory(auth.userId, query);
+}, { route: "/api/history", query: historyQuery });
 
 export const POST = authRoute(
   async (_request, { auth, body }) => {

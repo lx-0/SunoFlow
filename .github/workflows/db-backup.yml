@@ -11,6 +11,7 @@ jobs:
     name: Backup + verify production database
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    environment: production
 
     # Off-platform verification target. We restore the freshly-taken dump into
     # this sidecar Postgres (not the production DB) to prove the archive is

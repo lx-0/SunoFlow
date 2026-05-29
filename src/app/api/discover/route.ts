@@ -1,20 +1,13 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { optionalAuthRoute } from "@/lib/route-handler";
 import { CacheControl, CacheTTL, cached, cacheKey } from "@/lib/cache";
 import { withTiming } from "@/lib/timing";
-import { zPageParam, zTrimmedParam } from "@/lib/query-params";
+import { discoverFeedQuerySchema } from "@/lib/discovery/request";
 import {
   buildAnonymousFeed,
   buildPersonalizedFeed,
   paginate,
 } from "@/lib/feed";
-
-const discoverQuery = z.object({
-  page: zPageParam(),
-  tag: zTrimmedParam,
-  mood: zTrimmedParam,
-});
 
 export const GET = withTiming(
   "/api/discover",
@@ -52,6 +45,6 @@ export const GET = withTiming(
         { headers: { "Cache-Control": CacheControl.privateShort } }
       );
     },
-    { query: discoverQuery, route: "/api/discover" }
+    { query: discoverFeedQuerySchema, route: "/api/discover" }
   )
 );

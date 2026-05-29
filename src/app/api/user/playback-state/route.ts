@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { authRoute } from "@/lib/route-handler";
+import { authDataRoute, authRoute } from "@/lib/route-handler";
 import { notFound } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 
@@ -18,7 +18,7 @@ const putPlaybackStateBody = z.object({
   eqPitch: z.number().optional(),
 });
 
-export const GET = authRoute(async (_request, { auth }) => {
+export const GET = authDataRoute(async (_request, { auth }) => {
   const state = await prisma.playbackState.findUnique({
     where: { userId: auth.userId },
     include: {
@@ -35,11 +35,8 @@ export const GET = authRoute(async (_request, { auth }) => {
     },
   });
 
-  if (!state) {
-    return NextResponse.json({ state: null });
-  }
-
-  return NextResponse.json({ state });
+  if (!state) return { state: null };
+  return { state };
 }, { route: "/api/user/playback-state" });
 
 export const PUT = authRoute(async (_request, { auth, body }) => {

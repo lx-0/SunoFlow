@@ -35,3 +35,7 @@ export async function resolveRouteUsernameOrResponse(username: string) {
   if (!userResult.ok) return errorFromResult(userResult);
   return { userId: userResult.data.id };
 }
+
+export function isRouteResponse(value: unknown): value is Response {
+  return value instanceof Response;
+}

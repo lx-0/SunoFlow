@@ -57,10 +57,14 @@ export function createJsonDataRoute<
   handler: (
     request: NextRequest,
     ctx: Ctx,
-  ) => Promise<T>,
+  ) => Promise<T | Response>,
   options?: RoutePipelineOptions<B, Q>,
 ) {
-  return route(async (request, ctx) => NextResponse.json(await handler(request, ctx)), options);
+  return route(async (request, ctx) => {
+    const data = await handler(request, ctx);
+    if (data instanceof Response) return data;
+    return NextResponse.json(data);
+  }, options);
 }
 
 export function createCronRoute(

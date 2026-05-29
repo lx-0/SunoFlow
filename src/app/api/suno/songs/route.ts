@@ -5,7 +5,7 @@ import { listSongs } from "@/lib/sunoapi";
 import { prisma } from "@/lib/prisma";
 import { CacheControl } from "@/lib/cache";
 import { zLimitParam, zPageParam } from "@/lib/query-params";
-import { handleSunoRouteError, withRequiredSunoApiKey } from "@/lib/suno-route";
+import { runSunoUserRoute } from "@/lib/suno-route";
 
 const sunoSongsQuerySchema = z.object({
   page: zPageParam(1),
@@ -13,8 +13,7 @@ const sunoSongsQuerySchema = z.object({
 });
 
 export const GET = authRoute(async (_request, { auth, query }) => {
-  try {
-    return withRequiredSunoApiKey(auth.userId, async (apiKey) => {
+  return runSunoUserRoute(auth.userId, async (apiKey) => {
       const remoteSongs = await listSongs(apiKey);
 
       const sunoJobIds = remoteSongs.map((s) => s.id).filter(Boolean);
@@ -56,9 +55,7 @@ export const GET = authRoute(async (_request, { auth, query }) => {
         },
         { headers: { "Cache-Control": CacheControl.privateNoCache } }
       );
-    });
-  } catch (error) {
-    return handleSunoRouteError(error, {
+    }, {
       logLabel: "suno-songs-list",
       route: "/api/suno/songs",
       mapOptions: {
@@ -68,5 +65,4 @@ export const GET = authRoute(async (_request, { auth, query }) => {
         fallbackMessage: "Unable to fetch songs from Suno. Please check your API key and try again.",
       },
     });
-  }
 }, { query: sunoSongsQuerySchema, route: "/api/suno/songs" });

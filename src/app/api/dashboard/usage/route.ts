@@ -1,9 +1,8 @@
-import { NextResponse } from "next/server";
-import { authRoute } from "@/lib/route-handler";
+import { authDataRoute } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { getRateLimitStatus } from "@/lib/rate-limit";
 
-export const GET = authRoute(async (_request, { auth }) => {
+export const GET = authDataRoute(async (_request, { auth }) => {
   // Current rate limit status
   const { status: rateLimitStatus } = await getRateLimitStatus(auth.userId);
 
@@ -63,7 +62,7 @@ export const GET = authRoute(async (_request, { auth }) => {
   const totalLast30Days = entries.length;
   const totalToday = todayEntries.length;
 
-  return NextResponse.json({
+  return {
     rateLimit: rateLimitStatus,
     summary: {
       totalAllTime,
@@ -72,5 +71,5 @@ export const GET = authRoute(async (_request, { auth }) => {
     },
     dailyCounts,
     hourlyCounts,
-  });
+  };
 }, { route: "/api/dashboard/usage" });

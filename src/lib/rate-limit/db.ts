@@ -101,9 +101,6 @@ export async function getRateLimitStatus(
   };
 }
 
-/** @deprecated Use getRateLimitStatus — identical behaviour, clearer name. */
-export const checkRateLimit = getRateLimitStatus;
-
 // ---------------------------------------------------------------------------
 // Slot release
 // ---------------------------------------------------------------------------

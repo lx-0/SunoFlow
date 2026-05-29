@@ -1,25 +1,3 @@
-import { NextResponse } from "next/server";
-import { logger } from "@/lib/logger";
-import { logServerError } from "@/lib/error-logger";
-import { handleBillingEvent } from "@/lib/billing";
-import { createStripeWebhookRoute } from "@/lib/billing/webhook-route";
-import { webhookAck } from "@/lib/webhooks/ack";
+import { createBillingWebhookRoute } from "@/lib/billing/stripe-webhook-routes";
 
-export const POST = createStripeWebhookRoute({
-  routeTag: "/api/billing/webhook",
-  onDuplicate: (event) => {
-    logger.info({ eventId: event.id }, "billing-webhook: duplicate event, skipping");
-    return webhookAck();
-  },
-  onHandleEvent: handleBillingEvent,
-  onError: (error, event) => {
-    logServerError("billing-webhook-handler", error, {
-      route: "/api/billing/webhook",
-      params: { eventId: event.id, eventType: event.type },
-    });
-    return NextResponse.json(
-      { error: "Webhook handler failed" },
-      { status: 500 }
-    );
-  },
-});
+export const POST = createBillingWebhookRoute();

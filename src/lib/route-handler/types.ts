@@ -1,8 +1,4 @@
-export type PipelineCtx<P extends Record<string, string>, B, Q> = {
-  params: P;
-  body: B;
-  query: Q;
-};
+export type { PipelineCtx } from "@/lib/route-pipeline/types";
 
 export type RouteContextKey = "auth" | "admin" | "anon";
 

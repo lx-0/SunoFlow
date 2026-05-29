@@ -31,6 +31,7 @@ import { ReactionTimeline, ReactionItem } from "./ReactionTimeline";
 import { UpNextPanel } from "./UpNextPanel";
 import { LyricsPanel } from "./LyricsPanel";
 import { EqualizerPanel } from "./EqualizerPanel";
+import { getCurrentQueueSong } from "@/components/queue/queue-selectors";
 import { formatDuration as formatTime } from "@/lib/time-format";
 
 type ExpandedTab = "none" | "lyrics" | "queue" | "eq";
@@ -78,7 +79,7 @@ export function ExpandedPlayer({
   const [activeTab, setActiveTab] = useState<ExpandedTab>("none");
   const [showReactions, setShowReactions] = useState(false);
 
-  const currentSong = currentIndex >= 0 ? queue[currentIndex] : null;
+  const currentSong = getCurrentQueueSong(queue, currentIndex);
 
   const toggleTab = useCallback((tab: ExpandedTab) => {
     setActiveTab((prev) => (prev === tab ? "none" : tab));
