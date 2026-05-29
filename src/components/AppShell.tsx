@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Link, usePathname } from "@/i18n/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
@@ -49,6 +49,10 @@ import { EmailVerificationBanner } from "./EmailVerificationBanner";
 import { SunoStatusBanner } from "./SunoStatusBanner";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 const FeedbackModal = dynamic(() => import("./FeedbackModal").then((m) => m.FeedbackModal));
+import { useFocusTrap } from "@/hooks/useFocusTrap";
+import { useSwipeToDismiss } from "@/hooks/useSwipeToDismiss";
+import { useSidebarState } from "@/hooks/useSidebarState";
+import { useKbFeedback } from "@/hooks/useKbFeedback";
 
 // prefetch: true forces eager prefetch even before the link enters the viewport.
 // Critical user-flow routes get this treatment so they load instantly on first click.
@@ -71,104 +75,6 @@ const NAV_ITEM_DEFS = [
   { key: "analytics" as const, href: "/analytics", icon: ChartBarIcon, dataTour: undefined as string | undefined, prefetch: false },
   { key: "stats" as const, href: "/stats", icon: PresentationChartLineIcon, dataTour: undefined as string | undefined, prefetch: false },
 ];
-
-// ─── Focus trap for mobile drawer ────────────────────────────────────────────
-
-function useFocusTrap(containerRef: React.RefObject<HTMLElement | null>, active: boolean) {
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key !== "Tab" || !containerRef.current) return;
-      const focusable = containerRef.current.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
-      );
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (e.shiftKey) {
-        if (document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        }
-      } else {
-        if (document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    },
-    [containerRef]
-  );
-
-  useEffect(() => {
-    if (!active) return;
-    document.addEventListener("keydown", handleKeyDown);
-    // Focus the first focusable element when trap activates
-    const focusable = containerRef.current?.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
-    );
-    if (focusable && focusable.length > 0) focusable[0].focus();
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [active, handleKeyDown, containerRef]);
-}
-
-// ─── Swipe-to-close hook for mobile drawer ─────────────────────────────────
-
-function useSwipeToDismiss(
-  containerRef: React.RefObject<HTMLElement | null>,
-  active: boolean,
-  onDismiss: () => void
-) {
-  const touchStartX = useRef(0);
-  const touchCurrentX = useRef(0);
-  const swiping = useRef(false);
-
-  useEffect(() => {
-    if (!active) return;
-    const el = containerRef.current;
-    if (!el) return;
-
-    function handleTouchStart(e: TouchEvent) {
-      touchStartX.current = e.touches[0].clientX;
-      touchCurrentX.current = e.touches[0].clientX;
-      swiping.current = true;
-      el!.style.transition = "none";
-    }
-
-    function handleTouchMove(e: TouchEvent) {
-      if (!swiping.current) return;
-      touchCurrentX.current = e.touches[0].clientX;
-      const dx = touchCurrentX.current - touchStartX.current;
-      // Only allow swiping left (closing)
-      if (dx < 0) {
-        el!.style.transform = `translateX(${dx}px)`;
-      }
-    }
-
-    function handleTouchEnd() {
-      if (!swiping.current) return;
-      swiping.current = false;
-      el!.style.transition = "";
-      const dx = touchCurrentX.current - touchStartX.current;
-      if (dx < -80) {
-        // Threshold met — dismiss
-        el!.style.transform = "";
-        onDismiss();
-      } else {
-        el!.style.transform = "";
-      }
-    }
-
-    el.addEventListener("touchstart", handleTouchStart, { passive: true });
-    el.addEventListener("touchmove", handleTouchMove, { passive: true });
-    el.addEventListener("touchend", handleTouchEnd, { passive: true });
-
-    return () => {
-      el.removeEventListener("touchstart", handleTouchStart);
-      el.removeEventListener("touchmove", handleTouchMove);
-      el.removeEventListener("touchend", handleTouchEnd);
-    };
-  }, [active, containerRef, onDismiss]);
-}
 
 const themeOrder = ["light", "dark", "system"] as const;
 type ThemeOption = (typeof themeOrder)[number];
@@ -204,56 +110,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [theme, setTheme]);
 
   const ThemeIcon = themeIcons[(theme as ThemeOption) ?? "system"];
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const {
+    sidebarOpen,
+    sidebarCollapsed,
+    openSidebar,
+    closeSidebar,
+    toggleSidebarCollapsed,
+  } = useSidebarState();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [kbFeedback, setKbFeedback] = useState<string | null>(null);
-  const kbFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { kbFeedback, showKbFeedback } = useKbFeedback();
   const drawerRef = useRef<HTMLElement>(null);
-  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
-
-  const showKbFeedback = useCallback((message: string) => {
-    if (kbFeedbackTimerRef.current) clearTimeout(kbFeedbackTimerRef.current);
-    setKbFeedback(message);
-    kbFeedbackTimerRef.current = setTimeout(() => setKbFeedback(null), 1000);
-  }, []);
 
   useFocusTrap(drawerRef, sidebarOpen);
   useSwipeToDismiss(drawerRef, sidebarOpen, closeSidebar);
   useKeyboardShortcuts(useCallback(() => setShortcutsOpen(true), []), showKbFeedback);
-
-  // Load collapsed preference from localStorage
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("sidebar-collapsed");
-      if (stored === "true") setSidebarCollapsed(true);
-    } catch {
-      // localStorage unavailable (iOS PWA restrictions, private browsing)
-    }
-  }, []);
-
-  const toggleSidebarCollapsed = useCallback(() => {
-    setSidebarCollapsed((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem("sidebar-collapsed", String(next));
-      } catch {
-        // localStorage unavailable
-      }
-      return next;
-    });
-  }, []);
-
-  // Close drawer on Escape
-  useEffect(() => {
-    if (!sidebarOpen) return;
-    function handleEsc(e: KeyboardEvent) {
-      if (e.key === "Escape") setSidebarOpen(false);
-    }
-    document.addEventListener("keydown", handleEsc);
-    return () => document.removeEventListener("keydown", handleEsc);
-  }, [sidebarOpen]);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -402,7 +273,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div
           className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
           aria-hidden="true"
-          onClick={() => setSidebarOpen(false)}
+          onClick={closeSidebar}
         />
       )}
 
@@ -420,7 +291,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b border-gray-200 dark:border-gray-800">
           <span className="text-violet-400 font-bold text-lg tracking-tight">SunoFlow</span>
           <button
-            onClick={() => setSidebarOpen(false)}
+            onClick={closeSidebar}
             aria-label={t("closeMenu")}
             className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
@@ -439,7 +310,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={href}
                 href={href}
                 aria-current={active ? "page" : undefined}
-                onClick={() => setSidebarOpen(false)}
+                onClick={closeSidebar}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
                   active
                     ? "bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400"
@@ -464,7 +335,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   aria-label="billing plan"
                   href="/settings/billing"
-                  onClick={() => setSidebarOpen(false)}
+                  onClick={closeSidebar}
                   className="flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 >
                   <span className="text-xs text-gray-500 dark:text-gray-400">Plan</span>
@@ -476,7 +347,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             })()}
               <Link
                 href="/profile"
-                onClick={() => setSidebarOpen(false)}
+                onClick={closeSidebar}
                 aria-current={pathname === "/profile" ? "page" : undefined}
                 aria-label={tCommon("profile")}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
@@ -490,7 +361,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
             <Link
               href="/settings"
-              onClick={() => setSidebarOpen(false)}
+              onClick={closeSidebar}
               aria-current={pathname === "/settings" ? "page" : undefined}
               aria-label={t("settings")}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
@@ -506,7 +377,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <LocaleSwitcher compact />
             </div>
             <button
-              onClick={() => { setSidebarOpen(false); setFeedbackOpen(true); }}
+              onClick={() => { closeSidebar(); setFeedbackOpen(true); }}
               aria-label="Send feedback"
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors min-h-[44px]"
             >
@@ -531,7 +402,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
           {/* Hamburger (mobile only) */}
           <button
-            onClick={() => setSidebarOpen(true)}
+            onClick={openSidebar}
             aria-label={t("openMenu")}
             className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors md:hidden"
           >
