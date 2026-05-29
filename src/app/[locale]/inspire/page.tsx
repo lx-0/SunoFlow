@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { AppShell } from "@/components/AppShell";
@@ -16,124 +16,18 @@ import {
   ClockIcon,
 } from "@heroicons/react/24/outline";
 
-// ─── Types ───
-
-interface FeedItem {
-  title: string;
-  description: string;
-  content?: string;
-  link?: string;
-  source?: string;
-  pubDate?: string;
-  mood?: string;
-  topics?: string[];
-  suggestedStyle?: string;
-  excerpt?: string;
-}
-
-interface FeedResult {
-  url: string;
-  feedTitle: string;
-  items: FeedItem[];
-  error?: string;
-}
-
-interface PendingFeedGenerationItem {
-  id: string;
-  feedTitle?: string | null;
-  itemTitle: string;
-  itemLink?: string | null;
-  prompt: string;
-  style?: string | null;
-  status: string;
-  createdAt: string;
-}
-
-interface InstagramPost {
-  url: string;
-  authorName: string;
-  title: string;
-  thumbnailUrl?: string;
-  thumbnailWidth?: number;
-  thumbnailHeight?: number;
-  hashtags: string[];
-  mood: string;
-  promptSuggestion: string;
-  error?: string;
-}
-
-interface DigestItem {
-  source: "rss";
-  title: string;
-  link?: string;
-  mood: string;
-  topics: string[];
-  suggestedPrompt: string;
-  feedTitle?: string;
-}
-
-interface InspirationDigest {
-  id: string;
-  title: string;
-  items: DigestItem[];
-  createdAt: string;
-}
-
-// Unified feed item that normalizes all source types
-type SourceType = "rss" | "instagram" | "picks" | "pending";
-
-interface UnifiedFeedItem {
-  id: string;
-  sourceType: SourceType;
-  title: string;
-  subtitle?: string;
-  excerpt?: string;
-  mood?: string;
-  topics?: string[];
-  link?: string;
-  imageUrl?: string;
-  sourceName?: string;
-  date?: Date;
-  suggestedStyle?: string;
-  // Original data for action handlers
-  original: unknown;
-}
-
-// ─── Storage keys (Instagram still uses localStorage) ───
-
-const IG_POSTS_KEY = "sunoflow_ig_posts";
-const IG_CACHE_KEY = "sunoflow_ig_cache";
-
-// ─── Hooks ───
-
-function useStoredUrls(key: string) {
-  const [urls, setUrls] = useState<string[]>([]);
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(key);
-      setUrls(stored ? JSON.parse(stored) : []);
-    } catch {
-      setUrls([]);
-    }
-  }, [key]);
-  return urls;
-}
-
-function useDbFeedUrls() {
-  const [urls, setUrls] = useState<string[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  useEffect(() => {
-    fetch("/api/rss/feeds")
-      .then((r) => r.json())
-      .then((data) => {
-        const feedUrls = (data.feeds ?? []).map((f: { url: string }) => f.url);
-        setUrls(feedUrls);
-      })
-      .catch(() => {})
-      .finally(() => setLoaded(true));
-  }, []);
-  return { urls, loaded };
-}
+import { useRssFeeds } from "./use-rss-feeds";
+import type { FeedItem } from "./use-rss-feeds";
+import { useInstagramPosts } from "./use-instagram-posts";
+import type { InstagramPost } from "./use-instagram-posts";
+import { usePendingGenerations } from "./use-pending-generations";
+import type { PendingFeedGenerationItem } from "./use-pending-generations";
+import { useTodaysPicks } from "./use-todays-picks";
+import type { DigestItem } from "./use-todays-picks";
+import { useInspireFeed } from "./use-inspire-feed";
+import type { SourceType, UnifiedFeedItem } from "./use-inspire-feed";
+import { useInspireFilters } from "./use-inspire-filters";
+import type { SortMode } from "./use-inspire-filters";
 
 // ─── Mood badge colors ───
 
@@ -202,7 +96,6 @@ function UnifiedCard({
         ? "border-teal-400/60 dark:border-teal-500/40 ring-1 ring-teal-400/20"
         : "border-gray-200 dark:border-gray-800"
     }`}>
-      {/* Instagram image */}
       {item.imageUrl && (
         <div className="aspect-video relative overflow-hidden bg-gray-100 dark:bg-gray-800 max-h-48">
           <Image
@@ -217,7 +110,6 @@ function UnifiedCard({
       )}
 
       <div className="p-4">
-        {/* Source attribution */}
         <div className="flex items-center gap-2 mb-2 text-[11px]">
           <span className={`flex items-center gap-1 font-medium ${sourceConfig.color}`}>
             <SourceIcon type={item.sourceType} className="w-3 h-3" />
@@ -233,7 +125,6 @@ function UnifiedCard({
           )}
         </div>
 
-        {/* Title */}
         {item.link ? (
           <a
             href={item.link}
@@ -249,26 +140,22 @@ function UnifiedCard({
           </p>
         )}
 
-        {/* Subtitle (e.g. Instagram author) */}
         {item.subtitle && (
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.subtitle}</p>
         )}
 
-        {/* Excerpt */}
         {item.excerpt && (
           <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mt-2 line-clamp-3">
             {item.excerpt}
           </p>
         )}
 
-        {/* AI-generated style */}
         {item.suggestedStyle && (
           <p className="text-[11px] font-medium text-amber-400 mt-2">
             ♪ {item.suggestedStyle}
           </p>
         )}
 
-        {/* Mood + topic badges */}
         <div className="flex flex-wrap gap-1 mt-2">
           {moodColor && (
             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${moodColor}`}>
@@ -285,7 +172,6 @@ function UnifiedCard({
           ))}
         </div>
 
-        {/* Actions */}
         <div className="flex items-center gap-2 mt-3">
           {item.sourceType === "pending" && onApprove && onDismiss ? (
             <>
@@ -398,7 +284,7 @@ function MoodFilterChips({
   );
 }
 
-// ─── Today's Picks CTA (shown when no picks exist) ───
+// ─── Today's Picks CTA ───
 
 function GeneratePicksCTA({
   generating,
@@ -426,8 +312,6 @@ function GeneratePicksCTA({
 }
 
 // ─── Sort toggle ───
-
-type SortMode = "newest" | "bestmatch";
 
 function SortToggle({ mode, onChange }: { mode: SortMode; onChange: (m: SortMode) => void }) {
   return (
@@ -485,362 +369,32 @@ function TodaysPicksSection({
 function InspireContent() {
   const router = useRouter();
   const { toast } = useToast();
-  const { urls: feedUrls, loaded: feedsLoaded } = useDbFeedUrls();
-  const igUrls = useStoredUrls(IG_POSTS_KEY);
 
-  const [feeds, setFeeds] = useState<FeedResult[]>([]);
-  const [rssLoading, setRssLoading] = useState(false);
-  const [rssRefreshed, setRssRefreshed] = useState<Date | null>(null);
+  const rss = useRssFeeds();
+  const ig = useInstagramPosts();
+  const pending = usePendingGenerations();
+  const todaysPicks = useTodaysPicks(rss.hasRss);
 
-  const [igPosts, setIgPosts] = useState<InstagramPost[]>([]);
-  const [igLoading, setIgLoading] = useState(false);
-  const [igRefreshed, setIgRefreshed] = useState<Date | null>(null);
+  const { unifiedFeed, picksItems, availableSources, allMoods } = useInspireFeed({
+    feeds: rss.feeds,
+    igPosts: ig.igPosts,
+    pendingGenerations: pending.pendingGenerations,
+    picks: todaysPicks.picks,
+  });
 
-  const [pendingGenerations, setPendingGenerations] = useState<PendingFeedGenerationItem[]>([]);
-  const [pendingLoading, setPendingLoading] = useState(true);
+  const filters = useInspireFilters(unifiedFeed, picksItems);
 
-  const [picks, setPicks] = useState<InspirationDigest | null>(null);
-  const [picksLoading, setPicksLoading] = useState(false);
-  const [picksGenerating, setPicksGenerating] = useState(false);
+  const hasAnySources = rss.hasRss || ig.hasIg;
+  const isLoading = rss.rssLoading || ig.igLoading || pending.pendingLoading || todaysPicks.picksLoading || !rss.feedsLoaded;
 
-  // Unified filter state
-  const [sourceFilters, setSourceFilters] = useState<Set<SourceType>>(
-    new Set(["rss", "instagram", "picks", "pending"])
-  );
-  const [moodFilter, setMoodFilter] = useState<string | null>(null);
-  const [sortMode, setSortMode] = useState<SortMode>("newest");
+  const lastRefreshed = (() => {
+    const times = [rss.rssRefreshed, ig.igRefreshed].filter(Boolean) as Date[];
+    if (times.length === 0) return null;
+    return new Date(Math.max(...times.map((d) => d.getTime())));
+  })();
 
-  const hasRss = feedUrls.length > 0;
-  const hasIg = igUrls.length > 0;
-  const hasAnySources = hasRss || hasIg;
-
-  // ── RSS fetching ──
-
-  const fetchRssFeeds = useCallback(async (urls: string[]) => {
-    if (urls.length === 0) return;
-    setRssLoading(true);
-    try {
-      const res = await fetch("/api/rss/fetch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ urls }),
-      });
-      if (!res.ok) throw new Error("Fetch failed");
-      const data = await res.json();
-      setFeeds(data.feeds);
-      setRssRefreshed(new Date());
-    } catch {
-      // keep existing feeds
-    } finally {
-      setRssLoading(false);
-    }
-  }, []);
-
-  // ── Instagram fetching ──
-
-  const loadIgCache = useCallback(() => {
-    try {
-      const cached = localStorage.getItem(IG_CACHE_KEY);
-      if (cached) {
-        const { posts, timestamp } = JSON.parse(cached);
-        setIgPosts(posts);
-        setIgRefreshed(new Date(timestamp));
-        return true;
-      }
-    } catch {
-      // ignore
-    }
-    return false;
-  }, []);
-
-  const fetchIgPosts = useCallback(async (urls: string[]) => {
-    if (urls.length === 0) return;
-    setIgLoading(true);
-    try {
-      const res = await fetch("/api/instagram/fetch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ urls }),
-      });
-      if (!res.ok) throw new Error("Fetch failed");
-      const data = await res.json();
-      setIgPosts(data.posts);
-      const now = new Date();
-      setIgRefreshed(now);
-      try {
-        localStorage.setItem(
-          IG_CACHE_KEY,
-          JSON.stringify({ posts: data.posts, timestamp: now.toISOString() })
-        );
-      } catch {
-        // storage quota — ignore
-      }
-    } catch {
-      // keep existing posts
-    } finally {
-      setIgLoading(false);
-    }
-  }, []);
-
-  // ── Pending feed generations ──
-
-  const fetchPendingGenerations = useCallback(async () => {
-    setPendingLoading(true);
-    try {
-      const res = await fetch("/api/feed-generations");
-      if (!res.ok) return;
-      const data = await res.json();
-      setPendingGenerations(data.items ?? []);
-    } catch {
-      // ignore
-    } finally {
-      setPendingLoading(false);
-    }
-  }, []);
-
-  const handleApprovePending = useCallback(
-    async (item: PendingFeedGenerationItem) => {
-      try {
-        const res = await fetch(`/api/feed-generations/${item.id}/approve`, { method: "POST" });
-        if (!res.ok) {
-          const data = await res.json().catch(() => null);
-          toast(
-            data?.error ?? "Could not open this suggested item. Please try again.",
-            "error",
-          );
-          return;
-        }
-        const data = await res.json();
-        setPendingGenerations((prev) => prev.filter((p) => p.id !== item.id));
-        const params = new URLSearchParams();
-        if (data.prompt) params.set("prompt", data.prompt);
-        if (data.style) params.set("tags", data.style);
-        router.push(`/generate?${params.toString()}`);
-      } catch {
-        toast("Could not open this suggested item. Please try again.", "error");
-      }
-    },
-    [router, toast]
-  );
-
-  const handleDismissPending = useCallback(async (id: string) => {
-    setPendingGenerations((prev) => prev.filter((p) => p.id !== id));
-    try {
-      await fetch(`/api/feed-generations/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "dismissed" }),
-      });
-    } catch {
-      toast("Could not dismiss this item. It may reappear on refresh.", "error");
-      fetchPendingGenerations();
-    }
-  }, [fetchPendingGenerations, toast]);
-
-  // ── Today's Picks ──
-
-  const fetchTodaysPicks = useCallback(async () => {
-    setPicksLoading(true);
-    try {
-      const res = await fetch("/api/digests?limit=1");
-      if (!res.ok) return;
-      const data = await res.json();
-      const latest = data.digests?.[0] ?? null;
-      // Check if picks are from today — if stale, don't show (let user regenerate)
-      if (latest) {
-        const picksDate = new Date(latest.createdAt);
-        const today = new Date();
-        const isToday =
-          picksDate.getFullYear() === today.getFullYear() &&
-          picksDate.getMonth() === today.getMonth() &&
-          picksDate.getDate() === today.getDate();
-        setPicks(isToday ? latest : null);
-      } else {
-        setPicks(null);
-      }
-    } catch {
-      // ignore
-    } finally {
-      setPicksLoading(false);
-    }
-  }, []);
-
-  const generatePicks = useCallback(async () => {
-    setPicksGenerating(true);
-    try {
-      const res = await fetch("/api/digests/generate", { method: "POST" });
-      if (!res.ok) {
-        toast("Could not generate today's picks. Please try again.", "error");
-        return;
-      }
-      const data = await res.json();
-      setPicks(data.digest ?? null);
-    } catch {
-      toast("Could not generate today's picks. Please try again.", "error");
-    } finally {
-      setPicksGenerating(false);
-    }
-  }, [toast]);
-
-  // Auto-generate picks on first visit each day if none exist
-  const [autoGenAttempted, setAutoGenAttempted] = useState(false);
-
-  useEffect(() => {
-    if (autoGenAttempted || picksLoading || picksGenerating) return;
-    if (picks === null && hasRss && !picksLoading) {
-      setAutoGenAttempted(true);
-      generatePicks();
-    }
-  }, [picks, hasRss, picksLoading, picksGenerating, autoGenAttempted, generatePicks]);
-
-  // ── Load on mount ──
-
-  useEffect(() => {
-    fetchPendingGenerations();
-    fetchTodaysPicks();
-  }, [fetchPendingGenerations, fetchTodaysPicks]);
-
-  useEffect(() => {
-    if (!feedsLoaded || feedUrls.length === 0) return;
-    fetchRssFeeds(feedUrls);
-  }, [feedUrls, feedsLoaded, fetchRssFeeds]);
-
-  useEffect(() => {
-    if (igUrls.length === 0) return;
-    loadIgCache();
-    fetchIgPosts(igUrls);
-  }, [igUrls, loadIgCache, fetchIgPosts]);
-
-  // ── Build Today's Picks items ──
-
-  const picksItems = useMemo((): UnifiedFeedItem[] => {
-    if (!picks) return [];
-    return picks.items.map((item, i) => ({
-      id: `picks-${picks.id}-${i}`,
-      sourceType: "picks" as SourceType,
-      title: item.title,
-      excerpt: item.suggestedPrompt,
-      mood: item.mood,
-      topics: item.topics,
-      link: item.link,
-      sourceName: item.feedTitle || "Today's Picks",
-      date: new Date(picks.createdAt),
-      original: item,
-    }));
-  }, [picks]);
-
-  // ── Build unified feed (excludes Today's Picks — those are rendered separately) ──
-
-  const unifiedFeed = useMemo(() => {
-    const items: UnifiedFeedItem[] = [];
-
-    // RSS items
-    for (const feed of feeds) {
-      if (feed.error) continue;
-      for (const item of feed.items) {
-        items.push({
-          id: `rss-${item.link || item.title}-${feed.feedTitle}`,
-          sourceType: "rss",
-          title: item.title,
-          excerpt: item.excerpt || item.description,
-          mood: item.mood,
-          topics: item.topics,
-          link: item.link,
-          sourceName: item.source || feed.feedTitle,
-          date: item.pubDate ? new Date(item.pubDate) : undefined,
-          suggestedStyle: item.suggestedStyle,
-          original: item,
-        });
-      }
-    }
-
-    // Instagram posts
-    for (let i = 0; i < igPosts.length; i++) {
-      const post = igPosts[i];
-      if (post.error) continue;
-      items.push({
-        id: `ig-${post.url}-${i}`,
-        sourceType: "instagram",
-        title: post.title || "Instagram post",
-        subtitle: `@${post.authorName}`,
-        mood: post.mood,
-        topics: post.hashtags?.slice(0, 4),
-        link: post.url,
-        imageUrl: post.thumbnailUrl,
-        sourceName: `@${post.authorName}`,
-        date: undefined,
-        original: post,
-      });
-    }
-
-    // Pending feed generations
-    for (const item of pendingGenerations) {
-      const styleParts = item.style?.split(",").map((s) => s.trim()).filter(Boolean) ?? [];
-      const moodKey = styleParts[0]?.toLowerCase();
-      items.push({
-        id: `pending-${item.id}`,
-        sourceType: "pending",
-        title: item.itemTitle,
-        excerpt: item.prompt,
-        mood: moodKey,
-        sourceName: item.feedTitle || "Auto-generated",
-        date: new Date(item.createdAt),
-        original: item,
-      });
-    }
-
-    return items;
-  }, [feeds, igPosts, pendingGenerations]);
-
-  // ── Available sources (only show chips for sources that have data) ──
-
-  const availableSources = useMemo(() => {
-    const sources: SourceType[] = [];
-    if (feeds.some((f) => !f.error && f.items.length > 0)) sources.push("rss");
-    if (igPosts.some((p) => !p.error)) sources.push("instagram");
-    if (picks && picks.items.length > 0) sources.push("picks");
-    if (pendingGenerations.length > 0) sources.push("pending");
-    return sources;
-  }, [feeds, igPosts, picks, pendingGenerations]);
-
-  // ── Collect all moods ──
-
-  const allMoods = useMemo(() => {
-    const allItems = [...unifiedFeed, ...picksItems];
-    return Array.from(
-      new Set(
-        allItems
-          .map((i) => i.mood)
-          .filter((m): m is string => !!m && m !== "neutral")
-      )
-    ).sort();
-  }, [unifiedFeed, picksItems]);
-
-  // ── Filter and sort the main feed ──
-
-  const filteredFeed = useMemo(() => {
-    let items = unifiedFeed.filter((item) => sourceFilters.has(item.sourceType));
-    if (moodFilter) {
-      items = items.filter((item) => item.mood === moodFilter);
-    }
-    if (sortMode === "newest") {
-      items.sort((a, b) => {
-        if (!a.date && !b.date) return 0;
-        if (!a.date) return 1;
-        if (!b.date) return -1;
-        return b.date.getTime() - a.date.getTime();
-      });
-    }
-    // "bestmatch" keeps the natural order (grouped by source, most relevant first)
-    return items;
-  }, [unifiedFeed, sourceFilters, moodFilter, sortMode]);
-
-  // Filter picks by mood if active
-  const filteredPicks = useMemo(() => {
-    if (!sourceFilters.has("picks")) return [];
-    if (moodFilter) return picksItems.filter((item) => item.mood === moodFilter);
-    return picksItems;
-  }, [picksItems, sourceFilters, moodFilter]);
+  const showPicksCTA =
+    filters.sourceFilters.has("picks") && !todaysPicks.picks && !todaysPicks.picksLoading && !todaysPicks.picksGenerating && rss.hasRss;
 
   // ── Action handlers ──
 
@@ -887,7 +441,6 @@ function InspireContent() {
             break;
           }
           case "pending":
-            // Handled by onApprove
             break;
         }
       } catch {
@@ -896,6 +449,8 @@ function InspireContent() {
     },
     [router, toast]
   );
+
+  const { handleApprovePending, handleDismissPending } = pending;
 
   const handleApproveCard = useCallback(
     (item: UnifiedFeedItem) => {
@@ -915,43 +470,18 @@ function InspireContent() {
     [handleDismissPending]
   );
 
-  const toggleSourceFilter = useCallback((source: SourceType) => {
-    setSourceFilters((prev) => {
-      const next = new Set(prev);
-      if (next.has(source)) {
-        // Don't allow deselecting all
-        if (next.size > 1) next.delete(source);
-      } else {
-        next.add(source);
-      }
-      return next;
-    });
-  }, []);
-
   const handleRefresh = useCallback(async () => {
     const promises: Promise<void>[] = [];
-    promises.push(fetchTodaysPicks());
-    promises.push(fetchPendingGenerations());
-    if (hasRss) promises.push(fetchRssFeeds(feedUrls));
-    if (hasIg) promises.push(fetchIgPosts(igUrls));
+    promises.push(todaysPicks.refresh());
+    promises.push(pending.refresh());
+    if (rss.hasRss) promises.push(rss.refresh());
+    if (ig.hasIg) promises.push(ig.refresh());
     await Promise.all(promises);
-  }, [hasRss, hasIg, feedUrls, igUrls, fetchTodaysPicks, fetchPendingGenerations, fetchRssFeeds, fetchIgPosts]);
-
-  const isLoading = rssLoading || igLoading || pendingLoading || picksLoading || !feedsLoaded;
-
-  const lastRefreshed = (() => {
-    const times = [rssRefreshed, igRefreshed].filter(Boolean) as Date[];
-    if (times.length === 0) return null;
-    return new Date(Math.max(...times.map((d) => d.getTime())));
-  })();
-
-  // Show picks CTA when no picks exist and user has RSS feeds
-  const showPicksCTA =
-    sourceFilters.has("picks") && !picks && !picksLoading && !picksGenerating && hasRss;
+  }, [rss, ig, todaysPicks, pending]);
 
   // ── Empty state ──
 
-  if (feedsLoaded && !hasAnySources) {
+  if (rss.feedsLoaded && !hasAnySources) {
     return (
       <div className="px-4 py-6 space-y-4">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">Inspire</h2>
@@ -978,9 +508,9 @@ function InspireContent() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Inspire</h2>
-            {pendingGenerations.length > 0 && (
+            {pending.pendingGenerations.length > 0 && (
               <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-bold text-teal-100 bg-teal-500 rounded-full">
-                {pendingGenerations.length}
+                {pending.pendingGenerations.length}
               </span>
             )}
           </div>
@@ -1004,37 +534,37 @@ function InspireContent() {
         {availableSources.length > 1 && (
           <SourceFilterChips
             sources={availableSources}
-            activeFilters={sourceFilters}
-            onToggle={toggleSourceFilter}
+            activeFilters={filters.sourceFilters}
+            onToggle={filters.toggleSourceFilter}
           />
         )}
 
         {/* Mood filter + sort toggle */}
         <div className="flex items-center gap-2">
           <div className="flex-1 min-w-0">
-            <MoodFilterChips moods={allMoods} activeMood={moodFilter} onSelect={setMoodFilter} />
+            <MoodFilterChips moods={allMoods} activeMood={filters.moodFilter} onSelect={filters.setMoodFilter} />
           </div>
-          <SortToggle mode={sortMode} onChange={setSortMode} />
+          <SortToggle mode={filters.sortMode} onChange={filters.setSortMode} />
         </div>
 
-        {/* Today's Picks CTA — shown when no picks exist */}
+        {/* Today's Picks CTA */}
         {showPicksCTA && (
-          <GeneratePicksCTA generating={picksGenerating} onGenerate={generatePicks} />
+          <GeneratePicksCTA generating={todaysPicks.picksGenerating} onGenerate={todaysPicks.generatePicks} />
         )}
 
         {/* Today's Picks — promoted section */}
-        {filteredPicks.length > 0 && (
+        {filters.filteredPicks.length > 0 && (
           <TodaysPicksSection
-            picks={filteredPicks}
+            picks={filters.filteredPicks}
             onAction={handleCardAction}
-            onRefresh={generatePicks}
-            refreshing={picksGenerating}
-            title={picks?.title ?? "Today's Picks"}
+            onRefresh={todaysPicks.generatePicks}
+            refreshing={todaysPicks.picksGenerating}
+            title={todaysPicks.picks?.title ?? "Today's Picks"}
           />
         )}
 
-        {/* Divider between picks and main feed */}
-        {filteredPicks.length > 0 && filteredFeed.length > 0 && (
+        {/* Divider */}
+        {filters.filteredPicks.length > 0 && filters.filteredFeed.length > 0 && (
           <div className="border-t border-gray-200 dark:border-gray-800 pt-2">
             <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
               More inspiration
@@ -1043,7 +573,7 @@ function InspireContent() {
         )}
 
         {/* Loading skeleton */}
-        {isLoading && filteredFeed.length === 0 && filteredPicks.length === 0 && (
+        {isLoading && filters.filteredFeed.length === 0 && filters.filteredPicks.length === 0 && (
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
               <div
@@ -1061,7 +591,7 @@ function InspireContent() {
 
         {/* Main feed */}
         <div className="space-y-3">
-          {filteredFeed.map((item) => (
+          {filters.filteredFeed.map((item) => (
             <UnifiedCard
               key={item.id}
               item={item}
@@ -1073,7 +603,7 @@ function InspireContent() {
         </div>
 
         {/* Empty filtered state */}
-        {!isLoading && filteredFeed.length === 0 && filteredPicks.length === 0 && !showPicksCTA && (
+        {!isLoading && filters.filteredFeed.length === 0 && filters.filteredPicks.length === 0 && !showPicksCTA && (
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 text-center">
             <p className="text-gray-500 dark:text-gray-400 text-sm">
               No items match your current filters. Try adjusting the source or mood filters.
