@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { type ToastFn } from "@/components/Toast";
+import { callApi, jsonPost } from "./call-api";
 
 type ThumbsRating = "thumbs_up" | "thumbs_down" | null;
 
@@ -27,13 +28,8 @@ export function useSongFeedback({ songId, toast }: UseSongFeedbackParams) {
   }, [songId]);
 
   const [handleThumbsFeedback, savingThumbs] = useAsyncAction(async (value: "thumbs_up" | "thumbs_down") => {
-    const res = await fetch(`/api/songs/${songId}/feedback`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rating: value }),
-    });
-    if (res.ok) setThumbsRating(value);
-    else toast("Failed to save feedback", "error");
+    const ok = await callApi(`/api/songs/${songId}/feedback`, jsonPost({ rating: value }), toast, "Failed to save feedback");
+    if (ok) setThumbsRating(value);
   });
 
   return { thumbsRating, savingThumbs, handleThumbsFeedback };

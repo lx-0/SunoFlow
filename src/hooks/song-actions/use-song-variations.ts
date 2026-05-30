@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 import type { RemixAction } from "@/components/RemixModal";
 import { type ToastFn } from "@/components/Toast";
+import { callApi, jsonPost } from "./call-api";
 
 export interface CompareVariation {
   id: string;
@@ -45,21 +46,13 @@ export function useSongVariations({
       toast(`Maximum ${maxVariations} variations reached`, "error");
       return;
     }
-    const res = await fetch(`/api/songs/${songId}/variations`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt: data.prompt || undefined,
-        tags: data.tags || undefined,
-        title: data.title || undefined,
-        makeInstrumental: data.makeInstrumental,
-      }),
-    });
-    const result = await res.json();
-    if (!res.ok) {
-      toast(result.error ?? "Failed to create variation", "error");
-      return;
-    }
+    const result = await callApi<{ song: { id: string } }>(
+      `/api/songs/${songId}/variations`,
+      jsonPost({ prompt: data.prompt || undefined, tags: data.tags || undefined, title: data.title || undefined, makeInstrumental: data.makeInstrumental }),
+      toast,
+      "Failed to create variation",
+    );
+    if (!result) return;
     toast("Variation generation started!", "success");
     setVariationModalOpen(false);
     router.push(`/library/${result.song.id}`);
@@ -73,16 +66,13 @@ export function useSongVariations({
       toast(`Maximum ${maxVariations} variations reached`, "error");
       return;
     }
-    const res = await fetch(`/api/songs/${songId}/${action}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    const result = await res.json();
-    if (!res.ok) {
-      toast(result.error ?? "Generation failed", "error");
-      return;
-    }
+    const result = await callApi<{ song: { id: string } }>(
+      `/api/songs/${songId}/${action}`,
+      jsonPost(data),
+      toast,
+      "Generation failed",
+    );
+    if (!result) return;
     toast("Generation started!", "success");
     setRemixAction(null);
     router.push(`/library/${result.song.id}`);

@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { type ToastFn } from "@/components/Toast";
+import { callApi, jsonPost } from "./call-api";
 
 
 interface UseSongStyleTemplateParams {
@@ -30,16 +31,8 @@ export function useSongStyleTemplate({
     if (!styleTemplateName.trim() || !styleTemplateTags.trim()) return;
     const name = styleTemplateName.trim();
     const tags = styleTemplateTags.trim();
-    const res = await fetch("/api/style-templates", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, tags, sourceSongId: songId }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      toast(data.error ?? "Failed to save style template", "error");
-      return;
-    }
+    const ok = await callApi("/api/style-templates", jsonPost({ name, tags, sourceSongId: songId }), toast, "Failed to save style template");
+    if (!ok) return;
     setSaveStyleOpen(false);
     setStyleTemplateName("");
     setStyleTemplateTags("");

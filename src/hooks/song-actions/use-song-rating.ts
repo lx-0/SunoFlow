@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getRating, type SongRating } from "@/lib/ratings";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { type ToastFn } from "@/components/Toast";
+import { callApi, jsonPatch } from "./call-api";
 
 
 interface UseSongRatingParams {
@@ -45,15 +46,13 @@ export function useSongRating({
   const [handleSaveRating, savingRating] = useAsyncAction(async () => {
     if (rating.stars === 0) return;
     const r: SongRating = { stars: rating.stars, note: noteDraft.trim() };
-    const res = await fetch(`/api/songs/${songId}/rating`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ stars: r.stars, note: r.note }),
-    });
-    if (!res.ok) {
-      toast("Failed to save rating", "error");
-      return;
-    }
+    const ok = await callApi(
+      `/api/songs/${songId}/rating`,
+      jsonPatch({ stars: r.stars, note: r.note }),
+      toast,
+      "Failed to save rating",
+    );
+    if (!ok) return;
     setRatingState(r);
     setSaved(true);
   });

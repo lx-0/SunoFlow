@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { track } from "@/lib/analytics";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { type ToastFn } from "@/components/Toast";
+import { callApi, jsonPatch } from "./call-api";
 
 
 interface UseSongVisibilityParams {
@@ -25,16 +26,13 @@ export function useSongVisibility({
   const [publicSlug, setPublicSlug] = useState(initialPublicSlug);
 
   const [setVisibility, sharing] = useAsyncAction(async (visibility: "public" | "private") => {
-    const res = await fetch(`/api/songs/${songId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ visibility }),
-    });
-    if (!res.ok) {
-      toast("Failed to update visibility", "error");
-      return;
-    }
-    const data = await res.json();
+    const data = await callApi<{ isPublic: boolean; publicSlug: string | null }>(
+      `/api/songs/${songId}`,
+      jsonPatch({ visibility }),
+      toast,
+      "Failed to update visibility",
+    );
+    if (!data) return;
     setIsPublic(data.isPublic);
     setPublicSlug(data.publicSlug);
 
