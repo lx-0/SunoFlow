@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useOptimisticToggle } from "@/hooks/useOptimisticToggle";
 
 interface UsePlayerFavoriteOptions {
   songId: string | undefined;
@@ -9,7 +10,16 @@ interface UsePlayerFavoriteOptions {
 }
 
 export function usePlayerFavorite({ songId, isAuthenticated, usePublicEndpoint }: UsePlayerFavoriteOptions) {
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [toggleFavorite, isFavorite, , setIsFavorite] = useOptimisticToggle(
+    false,
+    async (newFav: boolean) => {
+      if (!songId) return;
+      const res = await fetch(`/api/songs/${songId}/favorite`, {
+        method: newFav ? "POST" : "DELETE",
+      });
+      if (!res.ok) throw new Error("failed");
+    },
+  );
 
   useEffect(() => {
     if (!songId || !isAuthenticated) {
@@ -34,24 +44,12 @@ export function usePlayerFavorite({ songId, isAuthenticated, usePublicEndpoint }
     return () => {
       cancelled = true;
     };
-  }, [songId, isAuthenticated, usePublicEndpoint]);
+  }, [songId, isAuthenticated, usePublicEndpoint, setIsFavorite]);
 
-  async function handleToggleFavorite() {
+  const handleToggleFavorite = () => {
     if (!songId) return;
-    const prev = isFavorite;
-    const newFav = !prev;
-    setIsFavorite(newFav);
-    try {
-      const res = await fetch(`/api/songs/${songId}/favorite`, {
-        method: newFav ? "POST" : "DELETE",
-      });
-      if (!res.ok) {
-        setIsFavorite(prev);
-      }
-    } catch {
-      setIsFavorite(prev);
-    }
-  }
+    void toggleFavorite();
+  };
 
   return { isFavorite, handleToggleFavorite };
 }
