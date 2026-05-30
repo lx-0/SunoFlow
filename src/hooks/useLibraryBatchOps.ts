@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { Song } from "@prisma/client";
 import { exportAsZip, type AudioFormat } from "@/lib/export";
-import { useOutsideClick } from "@/hooks/useOutsideClick";
+import { useMenuState } from "@/hooks/useMenuState";
 import { runSongsBatchAction, fetchPlaylistOptions } from "@/lib/songs/library-client";
 
 interface PlaylistOption {
@@ -27,31 +27,21 @@ export function useLibraryBatchOps({
   toast,
   onRefresh,
 }: UseLibraryBatchOpsOptions) {
-  const [showBatchTagMenu, setShowBatchTagMenu] = useState(false);
-  const [showBatchPlaylistMenu, setShowBatchPlaylistMenu] = useState(false);
-  const [batchTagLoading, setBatchTagLoading] = useState(false);
-  const [batchPlaylistLoading, setBatchPlaylistLoading] = useState(false);
+  const tagMenu = useMenuState();
+  const playlistMenu = useMenuState();
+  const downloadFormatMenu = useMenuState();
   const [batchPlaylists, setBatchPlaylists] = useState<PlaylistOption[]>([]);
   const [batchDownloading, setBatchDownloading] = useState(false);
   const [batchDownloadProgress, setBatchDownloadProgress] = useState<{
     completed: number;
     total: number;
   } | null>(null);
-  const [showBatchDownloadFormatMenu, setShowBatchDownloadFormatMenu] = useState(false);
   const [batchDownloadFormat, setBatchDownloadFormat] = useState<AudioFormat>("mp3");
 
-  const batchTagMenuRef = useRef<HTMLDivElement>(null);
-  const batchPlaylistMenuRef = useRef<HTMLDivElement>(null);
-  const batchDownloadFormatMenuRef = useRef<HTMLDivElement>(null);
-
-  useOutsideClick(batchTagMenuRef, () => setShowBatchTagMenu(false), showBatchTagMenu);
-  useOutsideClick(batchPlaylistMenuRef, () => setShowBatchPlaylistMenu(false), showBatchPlaylistMenu);
-  useOutsideClick(batchDownloadFormatMenuRef, () => setShowBatchDownloadFormatMenu(false), showBatchDownloadFormatMenu);
-
   async function handleBatchTag(tagId: string) {
-    setShowBatchTagMenu(false);
+    tagMenu.setShow(false);
     if (selectedSongIds.size === 0) return;
-    setBatchTagLoading(true);
+    tagMenu.setLoading(true);
     try {
       const result = await runSongsBatchAction({
         action: "tag",
@@ -68,14 +58,14 @@ export function useLibraryBatchOps({
     } catch {
       toast("Batch tag failed", "error");
     } finally {
-      setBatchTagLoading(false);
+      tagMenu.setLoading(false);
     }
   }
 
   async function handleBatchAddToPlaylist(playlistId: string) {
-    setShowBatchPlaylistMenu(false);
+    playlistMenu.setShow(false);
     if (selectedSongIds.size === 0) return;
-    setBatchPlaylistLoading(true);
+    playlistMenu.setLoading(true);
     try {
       const result = await runSongsBatchAction({
         action: "add_to_playlist",
@@ -91,12 +81,12 @@ export function useLibraryBatchOps({
     } catch {
       toast("Batch add to playlist failed", "error");
     } finally {
-      setBatchPlaylistLoading(false);
+      playlistMenu.setLoading(false);
     }
   }
 
   async function openBatchPlaylistMenu() {
-    setShowBatchPlaylistMenu(true);
+    playlistMenu.setShow(true);
     const playlists = await fetchPlaylistOptions();
     if (playlists.length > 0) {
       setBatchPlaylists(playlists);
@@ -104,7 +94,7 @@ export function useLibraryBatchOps({
   }
 
   async function handleBatchDownload(fmt: AudioFormat = batchDownloadFormat) {
-    setShowBatchDownloadFormatMenu(false);
+    downloadFormatMenu.setShow(false);
     if (selectedSongIds.size === 0) return;
     const selectedSongs = songs
       .filter((s) => selectedSongIds.has(s.id) && s.audioUrl && s.generationStatus === "ready")
@@ -139,22 +129,22 @@ export function useLibraryBatchOps({
   }
 
   return {
-    showBatchTagMenu,
-    setShowBatchTagMenu,
-    showBatchPlaylistMenu,
-    setShowBatchPlaylistMenu,
-    batchTagLoading,
-    batchPlaylistLoading,
+    showBatchTagMenu: tagMenu.show,
+    setShowBatchTagMenu: tagMenu.setShow,
+    showBatchPlaylistMenu: playlistMenu.show,
+    setShowBatchPlaylistMenu: playlistMenu.setShow,
+    batchTagLoading: tagMenu.loading,
+    batchPlaylistLoading: playlistMenu.loading,
     batchPlaylists,
     batchDownloading,
     batchDownloadProgress,
-    showBatchDownloadFormatMenu,
-    setShowBatchDownloadFormatMenu,
+    showBatchDownloadFormatMenu: downloadFormatMenu.show,
+    setShowBatchDownloadFormatMenu: downloadFormatMenu.setShow,
     batchDownloadFormat,
     setBatchDownloadFormat,
-    batchTagMenuRef,
-    batchPlaylistMenuRef,
-    batchDownloadFormatMenuRef,
+    batchTagMenuRef: tagMenu.ref,
+    batchPlaylistMenuRef: playlistMenu.ref,
+    batchDownloadFormatMenuRef: downloadFormatMenu.ref,
     handleBatchTag,
     handleBatchAddToPlaylist,
     openBatchPlaylistMenu,

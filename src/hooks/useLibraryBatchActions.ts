@@ -1,10 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { Song } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
-import { useOutsideClick } from "@/hooks/useOutsideClick";
+import { useMenuState } from "@/hooks/useMenuState";
 import {
   fetchPlaylistOptions,
   runSongsBatchAction,
@@ -37,27 +37,13 @@ export function useLibraryBatchActions(options: UseLibraryBatchActionsOptions) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [batchLoading, setBatchLoading] = useState(false);
 
-  const [showBatchTagMenu, setShowBatchTagMenu] = useState(false);
-  const [batchTagLoading, setBatchTagLoading] = useState(false);
-  const batchTagMenuRef = useRef<HTMLDivElement>(null);
-  useOutsideClick(batchTagMenuRef, () => setShowBatchTagMenu(false), showBatchTagMenu);
-
-  const [showBatchPlaylistMenu, setShowBatchPlaylistMenu] = useState(false);
-  const [batchPlaylistLoading, setBatchPlaylistLoading] = useState(false);
+  const tagMenu = useMenuState();
+  const playlistMenu = useMenuState();
+  const downloadFormatMenu = useMenuState();
   const [batchPlaylists, setBatchPlaylists] = useState<PlaylistOption[]>([]);
-  const batchPlaylistMenuRef = useRef<HTMLDivElement>(null);
-  useOutsideClick(batchPlaylistMenuRef, () => setShowBatchPlaylistMenu(false), showBatchPlaylistMenu);
-
   const [batchDownloading, setBatchDownloading] = useState(false);
   const [batchDownloadProgress, setBatchDownloadProgress] = useState<{ completed: number; total: number } | null>(null);
-  const [showBatchDownloadFormatMenu, setShowBatchDownloadFormatMenu] = useState(false);
   const [batchDownloadFormat, setBatchDownloadFormat] = useState<AudioFormat>("mp3");
-  const batchDownloadFormatMenuRef = useRef<HTMLDivElement>(null);
-  useOutsideClick(
-    batchDownloadFormatMenuRef,
-    () => setShowBatchDownloadFormatMenu(false),
-    showBatchDownloadFormatMenu
-  );
 
   const [pendingMenuDelete, setPendingMenuDelete] = useState<{ song: Song } | null>(null);
   const [menuDeleteLoading, setMenuDeleteLoading] = useState(false);
@@ -141,9 +127,9 @@ export function useLibraryBatchActions(options: UseLibraryBatchActionsOptions) {
   }
 
   async function handleBatchTag(tagId: string) {
-    setShowBatchTagMenu(false);
+    tagMenu.setShow(false);
     if (selectedSongIds.size === 0) return;
-    setBatchTagLoading(true);
+    tagMenu.setLoading(true);
     try {
       const result = await runSongsBatchAction({
         action: "tag",
@@ -160,14 +146,14 @@ export function useLibraryBatchActions(options: UseLibraryBatchActionsOptions) {
     } catch {
       toast("Batch tag failed", "error");
     } finally {
-      setBatchTagLoading(false);
+      tagMenu.setLoading(false);
     }
   }
 
   async function handleBatchAddToPlaylist(playlistId: string) {
-    setShowBatchPlaylistMenu(false);
+    playlistMenu.setShow(false);
     if (selectedSongIds.size === 0) return;
-    setBatchPlaylistLoading(true);
+    playlistMenu.setLoading(true);
     try {
       const result = await runSongsBatchAction({
         action: "add_to_playlist",
@@ -183,12 +169,12 @@ export function useLibraryBatchActions(options: UseLibraryBatchActionsOptions) {
     } catch {
       toast("Batch add to playlist failed", "error");
     } finally {
-      setBatchPlaylistLoading(false);
+      playlistMenu.setLoading(false);
     }
   }
 
   async function openBatchPlaylistMenu() {
-    setShowBatchPlaylistMenu(true);
+    playlistMenu.setShow(true);
     const playlists = await fetchPlaylistOptions();
     if (playlists.length > 0) {
       setBatchPlaylists(playlists);
@@ -196,7 +182,7 @@ export function useLibraryBatchActions(options: UseLibraryBatchActionsOptions) {
   }
 
   async function handleBatchDownload(fmt: AudioFormat = batchDownloadFormat) {
-    setShowBatchDownloadFormatMenu(false);
+    downloadFormatMenu.setShow(false);
     if (selectedSongIds.size === 0) return;
     const selectedSongs = songs
       .filter((s) => selectedSongIds.has(s.id) && s.audioUrl && s.generationStatus === "ready")
@@ -234,21 +220,21 @@ export function useLibraryBatchActions(options: UseLibraryBatchActionsOptions) {
     showDeleteConfirm,
     setShowDeleteConfirm,
     batchLoading,
-    showBatchTagMenu,
-    setShowBatchTagMenu,
-    batchTagLoading,
-    batchTagMenuRef,
-    showBatchPlaylistMenu,
-    batchPlaylistLoading,
+    showBatchTagMenu: tagMenu.show,
+    setShowBatchTagMenu: tagMenu.setShow,
+    batchTagLoading: tagMenu.loading,
+    batchTagMenuRef: tagMenu.ref,
+    showBatchPlaylistMenu: playlistMenu.show,
+    batchPlaylistLoading: playlistMenu.loading,
     batchPlaylists,
-    batchPlaylistMenuRef,
+    batchPlaylistMenuRef: playlistMenu.ref,
     batchDownloading,
     batchDownloadProgress,
-    showBatchDownloadFormatMenu,
-    setShowBatchDownloadFormatMenu,
+    showBatchDownloadFormatMenu: downloadFormatMenu.show,
+    setShowBatchDownloadFormatMenu: downloadFormatMenu.setShow,
     batchDownloadFormat,
     setBatchDownloadFormat,
-    batchDownloadFormatMenuRef,
+    batchDownloadFormatMenuRef: downloadFormatMenu.ref,
     pendingMenuDelete,
     setPendingMenuDelete,
     menuDeleteLoading,
