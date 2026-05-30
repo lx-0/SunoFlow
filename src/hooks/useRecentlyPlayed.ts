@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { HttpError } from "@/components/QueryProvider";
+import { apiGet } from "@/lib/api-client";
 
 export interface RecentSong {
   id: string;
@@ -23,9 +23,7 @@ export interface HistoryItem {
 export const recentlyPlayedQueryKey = (limit: number) => ["recently-played", limit] as const;
 
 async function fetchRecentlyPlayed(limit: number): Promise<HistoryItem[]> {
-  const res = await fetch(`/api/history?limit=${limit}`);
-  if (!res.ok) throw new HttpError(res.status);
-  const data = await res.json();
+  const data = await apiGet<{ items: HistoryItem[] }>(`/api/history?limit=${limit}`);
   return data.items ?? [];
 }
 

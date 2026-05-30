@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CollectionPreview } from "@/app/[locale]/discover/discover-view.types";
+import { apiGet } from "@/lib/api-client";
 
 export function useDiscoverCollections({ active }: { active: boolean }) {
   const [collections, setCollections] = useState<CollectionPreview[]>([]);
@@ -11,9 +12,7 @@ export function useDiscoverCollections({ active }: { active: boolean }) {
   const fetchCollections = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/collections");
-      if (!res.ok) return;
-      const data = await res.json();
+      const data = await apiGet<{ collections: CollectionPreview[] }>("/api/collections");
       setCollections(data.collections ?? []);
     } catch {
       // keep existing state

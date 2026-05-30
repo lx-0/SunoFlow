@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { apiGet, apiPost } from "@/lib/api-client";
 
 interface FeedItem {
   title: string;
@@ -32,11 +33,9 @@ export function useRssFeeds() {
   const [refreshed, setRefreshed] = useState<Date | null>(null);
 
   useEffect(() => {
-    fetch("/api/rss/feeds")
-      .then((r) => r.json())
+    apiGet<{ feeds: { url: string }[] }>("/api/rss/feeds")
       .then((data) => {
-        const feedUrls = (data.feeds ?? []).map((f: { url: string }) => f.url);
-        setUrls(feedUrls);
+        setUrls((data.feeds ?? []).map((f) => f.url));
       })
       .catch(() => {})
       .finally(() => setLoaded(true));
@@ -46,13 +45,7 @@ export function useRssFeeds() {
     if (feedUrls.length === 0) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/rss/fetch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ urls: feedUrls }),
-      });
-      if (!res.ok) throw new Error("Fetch failed");
-      const data = await res.json();
+      const data = await apiPost<{ feeds: FeedResult[] }>("/api/rss/fetch", { urls: feedUrls });
       setFeeds(data.feeds);
       setRefreshed(new Date());
     } catch {

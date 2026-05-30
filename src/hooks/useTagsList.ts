@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { HttpError } from "@/components/QueryProvider";
+import { apiGet } from "@/lib/api-client";
 
 export interface TagSummary {
   id: string;
@@ -17,9 +17,7 @@ interface TagsResponse {
 export const tagsListQueryKey = ["tags-list"] as const;
 
 async function fetchTags(): Promise<TagSummary[]> {
-  const res = await fetch("/api/tags");
-  if (!res.ok) throw new HttpError(res.status);
-  const data: TagsResponse = await res.json();
+  const data = await apiGet<TagsResponse>("/api/tags");
   return data.tags ?? [];
 }
 

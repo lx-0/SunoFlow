@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSSE } from "./useSSE";
-import { HttpError } from "@/components/QueryProvider";
+import { apiGet } from "@/lib/api-client";
 
 export interface CreditsData {
   budget: number;
@@ -18,9 +18,7 @@ export interface CreditsData {
 export const creditsQueryKey = ["credits"] as const;
 
 async function fetchCredits(): Promise<CreditsData> {
-  const res = await fetch("/api/credits");
-  if (!res.ok) throw new HttpError(res.status);
-  return res.json();
+  return apiGet<CreditsData>("/api/credits");
 }
 
 /**
