@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getRating, type SongRating } from "@/lib/ratings";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 type ToastFn = (message: string, type?: "success" | "error" | "info") => void;
 
@@ -23,7 +24,6 @@ export function useSongRating({
     note: initialRatingNote ?? "",
   });
   const [saved, setSaved] = useState(false);
-  const [savingRating, setSavingRating] = useState(false);
   const [noteDraft, setNoteDraft] = useState(initialRatingNote ?? "");
 
   useEffect(() => {
@@ -42,25 +42,21 @@ export function useSongRating({
     setSaved(false);
   }, []);
 
-  const handleSaveRating = useCallback(async () => {
-    if (rating.stars === 0 || savingRating) return;
+  const [handleSaveRating, savingRating] = useAsyncAction(async () => {
+    if (rating.stars === 0) return;
     const r: SongRating = { stars: rating.stars, note: noteDraft.trim() };
-    setSavingRating(true);
-    try {
-      const res = await fetch(`/api/songs/${songId}/rating`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stars: r.stars, note: r.note }),
-      });
-      if (!res.ok) throw new Error("Failed to save rating");
-      setRatingState(r);
-      setSaved(true);
-    } catch {
+    const res = await fetch(`/api/songs/${songId}/rating`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ stars: r.stars, note: r.note }),
+    });
+    if (!res.ok) {
       toast("Failed to save rating", "error");
-    } finally {
-      setSavingRating(false);
+      return;
     }
-  }, [rating.stars, savingRating, noteDraft, songId, toast]);
+    setRatingState(r);
+    setSaved(true);
+  });
 
   return {
     rating,

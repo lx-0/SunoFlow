@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { track } from "@/lib/analytics";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 type ToastFn = (message: string, type?: "success" | "error" | "info") => void;
 
@@ -22,38 +23,30 @@ export function useSongVisibility({
 }: UseSongVisibilityParams) {
   const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [publicSlug, setPublicSlug] = useState(initialPublicSlug);
-  const [sharing, setSharing] = useState(false);
 
-  const setVisibility = useCallback(async (visibility: "public" | "private") => {
-    setSharing(true);
-    try {
-      const res = await fetch(`/api/songs/${songId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ visibility }),
-      });
-      if (!res.ok) {
-        toast("Failed to update visibility", "error");
-        return;
-      }
-      const data = await res.json();
-      setIsPublic(data.isPublic);
-      setPublicSlug(data.publicSlug);
-
-      if (data.isPublic && data.publicSlug) {
-        const url = `${window.location.origin}/s/${data.publicSlug}`;
-        await navigator.clipboard.writeText(url);
-        toast("Public link copied to clipboard", "success");
-        track("song_shared", { songId, source: "song_detail" });
-      } else {
-        toast("Song is now private", "success");
-      }
-    } catch {
+  const [setVisibility, sharing] = useAsyncAction(async (visibility: "public" | "private") => {
+    const res = await fetch(`/api/songs/${songId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ visibility }),
+    });
+    if (!res.ok) {
       toast("Failed to update visibility", "error");
-    } finally {
-      setSharing(false);
+      return;
     }
-  }, [songId, toast]);
+    const data = await res.json();
+    setIsPublic(data.isPublic);
+    setPublicSlug(data.publicSlug);
+
+    if (data.isPublic && data.publicSlug) {
+      const url = `${window.location.origin}/s/${data.publicSlug}`;
+      await navigator.clipboard.writeText(url);
+      toast("Public link copied to clipboard", "success");
+      track("song_shared", { songId, source: "song_detail" });
+    } else {
+      toast("Song is now private", "success");
+    }
+  });
 
   const handleVisibilityToggle = useCallback(() => {
     if (!isPublic) {

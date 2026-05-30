@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 type ToastFn = (message: string, type?: "success" | "error" | "info") => void;
 
@@ -18,7 +19,6 @@ export function useSongStyleTemplate({
   const [saveStyleOpen, setSaveStyleOpen] = useState(false);
   const [styleTemplateName, setStyleTemplateName] = useState("");
   const [styleTemplateTags, setStyleTemplateTags] = useState("");
-  const [isSavingStyle, setIsSavingStyle] = useState(false);
 
   const openSaveStyleModal = useCallback(() => {
     setStyleTemplateName("");
@@ -26,35 +26,25 @@ export function useSongStyleTemplate({
     setSaveStyleOpen(true);
   }, [songTags]);
 
-  const handleSaveStyleTemplate = useCallback(async () => {
-    if (isSavingStyle || !styleTemplateName.trim() || !styleTemplateTags.trim()) return;
-
+  const [handleSaveStyleTemplate, isSavingStyle] = useAsyncAction(async () => {
+    if (!styleTemplateName.trim() || !styleTemplateTags.trim()) return;
     const name = styleTemplateName.trim();
     const tags = styleTemplateTags.trim();
-    setIsSavingStyle(true);
-    try {
-      const res = await fetch("/api/style-templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, tags, sourceSongId: songId }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast(data.error ?? "Failed to save style template", "error");
-        return;
-      }
-
-      setSaveStyleOpen(false);
-      setStyleTemplateName("");
-      setStyleTemplateTags("");
-      toast("Style template saved", "success");
-    } catch {
-      toast("Failed to save style template", "error");
-    } finally {
-      setIsSavingStyle(false);
+    const res = await fetch("/api/style-templates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, tags, sourceSongId: songId }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast(data.error ?? "Failed to save style template", "error");
+      return;
     }
-  }, [isSavingStyle, styleTemplateName, styleTemplateTags, songId, toast]);
+    setSaveStyleOpen(false);
+    setStyleTemplateName("");
+    setStyleTemplateTags("");
+    toast("Style template saved", "success");
+  });
 
   return {
     saveStyleOpen,
