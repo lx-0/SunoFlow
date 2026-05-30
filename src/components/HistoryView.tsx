@@ -18,6 +18,7 @@ import { useQueue, type QueueSong } from "./QueueContext";
 import Image from "next/image";
 import type { Song } from "@prisma/client";
 import { formatDuration as formatTime } from "@/lib/time-format";
+import { retrySong } from "@/lib/song-api";
 import {
   parseHistoryFilterUrlState,
   toHistoryFilterSearchParams,
@@ -263,28 +264,17 @@ export function HistoryView({
   async function handleRetry(song: Song) {
     if (retryingId) return;
     setRetryingId(song.id);
-
     try {
-      const res = await fetch(`/api/songs/${song.id}/retry`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (res.status === 429 && data.resetAt) {
-          const resetTime = new Date(data.resetAt);
-          const minutesLeft = Math.ceil((resetTime.getTime() - Date.now()) / 60000);
-          toast(`Rate limit reached. Try again in ${minutesLeft} minute${minutesLeft === 1 ? "" : "s"}.`, "error");
-        } else {
-          toast(data.error ?? "Retry failed. Please try again.", "error");
-        }
-        return;
+      const result = await retrySong(song.id);
+      if ("rateLimitMinutes" in result) {
+        const m = result.rateLimitMinutes;
+        toast(`Rate limit reached. Try again in ${m} minute${m === 1 ? "" : "s"}.`, "error");
+      } else if ("error" in result) {
+        toast(result.error, "error");
+      } else {
+        toast("Retry started! Song is regenerating.", "success");
+        router.refresh();
       }
-
-      toast("Retry started! Song is regenerating.", "success");
-      router.refresh();
     } catch {
       toast("Network error. Please check your connection.", "error");
     } finally {

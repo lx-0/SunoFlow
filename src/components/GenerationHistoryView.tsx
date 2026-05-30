@@ -31,6 +31,8 @@ import { useHistoryFilters } from "@/hooks/useHistoryFilters";
 import { useHistoryRetry } from "@/hooks/useHistoryRetry";
 import { useHistoryPendingPoll } from "@/hooks/useHistoryPendingPoll";
 import { useHistorySavedPrompts } from "@/hooks/useHistorySavedPrompts";
+import { apiDelete } from "@/lib/api-client";
+import { Spinner } from "./Spinner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -246,7 +248,7 @@ function SavedPromptsPanel() {
     if (deletingId) return;
     setDeletingId(id);
     try {
-      await fetch(`/api/presets/${id}`, { method: "DELETE" });
+      await apiDelete(`/api/presets/${id}`);
       setPresets((prev) => prev.filter((p) => p.id !== id));
       toast("Prompt deleted", "success");
     } catch {

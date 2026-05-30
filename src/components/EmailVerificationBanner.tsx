@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { EnvelopeIcon } from "@heroicons/react/24/outline";
+import { apiPost } from "@/lib/api-client";
 
 export function EmailVerificationBanner() {
   const { data: session } = useSession();
@@ -20,12 +21,8 @@ export function EmailVerificationBanner() {
   async function handleResend() {
     setResending(true);
     try {
-      const res = await fetch("/api/auth/resend-verification", {
-        method: "POST",
-      });
-      if (res.ok) {
-        setResent(true);
-      }
+      await apiPost("/api/auth/resend-verification", {});
+      setResent(true);
     } catch {
       // silently fail
     } finally {

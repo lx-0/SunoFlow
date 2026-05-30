@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { KeyIcon, ArrowRightIcon, XMarkIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
+import { apiPatch } from "@/lib/api-client";
 
 export function ApiKeyWizard() {
   const { data: session, update: updateSession } = useSession();
@@ -38,20 +39,11 @@ export function ApiKeyWizard() {
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch("/api/profile/api-key", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sunoApiKey: apiKey }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error ?? "Failed to save API key");
-        return;
-      }
+      await apiPatch("/api/profile/api-key", { sunoApiKey: apiKey });
       await updateSession();
       setStep(2);
-    } catch {
-      setError("Network error — please try again");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save API key");
     } finally {
       setSaving(false);
     }

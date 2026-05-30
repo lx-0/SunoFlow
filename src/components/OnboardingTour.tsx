@@ -12,6 +12,7 @@ import { useState, useEffect, useCallback, createContext, useContext } from "rea
 import { useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { apiPost } from "@/lib/api-client";
 
 const OnboardingTourUI = dynamic(
   () => import("./OnboardingTourUI").then((m) => m.OnboardingTourUI)
@@ -249,7 +250,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       // localStorage unavailable
     }
     try {
-      await fetch("/api/onboarding/complete", { method: "POST" });
+      await apiPost("/api/onboarding/complete", {});
       await updateSession();
     } catch {
       // API call failed — localStorage fallback ensures tour stays dismissed
@@ -289,7 +290,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       // localStorage unavailable
     }
     try {
-      await fetch("/api/onboarding/reset", { method: "POST" });
+      await apiPost("/api/onboarding/reset", {});
       await updateSession();
       setCompleting(false);
       setShowWelcome(true);
