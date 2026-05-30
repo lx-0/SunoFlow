@@ -16,6 +16,7 @@ import { useMenuState } from "@/hooks/useMenuState";
 import { toggleSelectAll, toggleSelection } from "./selection";
 import { CDN_REFRESH_THRESHOLD_MS } from "@/lib/cdn-constants";
 import { type ToastFn } from "@/components/Toast";
+import { refreshSongAudio, toggleSongFavorite, retrySong } from "@/lib/song-api";
 
 
 function toDownloadable(song: Song) {
@@ -72,19 +73,14 @@ export function useLibrarySongActions({
     let playSong = song;
     if (isNearExpiry) {
       try {
-        const res = await fetch(`/api/songs/${song.id}/refresh`, { method: "POST" });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.song?.audioUrl) {
-            playSong = { ...song, audioUrl: data.song.audioUrl };
-            handleSongUpdate(playSong);
-          }
-        } else if (res.status === 404) {
-          const data = await res.json().catch(() => ({}));
-          if (data.code === "SONG_DELETED") {
-            toast("This song no longer exists on Suno and cannot be played.", "error");
-            return;
-          }
+        const result = await refreshSongAudio(song.id);
+        if ("deleted" in result) {
+          toast("This song no longer exists on Suno and cannot be played.", "error");
+          return;
+        }
+        if (result.audioUrl) {
+          playSong = { ...song, audioUrl: result.audioUrl };
+          handleSongUpdate(playSong);
         }
       } catch {
         // Transient error — try playing with whatever URL we have
@@ -128,17 +124,9 @@ export function useLibrarySongActions({
     handleSongUpdate(optimistic as Song);
 
     try {
-      const res = await fetch(`/api/songs/${song.id}/favorite`, {
-        method: newFav ? "POST" : "DELETE",
-      });
-      if (!res.ok) {
-        handleSongUpdate(song);
-        toast("Failed to update favorite", "error");
-      } else {
-        const data = await res.json();
-        handleSongUpdate({ ...song, isFavorite: newFav, favoriteCount: data.favoriteCount } as Song);
-        toast(newFav ? "Added to favorites" : "Removed from favorites", "success");
-      }
+      const data = await toggleSongFavorite(song.id, newFav);
+      handleSongUpdate({ ...song, isFavorite: newFav, favoriteCount: data.favoriteCount } as Song);
+      toast(newFav ? "Added to favorites" : "Removed from favorites", "success");
     } catch {
       handleSongUpdate(song);
       toast("Failed to update favorite", "error");
@@ -150,26 +138,18 @@ export function useLibrarySongActions({
     setRetryingId(song.id);
 
     try {
-      const res = await fetch(`/api/songs/${song.id}/retry`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (res.status === 429 && data.resetAt) {
-          const resetTime = new Date(data.resetAt);
-          const minutesLeft = Math.ceil((resetTime.getTime() - Date.now()) / 60000);
-          toast(`Rate limit reached. Try again in ${minutesLeft} minute${minutesLeft === 1 ? "" : "s"}.`, "error");
-        } else {
-          toast(data.error ?? "Retry failed. Please try again.", "error");
-        }
+      const result = await retrySong(song.id);
+      if ("rateLimitMinutes" in result) {
+        const m = result.rateLimitMinutes;
+        toast(`Rate limit reached. Try again in ${m} minute${m === 1 ? "" : "s"}.`, "error");
         return;
       }
-
-      if (data.song) {
-        handleSongUpdate(data.song);
+      if ("error" in result) {
+        toast(result.error, "error");
+        return;
+      }
+      if (result.song) {
+        handleSongUpdate(result.song as Song);
       }
       toast("Retry started! Song is regenerating.", "success");
       refreshRouter();
