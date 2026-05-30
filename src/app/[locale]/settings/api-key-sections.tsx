@@ -9,6 +9,8 @@ import {
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import { Toast } from "./ui";
+import { apiGet, apiPatch, apiPost, apiDelete } from "@/lib/api-client";
+import { HttpError } from "@/components/QueryProvider";
 
 type SunoStatus =
   | { connected: false; error?: string }
@@ -34,9 +36,8 @@ function ApiKeySection() {
   const checkStatus = async () => {
     setTesting(true);
     try {
-      const res = await fetch("/api/suno/status");
-      const data = await res.json();
-      setStatus(data as SunoStatus);
+      const data = await apiGet<SunoStatus>("/api/suno/status");
+      setStatus(data);
     } catch {
       setStatus({ connected: false, error: "Network error" });
     } finally {
@@ -45,15 +46,12 @@ function ApiKeySection() {
   };
 
   useEffect(() => {
-    fetch("/api/profile/api-key")
-      .then((r) => r.json())
+    apiGet<{ hasKey: boolean; maskedKey: string | null; usePersonalApiKey: boolean }>("/api/profile/api-key")
       .then((data) => {
         setHasKey(data.hasKey);
         setMaskedKey(data.maskedKey);
         setUsePersonalApiKey(data.usePersonalApiKey ?? false);
-        if (data.hasKey) {
-          checkStatus();
-        }
+        if (data.hasKey) checkStatus();
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -63,27 +61,15 @@ function ApiKeySection() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch("/api/profile/api-key", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sunoApiKey: apiKey }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        showToast(data.error ?? "Failed to save API key", "error");
-      } else {
-        setHasKey(data.hasKey);
-        setMaskedKey(data.maskedKey);
-        setApiKey("");
-        showToast(data.hasKey ? "API key saved" : "API key removed", "success");
-        if (data.hasKey) {
-          checkStatus();
-        } else {
-          setStatus(null);
-        }
-      }
-    } catch {
-      showToast("Network error", "error");
+      const data = await apiPatch<{ hasKey: boolean; maskedKey: string | null }>("/api/profile/api-key", { sunoApiKey: apiKey });
+      setHasKey(data.hasKey);
+      setMaskedKey(data.maskedKey);
+      setApiKey("");
+      showToast(data.hasKey ? "API key saved" : "API key removed", "success");
+      if (data.hasKey) checkStatus();
+      else setStatus(null);
+    } catch (err) {
+      showToast(err instanceof HttpError ? err.message : "Network error", "error");
     } finally {
       setSaving(false);
     }
@@ -92,24 +78,15 @@ function ApiKeySection() {
   const handleRemove = async () => {
     setSaving(true);
     try {
-      const res = await fetch("/api/profile/api-key", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sunoApiKey: "", usePersonalApiKey: false }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        showToast(data.error ?? "Failed to remove API key", "error");
-      } else {
-        setHasKey(false);
-        setMaskedKey(null);
-        setApiKey("");
-        setStatus(null);
-        setUsePersonalApiKey(false);
-        showToast("API key removed", "success");
-      }
-    } catch {
-      showToast("Network error", "error");
+      await apiPatch("/api/profile/api-key", { sunoApiKey: "", usePersonalApiKey: false });
+      setHasKey(false);
+      setMaskedKey(null);
+      setApiKey("");
+      setStatus(null);
+      setUsePersonalApiKey(false);
+      showToast("API key removed", "success");
+    } catch (err) {
+      showToast(err instanceof HttpError ? err.message : "Network error", "error");
     } finally {
       setSaving(false);
     }
@@ -122,20 +99,11 @@ function ApiKeySection() {
     }
     setTogglingPersonal(true);
     try {
-      const res = await fetch("/api/profile/api-key", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usePersonalApiKey: enabled }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        showToast(data.error ?? "Failed to update setting", "error");
-      } else {
-        setUsePersonalApiKey(data.usePersonalApiKey);
-        showToast(data.usePersonalApiKey ? "Using personal API key" : "Using shared app key", "success");
-      }
-    } catch {
-      showToast("Network error", "error");
+      const data = await apiPatch<{ usePersonalApiKey: boolean }>("/api/profile/api-key", { usePersonalApiKey: enabled });
+      setUsePersonalApiKey(data.usePersonalApiKey);
+      showToast(data.usePersonalApiKey ? "Using personal API key" : "Using shared app key", "success");
+    } catch (err) {
+      showToast(err instanceof HttpError ? err.message : "Network error", "error");
     } finally {
       setTogglingPersonal(false);
     }
@@ -283,8 +251,7 @@ function PersonalApiKeysSection() {
   };
 
   const fetchKeys = useCallback(() => {
-    fetch("/api/profile/api-keys")
-      .then((r) => r.json())
+    apiGet<{ keys: typeof keys }>("/api/profile/api-keys")
       .then((data) => setKeys(data.keys ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -297,23 +264,14 @@ function PersonalApiKeysSection() {
     if (!name) return;
     setCreating(true);
     try {
-      const res = await fetch("/api/profile/api-keys", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        showToast(data.error ?? "Failed to create API key", "error");
-      } else {
-        setCreatedKey(data.key);
-        setCopied(false);
-        setNewKeyName("");
-        fetchKeys();
-        showToast("API key created", "success");
-      }
-    } catch {
-      showToast("Network error", "error");
+      const data = await apiPost<{ key: string }>("/api/profile/api-keys", { name });
+      setCreatedKey(data.key);
+      setCopied(false);
+      setNewKeyName("");
+      fetchKeys();
+      showToast("API key created", "success");
+    } catch (err) {
+      showToast(err instanceof HttpError ? err.message : "Network error", "error");
     } finally {
       setCreating(false);
     }
@@ -322,17 +280,12 @@ function PersonalApiKeysSection() {
   const handleRevoke = async (id: string) => {
     setRevoking(id);
     try {
-      const res = await fetch(`/api/profile/api-keys/${id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) {
-        showToast(data.error ?? "Failed to revoke key", "error");
-      } else {
-        setKeys((prev) => prev.filter((k) => k.id !== id));
-        setConfirmRevoke(null);
-        showToast("API key revoked", "success");
-      }
-    } catch {
-      showToast("Network error", "error");
+      await apiDelete(`/api/profile/api-keys/${id}`);
+      setKeys((prev) => prev.filter((k) => k.id !== id));
+      setConfirmRevoke(null);
+      showToast("API key revoked", "success");
+    } catch (err) {
+      showToast(err instanceof HttpError ? err.message : "Network error", "error");
     } finally {
       setRevoking(null);
     }
