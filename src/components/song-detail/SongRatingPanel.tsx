@@ -10,6 +10,7 @@ import { getRating, type SongRating } from "@/lib/ratings";
 import { fetchEffect } from "@/lib/fetch-effect";
 import { useToast } from "../Toast";
 import { StarPicker } from "../StarPicker";
+import FormTextarea from "../ui/FormTextarea";
 
 type ThumbsRating = "thumbs_up" | "thumbs_down" | null;
 
@@ -142,7 +143,7 @@ export function SongRatingPanel({ songId, initialRating, initialRatingNote }: So
 
         <StarPicker value={rating.stars} onChange={(stars) => { setRatingState((r) => ({ ...r, stars })); setSaved(false); }} />
 
-        <textarea
+        <FormTextarea
           value={noteDraft}
           onChange={(e) => {
             setNoteDraft(e.target.value);
@@ -151,7 +152,7 @@ export function SongRatingPanel({ songId, initialRating, initialRatingNote }: So
           placeholder="Add a note (optional)..."
           aria-label="Rating note"
           rows={3}
-          className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 resize-none focus:outline-none focus:border-violet-500 transition-colors"
+          className="text-base"
         />
 
         <div className="flex items-center gap-3">

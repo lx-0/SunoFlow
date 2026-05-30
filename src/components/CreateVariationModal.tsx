@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { ModalShell } from "./ModalShell";
+import FormInput from "./ui/FormInput";
+import FormTextarea from "./ui/FormTextarea";
 
 const TEMPO_OPTIONS = [
   { value: "", label: "Original tempo" },
@@ -60,24 +62,22 @@ export function CreateVariationModal({ sourceSong, onClose, onSubmit, submitting
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Prompt *</label>
-            <textarea
+            <FormTextarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Describe the song..."
               rows={3}
               required
-              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 resize-none focus:outline-none focus:border-violet-500 transition-colors"
             />
           </div>
 
           <div>
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Style / tags (optional)</label>
-            <input
+            <FormInput
               type="text"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               placeholder="e.g. pop, rock, electronic"
-              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
             />
           </div>
 
@@ -114,35 +114,32 @@ export function CreateVariationModal({ sourceSong, onClose, onSubmit, submitting
 
             <div>
               <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Instrument swap (optional)</label>
-              <input
+              <FormInput
                 type="text"
                 value={instrumentSwap}
                 onChange={(e) => setInstrumentSwap(e.target.value)}
                 placeholder="e.g. piano, guitar, strings, synthesizer"
-                className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
               />
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Lyrics (optional)</label>
-            <textarea
+            <FormTextarea
               value={lyrics}
               onChange={(e) => setLyrics(e.target.value)}
               placeholder="Enter lyrics or leave blank for AI-generated lyrics..."
               rows={4}
-              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 resize-none focus:outline-none focus:border-violet-500 transition-colors"
             />
           </div>
 
           <div>
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Title (optional)</label>
-            <input
+            <FormInput
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Variation title..."
-              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
             />
           </div>
 

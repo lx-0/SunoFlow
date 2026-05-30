@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
+import FormInput from "./ui/FormInput";
+import FormTextarea from "./ui/FormTextarea";
 import { formatDuration as formatTime } from "@/lib/time-format";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -376,13 +378,12 @@ export function SectionEditor({
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
               Replacement prompt *
             </label>
-            <textarea
+            <FormTextarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Describe what should replace this section..."
               rows={3}
               required
-              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 resize-none focus:outline-none focus:border-violet-500 transition-colors"
             />
           </div>
 
@@ -390,13 +391,12 @@ export function SectionEditor({
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
               Style / tags *
             </label>
-            <input
+            <FormInput
               type="text"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               placeholder="e.g. pop, rock, electronic"
               required
-              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
             />
           </div>
 
@@ -404,12 +404,11 @@ export function SectionEditor({
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
               Title (optional)
             </label>
-            <input
+            <FormInput
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={songTitle ? `${songTitle} (section replaced)` : ""}
-              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
             />
           </div>
 
@@ -417,12 +416,11 @@ export function SectionEditor({
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
               Negative tags (optional)
             </label>
-            <input
+            <FormInput
               type="text"
               value={negativeTags}
               onChange={(e) => setNegativeTags(e.target.value)}
               placeholder="Styles to avoid, e.g. screaming, distortion"
-              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
             />
           </div>
 

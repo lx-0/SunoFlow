@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { ModalShell } from "./ModalShell";
+import FormInput from "./ui/FormInput";
+import FormTextarea from "./ui/FormTextarea";
 
 export type RemixAction = "extend" | "add-vocals" | "add-instrumental";
 
@@ -58,13 +60,12 @@ export function RemixModal({ action, songTitle, songTags, songDuration, onClose,
               <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                 {action === "add-vocals" ? "Vocal prompt *" : "Prompt (optional)"}
               </label>
-              <textarea
+              <FormTextarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder={action === "add-vocals" ? "Describe the vocals you want..." : "Override the continuation prompt..."}
                 rows={3}
                 required={action === "add-vocals"}
-                className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 resize-none focus:outline-none focus:border-violet-500 transition-colors"
               />
             </div>
           )}
@@ -73,24 +74,22 @@ export function RemixModal({ action, songTitle, songTags, songDuration, onClose,
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
               Style / tags {action === "add-instrumental" ? "*" : "(optional)"}
             </label>
-            <input
+            <FormInput
               type="text"
               value={style}
               onChange={(e) => setStyle(e.target.value)}
               placeholder="e.g. pop, rock, electronic"
               required={action === "add-instrumental"}
-              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
             />
           </div>
 
           <div>
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Title (optional)</label>
-            <input
+            <FormInput
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={songTitle ? `${songTitle} (${action === "extend" ? "extended" : action === "add-vocals" ? "with vocals" : "instrumental"})` : ""}
-              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
             />
           </div>
 
@@ -99,7 +98,7 @@ export function RemixModal({ action, songTitle, songTags, songDuration, onClose,
               <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                 Continue at (seconds, optional)
               </label>
-              <input
+              <FormInput
                 type="number"
                 value={continueAt}
                 onChange={(e) => setContinueAt(e.target.value)}
@@ -107,7 +106,6 @@ export function RemixModal({ action, songTitle, songTags, songDuration, onClose,
                 min={0}
                 max={songDuration ?? undefined}
                 step={1}
-                className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
               />
             </div>
           )}
