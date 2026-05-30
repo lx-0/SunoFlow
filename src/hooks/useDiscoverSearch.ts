@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { apiGet } from "@/lib/api-client";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import type { PublicSong, PublicPagination } from "@/app/[locale]/discover/discover-view.types";
 
@@ -18,9 +19,7 @@ export function useDiscoverSearch({ initialQuery }: { initialQuery: string }) {
       initialCursor: 0,
       fetchPage: async (offset, _append) => {
         const params = new URLSearchParams({ q: query, limit: "20", offset: String(offset) });
-        const res = await fetch(`/api/songs/public?${params}`);
-        if (!res.ok) throw new Error("failed");
-        const data = await res.json();
+        const data = await apiGet<{ songs: PublicSong[]; pagination: PublicPagination }>(`/api/songs/public?${params}`);
         return { items: data.songs, pagination: data.pagination };
       },
       getNextCursor: (p) => p.offset + p.limit,

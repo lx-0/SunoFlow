@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { apiGet } from "@/lib/api-client";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import type {
   DiscoverPlaylist,
@@ -35,9 +36,7 @@ export function useDiscoverPlaylists({
       fetchPage: async (page, _append) => {
         const params = new URLSearchParams({ page: String(page), sort });
         if (genre) params.set("genre", genre);
-        const res = await fetch(`/api/playlists/discover?${params}`);
-        if (!res.ok) throw new Error("failed");
-        const data = await res.json();
+        const data = await apiGet<{ playlists: DiscoverPlaylist[]; pagination: PlaylistDiscoverPagination }>(`/api/playlists/discover?${params}`);
         return { items: data.playlists, pagination: data.pagination };
       },
       getNextCursor: (p) => p.page + 1,

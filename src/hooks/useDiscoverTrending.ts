@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { apiGet } from "@/lib/api-client";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import type { TrendingSong, TrendingPagination } from "@/app/[locale]/discover/discover-view.types";
 
@@ -25,9 +26,7 @@ export function useDiscoverTrending({
         const params = new URLSearchParams({ sort, limit: "20", offset: String(offset) });
         if (genre) params.set("genre", genre);
         if (mood) params.set("mood", mood);
-        const res = await fetch(`/api/songs/trending?${params}`);
-        if (!res.ok) throw new Error("failed");
-        const data = await res.json();
+        const data = await apiGet<{ songs: TrendingSong[]; pagination: TrendingPagination }>(`/api/songs/trending?${params}`);
         return { items: data.songs, pagination: data.pagination };
       },
       getNextCursor: (p) => p.offset + p.limit,

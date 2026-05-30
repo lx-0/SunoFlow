@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { apiGet } from "@/lib/api-client";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import type { FeedSong, FeedPagination } from "@/app/[locale]/discover/discover-view.types";
 
@@ -26,9 +27,7 @@ export function useDiscoverFeed({
       const p = new URLSearchParams({ page: String(page) });
       if (tag) p.set("tag", tag);
       if (mood) p.set("mood", mood);
-      const res = await fetch(`/api/discover?${p}`);
-      if (!res.ok) throw new Error("failed");
-      const data = await res.json();
+      const data = await apiGet<{ feed: FeedSong[]; pagination: FeedPagination }>(`/api/discover?${p}`);
       return { items: data.feed, pagination: data.pagination };
     },
     getNextCursor: (p) => p.page + 1,

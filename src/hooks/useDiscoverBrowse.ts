@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { TEMPO_PRESETS } from "@/app/[locale]/discover/discover-view.utils";
+import { apiGet } from "@/lib/api-client";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import type { DiscoverSong, DiscoverPagination } from "@/app/[locale]/discover/discover-view.types";
 
@@ -44,9 +45,7 @@ export function useDiscoverBrowse({
       if (mood) params.set("mood", mood);
       if (tempoRange?.min != null) params.set("tempoMin", String(tempoRange.min));
       if (tempoRange?.max != null) params.set("tempoMax", String(tempoRange.max));
-      const res = await fetch(`/api/songs/discover?${params}`);
-      if (!res.ok) throw new Error("failed");
-      const data = await res.json();
+      const data = await apiGet<{ songs: DiscoverSong[]; pagination: DiscoverPagination }>(`/api/songs/discover?${params}`);
       return { items: data.songs, pagination: data.pagination };
     },
     getNextCursor: (p) => p.page + 1,
