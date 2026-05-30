@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { boostStylePrompt } from "./api";
 import type { PromptSuggestion } from "./types";
+import { type ToastFn } from "@/components/Toast";
 
-type ToastFn = (message: string, variant: "success" | "error") => void;
 
 interface UseStyleBoostParams {
   style: string;

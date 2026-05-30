@@ -17,12 +17,14 @@ import {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type ToastVariant = "success" | "error" | "info";
+export type ToastVariant = "success" | "error" | "info";
 
 interface ToastAction {
   label: string;
   onClick: () => void;
 }
+
+export type ToastFn = (message: string, variant?: ToastVariant, action?: ToastAction) => void;
 
 interface Toast {
   id: string;

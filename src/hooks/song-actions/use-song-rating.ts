@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { getRating, type SongRating } from "@/lib/ratings";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { type ToastFn } from "@/components/Toast";
 
-type ToastFn = (message: string, type?: "success" | "error" | "info") => void;
 
 interface UseSongRatingParams {
   songId: string;

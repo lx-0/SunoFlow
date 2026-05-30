@@ -1,8 +1,8 @@
 import { useState } from "react";
 import type { GenerationPreset } from "./types";
 import { deletePreset, savePreset } from "./api";
+import { type ToastFn } from "@/components/Toast";
 
-type ToastFn = (message: string, variant: "success" | "error") => void;
 
 interface UsePresetActionsParams {
   presets: GenerationPreset[];

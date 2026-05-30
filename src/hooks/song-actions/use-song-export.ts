@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { type ToastFn } from "@/components/Toast";
 
-type ToastFn = (message: string, type?: "success" | "error" | "info") => void;
 type ExportFormat = "wav" | "midi" | "mp4";
 type ExportStatus = "idle" | "converting" | "done" | "error";
 type VideoStatus = "idle" | "polling" | "ready" | "error";

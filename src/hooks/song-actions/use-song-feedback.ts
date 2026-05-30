@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { type ToastFn } from "@/components/Toast";
 
-type ToastFn = (message: string, type?: "success" | "error" | "info") => void;
 type ThumbsRating = "thumbs_up" | "thumbs_down" | null;
 
 interface UseSongFeedbackParams {

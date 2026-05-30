@@ -15,8 +15,8 @@ import { applyBatchActionToSongs, batchActionMessage } from "@/lib/songs/batch-a
 import { useMenuState } from "@/hooks/useMenuState";
 import { toggleSelectAll, toggleSelection } from "./selection";
 import { CDN_REFRESH_THRESHOLD_MS } from "@/lib/cdn-constants";
+import { type ToastFn } from "@/components/Toast";
 
-type ToastFn = (message: string, variant?: "success" | "error" | "info") => void;
 
 function toDownloadable(song: Song) {
   return {

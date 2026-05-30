@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { type ToastFn } from "@/components/Toast";
 
-type ToastFn = (message: string, type?: "success" | "error" | "info") => void;
 
 interface UseSongFavoriteParams {
   songId: string;

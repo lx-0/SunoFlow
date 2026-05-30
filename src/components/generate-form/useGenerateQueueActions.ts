@@ -1,8 +1,8 @@
 import { track } from "@/lib/analytics";
 import { getPendingIndexFromVisualIndex, getSubmitPrompt, reorderPendingQueueIds } from "./helpers";
 import type { PersonaOption } from "./types";
+import { type ToastFn } from "@/components/Toast";
 
-type ToastFn = (message: string, variant: "success" | "error") => void;
 
 interface QueueItem {
   id: string;

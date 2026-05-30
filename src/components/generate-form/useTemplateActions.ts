@@ -2,8 +2,8 @@ import { useState } from "react";
 import type { PromptTemplate } from "./types";
 import { deletePromptTemplate, savePromptTemplate } from "./api";
 import { getSubmitPrompt } from "./helpers";
+import { type ToastFn } from "@/components/Toast";
 
-type ToastFn = (message: string, variant: "success" | "error") => void;
 
 interface UseTemplateActionsParams {
   templates: PromptTemplate[];

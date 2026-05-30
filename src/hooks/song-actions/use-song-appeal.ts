@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { type ToastFn } from "@/components/Toast";
 
-type ToastFn = (message: string, type?: "success" | "error" | "info") => void;
 
 interface UseSongAppealParams {
   songId: string;

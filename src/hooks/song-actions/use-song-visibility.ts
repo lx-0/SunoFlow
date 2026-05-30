@@ -3,8 +3,8 @@
 import { useCallback, useState } from "react";
 import { track } from "@/lib/analytics";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { type ToastFn } from "@/components/Toast";
 
-type ToastFn = (message: string, type?: "success" | "error" | "info") => void;
 
 interface UseSongVisibilityParams {
   songId: string;

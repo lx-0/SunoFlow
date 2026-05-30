@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { generateLyricsFromPrompt, autoFillGenerationFields } from "./api";
+import { type ToastFn } from "@/components/Toast";
 
-type ToastFn = (message: string, variant: "success" | "error") => void;
 
 interface UseLyricsGeneratorParams {
   initialLyricsPrompt: string;

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 import type { RemixAction } from "@/components/RemixModal";
+import { type ToastFn } from "@/components/Toast";
 
 export interface CompareVariation {
   id: string;
@@ -14,7 +15,6 @@ export interface CompareVariation {
   lyrics: string | null;
 }
 
-type ToastFn = (message: string, type?: "success" | "error" | "info") => void;
 
 interface UseSongVariationsParams {
   songId: string;
