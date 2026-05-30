@@ -23,6 +23,7 @@ import {
   toHistoryFilterSearchParams,
   type HistorySortKey,
 } from "./history/filter-url-state";
+import { Spinner } from "./Spinner";
 import {
   formatHistoryRelativeDate,
   HISTORY_SORT_OPTIONS,
@@ -36,16 +37,7 @@ function StatusBadge({ status, error }: { status: string; error?: string | null 
   if (status === "pending") {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/50 border border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300 text-xs font-medium">
-        <svg
-          className="animate-spin h-3 w-3"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
+        <Spinner className="h-3 w-3" />
         Generating
       </span>
     );
@@ -192,16 +184,7 @@ function HistoryRow({ song, onRetry, retryingId }: { song: Song; onRetry: (song:
               aria-label="Retry"
             >
               {isRetrying ? (
-                <svg
-                  className="animate-spin h-5 w-5"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
+                <Spinner className="h-5 w-5" />
               ) : (
                 <ArrowPathIcon className="w-5 h-5" />
               )}
@@ -389,10 +372,7 @@ export function HistoryView({
       {/* Song list */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <svg className="animate-spin h-6 w-6 text-violet-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
+          <Spinner className="h-6 w-6 text-violet-500" />
         </div>
       ) : songs.length === 0 ? (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 text-center space-y-3">
@@ -428,10 +408,7 @@ export function HistoryView({
             >
               {loadingMore ? (
                 <span className="inline-flex items-center gap-2">
-                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
+                  <Spinner className="h-4 w-4" />
                   Loading…
                 </span>
               ) : (

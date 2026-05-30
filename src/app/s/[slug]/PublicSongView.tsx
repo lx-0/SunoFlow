@@ -8,6 +8,7 @@ import { PlayIcon, PauseIcon, MusicalNoteIcon, FlagIcon, SparklesIcon, SpeakerWa
 import { ChatBubbleLeftIcon, HeartIcon as HeartOutlineIcon } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import { FollowButton } from "@/components/FollowButton";
+import { Spinner } from "@/components/Spinner";
 import { track } from "@/lib/analytics";
 import { RelatedSongs } from "@/components/RelatedSongs";
 import { ShareMenu } from "@/components/ShareMenu";
@@ -255,10 +256,7 @@ export function PublicSongView({
               aria-label={playerState.isBuffering ? "Loading" : playerState.isPlaying ? "Pause" : "Play"}
             >
               {playerState.isBuffering ? (
-                <svg className="w-7 h-7 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-25" />
-                  <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
-                </svg>
+                <Spinner className="w-7 h-7" />
               ) : playerState.isPlaying ? (
                 <PauseIcon className="w-7 h-7" />
               ) : (

@@ -39,6 +39,7 @@ import { firstTag } from "@/lib/tags";
 import { useLongPress } from "./song-list-item/use-long-press";
 import { useSongTracking } from "./song-list-item/use-song-tracking";
 import { useSaveStyleTemplate } from "./song-list-item/use-save-style-template";
+import { Spinner } from "./Spinner";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -100,16 +101,7 @@ function PlayerBar({ currentTime, duration, hasAudio, onSeek }: PlayerBarProps) 
 function GeneratingBadge() {
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/50 border border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300 text-xs font-medium">
-      <svg
-        className="animate-spin h-3 w-3"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-      </svg>
+      <Spinner className="h-3 w-3" />
       Generating…
     </span>
   );
@@ -558,16 +550,7 @@ export const SongListItem = memo(function SongListItem({
             aria-label="Retry"
           >
             {isRetrying ? (
-              <svg
-                className="animate-spin h-5 w-5"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
+              <Spinner className="h-5 w-5" />
             ) : (
               <ArrowPathIcon className="w-5 h-5" />
             )}
@@ -639,10 +622,7 @@ export const SongListItem = memo(function SongListItem({
             }`}
           >
             {isSaving ? (
-              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
+              <Spinner className="h-5 w-5" />
             ) : isCached ? (
               <CheckIcon className="w-5 h-5" aria-hidden="true" />
             ) : (

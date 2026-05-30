@@ -14,6 +14,7 @@ import {
   HandThumbDownIcon as HandThumbDownOutlineIcon,
 } from "@heroicons/react/24/outline";
 import type { GenerationState } from "@/hooks/useGenerationPoller";
+import { Spinner } from "./Spinner";
 
 const STATUS_CONFIG = {
   pending: { label: "Queued", color: "text-yellow-500", step: 0 },
@@ -30,27 +31,7 @@ function StatusIcon({ status }: { status: GenerationState["status"] }) {
   if (status === "failed")
     return <ExclamationCircleIcon className="h-5 w-5 text-red-500" />;
   return (
-    <svg
-      className="animate-spin h-5 w-5 text-violet-500"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-      />
-    </svg>
+    <Spinner className="h-5 w-5 text-violet-500" />
   );
 }
 

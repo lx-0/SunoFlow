@@ -6,6 +6,7 @@ import { PlayIcon, PauseIcon, MusicalNoteIcon, SpeakerWaveIcon, SpeakerXMarkIcon
 import * as Sentry from "@sentry/nextjs";
 import { formatDuration as formatTime } from "@/lib/time-format";
 import { useAudioElementPlayer } from "@/hooks/useAudioElementPlayer";
+import { Spinner } from "@/components/Spinner";
 
 interface EmbedSongPlayerProps {
   songId: string;
@@ -137,10 +138,7 @@ export function EmbedSongPlayer({
           aria-label={isBuffering ? "Loading" : isPlaying ? "Pause" : "Play"}
         >
           {isBuffering ? (
-            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-25" />
-              <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
-            </svg>
+            <Spinner className="w-4 h-4" />
           ) : isPlaying ? (
             <PauseIcon className="w-4 h-4" />
           ) : (
