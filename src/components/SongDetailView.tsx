@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -214,56 +215,26 @@ export function SongDetailView({
           onRestore={handleRestore}
         />
 
-        {confirmPublicOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-public-title">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4">
-              <h2 id="confirm-public-title" className="text-lg font-semibold text-gray-900 dark:text-white">Make song public?</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                This song will be visible to anyone with the link.
-              </p>
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => setConfirmPublicOpen(false)}
-                  className="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => { setConfirmPublicOpen(false); setVisibility("public"); }}
-                  className="px-4 py-2 text-sm font-medium rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors"
-                >
-                  Make public
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfirmDialog
+          open={confirmPublicOpen}
+          title="Make song public?"
+          description="This song will be visible to anyone with the link."
+          confirmLabel="Make public"
+          onConfirm={() => { setConfirmPublicOpen(false); setVisibility("public"); }}
+          onClose={() => setConfirmPublicOpen(false)}
+        />
 
-        {confirmArchiveOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-archive-title">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4">
-              <h2 id="confirm-archive-title" className="text-lg font-semibold text-gray-900 dark:text-white">Archive this song?</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                It will be hidden from your library and playlists but can be restored from Archive.
-              </p>
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => setConfirmArchiveOpen(false)}
-                  className="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => { setConfirmArchiveOpen(false); handleArchive(); }}
-                  disabled={archiving}
-                  className="px-4 py-2 text-sm font-medium rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
-                >
-                  {archiving ? "Archiving…" : "Archive"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfirmDialog
+          open={confirmArchiveOpen}
+          title="Archive this song?"
+          description="It will be hidden from your library and playlists but can be restored from Archive."
+          confirmLabel="Archive"
+          loadingLabel="Archiving…"
+          danger
+          loading={archiving}
+          onConfirm={() => { setConfirmArchiveOpen(false); handleArchive(); }}
+          onClose={() => setConfirmArchiveOpen(false)}
+        />
 
         {reportOpen && (
           <ReportModal

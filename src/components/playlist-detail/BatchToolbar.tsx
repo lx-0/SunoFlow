@@ -5,6 +5,7 @@ import {
   ArrowDownTrayIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface BatchToolbarProps {
   batch: {
@@ -61,40 +62,17 @@ export function BatchToolbar({ batch }: BatchToolbarProps) {
         </div>
       )}
 
-      {batch.showBatchDeleteConfirm && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="batch-remove-dialog-title"
-          onKeyDown={(e) => { if (e.key === "Escape") batch.setShowBatchDeleteConfirm(false); }}
-        >
-          <div className="bg-white dark:bg-gray-900 w-full sm:rounded-2xl rounded-t-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 sm:mx-4 sm:max-w-sm">
-            <h3 id="batch-remove-dialog-title" className="text-lg font-semibold text-gray-900 dark:text-white">
-              Remove {batch.selectedSongIds.size} song{batch.selectedSongIds.size !== 1 ? "s" : ""} from playlist?
-            </h3>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-              The songs will remain in your library.
-            </p>
-            <div className="mt-4 flex gap-3 justify-end">
-              <button
-                onClick={() => batch.setShowBatchDeleteConfirm(false)}
-                disabled={batch.batchLoading}
-                className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors min-h-[44px]"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={batch.handleBatchRemoveFromPlaylist}
-                disabled={batch.batchLoading}
-                className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-500 disabled:opacity-50 transition-colors min-h-[44px]"
-              >
-                {batch.batchLoading ? "Removing…" : "Remove"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={batch.showBatchDeleteConfirm}
+        title={`Remove ${batch.selectedSongIds.size} song${batch.selectedSongIds.size !== 1 ? "s" : ""} from playlist?`}
+        description="The songs will remain in your library."
+        confirmLabel="Remove"
+        loadingLabel="Removing…"
+        danger
+        loading={batch.batchLoading}
+        onConfirm={batch.handleBatchRemoveFromPlaylist}
+        onClose={() => batch.setShowBatchDeleteConfirm(false)}
+      />
     </>
   );
 }
