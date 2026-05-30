@@ -4,7 +4,7 @@ import { requireOwnedSongWithParent } from "@/lib/songs/ownership";
 import { notFound } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { fetchFreshUrls, resolveUserApiKey } from "@/lib/sunoapi";
-const AUDIO_URL_TTL_MS = 12 * 24 * 60 * 60 * 1000;
+import { CDN_URL_TTL_MS } from "@/lib/cdn-constants";
 
 export const POST = authRoute<{ id: string }>(async (_request, { auth, params }) => {
   const { data: song, error } = await requireOwnedSongWithParent(params.id, auth.userId);
@@ -20,7 +20,7 @@ export const POST = authRoute<{ id: string }>(async (_request, { auth, params })
           where: { id: params.id },
           data: {
             audioUrl: fresh.audioUrl,
-            audioUrlExpiresAt: new Date(Date.now() + AUDIO_URL_TTL_MS),
+            audioUrlExpiresAt: new Date(Date.now() + CDN_URL_TTL_MS),
             ...(!song.imageUrlIsCustom && {
               imageUrl: fresh.imageUrl || song.imageUrl,
             }),

@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { invalidateByPrefix } from "@/lib/cache";
+import { CDN_URL_TTL_MS } from "@/lib/cdn-constants";
 import { logServerError } from "@/lib/error-logger";
 import { broadcast } from "@/lib/event-bus";
 import { resolveBySongId } from "@/lib/generation-queue";
@@ -169,8 +170,6 @@ export async function handleSongFailure(
 }
 
 // ── Persistence ─────────────────────────────────────────────────────
-
-const CDN_URL_TTL_MS = 12 * 24 * 60 * 60 * 1000;
 
 async function persistSongCompletion(
   song: SongRecord,

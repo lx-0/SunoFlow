@@ -3,9 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { fetchFreshUrls } from "@/lib/sunoapi";
 import { audioCache, imageCache } from "@/lib/cache";
 import { logger } from "@/lib/logger";
-
-const REFRESH_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000;
-const AUDIO_URL_TTL_MS = 12 * 24 * 60 * 60 * 1000;
+import { CDN_URL_TTL_MS, CDN_REFRESH_THRESHOLD_MS } from "@/lib/cdn-constants";
 
 export interface AudioProxyParams {
   songId: string;
@@ -59,7 +57,7 @@ export async function proxyAudio(params: AudioProxyParams): Promise<Response> {
           where: { id: songId },
           data: {
             audioUrl: fresh.audioUrl,
-            audioUrlExpiresAt: new Date(Date.now() + AUDIO_URL_TTL_MS),
+            audioUrlExpiresAt: new Date(Date.now() + CDN_URL_TTL_MS),
             imageUrl: fresh.imageUrl || undefined,
           },
         });
@@ -82,7 +80,7 @@ export async function proxyAudio(params: AudioProxyParams): Promise<Response> {
 
   const isExpired =
     !audioUrlExpiresAt ||
-    audioUrlExpiresAt.getTime() - now < REFRESH_THRESHOLD_MS;
+    audioUrlExpiresAt.getTime() - now < CDN_REFRESH_THRESHOLD_MS;
   if (isExpired) {
     await tryRefresh();
   }

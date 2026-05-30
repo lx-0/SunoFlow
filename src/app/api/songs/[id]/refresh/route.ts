@@ -4,8 +4,7 @@ import { requireOwnedSong } from "@/lib/songs/ownership";
 import { prisma } from "@/lib/prisma";
 import { getTaskStatus, SunoApiError, resolveUserApiKey } from "@/lib/sunoapi";
 import { audioCache, imageCache } from "@/lib/cache";
-
-const CDN_URL_TTL_MS = 12 * 24 * 60 * 60 * 1000;
+import { CDN_URL_TTL_MS } from "@/lib/cdn-constants";
 
 export const POST = authRoute<{ id: string }>(
   async (_request, { auth, params }) => {

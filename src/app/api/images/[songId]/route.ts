@@ -4,8 +4,7 @@ import { fetchFreshUrls, resolveUserApiKey } from "@/lib/sunoapi";
 import { logger } from "@/lib/logger";
 import { publicRoute } from "@/lib/route-handler";
 import { notFound } from "@/lib/api-error";
-
-const CDN_URL_TTL_MS = 12 * 24 * 60 * 60 * 1000;
+import { CDN_URL_TTL_MS } from "@/lib/cdn-constants";
 
 export const GET = publicRoute<{ songId: string }>(async (_request, { params }) => {
   const { songId } = params;

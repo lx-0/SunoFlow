@@ -7,6 +7,7 @@ import { downloadSongFile } from "@/lib/download";
 import { songToQueueSong } from "@/lib/song-mappers";
 import { useToast } from "@/components/Toast";
 import { useQueue, type QueueSong } from "@/components/QueueContext";
+import { CDN_REFRESH_THRESHOLD_MS } from "@/lib/cdn-constants";
 
 function toDownloadable(song: Song) {
   return {
@@ -51,12 +52,11 @@ export function useLibrarySongActions(
       return;
     }
 
-    const REFRESH_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000;
     const rawExpiresAt = (song as Song & { audioUrlExpiresAt?: Date | string | null }).audioUrlExpiresAt;
     const expiresAtMs = rawExpiresAt ? new Date(rawExpiresAt).getTime() : null;
     const isNearExpiry =
       song.audioUrl &&
-      (!expiresAtMs || isNaN(expiresAtMs) || expiresAtMs - Date.now() < REFRESH_THRESHOLD_MS);
+      (!expiresAtMs || isNaN(expiresAtMs) || expiresAtMs - Date.now() < CDN_REFRESH_THRESHOLD_MS);
 
     let playSong = song;
     if (isNearExpiry) {

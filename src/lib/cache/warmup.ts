@@ -2,17 +2,16 @@ import { prisma } from "@/lib/prisma";
 import { audioCache, imageCache } from "./file";
 import { resolveUserApiKey, fetchFreshUrls } from "@/lib/sunoapi";
 import { logger } from "@/lib/logger";
+import { CDN_URL_TTL_MS, CDN_REFRESH_THRESHOLD_MS } from "@/lib/cdn-constants";
 
 const BATCH_SIZE = process.env.CACHE_WARMUP_BATCH_SIZE
   ? parseInt(process.env.CACHE_WARMUP_BATCH_SIZE, 10)
   : undefined;
 const DELAY_MS = 1000;
-const CDN_URL_TTL_MS = 12 * 24 * 60 * 60 * 1000;
-const REFRESH_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000;
 
 function isFresh(expiresAt: Date | null): boolean {
   if (!expiresAt) return false;
-  return expiresAt.getTime() - Date.now() > REFRESH_THRESHOLD_MS;
+  return expiresAt.getTime() - Date.now() > CDN_REFRESH_THRESHOLD_MS;
 }
 
 export async function warmUpAudioCache(): Promise<void> {
