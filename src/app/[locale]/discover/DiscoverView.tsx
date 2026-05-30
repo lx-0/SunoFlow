@@ -630,7 +630,7 @@ export function DiscoverView({
                   <TrendingRow
                     key={song.id}
                     song={song}
-                    rank={trending.offset + index + 1}
+                    rank={trending.pagination.offset + index + 1}
                     isPlaying={playingSongId === song.id}
                     onPlayToggle={() =>
                       handlePlayToggle(song.id, song.audioUrl)

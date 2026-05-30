@@ -1,7 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import type { TrendingSong, TrendingPagination } from "@/app/[locale]/discover/discover-view.types";
+
+const INITIAL_PAGINATION: TrendingPagination = { total: 0, limit: 20, offset: 0, hasMore: false };
 
 export function useDiscoverTrending({
   active,
@@ -10,73 +13,26 @@ export function useDiscoverTrending({
   active: boolean;
   sort: "trending" | "popular";
 }) {
-  const [songs, setSongs] = useState<TrendingSong[]>([]);
-  const [pagination, setPagination] = useState<TrendingPagination>({
-    total: 0,
-    limit: 20,
-    offset: 0,
-    hasMore: false,
-  });
-  const [offset, setOffset] = useState(0);
   const [genre, setGenre] = useState("");
   const [mood, setMood] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const fetchTrending = useCallback(
-    async (
-      sortVal: "trending" | "popular",
-      genreVal: string,
-      moodVal: string,
-      offsetVal: number,
-      append = false
-    ) => {
-      if (append) setLoadingMore(true);
-      else setLoading(true);
-      try {
-        const params = new URLSearchParams({ sort: sortVal, limit: "20", offset: String(offsetVal) });
-        if (genreVal) params.set("genre", genreVal);
-        if (moodVal) params.set("mood", moodVal);
+  const { items: songs, pagination, loading, loadingMore, sentinelRef } =
+    useInfiniteScroll<TrendingSong, TrendingPagination>({
+      active,
+      initialPagination: INITIAL_PAGINATION,
+      initialCursor: 0,
+      fetchPage: async (offset, _append) => {
+        const params = new URLSearchParams({ sort, limit: "20", offset: String(offset) });
+        if (genre) params.set("genre", genre);
+        if (mood) params.set("mood", mood);
         const res = await fetch(`/api/songs/trending?${params}`);
-        if (!res.ok) return;
+        if (!res.ok) throw new Error("failed");
         const data = await res.json();
-        setSongs((prev) => (append ? [...prev, ...data.songs] : data.songs));
-        setPagination(data.pagination);
-      } catch {
-        // keep existing state
-      } finally {
-        if (append) setLoadingMore(false);
-        else setLoading(false);
-      }
-    },
-    []
-  );
-
-  useEffect(() => {
-    if (!active) return;
-    setSongs([]);
-    setOffset(0);
-    fetchTrending(sort, genre, mood, 0);
-  }, [active, sort, genre, mood, fetchTrending]);
-
-  useEffect(() => {
-    if (!active) return;
-    const sentinel = sentinelRef.current;
-    if (!sentinel || !pagination.hasMore || loadingMore) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          const nextOffset = offset + 20;
-          setOffset(nextOffset);
-          fetchTrending(sort, genre, mood, nextOffset, true);
-        }
+        return { items: data.songs, pagination: data.pagination };
       },
-      { rootMargin: "300px" }
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [active, pagination.hasMore, offset, loadingMore, sort, genre, mood, fetchTrending]);
+      getNextCursor: (p) => p.offset + p.limit,
+      resetDeps: [sort, genre, mood],
+    });
 
   const filterCount = (genre ? 1 : 0) + (mood ? 1 : 0);
 
@@ -88,7 +44,6 @@ export function useDiscoverTrending({
   return {
     songs,
     pagination,
-    offset,
     genre,
     setGenre,
     mood,
