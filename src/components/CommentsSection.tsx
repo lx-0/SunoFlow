@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useAsyncForm } from "@/hooks/useAsyncForm";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -63,8 +64,13 @@ export function CommentsSection({
     useComments(songId);
   const [draft, setDraft] = useState("");
   const [pendingTimestamp, setPendingTimestamp] = useState<number | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { execute: submitComment, submitting, error } = useAsyncForm(async () => {
+    const text = draft.trim();
+    if (!text) return;
+    await postComment(text, pendingTimestamp);
+    setDraft("");
+    setPendingTimestamp(null);
+  });
 
   // Capture current playback position as the pending timestamp
   function captureTimestamp() {
@@ -77,21 +83,9 @@ export function CommentsSection({
     setPendingTimestamp(null);
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const text = draft.trim();
-    if (!text) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      await postComment(text, pendingTimestamp);
-      setDraft("");
-      setPendingTimestamp(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
-    } finally {
-      setSubmitting(false);
-    }
+    submitComment();
   };
 
   const handleDelete = (commentId: string) => deleteComment(commentId);

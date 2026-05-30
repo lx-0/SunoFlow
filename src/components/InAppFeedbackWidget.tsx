@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { XMarkIcon, HandThumbUpIcon, HandThumbDownIcon } from "@heroicons/react/24/outline";
 import { HandThumbUpIcon as ThumbUpSolid, HandThumbDownIcon as ThumbDownSolid } from "@heroicons/react/24/solid";
 import { track } from "@/lib/analytics";
@@ -41,7 +42,6 @@ export function InAppFeedbackWidget({ source, entityId, onClose }: InAppFeedback
   const [rating, setRating] = useState<"thumbs_up" | "thumbs_down" | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [comment, setComment] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -56,11 +56,7 @@ export function InAppFeedbackWidget({ source, entityId, onClose }: InAppFeedback
     setExpanded(true);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!rating || submitting) return;
-
-    setSubmitting(true);
+  const [doSubmit, submitting] = useAsyncAction(async () => {
     try {
       if (source === "song_generation") {
         await fetch(`/api/songs/${entityId}/feedback`, {
@@ -93,23 +89,23 @@ export function InAppFeedbackWidget({ source, entityId, onClose }: InAppFeedback
             rating,
             comment: comment.trim() || undefined,
           }),
-        }).catch(() => {
-          // Ignore webhook errors
-        });
+        }).catch(() => {});
       }
 
       track("feedback_submitted", { source, rating });
-      storeFeedbackSubmitted(source, entityId);
-      setSubmitted(true);
-      closeTimerRef.current = setTimeout(onClose, 1500);
     } catch {
       // Silently fail — non-critical
-      setSubmitted(true);
-      storeFeedbackSubmitted(source, entityId);
-      closeTimerRef.current = setTimeout(onClose, 1500);
-    } finally {
-      setSubmitting(false);
     }
+
+    storeFeedbackSubmitted(source, entityId);
+    setSubmitted(true);
+    closeTimerRef.current = setTimeout(onClose, 1500);
+  });
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!rating) return;
+    doSubmit();
   }
 
   function handleDismiss() {

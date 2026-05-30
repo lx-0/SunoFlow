@@ -5,6 +5,7 @@ import { XMarkIcon, StarIcon } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolid } from "@heroicons/react/24/solid";
 import { useToast } from "./Toast";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 const CATEGORIES = [
   { value: "bug_report", label: "Bug report" },
@@ -22,19 +23,10 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
   const [score, setScore] = useState<number | null>(null);
   const [hoverScore, setHoverScore] = useState<number | null>(null);
   const [comment, setComment] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   useDialogFocusTrap(dialogRef, true, onClose);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-
-    if (category === "bug_report" && !comment.trim()) {
-      toast("Please describe the bug you encountered.", "error");
-      return;
-    }
-
-    setSubmitting(true);
+  const [doSubmit, submitting] = useAsyncAction(async () => {
     try {
       const res = await fetch("/api/feedback", {
         method: "POST",
@@ -57,9 +49,18 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
       onClose();
     } catch {
       toast("Failed to submit feedback", "error");
-    } finally {
-      setSubmitting(false);
     }
+  });
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (category === "bug_report" && !comment.trim()) {
+      toast("Please describe the bug you encountered.", "error");
+      return;
+    }
+
+    doSubmit();
   }
 
   const displayScore = hoverScore ?? score;

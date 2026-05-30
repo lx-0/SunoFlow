@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useToast } from "./Toast";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 const REASONS = [
   { value: "offensive", label: "Offensive content" },
@@ -24,15 +25,10 @@ export function ReportModal({ songId, playlistId, songTitle, onClose }: ReportMo
   const { toast } = useToast();
   const [reason, setReason] = useState("");
   const [description, setDescription] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   useDialogFocusTrap(dialogRef, true, onClose);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!reason) return;
-
-    setSubmitting(true);
+  const [doSubmit, submitting] = useAsyncAction(async () => {
     try {
       const res = await fetch("/api/reports", {
         method: "POST",
@@ -61,9 +57,13 @@ export function ReportModal({ songId, playlistId, songTitle, onClose }: ReportMo
       onClose();
     } catch {
       toast("Failed to submit report", "error");
-    } finally {
-      setSubmitting(false);
     }
+  });
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!reason) return;
+    doSubmit();
   }
 
   return (
