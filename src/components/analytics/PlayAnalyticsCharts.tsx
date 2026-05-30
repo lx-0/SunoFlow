@@ -13,14 +13,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
-
-const TOOLTIP_STYLE = {
-  backgroundColor: "#1f2937",
-  border: "1px solid #374151",
-  borderRadius: "8px",
-  fontSize: "12px",
-  color: "#fff",
-};
+import { CHART_TOOLTIP_STYLE, CHART_AXIS_TICK } from "@/lib/chart-config";
 
 export function DailyPlaysLineChart({
   data,
@@ -44,19 +37,19 @@ export function DailyPlaysLineChart({
         <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
         <XAxis
           dataKey="label"
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           tickLine={false}
           axisLine={false}
           interval="preserveStartEnd"
         />
         <YAxis
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           allowDecimals={false}
           width={28}
           tickLine={false}
           axisLine={false}
         />
-        <Tooltip contentStyle={TOOLTIP_STYLE} labelFormatter={(v) => `Date: ${v}`} />
+        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} labelFormatter={(v) => `Date: ${v}`} />
         <Area
           type="monotone"
           dataKey="count"
@@ -81,7 +74,7 @@ export function TopSongsBarChart({
       <BarChart data={data} layout="vertical">
         <XAxis
           type="number"
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           allowDecimals={false}
           tickLine={false}
           axisLine={false}
@@ -94,7 +87,7 @@ export function TopSongsBarChart({
           tickLine={false}
           axisLine={false}
         />
-        <Tooltip contentStyle={TOOLTIP_STYLE} />
+        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
         <Bar dataKey="plays" fill="#7c3aed" radius={[0, 4, 4, 0]} name="Plays" />
       </BarChart>
     </ResponsiveContainer>
@@ -121,12 +114,12 @@ export function RetentionCurveChart({
         <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
         <XAxis
           dataKey="label"
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           tickLine={false}
           axisLine={false}
         />
         <YAxis
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           tickFormatter={(v) => `${Math.round(v)}%`}
           width={36}
           tickLine={false}
@@ -134,7 +127,7 @@ export function RetentionCurveChart({
           domain={[0, 100]}
         />
         <Tooltip
-          contentStyle={TOOLTIP_STYLE}
+          contentStyle={CHART_TOOLTIP_STYLE}
           formatter={(v) => [`${Math.round(Number(v))}%`, "Retention"]}
         />
         <Line

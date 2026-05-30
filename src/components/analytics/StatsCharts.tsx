@@ -11,14 +11,7 @@ import {
   Line,
   CartesianGrid,
 } from "recharts";
-
-const TOOLTIP_STYLE = {
-  backgroundColor: "#1f2937",
-  border: "1px solid #374151",
-  borderRadius: "8px",
-  fontSize: "12px",
-  color: "#fff",
-};
+import { CHART_TOOLTIP_STYLE, CHART_AXIS_TICK } from "@/lib/chart-config";
 
 // Listening time bar chart (minutes per day)
 export function ListeningTimeChart({
@@ -34,17 +27,17 @@ export function ListeningTimeChart({
       <BarChart data={data}>
         <XAxis
           dataKey="date"
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           tickFormatter={(v: string) => v.slice(5)}
           interval="preserveStartEnd"
         />
         <YAxis
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           allowDecimals={false}
           width={35}
           tickFormatter={(v: number) => `${v}m`}
         />
-        <Tooltip contentStyle={TOOLTIP_STYLE} />
+        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
         <Bar dataKey="minutes" fill="#06b6d4" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
@@ -66,16 +59,16 @@ export function GenerationTrendChart({
         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
         <XAxis
           dataKey="date"
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           tickFormatter={(v: string) => v.slice(5)}
           interval="preserveStartEnd"
         />
         <YAxis
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           allowDecimals={false}
           width={30}
         />
-        <Tooltip contentStyle={TOOLTIP_STYLE} />
+        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
         <Line
           type="monotone"
           dataKey="count"
@@ -113,7 +106,7 @@ export function PeakHoursChart({
           interval={2}
         />
         <YAxis hide />
-        <Tooltip contentStyle={TOOLTIP_STYLE} />
+        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
         <Bar
           dataKey="count"
           radius={[3, 3, 0, 0]}
@@ -138,16 +131,16 @@ export function StatsCreditChart({
       <BarChart data={data}>
         <XAxis
           dataKey="date"
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           tickFormatter={(v: string) => v.slice(5)}
           interval="preserveStartEnd"
         />
         <YAxis
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           allowDecimals={false}
           width={35}
         />
-        <Tooltip contentStyle={TOOLTIP_STYLE} />
+        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
         <Bar dataKey="credits" fill="#f59e0b" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>

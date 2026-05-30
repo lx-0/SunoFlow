@@ -14,19 +14,7 @@ import {
   Cell,
   Legend,
 } from "recharts";
-
-const PIE_COLORS = [
-  "#7c3aed", "#a78bfa", "#c4b5fd", "#8b5cf6", "#6d28d9",
-  "#5b21b6", "#4c1d95", "#ddd6fe", "#ede9fe", "#f5f3ff",
-];
-
-const TOOLTIP_STYLE = {
-  backgroundColor: "#1f2937",
-  border: "1px solid #374151",
-  borderRadius: "8px",
-  fontSize: "12px",
-  color: "#fff",
-};
+import { CHART_TOOLTIP_STYLE, CHART_PIE_COLORS, CHART_AXIS_TICK } from "@/lib/chart-config";
 
 export function AdminGenerationsBarChart({
   data,
@@ -41,16 +29,16 @@ export function AdminGenerationsBarChart({
       <BarChart data={data}>
         <XAxis
           dataKey="date"
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           tickFormatter={(v: string) => v.slice(5)}
           interval="preserveStartEnd"
         />
         <YAxis
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           allowDecimals={false}
           width={40}
         />
-        <Tooltip contentStyle={TOOLTIP_STYLE} />
+        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
         <Bar dataKey="count" fill="#7c3aed" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
@@ -70,16 +58,16 @@ export function DailyActiveUsersChart({
       <LineChart data={data}>
         <XAxis
           dataKey="date"
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           tickFormatter={(v: string) => v.slice(5)}
           interval="preserveStartEnd"
         />
         <YAxis
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           allowDecimals={false}
           width={30}
         />
-        <Tooltip contentStyle={TOOLTIP_STYLE} />
+        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
         <Line
           type="monotone"
           dataKey="count"
@@ -105,18 +93,18 @@ export function QualityTrendChart({
       <LineChart data={data}>
         <XAxis
           dataKey="week"
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           tickFormatter={(v: string) => v.slice(5)}
           interval="preserveStartEnd"
         />
         <YAxis
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           domain={[0, 100]}
           tickFormatter={(v: number) => `${v}%`}
           width={42}
         />
         <Tooltip
-          contentStyle={TOOLTIP_STYLE}
+          contentStyle={CHART_TOOLTIP_STYLE}
           formatter={(value) => [`${value}%`, "Quality Score"]}
           labelFormatter={(label) => `Week of ${label}`}
         />
@@ -156,10 +144,10 @@ export function AdminGenrePieChart({
             innerRadius={40}
           >
             {data.map((_, i) => (
-              <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+              <Cell key={i} fill={CHART_PIE_COLORS[i % CHART_PIE_COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip contentStyle={TOOLTIP_STYLE} />
+          <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
         </PieChart>
       </ResponsiveContainer>
       <div className="flex flex-wrap gap-2 justify-center">
@@ -168,13 +156,13 @@ export function AdminGenrePieChart({
             key={g.genre}
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
             style={{
-              backgroundColor: `${PIE_COLORS[i % PIE_COLORS.length]}20`,
-              color: PIE_COLORS[i % PIE_COLORS.length],
+              backgroundColor: `${CHART_PIE_COLORS[i % CHART_PIE_COLORS.length]}20`,
+              color: CHART_PIE_COLORS[i % CHART_PIE_COLORS.length],
             }}
           >
             <span
               className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
+              style={{ backgroundColor: CHART_PIE_COLORS[i % CHART_PIE_COLORS.length] }}
             />
             {g.genre} ({g.count})
           </span>

@@ -12,14 +12,7 @@ import {
   Line,
   CartesianGrid,
 } from "recharts";
-
-const TOOLTIP_STYLE = {
-  backgroundColor: "#1f2937",
-  border: "1px solid #374151",
-  borderRadius: "8px",
-  fontSize: "12px",
-  color: "#fff",
-};
+import { CHART_TOOLTIP_STYLE, CHART_AXIS_TICK } from "@/lib/chart-config";
 
 export function WeeklyFeedbackChart({
   data,
@@ -34,12 +27,12 @@ export function WeeklyFeedbackChart({
       <BarChart data={data}>
         <XAxis
           dataKey="week"
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           tickFormatter={(v: string) => v.slice(5)}
           interval="preserveStartEnd"
         />
-        <YAxis tick={{ fontSize: 10, fill: "#9ca3af" }} allowDecimals={false} width={28} />
-        <Tooltip contentStyle={TOOLTIP_STYLE} />
+        <YAxis tick={CHART_AXIS_TICK} allowDecimals={false} width={28} />
+        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
         <Bar dataKey="likes" name="Likes" fill="#22c55e" radius={[3, 3, 0, 0]} />
         <Bar dataKey="dislikes" name="Dislikes" fill="#ef4444" radius={[3, 3, 0, 0]} />
@@ -61,14 +54,14 @@ export function TagQualityChart({
   return (
     <ResponsiveContainer width="100%" height={Math.max(200, top.length * 32)}>
       <BarChart data={top} layout="vertical">
-        <XAxis type="number" tick={{ fontSize: 10, fill: "#9ca3af" }} allowDecimals={false} />
+        <XAxis type="number" tick={CHART_AXIS_TICK} allowDecimals={false} />
         <YAxis
           type="category"
           dataKey="tag"
           tick={{ fontSize: 11, fill: "#9ca3af" }}
           width={90}
         />
-        <Tooltip contentStyle={TOOLTIP_STYLE} />
+        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
         <Bar dataKey="likes" name="Likes" fill="#22c55e" radius={[0, 3, 3, 0]} stackId="a" />
         <Bar dataKey="dislikes" name="Dislikes" fill="#ef4444" radius={[0, 3, 3, 0]} stackId="a" />
@@ -89,14 +82,14 @@ export function GenreBarChart({
   return (
     <ResponsiveContainer width="100%" height={Math.max(200, top.length * 32)}>
       <BarChart data={top} layout="vertical">
-        <XAxis type="number" tick={{ fontSize: 10, fill: "#9ca3af" }} allowDecimals={false} />
+        <XAxis type="number" tick={CHART_AXIS_TICK} allowDecimals={false} />
         <YAxis
           type="category"
           dataKey="genre"
           tick={{ fontSize: 11, fill: "#9ca3af" }}
           width={90}
         />
-        <Tooltip contentStyle={TOOLTIP_STYLE} />
+        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
         <Bar dataKey="count" name="Songs" fill="#8b5cf6" radius={[0, 3, 3, 0]} />
       </BarChart>
     </ResponsiveContainer>
@@ -117,12 +110,12 @@ export function WeeklyActivityChart({
         <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.4} />
         <XAxis
           dataKey="week"
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           tickFormatter={(v: string) => v.slice(5)}
           interval="preserveStartEnd"
         />
-        <YAxis tick={{ fontSize: 10, fill: "#9ca3af" }} allowDecimals={false} width={28} />
-        <Tooltip contentStyle={TOOLTIP_STYLE} />
+        <YAxis tick={CHART_AXIS_TICK} allowDecimals={false} width={28} />
+        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
         <Line
           type="monotone"
           dataKey="count"

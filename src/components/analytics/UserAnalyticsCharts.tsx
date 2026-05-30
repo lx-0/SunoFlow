@@ -11,19 +11,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
-
-const PIE_COLORS = [
-  "#7c3aed", "#a78bfa", "#c4b5fd", "#8b5cf6", "#6d28d9",
-  "#5b21b6", "#4c1d95", "#ddd6fe", "#ede9fe", "#f5f3ff",
-];
-
-const TOOLTIP_STYLE = {
-  backgroundColor: "#1f2937",
-  border: "1px solid #374151",
-  borderRadius: "8px",
-  fontSize: "12px",
-  color: "#fff",
-};
+import { CHART_TOOLTIP_STYLE, CHART_PIE_COLORS, CHART_AXIS_TICK } from "@/lib/chart-config";
 
 export function GenerationsBarChart({
   data,
@@ -38,16 +26,16 @@ export function GenerationsBarChart({
       <BarChart data={data}>
         <XAxis
           dataKey="date"
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           tickFormatter={(v: string) => v.slice(5)}
           interval="preserveStartEnd"
         />
         <YAxis
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           allowDecimals={false}
           width={30}
         />
-        <Tooltip contentStyle={TOOLTIP_STYLE} />
+        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
         <Bar dataKey="count" fill="#7c3aed" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
@@ -67,16 +55,16 @@ export function CreditUsageBarChart({
       <BarChart data={data}>
         <XAxis
           dataKey="date"
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           tickFormatter={(v: string) => v.slice(5)}
           interval="preserveStartEnd"
         />
         <YAxis
-          tick={{ fontSize: 10, fill: "#9ca3af" }}
+          tick={CHART_AXIS_TICK}
           allowDecimals={false}
           width={30}
         />
-        <Tooltip contentStyle={TOOLTIP_STYLE} />
+        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
         <Bar dataKey="credits" fill="#f59e0b" radius={[4, 4, 0, 0]} name="Credits" />
       </BarChart>
     </ResponsiveContainer>
@@ -102,10 +90,10 @@ export function GenrePieChart({
             innerRadius={40}
           >
             {data.map((_, i) => (
-              <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+              <Cell key={i} fill={CHART_PIE_COLORS[i % CHART_PIE_COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip contentStyle={TOOLTIP_STYLE} />
+          <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
         </PieChart>
       </ResponsiveContainer>
       <div className="flex flex-wrap gap-2">
@@ -114,13 +102,13 @@ export function GenrePieChart({
             key={g.genre}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
             style={{
-              backgroundColor: `${PIE_COLORS[i % PIE_COLORS.length]}20`,
-              color: PIE_COLORS[i % PIE_COLORS.length],
+              backgroundColor: `${CHART_PIE_COLORS[i % CHART_PIE_COLORS.length]}20`,
+              color: CHART_PIE_COLORS[i % CHART_PIE_COLORS.length],
             }}
           >
             <span
               className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
+              style={{ backgroundColor: CHART_PIE_COLORS[i % CHART_PIE_COLORS.length] }}
             />
             {g.genre}
             <span className="opacity-60">{g.count}</span>
