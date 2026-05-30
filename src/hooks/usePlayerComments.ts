@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchEffect } from "@/lib/fetch-effect";
+import { useTimedPopups } from "@/hooks/useTimedPopups";
 
 interface TimestampedComment {
   id: string;
@@ -32,10 +33,7 @@ export function usePlayerComments({
   isPlaying,
 }: UsePlayerCommentsOptions) {
   const [timedComments, setTimedComments] = useState<TimestampedComment[]>([]);
-  const [activeCommentPopups, setActiveCommentPopups] = useState<CommentPopup[]>([]);
   const timedCommentSongIdRef = useRef<string | null>(null);
-  const shownCommentIdsRef = useRef<Set<string>>(new Set());
-  const commentPopupKeyRef = useRef(0);
 
   useEffect(() => {
     if (!songId) {
@@ -62,38 +60,19 @@ export function usePlayerComments({
     );
   }, [songId]);
 
-  useEffect(() => {
-    shownCommentIdsRef.current = new Set();
-    setActiveCommentPopups([]);
-  }, [songId]);
-
-  useEffect(() => {
-    if (!isPlaying || timedComments.length === 0 || duration <= 0) return;
-    const newlyTriggered = timedComments.filter(
-      (c) => c.timestamp <= currentTime && !shownCommentIdsRef.current.has(c.id),
-    );
-    if (newlyTriggered.length === 0) return;
-    for (const c of newlyTriggered) {
-      shownCommentIdsRef.current.add(c.id);
-    }
-    const newPopups: CommentPopup[] = newlyTriggered.map((c) => {
-      const key = ++commentPopupKeyRef.current;
-      const leftPct = Math.min(95, Math.max(5, (c.timestamp / duration) * 100));
-      return { id: c.id, body: c.body, username: c.username, key, leftPct };
-    });
-    setActiveCommentPopups((prev) => [...prev, ...newPopups]);
-    const keys = newPopups.map((p) => p.key);
-    const timer = setTimeout(() => {
-      setActiveCommentPopups((prev) => prev.filter((p) => !keys.includes(p.key)));
-    }, 3000);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTime, isPlaying]);
+  const { activePopups: activeCommentPopups, reset: resetPopups } = useTimedPopups<TimestampedComment, CommentPopup>({
+    items: timedComments,
+    currentTime,
+    duration,
+    isPlaying,
+    displayDurationMs: 3000,
+    makePopup: (c, key, leftPct) => ({ id: c.id, body: c.body, username: c.username, key, leftPct }),
+    leftPctBounds: { min: 5, max: 95 },
+  });
 
   const resetPlayback = useCallback(() => {
-    shownCommentIdsRef.current = new Set();
-    setActiveCommentPopups([]);
-  }, []);
+    resetPopups();
+  }, [resetPopups]);
 
   return {
     timedComments,

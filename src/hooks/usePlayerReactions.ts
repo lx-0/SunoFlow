@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ReactionItem } from "@/components/ReactionTimeline";
 import { fetchEffect } from "@/lib/fetch-effect";
+import { useTimedPopups } from "@/hooks/useTimedPopups";
 
 interface EmojiPopup {
   id: string;
@@ -31,11 +32,8 @@ export function usePlayerReactions({
   toast,
 }: UsePlayerReactionsOptions) {
   const [reactions, setReactions] = useState<ReactionItem[]>([]);
-  const [activePopups, setActivePopups] = useState<EmojiPopup[]>([]);
   const [showReactions, setShowReactions] = useState(false);
   const reactionSongIdRef = useRef<string | null>(null);
-  const shownReactionIdsRef = useRef<Set<string>>(new Set());
-  const popupKeyRef = useRef(0);
 
   useEffect(() => {
     if (!songId) {
@@ -52,33 +50,14 @@ export function usePlayerReactions({
     );
   }, [songId]);
 
-  useEffect(() => {
-    shownReactionIdsRef.current = new Set();
-    setActivePopups([]);
-  }, [songId]);
-
-  useEffect(() => {
-    if (!isPlaying || reactions.length === 0 || duration <= 0) return;
-    const newlyTriggered = reactions.filter(
-      (r) => r.timestamp <= currentTime && !shownReactionIdsRef.current.has(r.id),
-    );
-    if (newlyTriggered.length === 0) return;
-    for (const r of newlyTriggered) {
-      shownReactionIdsRef.current.add(r.id);
-    }
-    const newPopups: EmojiPopup[] = newlyTriggered.map((r) => {
-      const key = ++popupKeyRef.current;
-      const leftPct = Math.min(98, Math.max(2, (r.timestamp / duration) * 100));
-      return { id: r.id, emoji: r.emoji, key, leftPct };
-    });
-    setActivePopups((prev) => [...prev, ...newPopups]);
-    const ids = newPopups.map((p) => p.key);
-    const timer = setTimeout(() => {
-      setActivePopups((prev) => prev.filter((p) => !ids.includes(p.key)));
-    }, 2000);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTime, isPlaying]);
+  const { activePopups, reset: resetPopups } = useTimedPopups<ReactionItem, EmojiPopup>({
+    items: reactions,
+    currentTime,
+    duration,
+    isPlaying,
+    displayDurationMs: 2000,
+    makePopup: (r, key, leftPct) => ({ id: r.id, emoji: r.emoji, key, leftPct }),
+  });
 
   useEffect(() => {
     if (!isPlaying) setShowReactions(false);
@@ -132,9 +111,8 @@ export function usePlayerReactions({
   );
 
   const resetPlayback = useCallback(() => {
-    shownReactionIdsRef.current = new Set();
-    setActivePopups([]);
-  }, []);
+    resetPopups();
+  }, [resetPopups]);
 
   return {
     reactions,
