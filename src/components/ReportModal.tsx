@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useToast } from "./Toast";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { ModalShell } from "./ModalShell";
 
 const REASONS = [
   { value: "offensive", label: "Offensive content" },
@@ -67,26 +67,13 @@ export function ReportModal({ songId, playlistId, songTitle, onClose }: ReportMo
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="report-modal-title"
-        className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl w-full max-w-md p-5 space-y-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <h2 id="report-modal-title" className="text-lg font-semibold text-gray-900 dark:text-white">Report {entityType === "playlist" ? "Playlist" : "Song"}</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 min-w-[44px] min-h-[44px] flex items-center justify-center"
-            aria-label="Close"
-          >
-            <XMarkIcon className="w-5 h-5" />
-          </button>
-        </div>
-
+    <ModalShell
+      title={`Report ${entityType === "playlist" ? "Playlist" : "Song"}`}
+      titleId="report-modal-title"
+      onClose={onClose}
+      closeOnBackdrop
+      dialogRef={dialogRef}
+    >
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Reporting &ldquo;{songTitle}&rdquo;
         </p>
@@ -152,7 +139,6 @@ export function ReportModal({ songId, playlistId, songTitle, onClose }: ReportMo
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </ModalShell>
   );
 }

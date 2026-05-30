@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { XMarkIcon } from "@heroicons/react/24/solid";
+import { ModalShell } from "./ModalShell";
 
 interface EmbedCodeModalProps {
   songId: string;
@@ -37,15 +37,7 @@ export function EmbedCodeModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Get Embed Code</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
-            <XMarkIcon className="w-5 h-5" />
-          </button>
-        </div>
-
+    <ModalShell title="Get Embed Code" onClose={onClose} maxWidth="lg">
         <div className="flex flex-wrap gap-4">
           <div className="space-y-1">
             <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Theme</p>
@@ -96,7 +88,6 @@ export function EmbedCodeModal({
         <p className="text-xs text-gray-400 dark:text-gray-500">
           Paste this snippet into any HTML page to embed the player.
         </p>
-      </div>
-    </div>
+    </ModalShell>
   );
 }

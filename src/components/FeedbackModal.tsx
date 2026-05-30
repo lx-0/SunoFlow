@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { XMarkIcon, StarIcon } from "@heroicons/react/24/outline";
+import { StarIcon } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolid } from "@heroicons/react/24/solid";
 import { useToast } from "./Toast";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { ModalShell } from "./ModalShell";
 
 const CATEGORIES = [
   { value: "bug_report", label: "Bug report" },
@@ -66,31 +67,13 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
   const displayScore = hoverScore ?? score;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-      onClick={onClose}
+    <ModalShell
+      title="Share Feedback"
+      titleId="feedback-modal-title"
+      onClose={onClose}
+      closeOnBackdrop
+      dialogRef={dialogRef}
     >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="feedback-modal-title"
-        className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl w-full max-w-md p-5 space-y-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <h2 id="feedback-modal-title" className="text-lg font-semibold text-gray-900 dark:text-white">
-            Share Feedback
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 min-w-[44px] min-h-[44px] flex items-center justify-center"
-            aria-label="Close"
-          >
-            <XMarkIcon className="w-5 h-5" />
-          </button>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Category */}
           <fieldset>
@@ -194,7 +177,6 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </ModalShell>
   );
 }

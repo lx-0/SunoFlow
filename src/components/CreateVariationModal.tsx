@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { XMarkIcon } from "@heroicons/react/24/solid";
+import { ModalShell } from "./ModalShell";
 
 const TEMPO_OPTIONS = [
   { value: "", label: "Original tempo" },
@@ -52,14 +52,7 @@ export function CreateVariationModal({ sourceSong, onClose, onSubmit, submitting
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Create Variation</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1">
-            <XMarkIcon className="w-5 h-5" />
-          </button>
-        </div>
+    <ModalShell title="Create Variation" onClose={onClose} cardClassName="max-h-[90vh] overflow-y-auto">
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Pre-filled from the source song. Modify any field before generating.
         </p>
@@ -171,7 +164,6 @@ export function CreateVariationModal({ sourceSong, onClose, onSubmit, submitting
             {submitting ? "Generating..." : "Create Variation"}
           </button>
         </form>
-      </div>
-    </div>
+    </ModalShell>
   );
 }
