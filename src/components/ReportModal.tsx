@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { FormTextarea } from "./ui/FormTextarea";
 import { useToast } from "./Toast";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
@@ -111,14 +112,13 @@ export function ReportModal({ songId, playlistId, songTitle, onClose }: ReportMo
             <label htmlFor="report-description" className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
               Details (optional)
             </label>
-            <textarea
+            <FormTextarea
               id="report-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Provide additional context..."
               rows={3}
               maxLength={1000}
-              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 resize-none focus:outline-none focus:border-violet-500"
             />
           </div>
 

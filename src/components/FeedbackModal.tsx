@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { FormTextarea } from "./ui/FormTextarea";
 import { StarIcon } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolid } from "@heroicons/react/24/solid";
 import { useToast } from "./Toast";
@@ -143,7 +144,7 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
             >
               Comment{category === "bug_report" ? "" : " (optional)"}
             </label>
-            <textarea
+            <FormTextarea
               id="feedback-comment"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
@@ -156,7 +157,6 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
               }
               rows={4}
               maxLength={5000}
-              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 resize-none focus:outline-none focus:border-violet-500"
             />
           </div>
 
