@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { type ToastFn } from "@/components/Toast";
 import { callApi, jsonPost } from "./call-api";
+import { fetchEffect } from "@/lib/fetch-effect";
 
 type ThumbsRating = "thumbs_up" | "thumbs_down" | null;
 
@@ -15,17 +16,14 @@ interface UseSongFeedbackParams {
 export function useSongFeedback({ songId, toast }: UseSongFeedbackParams) {
   const [thumbsRating, setThumbsRating] = useState<ThumbsRating>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/songs/${songId}/feedback`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (cancelled || !data?.rating) return;
-        setThumbsRating(data.rating);
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [songId]);
+  useEffect(
+    () =>
+      fetchEffect<{ rating: ThumbsRating }>(
+        `/api/songs/${songId}/feedback`,
+        (data) => setThumbsRating(data.rating),
+      ),
+    [songId],
+  );
 
   const [handleThumbsFeedback, savingThumbs] = useAsyncAction(async (value: "thumbs_up" | "thumbs_down") => {
     const ok = await callApi(`/api/songs/${songId}/feedback`, jsonPost({ rating: value }), toast, "Failed to save feedback");

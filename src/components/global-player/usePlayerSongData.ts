@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { fetchEffect } from "@/lib/fetch-effect";
 import { useSession } from "next-auth/react";
 import { useToast } from "../Toast";
 import type { ReactionItem } from "../ReactionTimeline";
@@ -23,17 +24,10 @@ export function usePlayerSongData(
       setIsFavorite(false);
       return;
     }
-    let cancelled = false;
-    fetch(`/api/songs/${songId}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!cancelled && data?.song)
-          setIsFavorite(data.song.isFavorite ?? false);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+    return fetchEffect<{ song: { isFavorite?: boolean } }>(
+      `/api/songs/${songId}`,
+      (data) => setIsFavorite(data.song.isFavorite ?? false),
+    );
   }, [songId, session?.user]);
 
   useEffect(() => {
@@ -45,16 +39,10 @@ export function usePlayerSongData(
     if (reactionSongIdRef.current === songId) return;
     reactionSongIdRef.current = songId;
     setReactions([]);
-    let cancelled = false;
-    fetch(`/api/songs/${songId}/reactions`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!cancelled && data?.reactions) setReactions(data.reactions);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+    return fetchEffect<{ reactions: ReactionItem[] }>(
+      `/api/songs/${songId}/reactions`,
+      (data) => setReactions(data.reactions),
+    );
   }, [songId]);
 
   useEffect(() => {
@@ -66,35 +54,20 @@ export function usePlayerSongData(
     if (timedCommentSongIdRef.current === songId) return;
     timedCommentSongIdRef.current = songId;
     setTimedComments([]);
-    let cancelled = false;
-    fetch(`/api/songs/${songId}/comments?page=1`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!cancelled && data?.comments) {
-          const timed: TimestampedComment[] = data.comments
-            .filter(
-              (c: { timestamp: number | null }) => c.timestamp !== null,
-            )
-            .map(
-              (c: {
-                id: string;
-                timestamp: number;
-                body: string;
-                user: { name: string | null };
-              }) => ({
-                id: c.id,
-                timestamp: c.timestamp,
-                body: c.body,
-                username: c.user?.name ?? null,
-              }),
-            );
-          setTimedComments(timed);
-        }
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+    return fetchEffect<{ comments: { id: string; timestamp: number | null; body: string; user: { name: string | null } }[] }>(
+      `/api/songs/${songId}/comments?page=1`,
+      (data) => {
+        const timed: TimestampedComment[] = data.comments
+          .filter((c) => c.timestamp !== null)
+          .map((c) => ({
+            id: c.id,
+            timestamp: c.timestamp as number,
+            body: c.body,
+            username: c.user?.name ?? null,
+          }));
+        setTimedComments(timed);
+      },
+    );
   }, [songId]);
 
   const handleReact = useCallback(

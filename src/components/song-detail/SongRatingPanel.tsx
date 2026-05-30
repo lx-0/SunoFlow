@@ -7,6 +7,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { HandThumbUpIcon as HandThumbUpOutlineIcon, HandThumbDownIcon as HandThumbDownOutlineIcon } from "@heroicons/react/24/outline";
 import { getRating, type SongRating } from "@/lib/ratings";
+import { fetchEffect } from "@/lib/fetch-effect";
 import { useToast } from "../Toast";
 import { StarPicker } from "../StarPicker";
 
@@ -43,17 +44,14 @@ export function SongRatingPanel({ songId, initialRating, initialRatingNote }: So
     return () => { cancelled = true; };
   }, [songId, initialRating]);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/songs/${songId}/feedback`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (cancelled || !data?.rating) return;
-        setThumbsRating(data.rating);
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [songId]);
+  useEffect(
+    () =>
+      fetchEffect<{ rating: ThumbsRating }>(
+        `/api/songs/${songId}/feedback`,
+        (data) => setThumbsRating(data.rating),
+      ),
+    [songId],
+  );
 
   async function handleThumbsFeedback(value: "thumbs_up" | "thumbs_down") {
     if (savingThumbs) return;

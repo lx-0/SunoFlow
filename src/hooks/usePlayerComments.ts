@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { fetchEffect } from "@/lib/fetch-effect";
 
 interface TimestampedComment {
   id: string;
@@ -45,33 +46,20 @@ export function usePlayerComments({
     if (timedCommentSongIdRef.current === songId) return;
     timedCommentSongIdRef.current = songId;
     setTimedComments([]);
-    let cancelled = false;
-    fetch(`/api/songs/${songId}/comments?page=1`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!cancelled && data?.comments) {
-          const timed: TimestampedComment[] = data.comments
-            .filter((c: { timestamp: number | null }) => c.timestamp !== null)
-            .map(
-              (c: {
-                id: string;
-                timestamp: number;
-                body: string;
-                user: { name: string | null };
-              }) => ({
-                id: c.id,
-                timestamp: c.timestamp,
-                body: c.body,
-                username: c.user?.name ?? null,
-              }),
-            );
-          setTimedComments(timed);
-        }
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+    return fetchEffect<{ comments: { id: string; timestamp: number | null; body: string; user: { name: string | null } }[] }>(
+      `/api/songs/${songId}/comments?page=1`,
+      (data) => {
+        const timed: TimestampedComment[] = data.comments
+          .filter((c) => c.timestamp !== null)
+          .map((c) => ({
+            id: c.id,
+            timestamp: c.timestamp as number,
+            body: c.body,
+            username: c.user?.name ?? null,
+          }));
+        setTimedComments(timed);
+      },
+    );
   }, [songId]);
 
   useEffect(() => {

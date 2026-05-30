@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useOptimisticToggle } from "@/hooks/useOptimisticToggle";
+import { fetchEffect } from "@/lib/fetch-effect";
 
 interface UsePlayerFavoriteOptions {
   songId: string | undefined;
@@ -26,24 +27,19 @@ export function usePlayerFavorite({ songId, isAuthenticated, usePublicEndpoint }
       setIsFavorite(false);
       return;
     }
-    let cancelled = false;
     const url = usePublicEndpoint
       ? `/api/songs/${songId}/favorite`
       : `/api/songs/${songId}`;
-    fetch(url)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (cancelled) return;
+    return fetchEffect<{ isFavorite?: boolean; song?: { isFavorite?: boolean } }>(
+      url,
+      (data) => {
         if (usePublicEndpoint) {
-          if (data) setIsFavorite(data.isFavorite ?? false);
-        } else {
-          if (data?.song) setIsFavorite(data.song.isFavorite ?? false);
+          setIsFavorite(data.isFavorite ?? false);
+        } else if (data.song) {
+          setIsFavorite(data.song.isFavorite ?? false);
         }
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+      },
+    );
   }, [songId, isAuthenticated, usePublicEndpoint, setIsFavorite]);
 
   const handleToggleFavorite = () => {

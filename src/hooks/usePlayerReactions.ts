@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ReactionItem } from "@/components/ReactionTimeline";
+import { fetchEffect } from "@/lib/fetch-effect";
 
 interface EmojiPopup {
   id: string;
@@ -45,16 +46,10 @@ export function usePlayerReactions({
     if (reactionSongIdRef.current === songId) return;
     reactionSongIdRef.current = songId;
     setReactions([]);
-    let cancelled = false;
-    fetch(`/api/songs/${songId}/reactions`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!cancelled && data?.reactions) setReactions(data.reactions);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+    return fetchEffect<{ reactions: ReactionItem[] }>(
+      `/api/songs/${songId}/reactions`,
+      (data) => setReactions(data.reactions),
+    );
   }, [songId]);
 
   useEffect(() => {

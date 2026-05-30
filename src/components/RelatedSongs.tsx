@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fetchEffect } from "@/lib/fetch-effect";
 import Image from "next/image";
 import Link from "next/link";
 import { PlayIcon, MusicalNoteIcon } from "@heroicons/react/24/solid";
@@ -33,23 +34,15 @@ export function RelatedSongs({ songId }: RelatedSongsProps) {
   const [songs, setSongs] = useState<RelatedSong[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/songs/${songId}/related?limit=8`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!cancelled && data?.songs) {
-          setSongs(data.songs);
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [songId]);
+  useEffect(
+    () =>
+      fetchEffect<{ songs: RelatedSong[] }>(
+        `/api/songs/${songId}/related?limit=8`,
+        (data) => setSongs(data.songs),
+        () => setLoading(false),
+      ),
+    [songId],
+  );
 
   if (loading) {
     return (
