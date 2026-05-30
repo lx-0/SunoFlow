@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, use } from "react";
 import Link from "next/link";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
+import { apiGet, apiPost } from "@/lib/api-client";
 
 interface UserDetail {
   id: string;
@@ -62,20 +63,24 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
   const [planMessage, setPlanMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
   const fetchUser = useCallback(async () => {
-    const res = await fetch(`/api/admin/users/${id}`);
-    if (res.ok) {
-      const data = await res.json();
+    try {
+      const data = await apiGet<UserDetail>(`/api/admin/users/${id}`);
       setUser(data);
       setSelectedTier(data.planTier ?? "free");
+    } catch {
+      // non-fatal: user stays null
     }
   }, [id]);
 
   const fetchHistory = useCallback(async () => {
-    const res = await fetch(`/api/admin/users/${id}/history?page=${page}&limit=20`);
-    if (res.ok) {
-      const data = await res.json();
+    try {
+      const data = await apiGet<{ songs: Song[]; totalPages: number }>(
+        `/api/admin/users/${id}/history?page=${page}&limit=20`
+      );
       setSongs(data.songs);
       setTotalPages(data.totalPages);
+    } catch {
+      // non-fatal
     }
   }, [id, page]);
 
@@ -85,7 +90,11 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
 
   const handleToggle = async () => {
     setToggling(true);
-    await fetch(`/api/admin/users/${id}/toggle`, { method: "POST" });
+    try {
+      await apiPost(`/api/admin/users/${id}/toggle`, {});
+    } catch {
+      // ignore
+    }
     await fetchUser();
     setToggling(false);
   };
@@ -98,19 +107,17 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
     }
     setAdjustingCredits(true);
     setCreditMessage(null);
-    const res = await fetch(`/api/admin/users/${id}/credits`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount, reason: creditReason || "Admin adjustment" }),
-    });
-    if (res.ok) {
+    try {
+      await apiPost(`/api/admin/users/${id}/credits`, {
+        amount,
+        reason: creditReason || "Admin adjustment",
+      });
       setCreditMessage({ type: "ok", text: `Credits adjusted by ${amount > 0 ? "+" : ""}${amount}.` });
       setCreditAmount("");
       setCreditReason("");
       await fetchUser();
-    } else {
-      const err = await res.json().catch(() => ({}));
-      setCreditMessage({ type: "err", text: err.error ?? "Failed to adjust credits." });
+    } catch (err) {
+      setCreditMessage({ type: "err", text: err instanceof Error ? err.message : "Failed to adjust credits." });
     }
     setAdjustingCredits(false);
   };
@@ -119,17 +126,12 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
     if (!selectedTier) return;
     setChangingPlan(true);
     setPlanMessage(null);
-    const res = await fetch(`/api/admin/users/${id}/plan`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tier: selectedTier }),
-    });
-    if (res.ok) {
+    try {
+      await apiPost(`/api/admin/users/${id}/plan`, { tier: selectedTier });
       setPlanMessage({ type: "ok", text: `Plan updated to ${selectedTier}.` });
       await fetchUser();
-    } else {
-      const err = await res.json().catch(() => ({}));
-      setPlanMessage({ type: "err", text: err.error ?? "Failed to change plan." });
+    } catch (err) {
+      setPlanMessage({ type: "err", text: err instanceof Error ? err.message : "Failed to change plan." });
     }
     setChangingPlan(false);
   };

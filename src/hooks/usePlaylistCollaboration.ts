@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { apiDelete, apiPatch, apiPost } from "@/lib/api-client";
 
 interface CollaboratorUser {
   id: string;
@@ -55,9 +56,7 @@ export function usePlaylistCollaboration({
     if (isTogglingCollab) return;
     setIsTogglingCollab(true);
     try {
-      const res = await fetch(`/api/playlists/${playlistId}/collaborative`, { method: "PATCH" });
-      if (!res.ok) { toast("Failed to update collaborative mode", "error"); return; }
-      const data = await res.json();
+      const data = await apiPatch<{ isCollaborative: boolean }>(`/api/playlists/${playlistId}/collaborative`, {});
       setIsCollaborative(data.isCollaborative);
       if (!data.isCollaborative) setInviteLink(null);
       toast(data.isCollaborative ? "Collaborative mode enabled" : "Collaborative mode disabled", "success");
@@ -72,9 +71,7 @@ export function usePlaylistCollaboration({
     if (isGeneratingInvite) return;
     setIsGeneratingInvite(true);
     try {
-      const res = await fetch(`/api/playlists/${playlistId}/collaborators`, { method: "POST" });
-      if (!res.ok) { toast("Failed to generate invite link", "error"); return; }
-      const data = await res.json();
+      const data = await apiPost<{ collaborator: { inviteToken: string } }>(`/api/playlists/${playlistId}/collaborators`, {});
       const link = `${window.location.origin}/playlists/invite/${data.collaborator.inviteToken}`;
       setInviteLink(link);
     } catch {
@@ -91,8 +88,7 @@ export function usePlaylistCollaboration({
 
   const handleRemoveCollaborator = useCallback(async (collaboratorId: string) => {
     try {
-      const res = await fetch(`/api/playlists/${playlistId}/collaborators/${collaboratorId}`, { method: "DELETE" });
-      if (!res.ok) { toast("Failed to remove collaborator", "error"); return; }
+      await apiDelete(`/api/playlists/${playlistId}/collaborators/${collaboratorId}`);
       setCollaborators((prev) => prev.filter((c) => c.id !== collaboratorId));
       toast("Collaborator removed", "success");
     } catch {
@@ -105,18 +101,15 @@ export function usePlaylistCollaboration({
     if (!inviteUsername.trim() || isInvitingByUsername) return;
     setIsInvitingByUsername(true);
     try {
-      const res = await fetch(`/api/playlists/${playlistId}/collaborators`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: inviteUsername.trim(), role: inviteRole }),
-      });
-      const data = await res.json();
-      if (!res.ok) { toast(data.error ?? "Failed to invite user", "error"); return; }
+      const data = await apiPost<{ collaborator: PlaylistCollaboratorItem }>(
+        `/api/playlists/${playlistId}/collaborators`,
+        { username: inviteUsername.trim(), role: inviteRole }
+      );
       setCollaborators((prev) => [...prev, data.collaborator]);
       setInviteUsername("");
       toast(`${data.collaborator.user?.name ?? inviteUsername} added as ${inviteRole}`, "success");
-    } catch {
-      toast("Failed to invite user", "error");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to invite user", "error");
     } finally {
       setIsInvitingByUsername(false);
     }

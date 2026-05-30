@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { apiDelete, apiGet, apiPost } from "@/lib/api-client";
 
 export interface CommentUser {
   id: string;
@@ -34,9 +35,9 @@ export function useComments(songId: string) {
       if (append) setLoadingMore(true);
       else setLoading(true);
       try {
-        const res = await fetch(`/api/songs/${songId}/comments?page=${page}`);
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = await apiGet<{ comments: Comment[]; pagination: Pagination }>(
+          `/api/songs/${songId}/comments?page=${page}`
+        );
         setComments((prev) =>
           append ? [...prev, ...data.comments] : data.comments,
         );
@@ -57,13 +58,7 @@ export function useComments(songId: string) {
 
   const postComment = useCallback(
     async (body: string, timestamp: number | null) => {
-      const res = await fetch(`/api/songs/${songId}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body, timestamp }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to post comment");
+      const data = await apiPost<Comment>(`/api/songs/${songId}/comments`, { body, timestamp });
       setComments((prev) => {
         const next = [data, ...prev];
         return next.sort((a, b) => {
@@ -83,14 +78,14 @@ export function useComments(songId: string) {
 
   const deleteComment = useCallback(
     async (commentId: string) => {
-      const res = await fetch(`/api/songs/${songId}/comments/${commentId}`, {
-        method: "DELETE",
-      });
-      if (res.ok || res.status === 204) {
+      try {
+        await apiDelete(`/api/songs/${songId}/comments/${commentId}`);
         setComments((prev) => prev.filter((c) => c.id !== commentId));
         setPagination((prev) =>
           prev ? { ...prev, total: Math.max(0, prev.total - 1) } : prev,
         );
+      } catch {
+        // non-fatal
       }
     },
     [songId],

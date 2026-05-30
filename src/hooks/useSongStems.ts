@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { StemTrack } from "@/components/StemsPlayer";
+import { apiGet, apiPost } from "@/lib/api-client";
 
 interface UseSongStemsOptions {
   songId: string;
@@ -24,11 +25,11 @@ export function useSongStems({ songId, songTitle, toast }: UseSongStemsOptions) 
 
   const loadChildStems = useCallback(async (parentStemId: string) => {
     try {
-      const res = await fetch(`/api/songs/${parentStemId}/stems`);
-      if (!res.ok) return;
-      const data = await res.json();
+      const data = await apiGet<{ stems: { id: string; title: string | null; audioUrl: string | null; generationStatus: string; duration: number | null }[] }>(
+        `/api/songs/${parentStemId}/stems`
+      );
       const children: StemTrack[] = (data.stems ?? []).map(
-        (s: { id: string; title: string | null; audioUrl: string | null; generationStatus: string; duration: number | null }) => ({
+        (s) => ({
           id: s.id,
           title: s.title,
           audioUrl: s.audioUrl,
@@ -57,9 +58,9 @@ export function useSongStems({ songId, songTitle, toast }: UseSongStemsOptions) 
   const pollStemStatus = useCallback((stemId: string) => {
     const poll = async () => {
       try {
-        const res = await fetch(`/api/songs/${stemId}/status`);
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = await apiGet<{ song: { generationStatus: string; audioUrl: string | null; duration: number | null } }>(
+          `/api/songs/${stemId}/status`
+        );
         const updated = data.song;
         setStems((prev) =>
           prev.map((s) =>
@@ -87,16 +88,10 @@ export function useSongStems({ songId, songTitle, toast }: UseSongStemsOptions) 
     if (separateSubmitting) return;
     setSeparateSubmitting(true);
     try {
-      const res = await fetch(`/api/songs/${songId}/separate-vocals`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type }),
-      });
-      const result = await res.json();
-      if (!res.ok) {
-        toast(result.error ?? "Vocal separation failed", "error");
-        return;
-      }
+      const result = await apiPost<{ song: { id: string; title: string | null; audioUrl: string | null; generationStatus: string; duration: number | null } }>(
+        `/api/songs/${songId}/separate-vocals`,
+        { type }
+      );
       toast("Vocal separation started!", "success");
       setSeparateModalOpen(false);
       const newStem: StemTrack = {
