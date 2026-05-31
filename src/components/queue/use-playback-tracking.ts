@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { track } from "@/lib/analytics";
+import { fetchWithTimeout } from "@/lib/fetch-client";
 
 export function usePlaybackTracking() {
   const lastTrackedSongRef = useRef<string | null>(null);
@@ -11,12 +12,12 @@ export function usePlaybackTracking() {
     if (lastTrackedSongRef.current === songId) return;
     lastTrackedSongRef.current = songId;
 
-    fetch(`/api/songs/${songId}/play`, { method: "POST" }).catch(() => {});
+    fetchWithTimeout(`/api/songs/${songId}/play`, { method: "POST" }).catch(() => {});
     track("song_played");
 
     if (historyTimerRef.current) clearTimeout(historyTimerRef.current);
     historyTimerRef.current = setTimeout(() => {
-      fetch("/api/history", {
+      fetchWithTimeout("/api/history", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ songId }),

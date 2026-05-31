@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { TrashIcon, SwatchIcon, PencilIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useToast } from "./Toast";
+import { apiGet, apiPatch, apiDelete } from "@/lib/api-client";
 
 interface StyleTemplate {
   id: string;
@@ -24,11 +25,8 @@ export function StyleTemplateManager() {
 
   const fetchTemplates = useCallback(async () => {
     try {
-      const res = await fetch("/api/style-templates");
-      if (res.ok) {
-        const data = await res.json();
-        setTemplates(data.templates);
-      }
+      const data = await apiGet<{ templates: StyleTemplate[] }>("/api/style-templates");
+      setTemplates(data.templates);
     } catch {
       toast("Failed to load style templates", "error");
     } finally {
@@ -59,22 +57,12 @@ export function StyleTemplateManager() {
     }
     setIsSaving(true);
     try {
-      const res = await fetch(`/api/style-templates/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editName.trim(), tags: editTags.trim() }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setTemplates((prev) => prev.map((t) => (t.id === id ? data.template : t)));
-        cancelEdit();
-        toast("Template updated", "success");
-      } else {
-        const data = await res.json();
-        toast(data.error ?? "Failed to update template", "error");
-      }
-    } catch {
-      toast("Failed to update template", "error");
+      const data = await apiPatch<{ template: StyleTemplate }>(`/api/style-templates/${id}`, { name: editName.trim(), tags: editTags.trim() });
+      setTemplates((prev) => prev.map((t) => (t.id === id ? data.template : t)));
+      cancelEdit();
+      toast("Template updated", "success");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to update template", "error");
     } finally {
       setIsSaving(false);
     }
@@ -83,16 +71,11 @@ export function StyleTemplateManager() {
   async function handleDelete(id: string) {
     setDeletingId(id);
     try {
-      const res = await fetch(`/api/style-templates/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setTemplates((prev) => prev.filter((t) => t.id !== id));
-        toast("Template deleted", "success");
-      } else {
-        const data = await res.json();
-        toast(data.error ?? "Failed to delete template", "error");
-      }
-    } catch {
-      toast("Failed to delete template", "error");
+      await apiDelete(`/api/style-templates/${id}`);
+      setTemplates((prev) => prev.filter((t) => t.id !== id));
+      toast("Template deleted", "success");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to delete template", "error");
     } finally {
       setDeletingId(null);
     }

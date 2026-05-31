@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchEffect } from "@/lib/fetch-effect";
 import { useSession } from "next-auth/react";
+import { fetchWithTimeout } from "@/lib/fetch-client";
 import { useToast } from "../Toast";
 import type { ReactionItem } from "../ReactionTimeline";
 import type { TimestampedComment } from "./types";
@@ -88,7 +89,7 @@ export function usePlayerSongData(
       setReactions((prev) => [...prev, optimistic]);
 
       try {
-        const res = await fetch(`/api/songs/${songId}/reactions`, {
+        const res = await fetchWithTimeout(`/api/songs/${songId}/reactions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ emoji, timestamp }),
@@ -128,7 +129,7 @@ export function usePlayerSongData(
     const newFav = !prev;
     setIsFavorite(newFav);
     try {
-      const res = await fetch(`/api/songs/${songId}/favorite`, {
+      const res = await fetchWithTimeout(`/api/songs/${songId}/favorite`, {
         method: newFav ? "POST" : "DELETE",
       });
       if (!res.ok) {

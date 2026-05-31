@@ -21,6 +21,7 @@ import { StemsPlayer } from "../StemsPlayer";
 import { SeparateVocalsModal } from "../SeparateVocalsModal";
 import { type RemixAction } from "../RemixModal";
 import type { SunoSong } from "@/lib/sunoapi";
+import { apiPost } from "@/lib/api-client";
 
 const CreateVariationModal = dynamic(() => import("../CreateVariationModal").then((m) => m.CreateVariationModal));
 const RemixModal = dynamic(() => import("../RemixModal").then((m) => m.RemixModal));
@@ -67,26 +68,17 @@ export function SongRemixPanel({
     }
     setCreatingVariation(true);
     try {
-      const res = await fetch(`/api/songs/${song.id}/variations`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: data.prompt || undefined,
-          tags: data.tags || undefined,
-          title: data.title || undefined,
-          makeInstrumental: data.makeInstrumental,
-        }),
+      const result = await apiPost<{ song: { id: string } }>(`/api/songs/${song.id}/variations`, {
+        prompt: data.prompt || undefined,
+        tags: data.tags || undefined,
+        title: data.title || undefined,
+        makeInstrumental: data.makeInstrumental,
       });
-      const result = await res.json();
-      if (!res.ok) {
-        toast(result.error ?? "Failed to create variation", "error");
-        return;
-      }
       toast("Variation generation started!", "success");
       setVariationModalOpen(false);
       router.push(`/library/${result.song.id}`);
-    } catch {
-      toast("Failed to create variation", "error");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to create variation", "error");
     } finally {
       setCreatingVariation(false);
     }
@@ -100,21 +92,12 @@ export function SongRemixPanel({
     }
     setRemixSubmitting(true);
     try {
-      const res = await fetch(`/api/songs/${song.id}/${action}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const result = await res.json();
-      if (!res.ok) {
-        toast(result.error ?? "Generation failed", "error");
-        return;
-      }
+      const result = await apiPost<{ song: { id: string } }>(`/api/songs/${song.id}/${action}`, data);
       toast("Generation started!", "success");
       setRemixAction(null);
       router.push(`/library/${result.song.id}`);
-    } catch {
-      toast("Generation failed", "error");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Generation failed", "error");
     } finally {
       setRemixSubmitting(false);
     }
@@ -124,26 +107,17 @@ export function SongRemixPanel({
     if (isSavingStyle || !styleTemplateName.trim() || !styleTemplateTags.trim()) return;
     setIsSavingStyle(true);
     try {
-      const res = await fetch("/api/style-templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: styleTemplateName.trim(),
-          tags: styleTemplateTags.trim(),
-          sourceSongId: song.id,
-        }),
+      await apiPost("/api/style-templates", {
+        name: styleTemplateName.trim(),
+        tags: styleTemplateTags.trim(),
+        sourceSongId: song.id,
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast(data.error ?? "Failed to save style template", "error");
-        return;
-      }
       setSaveStyleOpen(false);
       setStyleTemplateName("");
       setStyleTemplateTags("");
       toast("Style template saved", "success");
-    } catch {
-      toast("Failed to save style template", "error");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to save style template", "error");
     } finally {
       setIsSavingStyle(false);
     }

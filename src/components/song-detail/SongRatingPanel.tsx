@@ -9,6 +9,7 @@ import { HandThumbUpIcon as HandThumbUpOutlineIcon, HandThumbDownIcon as HandThu
 import { getRating, type SongRating } from "@/lib/ratings";
 import { fetchEffect } from "@/lib/fetch-effect";
 import { useToast } from "../Toast";
+import { apiPost, apiPatch } from "@/lib/api-client";
 import { StarPicker } from "../StarPicker";
 import FormTextarea from "../ui/FormTextarea";
 
@@ -58,12 +59,8 @@ export function SongRatingPanel({ songId, initialRating, initialRatingNote }: So
     if (savingThumbs) return;
     setSavingThumbs(true);
     try {
-      const res = await fetch(`/api/songs/${songId}/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating: value }),
-      });
-      if (res.ok) setThumbsRating(value);
+      await apiPost(`/api/songs/${songId}/feedback`, { rating: value });
+      setThumbsRating(value);
     } catch {
       toast("Failed to save feedback", "error");
     } finally {
@@ -76,12 +73,7 @@ export function SongRatingPanel({ songId, initialRating, initialRatingNote }: So
     const r: SongRating = { stars: rating.stars, note: noteDraft.trim() };
     setSavingRating(true);
     try {
-      const res = await fetch(`/api/songs/${songId}/rating`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stars: r.stars, note: r.note }),
-      });
-      if (!res.ok) throw new Error("Failed to save rating");
+      await apiPatch(`/api/songs/${songId}/rating`, { stars: r.stars, note: r.note });
       setRatingState(r);
       setSaved(true);
     } catch {

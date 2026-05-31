@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import type { TrackState, RateLimitStatus } from "./types";
 import { buildTrackPayload } from "./types";
+import { apiGet, apiPost } from "@/lib/api-client";
 
 function isTrackReady(track: TrackState): boolean {
   return !!(
@@ -30,8 +31,7 @@ export function useMashupSubmit(params: {
   const rateLimitFetched = useRef(false);
   if (!rateLimitFetched.current) {
     rateLimitFetched.current = true;
-    fetch("/api/rate-limit/status")
-      .then((r) => r.json())
+    apiGet<RateLimitStatus>("/api/rate-limit/status")
       .then((d) => setRateLimit(d))
       .catch(() => {});
   }
@@ -62,28 +62,16 @@ export function useMashupSubmit(params: {
         return;
       }
 
-      const res = await fetch("/api/mashup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          trackA: payloadA,
-          trackB: payloadB,
-          title: title.trim() || undefined,
-          prompt: prompt.trim() || undefined,
-          style: style.trim() || undefined,
-          instrumental,
-        }),
+      const data = await apiPost<{ rateLimit?: RateLimitStatus; error?: string; songs?: { id: string; title: string | null }[] }>("/api/mashup", {
+        trackA: payloadA,
+        trackB: payloadB,
+        title: title.trim() || undefined,
+        prompt: prompt.trim() || undefined,
+        style: style.trim() || undefined,
+        instrumental,
       });
 
-      const data = await res.json();
-
       if (data.rateLimit) setRateLimit(data.rateLimit);
-
-      if (!res.ok && res.status !== 201) {
-        toast(data.error || "Mashup generation failed", "error");
-        setSubmitting(false);
-        return;
-      }
 
       if (data.error) {
         toast(data.error, "error");

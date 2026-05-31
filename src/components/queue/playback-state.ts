@@ -1,4 +1,6 @@
 import { proxiedAudioUrl } from "@/lib/audio-cdn";
+import { fetchWithTimeout } from "@/lib/fetch-client";
+import { apiGet } from "@/lib/api-client";
 
 export type RepeatMode = "off" | "repeat-all" | "repeat-one";
 
@@ -71,7 +73,7 @@ export interface RestoredPlaybackState {
 }
 
 export function savePlaybackState(payload: PlaybackStateSavePayload): void {
-  fetch("/api/user/playback-state", {
+  fetchWithTimeout("/api/user/playback-state", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -131,8 +133,7 @@ function normalizeEqSettings(state: PersistedPlaybackState): EqSettings | null {
 }
 
 export async function loadPlaybackState(): Promise<RestoredPlaybackState | null> {
-  const response = await fetch("/api/user/playback-state");
-  const data = (await response.json()) as PlaybackStateResponse;
+  const data = await apiGet<PlaybackStateResponse>("/api/user/playback-state");
   const state = data.state;
 
   if (!state?.song?.id) {

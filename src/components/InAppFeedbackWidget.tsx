@@ -5,6 +5,7 @@ import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { XMarkIcon, HandThumbUpIcon, HandThumbDownIcon } from "@heroicons/react/24/outline";
 import { HandThumbUpIcon as ThumbUpSolid, HandThumbDownIcon as ThumbDownSolid } from "@heroicons/react/24/solid";
 import { track } from "@/lib/analytics";
+import { apiPost } from "@/lib/api-client";
 
 export type FeedbackSource = "song_generation" | "playlist_creation";
 
@@ -59,21 +60,13 @@ export function InAppFeedbackWidget({ source, entityId, onClose }: InAppFeedback
   const [doSubmit, submitting] = useAsyncAction(async () => {
     try {
       if (source === "song_generation") {
-        await fetch(`/api/songs/${entityId}/feedback`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rating }),
-        });
+        await apiPost(`/api/songs/${entityId}/feedback`, { rating });
       } else {
-        await fetch("/api/feedback", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            category: "general",
-            score: rating === "thumbs_up" ? 5 : 1,
-            comment: comment.trim() || undefined,
-            pageUrl: window.location.href,
-          }),
+        await apiPost("/api/feedback", {
+          category: "general",
+          score: rating === "thumbs_up" ? 5 : 1,
+          comment: comment.trim() || undefined,
+          pageUrl: window.location.href,
         });
       }
 

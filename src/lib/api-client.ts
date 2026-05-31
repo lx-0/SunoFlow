@@ -39,3 +39,13 @@ export async function apiPatch<T>(url: string, body: unknown): Promise<T> {
   if (!res.ok) throw new HttpError(res.status, (await parseJsonSafe<{ error?: string }>(res)).error);
   return parseJsonSafe<T>(res);
 }
+
+export async function apiPut<T>(url: string, body: unknown): Promise<T> {
+  const res = await fetchWithTimeout(url, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new HttpError(res.status, (await parseJsonSafe<{ error?: string }>(res)).error);
+  return parseJsonSafe<T>(res);
+}
