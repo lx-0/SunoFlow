@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { AppShell } from "@/components/AppShell";
 import { useToast } from "@/components/Toast";
+import { apiGet, apiPatch, apiPost, apiDelete } from "@/lib/api-client";
 import {
   MusicalNoteIcon,
   HeartIcon,
@@ -71,21 +72,12 @@ function ProfileHeader() {
     if (!displayName.trim()) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: displayName.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast(data.error ?? "Failed to update name", "error");
-      } else {
-        await updateSession({ name: data.name });
-        toast("Display name updated", "success");
-        setEditing(false);
-      }
+      const data = await apiPatch<{ name: string }>("/api/profile", { name: displayName.trim() });
+      await updateSession({ name: data.name });
+      toast("Display name updated", "success");
+      setEditing(false);
     } catch {
-      toast("Network error", "error");
+      toast("Failed to update name", "error");
     } finally {
       setSaving(false);
     }
@@ -163,8 +155,7 @@ function AccountStats() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/profile/stats")
-      .then((res) => res.json())
+    apiGet<ProfileStats>("/api/profile/stats")
       .then((data) => setStats(data))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -254,8 +245,7 @@ function MyPlaylistsSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/playlists")
-      .then((res) => res.json())
+    apiGet<{ playlists: PlaylistPreview[] }>("/api/playlists")
       .then((data) => setPlaylists(data.playlists ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -352,8 +342,7 @@ function StreakSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/streaks")
-      .then((r) => r.json())
+    apiGet<{ streak: StreakData }>("/api/streaks")
       .then((d) => setStreak(d.streak))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -415,8 +404,7 @@ function MilestonesSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/milestones")
-      .then((r) => r.json())
+    apiGet<{ milestones: Milestone[] }>("/api/milestones")
       .then((d) => setMilestones(d.milestones ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -488,22 +476,13 @@ function ChangePasswordSection() {
     }
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/change-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast(data.error ?? "Failed to change password", "error");
-      } else {
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-        toast("Password changed successfully", "success");
-      }
+      await apiPost("/api/auth/change-password", { currentPassword, newPassword, confirmPassword });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      toast("Password changed successfully", "success");
     } catch {
-      toast("Network error", "error");
+      toast("Failed to change password", "error");
     } finally {
       setLoading(false);
     }

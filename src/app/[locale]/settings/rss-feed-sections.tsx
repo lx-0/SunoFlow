@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { FieldError } from "./ui";
+import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/api-client";
 
 export function RssFeedsSection() {
   const [feeds, setFeeds] = useState<{ id: string; url: string; title: string | null; autoGenerate: boolean }[]>([]);
@@ -13,8 +14,7 @@ export function RssFeedsSection() {
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/rss/feeds")
-      .then((r) => r.json())
+    apiGet<{ feeds: { id: string; url: string; title: string | null; autoGenerate: boolean }[] }>("/api/rss/feeds")
       .then((data) => setFeeds(data.feeds ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -30,20 +30,11 @@ export function RssFeedsSection() {
     setError("");
     setAdding(true);
     try {
-      const res = await fetch("/api/rss/feeds", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Failed to add feed");
-        return;
-      }
+      const data = await apiPost<{ feed: { id: string; url: string; title: string | null; autoGenerate: boolean } }>("/api/rss/feeds", { url });
       setFeeds((prev) => [...prev, data.feed]);
       setNewUrl("");
     } catch {
-      setError("Network error");
+      setError("Failed to add feed");
     } finally {
       setAdding(false);
     }
@@ -52,7 +43,7 @@ export function RssFeedsSection() {
   const removeFeed = async (id: string) => {
     setFeeds((prev) => prev.filter((f) => f.id !== id));
     try {
-      await fetch(`/api/rss/feeds?id=${id}`, { method: "DELETE" });
+      await apiDelete(`/api/rss/feeds?id=${id}`);
     } catch {
       // ignore — optimistic removal
     }
@@ -64,11 +55,7 @@ export function RssFeedsSection() {
       prev.map((f) => (f.id === id ? { ...f, autoGenerate: !current } : f))
     );
     try {
-      await fetch(`/api/rss/feeds/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ autoGenerate: !current }),
-      });
+      await apiPatch(`/api/rss/feeds/${id}`, { autoGenerate: !current });
     } catch {
       setFeeds((prev) =>
         prev.map((f) => (f.id === id ? { ...f, autoGenerate: current } : f))

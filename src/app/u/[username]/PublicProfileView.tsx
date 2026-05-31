@@ -10,6 +10,7 @@ import {
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import { ShareMenu } from "@/components/ShareMenu";
+import { apiGet, apiPost, apiDelete } from "@/lib/api-client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -144,13 +145,14 @@ function FollowButton({
   const toggle = async () => {
     setLoading(true);
     try {
-      const method = following ? "DELETE" : "POST";
-      const res = await fetch(`/api/users/${userId}/follow`, { method });
-      if (res.ok) {
-        const next = !following;
-        setFollowing(next);
-        onUpdate(next, next ? 1 : -1);
+      if (following) {
+        await apiDelete(`/api/users/${userId}/follow`);
+      } else {
+        await apiPost(`/api/users/${userId}/follow`, {});
       }
+      const next = !following;
+      setFollowing(next);
+      onUpdate(next, next ? 1 : -1);
     } catch {
       // ignore
     } finally {
@@ -277,9 +279,7 @@ function SongsTab({ username }: { username: string }) {
       if (append) setLoadingMore(true);
       else setLoading(true);
       try {
-        const res = await fetch(`/api/u/${username}/songs?page=${p}`);
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = await apiGet<{ songs: Song[]; pagination: { hasMore: boolean } }>(`/api/u/${username}/songs?page=${p}`);
         setSongs((prev) => (append ? [...prev, ...data.songs] : data.songs));
         setHasMore(data.pagination.hasMore);
         setPage(p);
@@ -352,9 +352,7 @@ function PlaylistsTab({ username }: { username: string }) {
       if (append) setLoadingMore(true);
       else setLoading(true);
       try {
-        const res = await fetch(`/api/u/${username}/playlists?page=${p}`);
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = await apiGet<{ playlists: Playlist[]; pagination: { hasMore: boolean } }>(`/api/u/${username}/playlists?page=${p}`);
         setPlaylists((prev) => (append ? [...prev, ...data.playlists] : data.playlists));
         setHasMore(data.pagination.hasMore);
         setPage(p);
@@ -455,9 +453,7 @@ function LikedSongsTab({ username }: { username: string }) {
       if (append) setLoadingMore(true);
       else setLoading(true);
       try {
-        const res = await fetch(`/api/u/${username}/liked-songs?page=${p}`);
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = await apiGet<{ songs: Song[]; pagination: { hasMore: boolean } }>(`/api/u/${username}/liked-songs?page=${p}`);
         setSongs((prev) => (append ? [...prev, ...data.songs] : data.songs));
         setHasMore(data.pagination.hasMore);
         setPage(p);
@@ -522,8 +518,7 @@ function MilestoneBadges({ username }: { username: string }) {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
 
   useEffect(() => {
-    fetch(`/api/u/${username}/milestones`)
-      .then((r) => r.json())
+    apiGet<{ milestones: Milestone[] }>(`/api/u/${username}/milestones`)
       .then((d) => setMilestones(d.milestones ?? []))
       .catch(() => {});
   }, [username]);

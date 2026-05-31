@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowDownTrayIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 import { useOnboarding } from "@/components/OnboardingTour";
 import { Toast } from "./ui";
+import { apiGet } from "@/lib/api-client";
 
 function OnboardingSection() {
   const { restartTour } = useOnboarding();
@@ -143,8 +144,7 @@ function ConnectedAccountsSection() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    fetch("/api/settings")
-      .then((r) => r.json())
+    apiGet<{ connectedProviders: string[] }>("/api/settings")
       .then((data) => {
         if (Array.isArray(data.connectedProviders)) {
           setProviders(data.connectedProviders.filter((p: string) => p !== "credentials"));
@@ -199,8 +199,8 @@ function SubscriptionSummarySection() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/billing/subscription").then((r) => r.json()),
-      fetch("/api/credits").then((r) => r.json()),
+      apiGet<{ tier: string; status: string }>("/api/billing/subscription"),
+      apiGet<{ creditsRemaining: number; budget: number }>("/api/credits"),
     ])
       .then(([sub, credits]) => {
         setInfo({

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { TrashIcon, PencilIcon, CheckIcon, XMarkIcon, ArrowDownTrayIcon, UserCircleIcon, Cog6ToothIcon, ShieldCheckIcon, ChartBarIcon, ExclamationTriangleIcon, CommandLineIcon, ClipboardDocumentIcon, LockClosedIcon } from "@heroicons/react/24/outline";
 import { canUseFeature, type SubscriptionTier } from "@/lib/feature-gates";
+import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/api-client";
 import { Toast, FieldError } from "./ui";
 import { useAutoDismissToast } from "./use-auto-dismiss-toast";
 import { ApiKeySection, PersonalApiKeysSection } from "./api-key-sections";
@@ -92,23 +93,14 @@ function PasswordSection() {
 
     setPwLoading(true);
     try {
-      const res = await fetch("/api/profile/password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        showToast(data.error ?? "Failed to change password", "error");
-      } else {
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-        setErrors({});
-        showToast("Password changed successfully", "success");
-      }
+      await apiPost("/api/profile/password", { currentPassword, newPassword, confirmPassword });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setErrors({});
+      showToast("Password changed successfully", "success");
     } catch {
-      showToast("Network error", "error");
+      showToast("Failed to change password", "error");
     } finally {
       setPwLoading(false);
     }
@@ -271,8 +263,7 @@ function RateLimitSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/rate-limit/status")
-      .then((r) => r.json())
+    apiGet<{ remaining: number; limit: number; used: number; percentUsed: number; resetAt: string }>("/api/rate-limit/status")
       .then((d) => setData(d))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -361,9 +352,9 @@ function DeleteAccountSection() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password, confirmEmail }),
       });
-      const data = await res.json();
+      const resData = await res.json();
       if (!res.ok) {
-        showToast(data.error ?? "Failed to delete account", "error");
+        showToast(resData.error ?? "Failed to delete account", "error");
       } else {
         // Redirect to home after deletion
         window.location.href = "/";
@@ -467,8 +458,7 @@ function TagManagementSection() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/tags")
-      .then((r) => r.json())
+    apiGet<{ tags: TagItem[] }>("/api/tags")
       .then((data) => { if (data.tags) setTags(data.tags); })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -482,37 +472,23 @@ function TagManagementSection() {
 
   async function saveEdit(tagId: string) {
     try {
-      const res = await fetch(`/api/tags/${tagId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editName.trim(), color: editColor }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        showToast(data.error ?? "Failed to update tag", "error");
-        return;
-      }
-      const data = await res.json();
+      const data = await apiPatch<{ tag: { name: string; color: string } }>(`/api/tags/${tagId}`, { name: editName.trim(), color: editColor });
       setTags((prev) => prev.map((t) => (t.id === tagId ? { ...t, name: data.tag.name, color: data.tag.color } : t)));
       setEditingId(null);
       showToast("Tag updated", "success");
     } catch {
-      showToast("Network error", "error");
+      showToast("Failed to update tag", "error");
     }
   }
 
   async function deleteTag(tagId: string) {
     try {
-      const res = await fetch(`/api/tags/${tagId}`, { method: "DELETE" });
-      if (!res.ok) {
-        showToast("Failed to delete tag", "error");
-        return;
-      }
+      await apiDelete(`/api/tags/${tagId}`);
       setTags((prev) => prev.filter((t) => t.id !== tagId));
       setDeleteConfirm(null);
       showToast("Tag deleted", "success");
     } catch {
-      showToast("Network error", "error");
+      showToast("Failed to delete tag", "error");
     }
   }
 

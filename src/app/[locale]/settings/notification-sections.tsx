@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { BellIcon } from "@heroicons/react/24/outline";
 import { usePushSubscription } from "@/hooks/usePushSubscription";
+import { apiGet, apiPatch } from "@/lib/api-client";
 import { EMAIL_BOOL_NOTIF_TYPES, DIGEST_FREQUENCY_OPTIONS, HOUR_OPTIONS, PUSH_NOTIF_TYPES } from "./constants";
 import { Toast } from "./ui";
 import { useAutoDismissToast } from "./use-auto-dismiss-toast";
@@ -15,14 +16,11 @@ export function EmailNotificationsSection() {
   const { toast, showToast } = useAutoDismissToast();
 
   useEffect(() => {
-    fetch("/api/profile/email-preferences")
-      .then((r) => r.json())
+    apiGet<Record<string, unknown>>("/api/profile/email-preferences")
       .then((data) => {
-        if (!data.error) {
-          const { emailDigestFrequency, ...rest } = data;
-          setBoolPrefs(rest);
-          setDigestFrequency(emailDigestFrequency ?? "off");
-        }
+        const { emailDigestFrequency, ...rest } = data;
+        setBoolPrefs(rest as Record<string, boolean>);
+        setDigestFrequency((emailDigestFrequency as string) ?? "off");
       })
       .catch(() => {})
       .finally(() => setLoaded(true));
@@ -33,18 +31,9 @@ export function EmailNotificationsSection() {
     setBoolPrefs(updated);
     setSaving(true);
     try {
-      const res = await fetch("/api/profile/email-preferences", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [key]: updated[key] }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        showToast(data.error ?? "Failed to update preference", "error");
-        setBoolPrefs(boolPrefs);
-      }
+      await apiPatch("/api/profile/email-preferences", { [key]: updated[key] });
     } catch {
-      showToast("Network error", "error");
+      showToast("Failed to update preference", "error");
       setBoolPrefs(boolPrefs);
     } finally {
       setSaving(false);
@@ -56,18 +45,9 @@ export function EmailNotificationsSection() {
     setDigestFrequency(value);
     setSaving(true);
     try {
-      const res = await fetch("/api/profile/email-preferences", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ emailDigestFrequency: value }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        showToast(data.error ?? "Failed to update digest frequency", "error");
-        setDigestFrequency(prev);
-      }
+      await apiPatch("/api/profile/email-preferences", { emailDigestFrequency: value });
     } catch {
-      showToast("Network error", "error");
+      showToast("Failed to update digest frequency", "error");
       setDigestFrequency(prev);
     } finally {
       setSaving(false);
@@ -136,14 +116,11 @@ export function QuietHoursSection() {
   const { toast, showToast } = useAutoDismissToast();
 
   useEffect(() => {
-    fetch("/api/profile/email-preferences")
-      .then((r) => r.json())
+    apiGet<Record<string, unknown>>("/api/profile/email-preferences")
       .then((data) => {
-        if (!data.error) {
-          setEnabled(data.quietHoursEnabled ?? false);
-          setStart(data.quietHoursStart ?? 22);
-          setEnd(data.quietHoursEnd ?? 8);
-        }
+        setEnabled((data.quietHoursEnabled as boolean) ?? false);
+        setStart((data.quietHoursStart as number) ?? 22);
+        setEnd((data.quietHoursEnd as number) ?? 8);
       })
       .catch(() => {})
       .finally(() => setLoaded(true));
@@ -152,19 +129,10 @@ export function QuietHoursSection() {
   const patch = async (updates: Record<string, unknown>) => {
     setSaving(true);
     try {
-      const res = await fetch("/api/profile/email-preferences", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        showToast(data.error ?? "Failed to update quiet hours", "error");
-        return false;
-      }
+      await apiPatch("/api/profile/email-preferences", updates);
       return true;
     } catch {
-      showToast("Network error", "error");
+      showToast("Failed to update quiet hours", "error");
       return false;
     } finally {
       setSaving(false);
@@ -267,11 +235,8 @@ export function PushNotificationsSection() {
   const { toast, showToast } = useAutoDismissToast();
 
   useEffect(() => {
-    fetch("/api/push/preferences")
-      .then((r) => r.json())
-      .then((data) => {
-        if (!data.error) setPrefs(data);
-      })
+    apiGet<Record<string, boolean>>("/api/push/preferences")
+      .then((data) => setPrefs(data))
       .catch(() => {})
       .finally(() => setLoaded(true));
   }, []);
@@ -281,18 +246,9 @@ export function PushNotificationsSection() {
     setPrefs(updated);
     setSaving(true);
     try {
-      const res = await fetch("/api/push/preferences", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [key]: updated[key] }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        showToast(data.error ?? "Failed to update preference", "error");
-        setPrefs(prefs);
-      }
+      await apiPatch("/api/push/preferences", { [key]: updated[key] });
     } catch {
-      showToast("Network error", "error");
+      showToast("Failed to update preference", "error");
       setPrefs(prefs);
     } finally {
       setSaving(false);
