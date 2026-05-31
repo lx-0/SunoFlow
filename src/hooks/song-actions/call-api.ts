@@ -1,6 +1,7 @@
 "use client";
 
 import { type ToastFn } from "@/components/Toast";
+import { fetchWithTimeout } from "@/lib/fetch-client";
 
 /**
  * Fetches a JSON API endpoint, parses the response, and calls toast on error.
@@ -12,7 +13,7 @@ export async function callApi<T = Record<string, unknown>>(
   toast: ToastFn,
   errorMessage: string,
 ): Promise<T | null> {
-  const res = await fetch(url, options);
+  const res = await fetchWithTimeout(url, options);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     toast((data as { error?: string }).error ?? errorMessage, "error");
