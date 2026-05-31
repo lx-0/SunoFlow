@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { apiGet, apiPost } from "@/lib/api-client";
 
 export type PushState =
   | "unsupported"   // Browser doesn't support push
@@ -30,8 +31,7 @@ export function usePushSubscription() {
       return;
     }
 
-    fetch("/api/push/vapid-public-key")
-      .then((r) => (r.ok ? r.json() : null))
+    apiGet<{ key?: string }>("/api/push/vapid-public-key")
       .then((data) => {
         if (!data?.key) {
           setState("not-configured");
@@ -82,13 +82,9 @@ export function usePushSubscription() {
         applicationServerKey: urlBase64ToUint8Array(vapidKey),
       });
 
-      const res = await fetch("/api/push/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(subscription.toJSON()),
-      });
-
-      if (!res.ok) {
+      try {
+        await apiPost("/api/push/subscribe", subscription.toJSON());
+      } catch {
         await subscription.unsubscribe();
         return false;
       }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { apiGet, apiPost } from "@/lib/api-client";
 import {
   ServerStackIcon,
   MusicalNoteIcon,
@@ -184,9 +185,7 @@ export default function AdminMirrorPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/mirror-health");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setData(await res.json());
+      setData(await apiGet("/api/admin/mirror-health"));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load");
     } finally {
@@ -202,9 +201,7 @@ export default function AdminMirrorPage() {
     setRecaching(true);
     setRecacheResult(null);
     try {
-      const res = await fetch("/api/admin/backfill-images", { method: "POST" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const result = await res.json();
+      const result = await apiPost<{ cached: number; skipped: number; failed: number }>("/api/admin/backfill-images", {});
       setRecacheResult(
         `Cached ${result.cached} new images, ${result.skipped} skipped, ${result.failed} failed`
       );

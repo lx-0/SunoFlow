@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { apiGet, apiDelete } from "@/lib/api-client";
 import { StatusBadge } from "./StatusBadge";
 import Link from "next/link";
 import {
@@ -31,7 +32,7 @@ import { useHistoryFilters } from "@/hooks/useHistoryFilters";
 import { useHistoryRetry } from "@/hooks/useHistoryRetry";
 import { useHistoryPendingPoll } from "@/hooks/useHistoryPendingPoll";
 import { useHistorySavedPrompts } from "@/hooks/useHistorySavedPrompts";
-import { apiDelete } from "@/lib/api-client";
+
 import { Spinner } from "./Spinner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -237,8 +238,7 @@ function SavedPromptsPanel() {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetch("/api/presets")
-      .then((r) => r.json())
+    apiGet<{ presets?: Preset[] }>("/api/presets")
       .then((d) => setPresets(d.presets ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));

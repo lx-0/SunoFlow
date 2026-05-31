@@ -12,6 +12,7 @@ import { Spinner } from "./Spinner";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { GenerationProgress } from "./GenerationProgress";
 import type { RateLimitStatus } from "@/lib/rate-limit";
+import { apiGet } from "@/lib/api-client";
 
 type UploadMode = "cover" | "extend";
 type UploadStep = "idle" | "uploading" | "generating";
@@ -61,8 +62,7 @@ export function AudioUploadForm() {
   const rateLimitFetched = useRef(false);
   if (!rateLimitFetched.current) {
     rateLimitFetched.current = true;
-    fetch("/api/rate-limit/status")
-      .then((r) => r.json())
+    apiGet<RateLimitStatus>("/api/rate-limit/status")
       .then((d) => setRateLimit(d))
       .catch(() => {});
   }

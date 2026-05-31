@@ -22,6 +22,7 @@ import { CoverArtImage } from "./CoverArtImage";
 import { generateCoverArtVariants } from "@/lib/cover-art-generator";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
 import { applySongsGalleryFilters, type SongWithMeta } from "./songs-gallery/filtering";
+import { apiGet, apiPost, apiDelete } from "@/lib/api-client";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -327,10 +328,12 @@ export function SongsGalleryView({ initialSongs }: SongsGalleryViewProps) {
   // Favorite toggle
   const handleFavoriteToggle = useCallback(
     async (song: SongWithMeta) => {
-      const method = song.isFavorite ? "DELETE" : "POST";
       try {
-        const res = await fetch(`/api/songs/${song.id}/favorite`, { method });
-        if (!res.ok) throw new Error();
+        if (song.isFavorite) {
+          await apiDelete(`/api/songs/${song.id}/favorite`);
+        } else {
+          await apiPost(`/api/songs/${song.id}/favorite`, {});
+        }
         setSongs((prev) =>
           prev.map((s) =>
             s.id === song.id
@@ -389,9 +392,7 @@ export function SongsGalleryView({ initialSongs }: SongsGalleryViewProps) {
   // Pull-to-refresh: reload songs from API
   const handlePullRefresh = useCallback(async () => {
     try {
-      const res = await fetch("/api/songs");
-      if (!res.ok) return;
-      const data = await res.json();
+      const data = await apiGet<{ songs: SongWithMeta[] }>("/api/songs");
       if (data.songs) setSongs(data.songs);
     } catch {
       // keep existing songs

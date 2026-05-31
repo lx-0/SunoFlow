@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { track } from "@/lib/analytics";
+import { apiGet, apiPost } from "@/lib/api-client";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -17,8 +18,7 @@ export default function RegisterPage() {
   const [googleEnabled, setGoogleEnabled] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/providers-config")
-      .then((r) => r.json())
+    apiGet<{ google: boolean }>("/api/auth/providers-config")
       .then((data) => setGoogleEnabled(data.google))
       .catch(() => {});
   }, []);
@@ -33,15 +33,10 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
 
-    const res = await fetch("/api/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password, inviteCode }),
-    });
-
-    if (!res.ok) {
-      const data = await res.json();
-      setError(data.error ?? "Registration failed");
+    try {
+      await apiPost("/api/register", { name, email, password, inviteCode });
+    } catch {
+      setError("Registration failed");
       setLoading(false);
       return;
     }

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MusicalNoteIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { useToast } from "./Toast";
+import { apiGet, apiPost } from "@/lib/api-client";
+import { HttpError } from "@/components/QueryProvider";
 
 interface InviteInfo {
   id: string;
@@ -29,15 +31,10 @@ export function PlaylistInviteView({ token }: { token: string }) {
   useEffect(() => {
     async function fetchInvite() {
       try {
-        const res = await fetch(`/api/playlists/invite/${token}`);
-        const data = await res.json();
-        if (!res.ok) {
-          setError(data.error ?? "Invalid invite");
-        } else {
-          setInvite(data.invite);
-        }
-      } catch {
-        setError("Failed to load invite");
+        const data = await apiGet<{ invite: InviteInfo }>(`/api/playlists/invite/${token}`);
+        setInvite(data.invite);
+      } catch (e) {
+        setError(e instanceof HttpError ? `Error ${e.status}` : "Failed to load invite");
       } finally {
         setLoading(false);
       }
@@ -49,12 +46,7 @@ export function PlaylistInviteView({ token }: { token: string }) {
     if (accepting) return;
     setAccepting(true);
     try {
-      const res = await fetch(`/api/playlists/invite/${token}`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        toast(data.error ?? "Failed to accept invite", "error");
-        return;
-      }
+      const data = await apiPost<{ playlistId: string }>(`/api/playlists/invite/${token}`, {});
       toast("You joined the playlist!", "success");
       router.push(`/playlists/${data.playlistId}`);
     } catch {

@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 import { useToast } from "../Toast";
+import { apiPost } from "@/lib/api-client";
+import { HttpError } from "@/components/QueryProvider";
 
 interface SongAppealBannerProps {
   songId: string;
@@ -24,27 +26,18 @@ export function SongAppealBanner({ songId, isHidden }: SongAppealBannerProps) {
     if (appealReason.trim().length < 10) return;
     setAppealSubmitting(true);
     try {
-      const res = await fetch("/api/appeals", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songId, reason: appealReason.trim() }),
-      });
-      if (res.status === 409) {
+      await apiPost("/api/appeals", { songId, reason: appealReason.trim() });
+      setAppealStatus("pending");
+      setAppealOpen(false);
+      toast("Appeal submitted. We'll review it shortly.");
+    } catch (e) {
+      if (e instanceof HttpError && e.status === 409) {
         setAppealStatus("pending");
         setAppealOpen(false);
         toast("You already have a pending appeal for this song.");
-        return;
-      }
-      if (res.ok) {
-        setAppealStatus("pending");
-        setAppealOpen(false);
-        toast("Appeal submitted. We'll review it shortly.");
       } else {
-        const data = await res.json().catch(() => ({}));
-        toast(data.error || "Failed to submit appeal. Please try again.");
+        toast("Failed to submit appeal. Please try again.");
       }
-    } catch {
-      toast("Failed to submit appeal. Please try again.");
     } finally {
       setAppealSubmitting(false);
     }

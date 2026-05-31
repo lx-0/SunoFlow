@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { apiGet, apiPost } from "@/lib/api-client";
 import Link from "next/link";
 import {
   MagnifyingGlassIcon,
@@ -51,8 +52,7 @@ export default function AdminUsersPage() {
       page: String(page),
       limit: "20",
     });
-    const res = await fetch(`/api/admin/users?${params}`);
-    const data = await res.json();
+    const data = await apiGet<{ users: User[]; totalPages: number }>(`/api/admin/users?${params}`);
     setUsers(data.users);
     setTotalPages(data.totalPages);
     setLoading(false);
@@ -74,7 +74,7 @@ export default function AdminUsersPage() {
 
   const handleToggle = async (userId: string) => {
     setToggling(userId);
-    await fetch(`/api/admin/users/${userId}/toggle`, { method: "POST" });
+    await apiPost(`/api/admin/users/${userId}/toggle`, {});
     await fetchUsers();
     setToggling(null);
   };

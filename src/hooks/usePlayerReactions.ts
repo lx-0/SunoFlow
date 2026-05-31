@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ReactionItem } from "@/components/ReactionTimeline";
 import { fetchEffect } from "@/lib/fetch-effect";
 import { useTimedPopups } from "@/hooks/useTimedPopups";
+import { apiPost } from "@/lib/api-client";
+import { HttpError } from "@/components/QueryProvider";
 
 interface EmojiPopup {
   id: string;
@@ -78,33 +80,19 @@ export function usePlayerReactions({
       setReactions((prev) => [...prev, optimistic]);
 
       try {
-        const res = await fetch(`/api/songs/${songId}/reactions`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ emoji, timestamp }),
-        });
-
-        if (res.status === 429) {
-          setReactions((prev) => prev.filter((r) => r.id !== optimistic.id));
-          toast("Slow down! Too many reactions.", "info");
-          return;
-        }
-
-        if (!res.ok) {
-          setReactions((prev) => prev.filter((r) => r.id !== optimistic.id));
-          toast("Couldn't save reaction. Try again.", "error");
-          return;
-        }
-
-        const created: ReactionItem = await res.json();
+        const created = await apiPost<ReactionItem>(`/api/songs/${songId}/reactions`, { emoji, timestamp });
         setReactions((prev) =>
           prev.map((r) =>
             r.id === optimistic.id ? { ...created, username: userName ?? undefined } : r,
           ),
         );
-      } catch {
+      } catch (e) {
         setReactions((prev) => prev.filter((r) => r.id !== optimistic.id));
-        toast("Couldn't save reaction. Try again.", "error");
+        if (e instanceof HttpError && e.status === 429) {
+          toast("Slow down! Too many reactions.", "info");
+        } else {
+          toast("Couldn't save reaction. Try again.", "error");
+        }
       }
     },
     [songId, currentTime, duration, userId, userName, toast],

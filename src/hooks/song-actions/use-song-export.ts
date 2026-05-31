@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type ToastFn } from "@/components/Toast";
+import { apiGet, apiPost } from "@/lib/api-client";
 
 type ExportFormat = "wav" | "midi" | "mp4";
 type ExportStatus = "idle" | "converting" | "done" | "error";
@@ -38,15 +39,7 @@ export function useSongExport({ songId, initialVideoUrl, toast }: UseSongExportP
 
     const poll = async () => {
       try {
-        const res = await fetch(`/api/songs/${songId}/music-video/status?taskId=${encodeURIComponent(taskId)}`);
-        const data = await res.json();
-        if (!res.ok) {
-          if (videoPollRef.current) clearInterval(videoPollRef.current);
-          videoPollRef.current = null;
-          setVideoStatus("error");
-          setVideoError(data.error ?? "Failed to check video status");
-          return;
-        }
+        const data = await apiGet<{ status?: string; videoUrl?: string; errorMessage?: string; error?: string }>(`/api/songs/${songId}/music-video/status?taskId=${encodeURIComponent(taskId)}`);
         if (data.status === "SUCCESS" && data.videoUrl) {
           if (videoPollRef.current) clearInterval(videoPollRef.current);
           videoPollRef.current = null;
@@ -95,13 +88,7 @@ export function useSongExport({ songId, initialVideoUrl, toast }: UseSongExportP
     };
 
     try {
-      const res = await fetch(endpoints[format], { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        setExports((prev) => ({ ...prev, [format]: { status: "error", error: data.error } }));
-        toast(data.error ?? `${labels[format]} failed`, "error");
-        return;
-      }
+      const data = await apiPost<{ taskId?: string; error?: string }>(endpoints[format], {});
       setExports((prev) => ({ ...prev, [format]: { status: "done", taskId: data.taskId } }));
       if (format === "mp4" && data.taskId) {
         startVideoPolling(data.taskId);

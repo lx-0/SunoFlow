@@ -13,6 +13,8 @@ import {
 } from "@heroicons/react/24/solid";
 import { Skeleton } from "./Skeleton";
 import { useNotifications } from "./NotificationContext";
+import { apiGet, apiPost } from "@/lib/api-client";
+import { HttpError } from "@/components/QueryProvider";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -180,25 +182,19 @@ export function SunoImportModal({ onClose, onImportComplete }: SunoImportModalPr
     setFetchError(null);
 
     try {
-      const res = await fetch(`/api/suno/songs?page=${page}&limit=20`);
-      if (res.status === 400) {
-        setFetchError({ type: "no_key" });
-        return;
-      }
-      if (res.status === 401) {
-        setFetchError({ type: "suno", message: "Invalid Suno API key. Please check your settings." });
-        return;
-      }
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setFetchError({ type: "suno", message: (data as { error?: string }).error ?? "Failed to load songs from Suno." });
-        return;
-      }
-      const data = (await res.json()) as { songs: RemoteSong[]; pagination: Pagination };
+      const data = await apiGet<{ songs: RemoteSong[]; pagination: Pagination }>(`/api/suno/songs?page=${page}&limit=20`);
       setSongs((prev) => (isFirst ? data.songs : [...prev, ...data.songs]));
       setPagination(data.pagination);
-    } catch {
-      setFetchError({ type: "network", message: "Network error. Please check your connection and try again." });
+    } catch (e) {
+      if (e instanceof HttpError && e.status === 400) {
+        setFetchError({ type: "no_key" });
+      } else if (e instanceof HttpError && e.status === 401) {
+        setFetchError({ type: "suno", message: "Invalid Suno API key. Please check your settings." });
+      } else if (e instanceof HttpError) {
+        setFetchError({ type: "suno", message: e.message ?? "Failed to load songs from Suno." });
+      } else {
+        setFetchError({ type: "network", message: "Network error. Please check your connection and try again." });
+      }
     } finally {
       if (isFirst) setLoadingInitial(false);
       else setLoadingMore(false);
@@ -237,12 +233,7 @@ export function SunoImportModal({ onClose, onImportComplete }: SunoImportModalPr
     setImporting(true);
     setImportResult(null);
     try {
-      const res = await fetch("/api/suno/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songIds: Array.from(selectedIds) }),
-      });
-      const data = (await res.json()) as ImportResult;
+      const data = await apiPost<ImportResult>("/api/suno/import", { songIds: Array.from(selectedIds) });
       setImportResult(data);
 
       // Mark newly imported songs as alreadyImported in the list

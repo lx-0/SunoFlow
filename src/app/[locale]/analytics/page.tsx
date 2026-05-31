@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import { AppShell } from "@/components/AppShell";
+import { apiGet } from "@/lib/api-client";
 import {
   MusicalNoteIcon,
   HeartIcon,
@@ -95,12 +96,12 @@ export default function AnalyticsPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [analyticsRes, creditsRes] = await Promise.all([
-        fetch("/api/analytics/user"),
-        fetch("/api/credits"),
+      const [analyticsData, creditData] = await Promise.allSettled([
+        apiGet<UserAnalytics>("/api/analytics/user"),
+        apiGet<CreditUsageData>("/api/credits"),
       ]);
-      if (analyticsRes.ok) setData(await analyticsRes.json());
-      if (creditsRes.ok) setCreditData(await creditsRes.json());
+      if (analyticsData.status === "fulfilled") setData(analyticsData.value);
+      if (creditData.status === "fulfilled") setCreditData(creditData.value);
     } catch {
       // keep existing data
     } finally {

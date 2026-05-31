@@ -21,6 +21,7 @@ import { useSession } from "next-auth/react";
 import { useToast } from "@/components/Toast";
 import { ShareMenu } from "@/components/ShareMenu";
 import { formatDuration as formatTime } from "@/lib/time-format";
+import { apiPost } from "@/lib/api-client";
 
 const ReportModal = dynamic(() => import("@/components/ReportModal").then((m) => m.ReportModal), { ssr: false });
 
@@ -91,9 +92,7 @@ export function PublicPlaylistView({
       // Track play count once per session per playlist
       if (!playTrackedRef.current) {
         playTrackedRef.current = true;
-        fetch(`/api/playlists/${playlistId}/play`, { method: "POST" }).catch(
-          () => {}
-        );
+        apiPost(`/api/playlists/${playlistId}/play`, {}).catch(() => {});
       }
     },
     [playableSongs, playlistId]
@@ -167,18 +166,8 @@ export function PublicPlaylistView({
     if (isCopying) return;
     setIsCopying(true);
     try {
-      const res = await fetch(`/api/playlists/${playlistId}/copy`, { method: "POST" });
-      if (res.ok) {
-        const data = await res.json();
-        toast(`"${data.playlist.name}" added to your library`, "success");
-      } else {
-        const data = await res.json().catch(() => ({}));
-        if (data.code === "LIMIT_REACHED") {
-          toast("Playlist limit reached (50)", "error");
-        } else {
-          toast("Failed to add to library", "error");
-        }
-      }
+      const data = await apiPost<{ playlist: { name: string } }>(`/api/playlists/${playlistId}/copy`, {});
+      toast(`"${data.playlist.name}" added to your library`, "success");
     } catch {
       toast("Failed to add to library", "error");
     } finally {

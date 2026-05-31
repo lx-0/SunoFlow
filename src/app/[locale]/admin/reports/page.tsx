@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { apiGet, apiPatch } from "@/lib/api-client";
 import Image from "next/image";
 import {
   MusicalNoteIcon,
@@ -63,9 +64,7 @@ export default function AdminReportsPage() {
   const fetchReports = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/reports?status=${statusFilter}&page=${page}`);
-      if (!res.ok) return;
-      const data = await res.json();
+      const data = await apiGet<{ reports: ReportItem[]; totalPages: number; total: number }>(`/api/admin/reports?status=${statusFilter}&page=${page}`);
       setReports(data.reports);
       setTotalPages(data.totalPages);
       setTotal(data.total);
@@ -83,14 +82,8 @@ export default function AdminReportsPage() {
   async function handleAction(reportId: string, action: string) {
     setActionLoading(reportId);
     try {
-      const res = await fetch(`/api/admin/reports/${reportId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
-      if (res.ok) {
-        fetchReports();
-      }
+      await apiPatch(`/api/admin/reports/${reportId}`, { action });
+      fetchReports();
     } finally {
       setActionLoading(null);
     }

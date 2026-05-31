@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useToast } from "@/components/Toast";
+import { apiGet, apiPost } from "@/lib/api-client";
 
 interface DigestItem {
   source: "rss";
@@ -33,9 +34,7 @@ export function useTodaysPicks(hasRss: boolean) {
   const fetchTodaysPicks = useCallback(async () => {
     setPicksLoading(true);
     try {
-      const res = await fetch("/api/digests?limit=1");
-      if (!res.ok) return;
-      const data = await res.json();
+      const data = await apiGet<{ digests?: InspirationDigest[] }>("/api/digests?limit=1");
       const latest = data.digests?.[0] ?? null;
       if (latest) {
         const picksDate = new Date(latest.createdAt);
@@ -58,12 +57,7 @@ export function useTodaysPicks(hasRss: boolean) {
   const generatePicks = useCallback(async () => {
     setPicksGenerating(true);
     try {
-      const res = await fetch("/api/digests/generate", { method: "POST" });
-      if (!res.ok) {
-        toast("Could not generate today's picks. Please try again.", "error");
-        return;
-      }
-      const data = await res.json();
+      const data = await apiPost<{ digest?: InspirationDigest }>("/api/digests/generate", {});
       setPicks(data.digest ?? null);
     } catch {
       toast("Could not generate today's picks. Please try again.", "error");

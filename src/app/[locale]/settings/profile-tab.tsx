@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { UserCircleIcon } from "@heroicons/react/24/outline";
 import { validateProfile } from "@/lib/settings/profile-validation";
+import { apiGet, apiPatch } from "@/lib/api-client";
 import { ConnectedAccountsSection, SubscriptionSummarySection } from "./account-info-sections";
 import { FieldError, Toast } from "./ui";
 import { useAutoDismissToast } from "./use-auto-dismiss-toast";
@@ -31,8 +32,8 @@ export function ProfileTab() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/profile").then((r) => r.json()),
-      fetch("/api/songs?limit=50").then((r) => r.json()).catch(() => ({ songs: [] })),
+      apiGet<{ name?: string; username?: string; bio?: string; avatarUrl?: string; bannerUrl?: string; featuredSongId?: string }>("/api/profile"),
+      apiGet<{ songs: ProfileSong[] }>("/api/songs?limit=50").catch(() => ({ songs: [] })),
     ])
       .then(([profile, songsData]) => {
         setDisplayName(profile.name ?? "");
@@ -57,25 +58,16 @@ export function ProfileTab() {
     if (!validate()) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: displayName.trim(),
-          username: username.trim().toLowerCase() || null,
-          bio: bio.trim() || null,
-          avatarUrl: avatarUrl.trim() || null,
-          bannerUrl: bannerUrl.trim() || null,
-          featuredSongId: featuredSongId || null,
-        }),
+      const data = await apiPatch<{ name?: string }>("/api/profile", {
+        name: displayName.trim(),
+        username: username.trim().toLowerCase() || null,
+        bio: bio.trim() || null,
+        avatarUrl: avatarUrl.trim() || null,
+        bannerUrl: bannerUrl.trim() || null,
+        featuredSongId: featuredSongId || null,
       });
-      const data = await res.json();
-      if (!res.ok) {
-        showToast(data.error ?? "Failed to save profile", "error");
-      } else {
-        await updateSession({ name: data.name });
-        showToast("Profile saved", "success");
-      }
+      await updateSession({ name: data.name });
+      showToast("Profile saved", "success");
     } catch {
       showToast("Network error", "error");
     } finally {

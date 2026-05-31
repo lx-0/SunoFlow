@@ -5,6 +5,7 @@ import { XMarkIcon } from "@heroicons/react/24/solid";
 import FormInput from "./ui/FormInput";
 import FormTextarea from "./ui/FormTextarea";
 import { formatDuration as formatTime } from "@/lib/time-format";
+import { apiPost } from "@/lib/api-client";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -251,24 +252,14 @@ export function SectionEditor({
     setError(null);
 
     try {
-      const res = await fetch(`/api/songs/${songId}/replace-section`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: prompt.trim(),
-          tags: tags.trim(),
-          title: title.trim() || undefined,
-          infillStartS: startS,
-          infillEndS: endS,
-          negativeTags: negativeTags.trim() || undefined,
-        }),
+      const result = await apiPost<{ song: { id: string } }>(`/api/songs/${songId}/replace-section`, {
+        prompt: prompt.trim(),
+        tags: tags.trim(),
+        title: title.trim() || undefined,
+        infillStartS: startS,
+        infillEndS: endS,
+        negativeTags: negativeTags.trim() || undefined,
       });
-
-      const result = await res.json();
-      if (!res.ok) {
-        setError(result.error ?? "Section replacement failed");
-        return;
-      }
 
       onSubmitted(result.song.id);
     } catch {

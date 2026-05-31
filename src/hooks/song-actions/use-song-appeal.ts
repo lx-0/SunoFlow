@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { type ToastFn } from "@/components/Toast";
+import { apiPost } from "@/lib/api-client";
+import { HttpError } from "@/components/QueryProvider";
 
 
 interface UseSongAppealParams {
@@ -17,24 +19,19 @@ export function useSongAppeal({ songId, toast }: UseSongAppealParams) {
 
   const [handleSubmitAppeal, appealSubmitting] = useAsyncAction(async () => {
     if (appealReason.trim().length < 10) return;
-    const res = await fetch("/api/appeals", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ songId, reason: appealReason.trim() }),
-    });
-    if (res.status === 409) {
-      setAppealStatus("pending");
-      setAppealOpen(false);
-      toast("You already have a pending appeal for this song.");
-      return;
-    }
-    if (res.ok) {
+    try {
+      await apiPost("/api/appeals", { songId, reason: appealReason.trim() });
       setAppealStatus("pending");
       setAppealOpen(false);
       toast("Appeal submitted. We'll review it shortly.");
-    } else {
-      const data = await res.json().catch(() => ({}));
-      toast(data.error || "Failed to submit appeal. Please try again.");
+    } catch (e) {
+      if (e instanceof HttpError && e.status === 409) {
+        setAppealStatus("pending");
+        setAppealOpen(false);
+        toast("You already have a pending appeal for this song.");
+      } else {
+        toast("Failed to submit appeal. Please try again.");
+      }
     }
   });
 

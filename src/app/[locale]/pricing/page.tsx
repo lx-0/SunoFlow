@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { CheckIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import { SparklesIcon, ClockIcon } from "@heroicons/react/24/outline";
 import { track } from "@/lib/analytics";
+import { apiGet, apiPost } from "@/lib/api-client";
 
 interface Tier {
   id: "free" | "starter" | "pro" | "studio";
@@ -253,8 +254,7 @@ export default function PricingPage() {
   const [stripeConfigured, setStripeConfigured] = useState(true);
 
   useEffect(() => {
-    fetch("/api/billing/status")
-      .then((r) => r.json())
+    apiGet<{ stripeConfigured?: boolean }>("/api/billing/status")
       .then((d) => setStripeConfigured(d.stripeConfigured ?? true))
       .catch(() => {/* keep optimistic default */});
   }, []);
@@ -263,17 +263,7 @@ export default function PricingPage() {
     setLoading(tier);
     setError(null);
     try {
-      const res = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier, annual: isAnnual }),
-      });
-      if (!res.ok) {
-        const body = await res.json();
-        setError(body.error ?? "Failed to start checkout");
-        return;
-      }
-      const { url } = await res.json();
+      const { url } = await apiPost<{ url?: string }>("/api/billing/checkout", { tier, annual: isAnnual });
       if (url) window.location.href = url;
     } catch {
       setError("Something went wrong. Please try again.");

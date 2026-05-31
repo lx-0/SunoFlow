@@ -1,3 +1,5 @@
+import { apiPatch } from "@/lib/api-client";
+
 export function reorderByIndex<T>(items: T[], from: number, to: number): T[] {
   if (from === to) return items;
   if (from < 0 || to < 0 || from >= items.length || to >= items.length) {
@@ -30,12 +32,12 @@ export async function persistPlaylistReorder(
   playlistId: string,
   songIds: string[]
 ): Promise<boolean> {
-  const response = await fetch(`/api/playlists/${playlistId}/reorder`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ songIds }),
-  });
-  return response.ok;
+  try {
+    await apiPatch(`/api/playlists/${playlistId}/reorder`, { songIds });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function buildPublicPlaylistUrl(origin: string, slug: string): string {

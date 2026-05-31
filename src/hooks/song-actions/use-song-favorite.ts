@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { type ToastFn } from "@/components/Toast";
+import { apiPost, apiDelete } from "@/lib/api-client";
 
 
 interface UseSongFavoriteParams {
@@ -27,18 +28,13 @@ export function useSongFavorite({
     setIsFavorite(newFav);
     setFavoriteCount(newFav ? prevCount + 1 : Math.max(0, prevCount - 1));
     try {
-      const res = await fetch(`/api/songs/${songId}/favorite`, {
-        method: newFav ? "POST" : "DELETE",
-      });
-      if (!res.ok) {
-        setIsFavorite(prev);
-        setFavoriteCount(prevCount);
-        toast("Failed to update favorite", "error");
-      } else {
-        const data = await res.json();
+      if (newFav) {
+        const data = await apiPost<{ favoriteCount: number }>(`/api/songs/${songId}/favorite`, {});
         setFavoriteCount(data.favoriteCount);
-        toast(newFav ? "Added to favorites" : "Removed from favorites", "success");
+      } else {
+        await apiDelete(`/api/songs/${songId}/favorite`);
       }
+      toast(newFav ? "Added to favorites" : "Removed from favorites", "success");
     } catch {
       setIsFavorite(prev);
       setFavoriteCount(prevCount);

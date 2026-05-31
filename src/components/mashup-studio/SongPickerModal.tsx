@@ -8,6 +8,7 @@ import {
 } from "@heroicons/react/24/solid";
 import Image from "next/image";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
+import { apiGet } from "@/lib/api-client";
 import { Spinner } from "../Spinner";
 import type { LibrarySong } from "./types";
 import { formatDuration } from "./types";
@@ -30,10 +31,9 @@ export function SongPickerModal({
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    fetch("/api/songs?status=ready&limit=100")
-      .then((r) => r.json())
+    apiGet<{ songs?: LibrarySong[] }>("/api/songs?status=ready&limit=100")
       .then((data) => {
-        setSongs(data.songs ?? data ?? []);
+        setSongs(data.songs ?? []);
       })
       .catch(() => {})
       .finally(() => setLoading(false));

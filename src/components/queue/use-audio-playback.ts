@@ -8,6 +8,7 @@ import {
   type SetStateAction,
 } from "react";
 import { proxiedAudioUrl } from "@/lib/audio-cdn";
+import { apiGet } from "@/lib/api-client";
 import type { QueueSong } from "@/components/queue/queue-context-types";
 
 type UseAudioPlaybackParams = {
@@ -162,12 +163,9 @@ export function useAudioPlayback({
     let versions = versionCacheRef.current.get(song.id);
     if (!versions) {
       try {
-        const res = await fetch(`/api/songs/${song.id}/playable-versions`);
-        if (res.ok) {
-          const data = await res.json();
-          versions = (data.versions ?? []) as QueueSong[];
-          versionCacheRef.current.set(song.id, versions);
-        }
+        const data = await apiGet<{ versions?: QueueSong[] }>(`/api/songs/${song.id}/playable-versions`);
+        versions = (data.versions ?? []) as QueueSong[];
+        versionCacheRef.current.set(song.id, versions);
       } catch {
         // Fall through to play canonical
       }

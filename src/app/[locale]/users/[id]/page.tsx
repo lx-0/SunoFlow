@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { AppShell } from "@/components/AppShell";
+import { apiGet, apiPost, apiDelete } from "@/lib/api-client";
 import {
   MusicalNoteIcon,
   UserGroupIcon,
@@ -219,13 +220,14 @@ function FollowButton({
   const toggle = async () => {
     setLoading(true);
     try {
-      const method = following ? "DELETE" : "POST";
-      const res = await fetch(`/api/users/${userId}/follow`, { method });
-      if (res.ok) {
-        const next = !following;
-        setFollowing(next);
-        onUpdate(next);
+      const next = !following;
+      if (following) {
+        await apiDelete(`/api/users/${userId}/follow`);
+      } else {
+        await apiPost(`/api/users/${userId}/follow`, {});
       }
+      setFollowing(next);
+      onUpdate(next);
     } catch {
       // ignore
     } finally {
@@ -316,9 +318,7 @@ function UserActivityFeed({ userId }: { userId: string }) {
     if (append) setLoadingMore(true);
     else setLoading(true);
     try {
-      const res = await fetch(`/api/users/${userId}/activity?page=${p}`);
-      if (!res.ok) return;
-      const data = await res.json();
+      const data = await apiGet<{ items: ActivityItem[]; pagination: { hasMore: boolean } }>(`/api/users/${userId}/activity?page=${p}`);
       setItems((prev) => append ? [...prev, ...data.items] : data.items);
       setHasMore(data.pagination.hasMore);
       setPage(p);
@@ -383,16 +383,9 @@ export default function UserProfilePage() {
 
   useEffect(() => {
     if (!id) return;
-    fetch(`/api/users/${id}`)
-      .then(async (res) => {
-        if (res.status === 404) {
-          setNotFound(true);
-          return;
-        }
-        const data = await res.json();
-        setProfile(data);
-      })
-      .catch(() => {})
+    apiGet<UserProfile>(`/api/users/${id}`)
+      .then((data) => setProfile(data))
+      .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [id]);
 

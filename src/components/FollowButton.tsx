@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { UserPlusIcon, UserMinusIcon } from "@heroicons/react/24/outline";
+import { apiPost, apiDelete } from "@/lib/api-client";
 
 interface FollowButtonProps {
   userId: string;
@@ -40,13 +41,13 @@ export function FollowButton({
     setLoading(true);
     const newState = !isFollowing;
     try {
-      const res = await fetch(`/api/users/${userId}/follow`, {
-        method: newState ? "POST" : "DELETE",
-      });
-      if (res.ok) {
-        setIsFollowing(newState);
-        onFollowChange?.(newState);
+      if (newState) {
+        await apiPost(`/api/users/${userId}/follow`, {});
+      } else {
+        await apiDelete(`/api/users/${userId}/follow`);
       }
+      setIsFollowing(newState);
+      onFollowChange?.(newState);
     } catch {
       // ignore
     } finally {

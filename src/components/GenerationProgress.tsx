@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { apiPost } from "@/lib/api-client";
 import { useRouter } from "next/navigation";
 import {
   MusicalNoteIcon,
@@ -50,11 +51,7 @@ function ThumbsFeedback({ songId }: { songId: string }) {
         // No delete endpoint — just update to the other value or do nothing visually
         setRating(null);
       } else {
-        await fetch(`/api/songs/${songId}/feedback`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rating: next }),
-        });
+        await apiPost(`/api/songs/${songId}/feedback`, { rating: next });
         setRating(next);
       }
     } catch {

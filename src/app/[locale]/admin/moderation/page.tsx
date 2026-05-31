@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import Image from "next/image";
 import {
   MusicalNoteIcon,
@@ -102,9 +103,7 @@ export default function AdminModerationPage() {
     setLoading(true);
     setSelected(new Set());
     try {
-      const res = await fetch(`/api/admin/reports?status=${statusFilter}&page=${page}`);
-      if (!res.ok) return;
-      const data = await res.json();
+      const data = await apiGet<{ reports: ReportItem[]; totalPages: number; total: number }>(`/api/admin/reports?status=${statusFilter}&page=${page}`);
       setReports(data.reports);
       setTotalPages(data.totalPages);
       setTotal(data.total);
@@ -122,12 +121,8 @@ export default function AdminModerationPage() {
   async function handleAction(reportId: string, action: string) {
     setActionLoading(reportId);
     try {
-      const res = await fetch(`/api/admin/reports/${reportId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
-      if (res.ok) fetchReports();
+      await apiPatch(`/api/admin/reports/${reportId}`, { action });
+      fetchReports();
     } finally {
       setActionLoading(null);
     }
@@ -137,11 +132,7 @@ export default function AdminModerationPage() {
     if (selected.size === 0) return;
     setBulkLoading(true);
     try {
-      await fetch("/api/admin/reports/bulk", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reportIds: Array.from(selected), action }),
-      });
+      await apiPost("/api/admin/reports/bulk", { reportIds: Array.from(selected), action });
       fetchReports();
     } finally {
       setBulkLoading(false);

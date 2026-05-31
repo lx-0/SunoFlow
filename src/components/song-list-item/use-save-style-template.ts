@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useToast } from "../Toast";
+import { apiPost } from "@/lib/api-client";
 
 export function useSaveStyleTemplate() {
   const [saveStyleOpen, setSaveStyleOpen] = useState(false);
@@ -21,22 +22,13 @@ export function useSaveStyleTemplate() {
   async function submitSaveStyle(sourceSongId: string) {
     setIsSavingStyle(true);
     try {
-      const res = await fetch("/api/style-templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: styleTemplateName.trim(),
-          tags: styleTemplateTags.trim(),
-          sourceSongId,
-        }),
+      await apiPost("/api/style-templates", {
+        name: styleTemplateName.trim(),
+        tags: styleTemplateTags.trim(),
+        sourceSongId,
       });
-      if (res.ok) {
-        toast("Style template saved", "success");
-        setSaveStyleOpen(false);
-      } else {
-        const data = await res.json();
-        toast(data.error ?? "Failed to save template", "error");
-      }
+      toast("Style template saved", "success");
+      setSaveStyleOpen(false);
     } catch {
       toast("Failed to save template", "error");
     } finally {

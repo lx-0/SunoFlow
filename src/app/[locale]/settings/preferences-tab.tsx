@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { STYLE_OPTIONS } from "./constants";
+import { apiGet, apiPost, apiPatch } from "@/lib/api-client";
 import {
   InstagramPostsSection,
   NotificationPreferencesSection,
@@ -26,8 +27,7 @@ export function PreferencesTab() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch("/api/profile/preferences")
-      .then((r) => r.json())
+    apiGet<{ defaultStyle?: string; preferredGenres?: string[] }>("/api/profile/preferences")
       .then((data) => {
         setDefaultStyle(data.defaultStyle ?? null);
         const genres = data.preferredGenres ?? [];
@@ -43,15 +43,8 @@ export function PreferencesTab() {
   const fetchSuggestions = useCallback(async (genres: string[], partial?: string) => {
     setLoadingSuggestions(true);
     try {
-      const res = await fetch("/api/profile/genres/suggest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentGenres: genres, partial }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSuggestions(data.suggestions ?? []);
-      }
+      const data = await apiPost<{ suggestions?: string[] }>("/api/profile/genres/suggest", { currentGenres: genres, partial });
+      setSuggestions(data.suggestions ?? []);
     } catch {
       // ignore
     } finally {
@@ -92,17 +85,8 @@ export function PreferencesTab() {
   const handleSavePreferences = async () => {
     setSaving(true);
     try {
-      const res = await fetch("/api/profile/preferences", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ defaultStyle, preferredGenres }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        showToast(data.error ?? "Failed to save preferences", "error");
-      } else {
-        showToast("Preferences saved", "success");
-      }
+      await apiPatch("/api/profile/preferences", { defaultStyle, preferredGenres });
+      showToast("Preferences saved", "success");
     } catch {
       showToast("Network error", "error");
     } finally {

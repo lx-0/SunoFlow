@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useOptimisticToggle } from "@/hooks/useOptimisticToggle";
 import { fetchEffect } from "@/lib/fetch-effect";
+import { apiPost, apiDelete } from "@/lib/api-client";
 
 interface UsePlayerFavoriteOptions {
   songId: string | undefined;
@@ -15,10 +16,11 @@ export function usePlayerFavorite({ songId, isAuthenticated, usePublicEndpoint }
     false,
     async (newFav: boolean) => {
       if (!songId) return;
-      const res = await fetch(`/api/songs/${songId}/favorite`, {
-        method: newFav ? "POST" : "DELETE",
-      });
-      if (!res.ok) throw new Error("failed");
+      if (newFav) {
+        await apiPost(`/api/songs/${songId}/favorite`, {});
+      } else {
+        await apiDelete(`/api/songs/${songId}/favorite`);
+      }
     },
   );
 

@@ -3,6 +3,7 @@
 import { useEffect, type MutableRefObject } from "react";
 import type { QueueSong, RadioParams, RepeatMode } from "@/components/queue/queue-context-types";
 import { getNextQueueIndex } from "@/components/queue/queue-navigation";
+import { apiPost } from "@/lib/api-client";
 
 type UseQueueAudioEventsParams = {
   audioRef: MutableRefObject<HTMLAudioElement | null>;
@@ -78,8 +79,7 @@ export function useQueueAudioEvents({
       if (currentSong && !cdnFallbackRef.current.has(currentSong.id)) {
         cdnFallbackRef.current.add(currentSong.id);
         const generation = loadGenerationRef.current;
-        fetch(`/api/songs/${currentSong.id}/play`, { method: "POST" })
-          .then((res) => (res.ok ? res.json() : Promise.reject()))
+        apiPost<{ audioUrl?: string }>(`/api/songs/${currentSong.id}/play`, {})
           .then((data) => {
             if (loadGenerationRef.current !== generation) return;
             if (!data?.audioUrl) {

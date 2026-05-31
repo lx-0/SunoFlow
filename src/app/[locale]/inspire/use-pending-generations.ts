@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
+import { apiGet, apiPost, apiPatch } from "@/lib/api-client";
 
 interface PendingFeedGenerationItem {
   id: string;
@@ -27,9 +28,7 @@ export function usePendingGenerations() {
   const fetchPendingGenerations = useCallback(async () => {
     setPendingLoading(true);
     try {
-      const res = await fetch("/api/feed-generations");
-      if (!res.ok) return;
-      const data = await res.json();
+      const data = await apiGet<{ items?: PendingFeedGenerationItem[] }>("/api/feed-generations");
       setPendingGenerations(data.items ?? []);
     } catch {
       // ignore
@@ -41,16 +40,7 @@ export function usePendingGenerations() {
   const handleApprovePending = useCallback(
     async (item: PendingFeedGenerationItem) => {
       try {
-        const res = await fetch(`/api/feed-generations/${item.id}/approve`, { method: "POST" });
-        if (!res.ok) {
-          const data = await res.json().catch(() => null);
-          toast(
-            data?.error ?? "Could not open this suggested item. Please try again.",
-            "error",
-          );
-          return;
-        }
-        const data = await res.json();
+        const data = await apiPost<{ prompt?: string; style?: string }>(`/api/feed-generations/${item.id}/approve`, {});
         setPendingGenerations((prev) => prev.filter((p) => p.id !== item.id));
         const params = new URLSearchParams();
         if (data.prompt) params.set("prompt", data.prompt);
@@ -66,11 +56,7 @@ export function usePendingGenerations() {
   const handleDismissPending = useCallback(async (id: string) => {
     setPendingGenerations((prev) => prev.filter((p) => p.id !== id));
     try {
-      await fetch(`/api/feed-generations/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "dismissed" }),
-      });
+      await apiPatch(`/api/feed-generations/${id}`, { status: "dismissed" });
     } catch {
       toast("Could not dismiss this item. It may reappear on refresh.", "error");
       fetchPendingGenerations();

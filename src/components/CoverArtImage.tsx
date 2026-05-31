@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { apiPost } from "@/lib/api-client";
 
 const inflightRefreshes = new Map<string, Promise<string | null>>();
 
@@ -9,11 +10,7 @@ async function refreshCoverUrl(songId: string): Promise<string | null> {
   const existing = inflightRefreshes.get(songId);
   if (existing) return existing;
 
-  const p = fetch(`/api/songs/${songId}/refresh`, { method: "POST" })
-    .then((res) => {
-      if (!res.ok) return null;
-      return res.json();
-    })
+  const p = apiPost<{ song?: { imageUrl?: string } }>(`/api/songs/${songId}/refresh`, {})
     .then((data) => (data?.song?.imageUrl as string) ?? null)
     .catch(() => null)
     .finally(() => {
