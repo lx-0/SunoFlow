@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { apiGet } from "@/lib/api-client";
 import {
   ChartBarIcon,
   ChartPieIcon,
@@ -40,12 +41,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [pendingAppeals, setPendingAppeals] = useState(0);
 
   useEffect(() => {
-    fetch("/api/admin/reports/count")
-      .then((r) => r.ok ? r.json() : null)
+    apiGet<{ pending?: number }>("/api/admin/reports/count")
       .then((data) => { if (data?.pending) setPendingReports(data.pending); })
       .catch(() => {});
-    fetch("/api/admin/appeals?status=pending&limit=1")
-      .then((r) => r.ok ? r.json() : null)
+    apiGet<{ total?: number }>("/api/admin/appeals?status=pending&limit=1")
       .then((data) => { if (data?.total != null) setPendingAppeals(data.total); })
       .catch(() => {});
   }, []);
