@@ -46,37 +46,15 @@ export function LibraryView({
   const router = useRouter();
 
   const {
-    searchText,
-    setSearchText,
-    statusFilter,
-    setStatusFilter,
-    ratingFilter,
-    setRatingFilter,
-    dateFrom,
-    setDateFrom,
-    dateTo,
-    setDateTo,
-    sortBy,
-    setSortBy,
-    tagFilter,
-    setTagFilter,
-    smartFilter,
-    setSmartFilter,
-    genreFilter,
-    setGenreFilter,
-    moodFilter,
-    setMoodFilter,
-    tempoMin,
-    setTempoMin,
-    tempoMax,
-    setTempoMax,
-    includeVariations,
-    setIncludeVariations,
+    filters,
     debouncedSearch,
+    setFilter,
+    clearAllFilters,
     hasAnyFilter,
     hasActiveFilters,
-    clearAllFilters,
   } = useLibraryFilterState({ enableServerSearch });
+
+  const { searchText, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, smartFilter, genreFilter, moodFilter, tempoMin, tempoMax, includeVariations } = filters;
 
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">(() => {
@@ -341,39 +319,39 @@ export function LibraryView({
       {enableServerSearch && (
         <LibraryToolbar
           searchText={searchText}
-          setSearchText={setSearchText}
+          setSearchText={(v) => setFilter("searchText", v)}
           showFilters={showFilters}
           setShowFilters={setShowFilters}
           hasActiveFilters={hasActiveFilters}
           viewMode={viewMode}
           setViewMode={setViewMode}
           smartFilter={smartFilter}
-          setSmartFilter={setSmartFilter}
+          setSmartFilter={(v) => setFilter("smartFilter", v)}
           includeVariations={includeVariations}
-          setIncludeVariations={setIncludeVariations}
+          setIncludeVariations={(v) => setFilter("includeVariations", typeof v === "function" ? v(includeVariations) : v)}
           sortBy={sortBy}
-          setSortBy={setSortBy}
+          setSortBy={(v) => setFilter("sortBy", v)}
           hasAnyFilter={hasAnyFilter}
           clearAllFilters={clearAllFilters}
           statusFilter={statusFilter}
-          setStatusFilter={setStatusFilter}
+          setStatusFilter={(v) => setFilter("statusFilter", v)}
           ratingFilter={ratingFilter}
-          setRatingFilter={setRatingFilter}
+          setRatingFilter={(v) => setFilter("ratingFilter", v)}
           dateFrom={dateFrom}
-          setDateFrom={setDateFrom}
+          setDateFrom={(v) => setFilter("dateFrom", v)}
           dateTo={dateTo}
-          setDateTo={setDateTo}
+          setDateTo={(v) => setFilter("dateTo", v)}
           availableTags={availableTags}
           tagFilter={tagFilter}
-          setTagFilter={setTagFilter}
+          setTagFilter={(v) => setFilter("tagFilter", typeof v === "function" ? v(tagFilter) : v)}
           genreFilter={genreFilter}
-          setGenreFilter={setGenreFilter}
+          setGenreFilter={(v) => setFilter("genreFilter", typeof v === "function" ? v(genreFilter) : v)}
           moodFilter={moodFilter}
-          setMoodFilter={setMoodFilter}
+          setMoodFilter={(v) => setFilter("moodFilter", typeof v === "function" ? v(moodFilter) : v)}
           tempoMin={tempoMin}
-          setTempoMin={setTempoMin}
+          setTempoMin={(v) => setFilter("tempoMin", v)}
           tempoMax={tempoMax}
-          setTempoMax={setTempoMax}
+          setTempoMax={(v) => setFilter("tempoMax", v)}
         />
       )}
 
@@ -484,7 +462,7 @@ export function LibraryView({
                   onSingleArchive={(s) => batchActions.handleSingleSongAction(s, "delete")}
                   onSingleRestore={(s) => batchActions.handleSingleSongAction(s, "restore")}
                   onSingleDeleteForever={(s) => batchActions.handleSingleSongAction(s, "permanent_delete")}
-                  onTagClick={(tagId) => setTagFilter((prev) => prev.includes(tagId) ? prev : [...prev, tagId])}
+                  onTagClick={(tagId) => setFilter("tagFilter", tagFilter.includes(tagId) ? tagFilter : [...tagFilter, tagId])}
                 />
               </div>
             );
