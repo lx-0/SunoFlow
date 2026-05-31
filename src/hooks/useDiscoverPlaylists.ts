@@ -28,7 +28,7 @@ export function useDiscoverPlaylists({
   const [sort, setSort] = useState(initialSort);
   const [genre, setGenre] = useState(initialGenre);
 
-  const { items: playlists, pagination, loading, loadingMore, sentinelRef } =
+  const { items: playlists, pagination, loading, loadingMore, error, sentinelRef } =
     useInfiniteScroll<DiscoverPlaylist, PlaylistDiscoverPagination>({
       active,
       initialPagination: INITIAL_PAGINATION,
@@ -43,5 +43,5 @@ export function useDiscoverPlaylists({
       resetDeps: [sort, genre],
     });
 
-  return { playlists, pagination, sort, setSort, genre, setGenre, loading, loadingMore, sentinelRef };
+  return { playlists, pagination, sort, setSort, genre, setGenre, loading, loadingMore, error, sentinelRef };
 }

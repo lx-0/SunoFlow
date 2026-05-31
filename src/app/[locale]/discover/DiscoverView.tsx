@@ -25,6 +25,7 @@ import {
   ActiveFilterChip,
   CollectionsGridSkeleton,
   EmptyState,
+  FetchErrorBanner,
   FilterPill,
   PlaylistsGridSkeleton,
   ScrollSentinel,
@@ -224,7 +225,9 @@ export function DiscoverView({
                   : `${search.pagination.total} result${search.pagination.total !== 1 ? "s" : ""} for "${search.query}"`}
               </p>
             </div>
-            {search.loading ? (
+            {search.error ? (
+              <FetchErrorBanner message={search.error.message} />
+            ) : search.loading ? (
               <SongGridSkeleton />
             ) : search.results.length === 0 ? (
               <div className="text-center py-16">
@@ -313,7 +316,9 @@ export function DiscoverView({
             </div>
 
             {/* Feed song grid */}
-            {feed.loading ? (
+            {feed.error ? (
+              <FetchErrorBanner message={feed.error.message} />
+            ) : feed.loading ? (
               <SongGridSkeleton />
             ) : feed.songs.length === 0 ? (
               <div className="text-center py-16">
@@ -486,7 +491,9 @@ export function DiscoverView({
             </section>
 
             {/* Browse song grid */}
-            {browse.loading ? (
+            {browse.error ? (
+              <FetchErrorBanner message={browse.error.message} />
+            ) : browse.loading ? (
               <SongGridSkeleton />
             ) : browse.songs.length === 0 ? (
               <EmptyState
@@ -617,7 +624,9 @@ export function DiscoverView({
             </section>
 
             {/* Trending song list */}
-            {trending.loading ? (
+            {trending.error ? (
+              <FetchErrorBanner message={trending.error.message} />
+            ) : trending.loading ? (
               <TrendingListSkeleton />
             ) : trending.songs.length === 0 ? (
               <EmptyState
@@ -650,7 +659,9 @@ export function DiscoverView({
 
         {!search.query && tab === "collections" && (
           <>
-            {collectionsHook.loading ? (
+            {collectionsHook.error ? (
+              <FetchErrorBanner message={collectionsHook.error.message} />
+            ) : collectionsHook.loading ? (
               <CollectionsGridSkeleton />
             ) : collectionsHook.collections.length === 0 ? (
               <div className="text-center py-16">
@@ -742,7 +753,9 @@ export function DiscoverView({
             </section>
 
             {/* Playlists grid */}
-            {playlistsHook.loading ? (
+            {playlistsHook.error ? (
+              <FetchErrorBanner message={playlistsHook.error.message} />
+            ) : playlistsHook.loading ? (
               <PlaylistsGridSkeleton />
             ) : playlistsHook.playlists.length === 0 ? (
               <div className="text-center py-16">

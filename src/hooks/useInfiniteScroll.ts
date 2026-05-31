@@ -19,6 +19,7 @@ interface UseInfiniteScrollResult<T, P> {
   pagination: P;
   loading: boolean;
   loadingMore: boolean;
+  error: Error | null;
   sentinelRef: React.RefObject<HTMLDivElement>;
 }
 
@@ -37,6 +38,7 @@ export function useInfiniteScroll<T, P extends { hasMore: boolean }>({
   const [pagination, setPagination] = useState<P>(initialPagination);
   const [loading, setLoading] = useState(initialLoading);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const fetchPageRef = useRef(fetchPage);
@@ -51,12 +53,13 @@ export function useInfiniteScroll<T, P extends { hasMore: boolean }>({
   const run = useCallback(async (cursor: number, append: boolean) => {
     if (append) setLoadingMore(true);
     else setLoading(true);
+    setError(null);
     try {
       const result = await fetchPageRef.current(cursor, append);
       setItems((prev) => (append ? [...prev, ...result.items] : result.items));
       setPagination(result.pagination);
-    } catch {
-      // keep existing state
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       if (append) setLoadingMore(false);
       else setLoading(false);
@@ -92,5 +95,5 @@ export function useInfiniteScroll<T, P extends { hasMore: boolean }>({
     return () => observer.disconnect();
   }, [active, pagination.hasMore, loadingMore, run]);
 
-  return { items, pagination, loading, loadingMore, sentinelRef };
+  return { items, pagination, loading, loadingMore, error, sentinelRef };
 }

@@ -33,7 +33,7 @@ export function useDiscoverBrowse({
 
   const tempoRange = TEMPO_PRESETS.find((p) => p.label === tempoPreset);
 
-  const { items: songs, pagination, loading, loadingMore, sentinelRef } = useInfiniteScroll<DiscoverSong, DiscoverPagination>({
+  const { items: songs, pagination, loading, loadingMore, error, sentinelRef } = useInfiniteScroll<DiscoverSong, DiscoverPagination>({
     active,
     initialItems: initialSongs,
     initialPagination: initialPagination ?? INITIAL_PAGINATION,
@@ -74,6 +74,7 @@ export function useDiscoverBrowse({
     setTempoPreset,
     loading,
     loadingMore,
+    error,
     sentinelRef,
     filterCount,
     clearFilters,

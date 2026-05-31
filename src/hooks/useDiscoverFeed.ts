@@ -19,7 +19,7 @@ export function useDiscoverFeed({
   const [tag, setTag] = useState(initialTag);
   const [mood, setMood] = useState(initialMood);
 
-  const { items: songs, pagination, loading, loadingMore, sentinelRef } = useInfiniteScroll<FeedSong, FeedPagination>({
+  const { items: songs, pagination, loading, loadingMore, error, sentinelRef } = useInfiniteScroll<FeedSong, FeedPagination>({
     active,
     initialPagination: INITIAL_PAGINATION,
     initialCursor: 1,
@@ -34,5 +34,5 @@ export function useDiscoverFeed({
     resetDeps: [tag, mood],
   });
 
-  return { songs, pagination, tag, setTag, mood, setMood, loading, loadingMore, sentinelRef };
+  return { songs, pagination, tag, setTag, mood, setMood, loading, loadingMore, error, sentinelRef };
 }

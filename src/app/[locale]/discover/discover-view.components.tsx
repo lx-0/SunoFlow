@@ -170,6 +170,15 @@ export function PlaylistsGridSkeleton() {
   );
 }
 
+export function FetchErrorBanner({ message }: { message: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-700 dark:text-red-400">
+      <XMarkIcon className="w-4 h-4 shrink-0" />
+      <span>Failed to load: {message}</span>
+    </div>
+  );
+}
+
 export function CollectionsGridSkeleton() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

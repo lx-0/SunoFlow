@@ -12,7 +12,7 @@ export function useDiscoverSearch({ initialQuery }: { initialQuery: string }) {
   const [query, setQuery] = useState(initialQuery);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { items: results, pagination, loading, loadingMore, sentinelRef } =
+  const { items: results, pagination, loading, loadingMore, error, sentinelRef } =
     useInfiniteScroll<PublicSong, PublicPagination>({
       active: !!query,
       initialPagination: INITIAL_PAGINATION,
@@ -46,6 +46,7 @@ export function useDiscoverSearch({ initialQuery }: { initialQuery: string }) {
     results,
     loading,
     loadingMore,
+    error,
     pagination,
     sentinelRef,
     handleChange,

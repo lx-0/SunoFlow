@@ -17,7 +17,7 @@ export function useDiscoverTrending({
   const [genre, setGenre] = useState("");
   const [mood, setMood] = useState("");
 
-  const { items: songs, pagination, loading, loadingMore, sentinelRef } =
+  const { items: songs, pagination, loading, loadingMore, error, sentinelRef } =
     useInfiniteScroll<TrendingSong, TrendingPagination>({
       active,
       initialPagination: INITIAL_PAGINATION,
@@ -49,6 +49,7 @@ export function useDiscoverTrending({
     setMood,
     loading,
     loadingMore,
+    error,
     sentinelRef,
     filterCount,
     clearFilters,
