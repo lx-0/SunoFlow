@@ -6,6 +6,7 @@ import { XMarkIcon, HandThumbUpIcon, HandThumbDownIcon } from "@heroicons/react/
 import { HandThumbUpIcon as ThumbUpSolid, HandThumbDownIcon as ThumbDownSolid } from "@heroicons/react/24/solid";
 import { track } from "@/lib/analytics";
 import { apiPost } from "@/lib/api-client";
+import { fetchWithTimeout } from "@/lib/fetch-client";
 
 export type FeedbackSource = "song_generation" | "playlist_creation";
 
@@ -73,7 +74,7 @@ export function InAppFeedbackWidget({ source, entityId, onClose }: InAppFeedback
       // Optional webhook – fire-and-forget
       const webhookUrl = process.env.NEXT_PUBLIC_FEEDBACK_WEBHOOK_URL;
       if (webhookUrl) {
-        fetch(webhookUrl, {
+        fetchWithTimeout(webhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
