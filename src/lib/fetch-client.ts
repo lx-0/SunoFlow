@@ -17,17 +17,22 @@ export async function fetchWithTimeout(
   init?: RequestInit,
   timeoutMs = DEFAULT_CLIENT_TIMEOUT_MS
 ): Promise<Response> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
+
+  const externalSignal = init?.signal as AbortSignal | undefined;
+  const signal =
+    externalSignal
+      ? AbortSignal.any([timeoutController.signal, externalSignal])
+      : timeoutController.signal;
 
   try {
-    const res = await fetch(input, {
-      ...init,
-      signal: controller.signal,
-    });
+    const res = await fetch(input, { ...init, signal });
     return res;
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
+      // Re-throw as-is if the caller's signal aborted so callers can detect it
+      if (externalSignal?.aborted) throw err;
       throw new FetchTimeoutError(timeoutMs);
     }
     throw err;

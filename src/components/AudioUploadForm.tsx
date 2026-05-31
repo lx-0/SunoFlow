@@ -13,6 +13,7 @@ import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { GenerationProgress } from "./GenerationProgress";
 import type { RateLimitStatus } from "@/lib/rate-limit";
 import { apiGet } from "@/lib/api-client";
+import { fetchWithTimeout } from "@/lib/fetch-client";
 
 type UploadMode = "cover" | "extend";
 type UploadStep = "idle" | "uploading" | "generating";
@@ -168,7 +169,7 @@ export function AudioUploadForm() {
 
       setStep("generating");
 
-      const res = await fetch("/api/upload", {
+      const res = await fetchWithTimeout("/api/upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

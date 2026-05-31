@@ -9,6 +9,7 @@ import {
 } from "react";
 import { buildRadioRequestUrl, removeFutureSongFromQueue } from "@/components/queue/radio-ops";
 import type { QueueSong, RadioParams } from "@/components/queue/queue-context-types";
+import { apiGet } from "@/lib/api-client";
 
 type UseQueueRadioParams = {
   loadGenerationRef: MutableRefObject<number>;
@@ -48,10 +49,12 @@ export function useQueueRadio({
   const fetchRadioSongs = useCallback(
     async (params: RadioParams, excludeIds: string[]): Promise<QueueSong[]> => {
       const url = buildRadioRequestUrl(window.location.origin, params, excludeIds);
-      const res = await fetch(url);
-      if (!res.ok) return [];
-      const data = await res.json();
-      return (data.songs ?? []) as QueueSong[];
+      try {
+        const data = await apiGet<{ songs?: QueueSong[] }>(url);
+        return data.songs ?? [];
+      } catch {
+        return [];
+      }
     },
     []
   );

@@ -6,6 +6,7 @@ import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { MusicalNoteIcon, QueueListIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
+import { fetchWithTimeout } from "@/lib/fetch-client";
 
 interface SongResult {
   id: string;
@@ -115,7 +116,7 @@ export function SearchBar() {
       const controller = new AbortController();
       abortRef.current = controller;
 
-      fetch(`/api/search?q=${encodeURIComponent(query.trim())}`, {
+      fetchWithTimeout(`/api/search?q=${encodeURIComponent(query.trim())}`, {
         signal: controller.signal,
       })
         .then((res) => res.json())
