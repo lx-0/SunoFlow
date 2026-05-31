@@ -3,6 +3,8 @@
  * useLibrarySongActions and components/library/hooks.
  */
 
+import { fetchWithTimeout } from "./fetch-client";
+
 export type RefreshResult =
   | { deleted: true }
   | { audioUrl: string | null };
@@ -15,7 +17,7 @@ export type RetryResult =
   | { error: string };
 
 export async function refreshSongAudio(songId: string): Promise<RefreshResult> {
-  const res = await fetch(`/api/songs/${songId}/refresh`, { method: "POST" });
+  const res = await fetchWithTimeout(`/api/songs/${songId}/refresh`, { method: "POST" });
   if (res.status === 404) {
     const data = await res.json().catch(() => ({})) as { code?: string };
     if (data.code === "SONG_DELETED") return { deleted: true };
@@ -29,7 +31,7 @@ export async function toggleSongFavorite(
   songId: string,
   newFav: boolean,
 ): Promise<FavoriteResult> {
-  const res = await fetch(`/api/songs/${songId}/favorite`, {
+  const res = await fetchWithTimeout(`/api/songs/${songId}/favorite`, {
     method: newFav ? "POST" : "DELETE",
   });
   if (!res.ok) throw new Error("favorite toggle failed");
@@ -37,7 +39,7 @@ export async function toggleSongFavorite(
 }
 
 export async function retrySong(songId: string): Promise<RetryResult> {
-  const res = await fetch(`/api/songs/${songId}/retry`, {
+  const res = await fetchWithTimeout(`/api/songs/${songId}/retry`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
   });
