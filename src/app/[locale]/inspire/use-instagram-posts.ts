@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { apiPost } from "@/lib/api-client";
 
 const IG_POSTS_KEY = "sunoflow_ig_posts";
 const IG_CACHE_KEY = "sunoflow_ig_cache";
@@ -59,13 +60,7 @@ export function useInstagramPosts() {
     if (urls.length === 0) return;
     setIgLoading(true);
     try {
-      const res = await fetch("/api/instagram/fetch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ urls }),
-      });
-      if (!res.ok) throw new Error("Fetch failed");
-      const data = await res.json();
+      const data = await apiPost<{ posts: InstagramPost[] }>("/api/instagram/fetch", { urls });
       setIgPosts(data.posts);
       const now = new Date();
       setIgRefreshed(now);

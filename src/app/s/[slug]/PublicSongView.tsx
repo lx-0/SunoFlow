@@ -25,6 +25,7 @@ import { usePlayerFavorite } from "@/hooks/usePlayerFavorite";
 import { usePublicSongEmbed } from "@/hooks/usePublicSongEmbed";
 import { usePublicSongVariants, type SerializedPublicVariant } from "@/hooks/usePublicSongVariants";
 import { useToast } from "@/components/Toast";
+import { apiPost } from "@/lib/api-client";
 
 export type { SerializedPublicVariant };
 
@@ -131,11 +132,7 @@ export function PublicSongView({
 
   useEffect(() => {
     track("public_song_viewed", { songId, slug });
-    fetch("/api/analytics/view", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ songId }),
-    }).catch(() => {});
+    apiPost("/api/analytics/view", { songId }).catch(() => {});
   }, [songId, slug]);
 
   const handleEnded = useCallback(() => {

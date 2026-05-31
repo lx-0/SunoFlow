@@ -3,6 +3,8 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { apiPost } from "@/lib/api-client";
+import { HttpError } from "@/components/QueryProvider";
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
@@ -18,24 +20,14 @@ function VerifyEmailContent() {
       return;
     }
 
-    fetch("/api/auth/verify-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token }),
-    })
-      .then(async (res) => {
-        const data = await res.json();
-        if (res.ok) {
-          setStatus("success");
-          setMessage(data.message || "Email verified successfully!");
-        } else {
-          setStatus("error");
-          setMessage(data.error || "Verification failed.");
-        }
+    apiPost<{ message?: string }>("/api/auth/verify-email", { token })
+      .then((data) => {
+        setStatus("success");
+        setMessage(data.message ?? "Email verified successfully!");
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         setStatus("error");
-        setMessage("Something went wrong. Please try again.");
+        setMessage(err instanceof HttpError ? err.message : "Something went wrong. Please try again.");
       });
   }, [token]);
 

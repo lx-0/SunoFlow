@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { apiGet } from "@/lib/api-client";
 import {
   UsersIcon,
   MusicalNoteIcon,
@@ -100,8 +101,7 @@ export default function AdminMetricsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/admin/metrics")
-      .then((r) => r.json())
+    apiGet<MetricsData>("/api/admin/metrics")
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false));

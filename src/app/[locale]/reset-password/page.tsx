@@ -3,6 +3,8 @@
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { apiPost } from "@/lib/api-client";
+import { HttpError } from "@/components/QueryProvider";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -57,23 +59,10 @@ function ResetPasswordForm() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error ?? "Something went wrong");
-        setLoading(false);
-        return;
-      }
-
+      await apiPost("/api/auth/reset-password", { token, password });
       setSuccess(true);
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      setError(err instanceof HttpError ? err.message : "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }

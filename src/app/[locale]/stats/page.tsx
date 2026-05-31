@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { AppShell } from "@/components/AppShell";
+import { apiGet } from "@/lib/api-client";
 import {
   MusicalNoteIcon,
   ClockIcon,
@@ -114,8 +115,7 @@ export default function StatsPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch("/api/stats/user");
-      if (res.ok) setData(await res.json());
+      setData(await apiGet<UserStats>("/api/stats/user"));
     } catch {
       // keep existing data
     } finally {

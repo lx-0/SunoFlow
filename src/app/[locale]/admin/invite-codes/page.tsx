@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { TicketIcon, ClipboardIcon, CheckIcon } from "@heroicons/react/24/outline";
+import { apiGet, apiPost } from "@/lib/api-client";
+import { HttpError } from "@/components/QueryProvider";
 
 interface InviteCode {
   id: string;
@@ -33,8 +35,7 @@ export default function InviteCodesPage() {
   async function load() {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/invite-codes");
-      const data = await res.json();
+      const data = await apiGet<{ codes: InviteCode[] }>("/api/admin/invite-codes");
       setCodes(data.codes ?? []);
     } catch {
       setError("Failed to load invite codes");
@@ -52,24 +53,17 @@ export default function InviteCodesPage() {
     setError("");
     setGenerating(true);
     try {
-      const res = await fetch("/api/admin/invite-codes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          count,
-          note: note.trim() || undefined,
-          expiresInDays: expiresInDays ? Number(expiresInDays) : undefined,
-        }),
+      await apiPost("/api/admin/invite-codes", {
+        count,
+        note: note.trim() || undefined,
+        expiresInDays: expiresInDays ? Number(expiresInDays) : undefined,
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Failed to generate codes");
-        return;
-      }
       setNote("");
       setExpiresInDays("");
       setCount(1);
       await load();
+    } catch (err) {
+      setError(err instanceof HttpError ? err.message : "Failed to generate codes");
     } finally {
       setGenerating(false);
     }

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { AppShell } from "@/components/AppShell";
+import { apiGet } from "@/lib/api-client";
 import {
   MusicalNoteIcon,
   HeartIcon,
@@ -95,12 +96,7 @@ export default function InsightsPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch("/api/analytics/generation-insights");
-      if (res.ok) {
-        setData(await res.json());
-      } else {
-        setError(true);
-      }
+      setData(await apiGet<GenerationInsightsData>("/api/analytics/generation-insights"));
     } catch {
       setError(true);
     } finally {

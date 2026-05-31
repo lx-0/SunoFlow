@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { apiGet, apiPost } from "@/lib/api-client";
+import { apiGet, apiPost, apiDelete } from "@/lib/api-client";
 
 export type PushState =
   | "unsupported"   // Browser doesn't support push
@@ -106,11 +106,7 @@ export function usePushSubscription() {
         return true;
       }
 
-      await fetch("/api/push/subscribe", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ endpoint: subscription.endpoint }),
-      });
+      await apiDelete("/api/push/subscribe", { endpoint: subscription.endpoint });
 
       await subscription.unsubscribe();
       setState("unsubscribed");

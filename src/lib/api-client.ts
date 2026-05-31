@@ -25,8 +25,14 @@ export async function apiPost<T>(url: string, body: unknown): Promise<T> {
   return parseJsonSafe<T>(res);
 }
 
-export async function apiDelete(url: string): Promise<void> {
-  const res = await fetchWithTimeout(url, { method: "DELETE" });
+export async function apiDelete(url: string, body?: unknown): Promise<void> {
+  const res = await fetchWithTimeout(url, {
+    method: "DELETE",
+    ...(body !== undefined && {
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  });
   if (!res.ok) throw new HttpError(res.status, (await parseJsonSafe<{ error?: string }>(res)).error);
 }
 

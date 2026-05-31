@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { track } from "@/lib/analytics";
+import { apiGet } from "@/lib/api-client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,8 +16,7 @@ export default function LoginPage() {
   const [googleEnabled, setGoogleEnabled] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/providers-config")
-      .then((r) => r.json())
+    apiGet<{ google: boolean }>("/api/auth/providers-config")
       .then((data) => setGoogleEnabled(data.google))
       .catch(() => {});
   }, []);

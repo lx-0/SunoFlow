@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import "swagger-ui-react/swagger-ui.css";
+import { apiGet } from "@/lib/api-client";
 
 const SwaggerUI = dynamic(() => import("swagger-ui-react"), { ssr: false });
 
@@ -11,13 +12,9 @@ export default function ApiDocsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/v1/openapi.json")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load API spec");
-        return res.json();
-      })
+    apiGet<object>("/api/v1/openapi.json")
       .then(setSpec)
-      .catch((err) => setError(err.message));
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : "Failed to load API spec"));
   }, []);
 
   if (error) {

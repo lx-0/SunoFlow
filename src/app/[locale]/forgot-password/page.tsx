@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { apiPost } from "@/lib/api-client";
+import { HttpError } from "@/components/QueryProvider";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -15,22 +17,10 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error ?? "Something went wrong");
-        setLoading(false);
-        return;
-      }
-
+      await apiPost("/api/auth/forgot-password", { email });
       setSubmitted(true);
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      setError(err instanceof HttpError ? err.message : "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }

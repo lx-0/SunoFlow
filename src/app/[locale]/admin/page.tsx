@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiGet } from "@/lib/api-client";
 import {
   UsersIcon,
   MusicalNoteIcon,
@@ -90,8 +91,7 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/admin/stats")
-      .then((r) => r.json())
+    apiGet<Stats>("/api/admin/stats")
       .then(setStats)
       .catch(console.error)
       .finally(() => setLoading(false));

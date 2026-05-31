@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { AppShell } from "@/components/AppShell";
+import { apiGet } from "@/lib/api-client";
 import {
   MusicalNoteIcon,
   UserGroupIcon,
@@ -94,8 +95,7 @@ export default function DashboardAnalyticsPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch("/api/analytics/overview");
-      if (res.ok) setData(await res.json());
+      setData(await apiGet<OverviewData>("/api/analytics/overview"));
     } catch {
       // keep existing
     } finally {
