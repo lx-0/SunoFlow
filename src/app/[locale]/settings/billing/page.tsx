@@ -20,6 +20,7 @@ import {
   TIER_BADGE_COLORS,
   type SubscriptionTier,
 } from "@/lib/feature-gates";
+import { apiGet, apiPost } from "@/lib/api-client";
 
 interface SubscriptionData {
   tier: SubscriptionTier;
@@ -235,22 +236,16 @@ export default function BillingPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [subRes, creditRes, invoiceRes, statusRes] = await Promise.all([
-        fetch("/api/billing/subscription"),
-        fetch("/api/credits"),
-        fetch("/api/billing/invoices"),
-        fetch("/api/billing/status"),
+      const [sub, credits, invoiceData, statusData] = await Promise.all([
+        apiGet<SubscriptionData>("/api/billing/subscription"),
+        apiGet<CreditUsage>("/api/credits"),
+        apiGet<{ invoices: InvoiceItem[] }>("/api/billing/invoices"),
+        apiGet<{ stripeConfigured: boolean }>("/api/billing/status"),
       ]);
-      if (subRes.ok) setSub(await subRes.json());
-      if (creditRes.ok) setCredits(await creditRes.json());
-      if (invoiceRes.ok) {
-        const data = await invoiceRes.json();
-        setInvoices(data.invoices ?? []);
-      }
-      if (statusRes.ok) {
-        const data = await statusRes.json();
-        setStripeConfigured(data.stripeConfigured ?? true);
-      }
+      setSub(sub);
+      setCredits(credits);
+      setInvoices(invoiceData.invoices ?? []);
+      setStripeConfigured(statusData.stripeConfigured ?? true);
     } catch {
       // keep existing state
     } finally {
@@ -266,16 +261,10 @@ export default function BillingPage() {
     setPortalLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/billing/portal", { method: "POST" });
-      if (!res.ok) {
-        const body = await res.json();
-        setError(body.error ?? "Could not open billing portal");
-        return;
-      }
-      const { url } = await res.json();
+      const { url } = await apiPost<{ url: string }>("/api/billing/portal", {});
       if (url) window.location.href = url;
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? (err.message === `HTTP 500` ? "Could not open billing portal" : err.message) : "Something went wrong. Please try again.");
     } finally {
       setPortalLoading(false);
     }
@@ -285,22 +274,12 @@ export default function BillingPage() {
     setCancelLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/billing/cancel", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason }),
-      });
-      if (!res.ok) {
-        const body = await res.json();
-        setError(body.error ?? "Could not cancel subscription");
-        setShowCancelDialog(false);
-        return;
-      }
+      await apiPost("/api/billing/cancel", { reason });
       setSub((prev) => (prev ? { ...prev, cancelAtPeriodEnd: true } : prev));
       setCancelSuccess(true);
       setShowCancelDialog(false);
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setShowCancelDialog(false);
     } finally {
       setCancelLoading(false);
@@ -311,20 +290,10 @@ export default function BillingPage() {
     setTopupLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/billing/topup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ package: selectedTopup }),
-      });
-      if (!res.ok) {
-        const body = await res.json();
-        setError(body.error ?? "Could not start credit purchase");
-        return;
-      }
-      const { url } = await res.json();
+      const { url } = await apiPost<{ url: string }>("/api/billing/topup", { package: selectedTopup });
       if (url) window.location.href = url;
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setTopupLoading(false);
     }
