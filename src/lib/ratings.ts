@@ -3,9 +3,15 @@
  * Replaces the old localStorage-only implementation.
  */
 
+import { apiGet, apiPost } from "./api-client";
+
 export interface SongRating {
   stars: number; // 1–5
   note: string;
+}
+
+interface RatingsResponse {
+  ratings: Array<{ songId: string; value: number }>;
 }
 
 /**
@@ -14,9 +20,7 @@ export interface SongRating {
  */
 export async function getRating(songId: string): Promise<SongRating | null> {
   try {
-    const res = await fetch(`/api/ratings?songId=${encodeURIComponent(songId)}`);
-    if (!res.ok) return null;
-    const data = await res.json();
+    const data = await apiGet<RatingsResponse>(`/api/ratings?songId=${encodeURIComponent(songId)}`);
     const ratings = data.ratings;
     if (!ratings || ratings.length === 0) return null;
     return { stars: ratings[0].value, note: "" };
@@ -31,9 +35,7 @@ export async function getRating(songId: string): Promise<SongRating | null> {
  */
 export async function getRatings(): Promise<Record<string, SongRating>> {
   try {
-    const res = await fetch("/api/ratings");
-    if (!res.ok) return {};
-    const data = await res.json();
+    const data = await apiGet<RatingsResponse>("/api/ratings");
     const result: Record<string, SongRating> = {};
     for (const r of data.ratings) {
       result[r.songId] = { stars: r.value, note: "" };
@@ -48,11 +50,7 @@ export async function getRatings(): Promise<Record<string, SongRating>> {
  * Create or update a rating for a song.
  */
 export async function setRating(songId: string, rating: SongRating): Promise<void> {
-  await fetch("/api/ratings", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ songId, value: rating.stars }),
-  });
+  await apiPost("/api/ratings", { songId, value: rating.stars });
 }
 
 /**

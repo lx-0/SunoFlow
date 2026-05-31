@@ -1,6 +1,7 @@
 "use client";
 
 import { track } from "@/lib/analytics";
+import { apiGet } from "@/lib/api-client";
 import { getIsVisible, subscribeVisibility } from "./visibility";
 
 export type GenerationStatus = "pending" | "processing" | "ready" | "failed";
@@ -80,16 +81,20 @@ async function pollSong(songId: string): Promise<void> {
   }
 
   try {
-    const res = await fetch(`/api/songs/${songId}/status`);
-    if (!res.ok) return;
-    const data = await res.json();
-    const info = data.song ?? data;
+    interface SongStatusPayload {
+      generationStatus: string;
+      title: string;
+      errorMessage: string;
+      pollCount: number;
+    }
+    const data = await apiGet<{ song?: SongStatusPayload } & Partial<SongStatusPayload>>(`/api/songs/${songId}/status`);
+    const info: Partial<SongStatusPayload> = data.song ?? data;
     const newStatus: GenerationStatus =
       info.generationStatus === "ready"
         ? "ready"
         : info.generationStatus === "failed"
           ? "failed"
-          : info.pollCount > 0
+          : (info.pollCount ?? 0) > 0
             ? "processing"
             : "pending";
     updateSong(songId, newStatus, info.title, info.errorMessage);

@@ -1,3 +1,5 @@
+import { apiDelete, apiGet, apiPost } from "@/lib/api-client";
+
 export type LibraryBatchAction =
   | "favorite"
   | "unfavorite"
@@ -49,10 +51,6 @@ export interface LibraryPlaylist {
   _count: { songs: number };
 }
 
-interface PlaylistAddResponse {
-  error?: string;
-}
-
 interface CreatePlaylistResponse {
   playlist?: LibraryPlaylist;
   error?: string;
@@ -62,26 +60,17 @@ export async function runSongsBatchAction(
   payload: SongsBatchPayload
 ): Promise<{ ok: true; affected: number } | { ok: false; error: string }> {
   try {
-    const res = await fetch("/api/songs/batch", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = (await res.json().catch(() => ({}))) as SongsBatchResponse;
-    if (!res.ok) {
-      return { ok: false, error: data.error || "Batch operation failed" };
-    }
+    const data = await apiPost<SongsBatchResponse>("/api/songs/batch", payload);
     return { ok: true, affected: data.affected ?? payload.songIds.length };
-  } catch {
-    return { ok: false, error: "Batch operation failed" };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Batch operation failed";
+    return { ok: false, error: msg };
   }
 }
 
 export async function fetchPlaylistOptions(): Promise<LibraryPlaylistOption[]> {
   try {
-    const res = await fetch("/api/playlists");
-    if (!res.ok) return [];
-    const data = (await res.json().catch(() => ({}))) as PlaylistsResponse;
+    const data = await apiGet<PlaylistsResponse>("/api/playlists");
     return (data.playlists ?? []).map((pl) => ({
       id: pl.id,
       name: pl.name,
@@ -97,18 +86,11 @@ export async function addSongToPlaylist(
   songId: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    const res = await fetch(`/api/playlists/${playlistId}/songs`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ songId }),
-    });
-    const data = (await res.json().catch(() => ({}))) as PlaylistAddResponse;
-    if (!res.ok) {
-      return { ok: false, error: data.error || "Failed to add to playlist" };
-    }
+    await apiPost(`/api/playlists/${playlistId}/songs`, { songId });
     return { ok: true };
-  } catch {
-    return { ok: false, error: "Failed to add to playlist" };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to add to playlist";
+    return { ok: false, error: msg };
   }
 }
 
@@ -116,21 +98,14 @@ export async function createPlaylist(
   payload: LibraryPlaylistCreatePayload
 ): Promise<{ ok: true; playlist: LibraryPlaylist } | { ok: false; error: string }> {
   try {
-    const res = await fetch("/api/playlists", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = (await res.json().catch(() => ({}))) as CreatePlaylistResponse;
-    if (!res.ok) {
-      return { ok: false, error: data.error || "Failed to create playlist" };
-    }
+    const data = await apiPost<CreatePlaylistResponse>("/api/playlists", payload);
     if (!data.playlist) {
       return { ok: false, error: "Invalid create playlist response" };
     }
     return { ok: true, playlist: data.playlist };
-  } catch {
-    return { ok: false, error: "Failed to create playlist" };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to create playlist";
+    return { ok: false, error: msg };
   }
 }
 
@@ -138,12 +113,10 @@ export async function deletePlaylist(
   playlistId: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    const res = await fetch(`/api/playlists/${playlistId}`, { method: "DELETE" });
-    if (!res.ok) {
-      return { ok: false, error: "Failed to delete playlist" };
-    }
+    await apiDelete(`/api/playlists/${playlistId}`);
     return { ok: true };
-  } catch {
-    return { ok: false, error: "Failed to delete playlist" };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to delete playlist";
+    return { ok: false, error: msg };
   }
 }
