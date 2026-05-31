@@ -5,8 +5,8 @@ import { Spinner } from "./Spinner";
 import { SparklesIcon } from "@heroicons/react/24/solid";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { GenerationProgress } from "./GenerationProgress";
-import { useMashupRateLimit } from "./mashup-studio/use-mashup-rate-limit";
-import { useMashupSubmission } from "./mashup-studio/use-mashup-submission";
+import { useMashupSubmit } from "./mashup-studio/useMashupSubmit";
+import { useToast } from "./Toast";
 import { TrackSelector } from "./mashup-studio/TrackSelector";
 import { emptyTrack, type TrackState } from "./mashup-studio/types";
 
@@ -14,7 +14,7 @@ import { emptyTrack, type TrackState } from "./mashup-studio/types";
 
 export function MashupStudio() {
   const { songs: trackedSongs, trackSong, clearAll } = useGenerationPoller();
-  const { rateLimit, setRateLimit, rateLimitExhausted } = useMashupRateLimit();
+  const { toast } = useToast();
 
   const [trackA, setTrackA] = useState<TrackState>(emptyTrack());
   const [trackB, setTrackB] = useState<TrackState>(emptyTrack());
@@ -29,10 +29,12 @@ export function MashupStudio() {
     instrumental,
     setInstrumental,
     submitting,
+    rateLimit,
+    rateLimitExhausted,
     trackAReady,
     trackBReady,
     handleSubmit,
-  } = useMashupSubmission(trackA, trackB, trackSong, setRateLimit);
+  } = useMashupSubmit({ trackA, trackB, toast, trackSong });
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
