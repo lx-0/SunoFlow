@@ -13,17 +13,9 @@ import {
 } from "@heroicons/react/24/outline";
 import { BookmarkIcon } from "@heroicons/react/24/solid";
 import { useToast } from "./Toast";
-
-interface PromptTemplate {
-  id: string;
-  name: string;
-  description: string | null;
-  prompt: string;
-  style: string | null;
-  category: string | null;
-  isInstrumental: boolean;
-  isBuiltIn: boolean;
-}
+import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/api-client";
+import { HttpError } from "@/components/QueryProvider";
+import type { PromptTemplate } from "@/components/generate-form/types";
 
 const CATEGORY_OPTIONS = [
   "pop", "rock", "hip-hop", "electronic", "ambient",
@@ -59,12 +51,11 @@ export function TemplateBrowser() {
       const params = new URLSearchParams();
       if (selectedCategory) params.set("category", selectedCategory);
       if (searchQuery.trim()) params.set("search", searchQuery.trim());
-      const res = await fetch(`/api/prompt-templates?${params}`);
-      if (res.ok) {
-        const data = await res.json();
-        setTemplates(data.templates);
-        if (data.categories) setCategories(data.categories);
-      }
+      const data = await apiGet<{ templates: PromptTemplate[]; categories?: string[] }>(
+        `/api/prompt-templates?${params}`,
+      );
+      setTemplates(data.templates);
+      if (data.categories) setCategories(data.categories);
     } catch {
       toast("Failed to load templates", "error");
     } finally {
@@ -127,36 +118,20 @@ export function TemplateBrowser() {
       };
 
       if (editingTemplate) {
-        const res = await fetch(`/api/prompt-templates/${editingTemplate.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          toast(`Template "${data.template.name}" updated`, "success");
-          closeForm();
-          fetchTemplates();
-        } else {
-          toast(data.error ?? "Failed to update template", "error");
-        }
+        const data = await apiPatch<{ template: PromptTemplate }>(
+          `/api/prompt-templates/${editingTemplate.id}`,
+          body,
+        );
+        toast(`Template "${data.template.name}" updated`, "success");
       } else {
-        const res = await fetch("/api/prompt-templates", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          toast(`Template "${data.template.name}" created`, "success");
-          closeForm();
-          fetchTemplates();
-        } else {
-          toast(data.error ?? "Failed to create template", "error");
-        }
+        const data = await apiPost<{ template: PromptTemplate }>("/api/prompt-templates", body);
+        toast(`Template "${data.template.name}" created`, "success");
       }
-    } catch {
-      toast("Failed to save template", "error");
+      closeForm();
+      fetchTemplates();
+    } catch (err) {
+      const msg = err instanceof HttpError ? err.message : undefined;
+      toast(msg ?? "Failed to save template", "error");
     } finally {
       setIsSaving(false);
     }
@@ -164,17 +139,13 @@ export function TemplateBrowser() {
 
   async function handleDelete(templateId: string) {
     try {
-      const res = await fetch(`/api/prompt-templates/${templateId}`, { method: "DELETE" });
-      if (res.ok) {
-        toast("Template deleted", "success");
-        setDeleteConfirm(null);
-        fetchTemplates();
-      } else {
-        const data = await res.json();
-        toast(data.error ?? "Failed to delete", "error");
-      }
-    } catch {
-      toast("Failed to delete template", "error");
+      await apiDelete(`/api/prompt-templates/${templateId}`);
+      toast("Template deleted", "success");
+      setDeleteConfirm(null);
+      fetchTemplates();
+    } catch (err) {
+      const msg = err instanceof HttpError ? err.message : undefined;
+      toast(msg ?? "Failed to delete template", "error");
     }
   }
 
