@@ -6,7 +6,7 @@ import { MusicalNoteIcon, SparklesIcon } from "@heroicons/react/24/solid";
 import { formatDuration as formatTime } from "@/lib/time-format";
 import { firstTag } from "@/lib/tags";
 import { useQuery } from "@tanstack/react-query";
-import { HttpError } from "./QueryProvider";
+import { apiGet } from "@/lib/api-client";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -46,14 +46,6 @@ interface DiscoverySong {
   duration: number | null;
   createdAt: string;
   rating: number | null;
-}
-
-// ─── Fetchers ────────────────────────────────────────────────────────────────
-
-async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url);
-  if (!res.ok) throw new HttpError(res.status);
-  return res.json() as Promise<T>;
 }
 
 // ─── Skeleton components ─────────────────────────────────────────────────────
@@ -181,17 +173,17 @@ function UsageChartSkeleton() {
 export function DashboardView({ userName }: { userName?: string | null }) {
   const { data: stats, isPending: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["dashboard", "stats"],
-    queryFn: () => fetchJson("/api/dashboard/stats"),
+    queryFn: () => apiGet("/api/dashboard/stats"),
   });
 
   const { data: rateLimitStatus, isPending: rlLoading } = useQuery<RateLimitStatusFull>({
     queryKey: ["rate-limit", "status"],
-    queryFn: () => fetchJson("/api/rate-limit/status"),
+    queryFn: () => apiGet("/api/rate-limit/status"),
   });
 
   const { data: dailyData, isPending: dailyLoading } = useQuery<{ songs: DiscoverySong[] }>({
     queryKey: ["recommendations", "daily"],
-    queryFn: () => fetchJson("/api/recommendations/daily"),
+    queryFn: () => apiGet("/api/recommendations/daily"),
   });
 
   const loading = statsLoading || rlLoading;

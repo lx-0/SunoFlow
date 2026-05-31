@@ -6,6 +6,7 @@ import Image from "next/image";
 import { MusicalNoteIcon } from "@heroicons/react/24/solid";
 import { formatDuration as formatTime } from "@/lib/time-format";
 import { firstTag } from "@/lib/tags";
+import { apiGet } from "@/lib/api-client";
 
 interface RecommendedSong {
   id: string;
@@ -83,8 +84,7 @@ export function RecommendationSection({ songId, type, title }: RecommendationSec
         ? `/api/recommendations/similar?songId=${songId}&limit=5`
         : `/api/songs/${songId}/also-liked`;
 
-    fetch(url)
-      .then((r) => r.json())
+    apiGet<{ songs?: RecommendedSong[] }>(url)
       .then((data) => {
         setSongs(data.songs ?? []);
       })

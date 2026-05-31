@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import type { Song } from "@prisma/client";
 import { exportAsZip } from "@/lib/export";
+import { apiDelete } from "@/lib/api-client";
 
 export interface PlaylistSongItem {
   id: string;
@@ -69,7 +70,7 @@ export function usePlaylistBatchOps({
     try {
       await Promise.all(
         idsToRemove.map((songId) =>
-          fetch(`/api/playlists/${playlistId}/songs/${songId}`, { method: "DELETE" })
+          apiDelete(`/api/playlists/${playlistId}/songs/${songId}`)
         )
       );
       toast(

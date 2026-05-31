@@ -6,6 +6,7 @@ import { useToast } from "@/components/Toast";
 import { useQueue, type QueueSong } from "@/components/QueueContext";
 import { songToQueueSong } from "@/lib/song-mappers";
 import type { PlaylistSongItem } from "./usePlaylistBatchOps";
+import { apiDelete } from "@/lib/api-client";
 
 interface UsePlaylistPlaybackOptions {
   playlistId: string;
@@ -65,15 +66,7 @@ export function usePlaylistPlayback({
       setSongs((prev) => prev.filter((ps) => ps.songId !== songId));
 
       try {
-        const res = await fetch(
-          `/api/playlists/${playlistId}/songs/${songId}`,
-          { method: "DELETE" }
-        );
-        if (!res.ok) {
-          setSongs(songs);
-          toast("Failed to remove song", "error");
-          return;
-        }
+        await apiDelete(`/api/playlists/${playlistId}/songs/${songId}`);
         toast("Song removed", "success");
       } catch {
         setSongs(songs);

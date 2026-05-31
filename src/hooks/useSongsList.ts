@@ -2,7 +2,7 @@
 
 import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
 import type { Song } from "@prisma/client";
-import { HttpError } from "@/components/QueryProvider";
+import { apiGet } from "@/lib/api-client";
 
 export interface SongsFilters {
   q?: string;
@@ -59,9 +59,7 @@ function buildFilterParams(filters: SongsFilters, cursor?: string): URLSearchPar
 }
 
 async function fetchSongsPage(filters: SongsFilters, cursor?: string): Promise<SongsPage> {
-  const res = await fetch(`/api/songs?${buildFilterParams(filters, cursor).toString()}`);
-  if (!res.ok) throw new HttpError(res.status);
-  const data = await res.json();
+  const data = await apiGet<{ songs?: Song[]; nextCursor?: string | null; total?: number }>(`/api/songs?${buildFilterParams(filters, cursor).toString()}`);
   return {
     songs: data.songs ?? [],
     nextCursor: data.nextCursor ?? null,

@@ -19,6 +19,7 @@ import {
   useNotifications,
   type NotificationType,
 } from "./NotificationContext";
+import { apiGet } from "@/lib/api-client";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -114,11 +115,7 @@ export function NotificationsView({
     if (!nextCursor || loading) return;
     setLoading(true);
     try {
-      const res = await fetch(
-        `/api/notifications?limit=20&cursor=${nextCursor}`
-      );
-      if (!res.ok) return;
-      const data = await res.json();
+      const data = await apiGet<{ notifications?: NotificationItem[]; nextCursor?: string | null }>(`/api/notifications?limit=20&cursor=${nextCursor}`);
       setItems((prev) => [...prev, ...(data.notifications ?? [])]);
       setNextCursor(data.nextCursor ?? null);
     } catch {
