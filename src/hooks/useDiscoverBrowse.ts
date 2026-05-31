@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { TEMPO_PRESETS } from "@/app/[locale]/discover/discover-view.utils";
 import { apiGet } from "@/lib/api-client";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import { useFilterState } from "@/hooks/useFilterState";
 import type { DiscoverSong, DiscoverPagination } from "@/app/[locale]/discover/discover-view.types";
 
 const INITIAL_PAGINATION: DiscoverPagination = { page: 1, totalPages: 1, total: 0, hasMore: false };
@@ -27,9 +28,8 @@ export function useDiscoverBrowse({
 }) {
   const skipInitialFetch = useRef(!!initialSongs);
   const [sortBy, setSortBy] = useState(initialSortBy);
-  const [tag, setTag] = useState(initialTag);
-  const [mood, setMood] = useState(initialMood);
-  const [tempoPreset, setTempoPreset] = useState(initialTempo);
+  const { values: { tag, mood, tempoPreset }, set: setFilter, clearFilters, filterCount } =
+    useFilterState({ tag: initialTag, mood: initialMood, tempoPreset: initialTempo });
 
   const tempoRange = TEMPO_PRESETS.find((p) => p.label === tempoPreset);
 
@@ -53,25 +53,17 @@ export function useDiscoverBrowse({
     skipInitialFetch,
   });
 
-  const filterCount = (tag ? 1 : 0) + (mood ? 1 : 0) + (tempoPreset ? 1 : 0);
-
-  const clearFilters = useCallback(() => {
-    setTag("");
-    setMood("");
-    setTempoPreset("");
-  }, []);
-
   return {
     songs,
     pagination,
     sortBy,
     setSortBy,
     tag,
-    setTag,
+    setTag: (v: string) => setFilter("tag", v),
     mood,
-    setMood,
+    setMood: (v: string) => setFilter("mood", v),
     tempoPreset,
-    setTempoPreset,
+    setTempoPreset: (v: string) => setFilter("tempoPreset", v),
     loading,
     loadingMore,
     error,

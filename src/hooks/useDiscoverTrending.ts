@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
 import { apiGet } from "@/lib/api-client";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import { useFilterState } from "@/hooks/useFilterState";
 import type { TrendingSong, TrendingPagination } from "@/app/[locale]/discover/discover-view.types";
 
 const INITIAL_PAGINATION: TrendingPagination = { total: 0, limit: 20, offset: 0, hasMore: false };
@@ -14,8 +14,8 @@ export function useDiscoverTrending({
   active: boolean;
   sort: "trending" | "popular";
 }) {
-  const [genre, setGenre] = useState("");
-  const [mood, setMood] = useState("");
+  const { values: { genre, mood }, set: setFilter, clearFilters, filterCount } =
+    useFilterState({ genre: "", mood: "" });
 
   const { items: songs, pagination, loading, loadingMore, error, sentinelRef } =
     useInfiniteScroll<TrendingSong, TrendingPagination>({
@@ -33,20 +33,13 @@ export function useDiscoverTrending({
       resetDeps: [sort, genre, mood],
     });
 
-  const filterCount = (genre ? 1 : 0) + (mood ? 1 : 0);
-
-  const clearFilters = useCallback(() => {
-    setGenre("");
-    setMood("");
-  }, []);
-
   return {
     songs,
     pagination,
     genre,
-    setGenre,
+    setGenre: (v: string) => setFilter("genre", v),
     mood,
-    setMood,
+    setMood: (v: string) => setFilter("mood", v),
     loading,
     loadingMore,
     error,
