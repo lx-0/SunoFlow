@@ -9,6 +9,7 @@ import {
   type HistorySortKey,
 } from "@/components/history/filter-url-state";
 import type { HistoryStatusFilter } from "@/components/history/view-config";
+import { apiGet } from "@/lib/api-client";
 
 interface GenerationEntry {
   id: string;
@@ -96,8 +97,9 @@ export function useHistoryFilters({
     setLoading(true);
     setNextCursor(null);
 
-    fetch(`/api/generations?${buildParams().toString()}`)
-      .then((r) => r.json())
+    apiGet<{ songs: GenerationEntry[]; nextCursor?: string | null; total?: number }>(
+      `/api/generations?${buildParams().toString()}`
+    )
       .then((data) => {
         if (!cancelled && data.songs) {
           setSongs(data.songs);
@@ -133,8 +135,9 @@ export function useHistoryFilters({
   const handleLoadMore = useCallback(() => {
     if (!nextCursor || loadingMore) return;
     setLoadingMore(true);
-    fetch(`/api/generations?${buildParams(nextCursor).toString()}`)
-      .then((r) => r.json())
+    apiGet<{ songs: GenerationEntry[]; nextCursor?: string | null; total?: number }>(
+      `/api/generations?${buildParams(nextCursor).toString()}`
+    )
       .then((data) => {
         if (data.songs) {
           setSongs((prev) => [...prev, ...data.songs]);
