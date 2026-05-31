@@ -347,20 +347,11 @@ function DeleteAccountSection() {
 
     setDeleting(true);
     try {
-      const res = await fetch("/api/profile", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password, confirmEmail }),
-      });
-      const resData = await res.json();
-      if (!res.ok) {
-        showToast(resData.error ?? "Failed to delete account", "error");
-      } else {
-        // Redirect to home after deletion
-        window.location.href = "/";
-      }
-    } catch {
-      showToast("Network error", "error");
+      await apiDelete("/api/profile", { password, confirmEmail });
+      window.location.href = "/";
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to delete account";
+      showToast(msg, "error");
     } finally {
       setDeleting(false);
     }

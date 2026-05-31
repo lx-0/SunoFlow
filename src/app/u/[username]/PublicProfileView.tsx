@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { usePaginatedFetch } from "./use-paginated-fetch";
 import Link from "next/link";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
@@ -268,34 +269,10 @@ function SongCard({ song }: { song: Song }) {
 }
 
 function SongsTab({ username }: { username: string }) {
-  const [songs, setSongs] = useState<Song[]>([]);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-
-  const fetchSongs = useCallback(
-    async (p: number, append = false) => {
-      if (append) setLoadingMore(true);
-      else setLoading(true);
-      try {
-        const data = await apiGet<{ songs: Song[]; pagination: { hasMore: boolean } }>(`/api/u/${username}/songs?page=${p}`);
-        setSongs((prev) => (append ? [...prev, ...data.songs] : data.songs));
-        setHasMore(data.pagination.hasMore);
-        setPage(p);
-      } catch {
-        // ignore
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
-      }
-    },
-    [username]
+  const { items: songs, loading, loadingMore, hasMore, loadMore } = usePaginatedFetch<Song>(
+    `/api/u/${username}/songs`,
+    "songs"
   );
-
-  useEffect(() => {
-    fetchSongs(1);
-  }, [fetchSongs]);
 
   if (loading) {
     return (
@@ -326,7 +303,7 @@ function SongsTab({ username }: { username: string }) {
       {hasMore && (
         <div className="text-center">
           <button
-            onClick={() => fetchSongs(page + 1, true)}
+            onClick={loadMore}
             disabled={loadingMore}
             className="text-sm text-violet-500 hover:text-violet-400 disabled:opacity-50"
           >
@@ -341,34 +318,10 @@ function SongsTab({ username }: { username: string }) {
 // ─── Playlists Tab ─────────────────────────────────────────────────────────────
 
 function PlaylistsTab({ username }: { username: string }) {
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-
-  const fetchPlaylists = useCallback(
-    async (p: number, append = false) => {
-      if (append) setLoadingMore(true);
-      else setLoading(true);
-      try {
-        const data = await apiGet<{ playlists: Playlist[]; pagination: { hasMore: boolean } }>(`/api/u/${username}/playlists?page=${p}`);
-        setPlaylists((prev) => (append ? [...prev, ...data.playlists] : data.playlists));
-        setHasMore(data.pagination.hasMore);
-        setPage(p);
-      } catch {
-        // ignore
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
-      }
-    },
-    [username]
+  const { items: playlists, loading, loadingMore, hasMore, loadMore } = usePaginatedFetch<Playlist>(
+    `/api/u/${username}/playlists`,
+    "playlists"
   );
-
-  useEffect(() => {
-    fetchPlaylists(1);
-  }, [fetchPlaylists]);
 
   if (loading) {
     return (
@@ -427,7 +380,7 @@ function PlaylistsTab({ username }: { username: string }) {
       {hasMore && (
         <div className="text-center">
           <button
-            onClick={() => fetchPlaylists(page + 1, true)}
+            onClick={loadMore}
             disabled={loadingMore}
             className="text-sm text-violet-500 hover:text-violet-400 disabled:opacity-50"
           >
@@ -442,34 +395,10 @@ function PlaylistsTab({ username }: { username: string }) {
 // ─── Liked Songs Tab ───────────────────────────────────────────────────────────
 
 function LikedSongsTab({ username }: { username: string }) {
-  const [songs, setSongs] = useState<Song[]>([]);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-
-  const fetchSongs = useCallback(
-    async (p: number, append = false) => {
-      if (append) setLoadingMore(true);
-      else setLoading(true);
-      try {
-        const data = await apiGet<{ songs: Song[]; pagination: { hasMore: boolean } }>(`/api/u/${username}/liked-songs?page=${p}`);
-        setSongs((prev) => (append ? [...prev, ...data.songs] : data.songs));
-        setHasMore(data.pagination.hasMore);
-        setPage(p);
-      } catch {
-        // ignore
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
-      }
-    },
-    [username]
+  const { items: songs, loading, loadingMore, hasMore, loadMore } = usePaginatedFetch<Song>(
+    `/api/u/${username}/liked-songs`,
+    "songs"
   );
-
-  useEffect(() => {
-    fetchSongs(1);
-  }, [fetchSongs]);
 
   if (loading) {
     return (
@@ -500,7 +429,7 @@ function LikedSongsTab({ username }: { username: string }) {
       {hasMore && (
         <div className="text-center">
           <button
-            onClick={() => fetchSongs(page + 1, true)}
+            onClick={loadMore}
             disabled={loadingMore}
             className="text-sm text-violet-500 hover:text-violet-400 disabled:opacity-50"
           >
