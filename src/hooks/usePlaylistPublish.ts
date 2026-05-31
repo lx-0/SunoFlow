@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { apiGet, apiPatch } from "@/lib/api-client";
 
 interface UsePlaylistPublishOptions {
   playlistId: string;
@@ -28,11 +29,8 @@ export function usePlaylistPublish({
   const [selectedGenre, setSelectedGenre] = useState(initialGenre);
 
   useEffect(() => {
-    fetch("/api/songs/genres")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.genres) setGenres(data.genres);
-      })
+    apiGet<{ genres?: { name: string; count: number }[] }>("/api/songs/genres")
+      .then((data) => { if (data?.genres) setGenres(data.genres); })
       .catch(() => {});
   }, []);
 
@@ -45,23 +43,14 @@ export function usePlaylistPublish({
     }
     setIsPublishing(true);
     try {
-      const res = await fetch(`/api/playlists/${playlistId}/publish`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ genre: selectedGenre || null }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        toast(data?.error ?? "Failed to publish", "error");
-        return;
-      }
-      const data = await res.json();
+      const data = await apiPatch<{ isPublished: boolean; genre?: string; isPublic: boolean; slug: string | null }>(`/api/playlists/${playlistId}/publish`, { genre: selectedGenre || null });
       setIsPublished(data.isPublished);
       if (data.genre) setPublishedGenre(data.genre);
       onPublicityChange?.(data.isPublic, data.slug);
       toast("Playlist published to Discover!", "success");
-    } catch {
-      toast("Failed to publish", "error");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : undefined;
+      toast(msg && !msg.startsWith("HTTP") ? msg : "Failed to publish", "error");
     } finally {
       setIsPublishing(false);
       setShowPublishConfirm(false);
@@ -72,14 +61,7 @@ export function usePlaylistPublish({
     if (isPublishing) return;
     setIsPublishing(true);
     try {
-      const res = await fetch(`/api/playlists/${playlistId}/publish`, {
-        method: "PATCH",
-      });
-      if (!res.ok) {
-        toast("Failed to unpublish", "error");
-        return;
-      }
-      const data = await res.json();
+      const data = await apiPatch<{ isPublished: boolean }>(`/api/playlists/${playlistId}/publish`, {});
       setIsPublished(data.isPublished);
       toast("Playlist removed from Discover", "success");
     } catch {

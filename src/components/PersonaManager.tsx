@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { TrashIcon, UserCircleIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { useToast } from "./Toast";
+import { apiGet, apiPost, apiDelete } from "@/lib/api-client";
 
 interface Persona {
   id: string;
@@ -44,11 +45,8 @@ export function PersonaManager() {
 
   const fetchPersonas = useCallback(async () => {
     try {
-      const res = await fetch("/api/personas");
-      if (res.ok) {
-        const data = await res.json();
-        setPersonas(data.personas);
-      }
+      const data = await apiGet<{ personas: Persona[] }>("/api/personas");
+      setPersonas(data.personas);
     } catch {
       toast("Failed to load personas", "error");
     } finally {
@@ -59,15 +57,11 @@ export function PersonaManager() {
   const fetchSongs = useCallback(async () => {
     setSongsLoading(true);
     try {
-      const res = await fetch("/api/songs?status=ready&limit=50");
-      if (res.ok) {
-        const data = await res.json();
-        // Only show songs that have a sunoJobId (needed for persona creation)
-        const eligible = (data.songs || []).filter(
-          (s: Song) => s.sunoJobId && s.generationStatus === "ready"
-        );
-        setSongs(eligible);
-      }
+      const data = await apiGet<{ songs?: Song[] }>("/api/songs?status=ready&limit=50");
+      const eligible = (data.songs ?? []).filter(
+        (s: Song) => s.sunoJobId && s.generationStatus === "ready"
+      );
+      setSongs(eligible);
     } catch {
       toast("Failed to load songs", "error");
     } finally {
@@ -100,31 +94,22 @@ export function PersonaManager() {
 
     setIsCreating(true);
     try {
-      const res = await fetch("/api/personas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          taskId: song.sunoJobId,
-          name: personaName.trim(),
-          description: personaDescription.trim() || undefined,
-          style: personaStyle.trim() || undefined,
-          vocalStart: vocalStart ? parseFloat(vocalStart) : undefined,
-          vocalEnd: vocalEnd ? parseFloat(vocalEnd) : undefined,
-          songId: song.id,
-        }),
+      const data = await apiPost<{ persona: Persona }>("/api/personas", {
+        taskId: song.sunoJobId,
+        name: personaName.trim(),
+        description: personaDescription.trim() || undefined,
+        style: personaStyle.trim() || undefined,
+        vocalStart: vocalStart ? parseFloat(vocalStart) : undefined,
+        vocalEnd: vocalEnd ? parseFloat(vocalEnd) : undefined,
+        songId: song.id,
       });
-
-      const data = await res.json();
-      if (res.ok) {
-        setPersonas((prev) => [data.persona, ...prev]);
-        setShowCreateForm(false);
-        resetForm();
-        toast(`Persona "${data.persona.name}" created!`, "success");
-      } else {
-        toast(data.error ?? "Failed to create persona", "error");
-      }
-    } catch {
-      toast("Failed to create persona", "error");
+      setPersonas((prev) => [data.persona, ...prev]);
+      setShowCreateForm(false);
+      resetForm();
+      toast(`Persona "${data.persona.name}" created!`, "success");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : undefined;
+      toast(msg && !msg.startsWith("HTTP") ? msg : "Failed to create persona", "error");
     } finally {
       setIsCreating(false);
     }
@@ -133,16 +118,12 @@ export function PersonaManager() {
   async function handleDelete(id: string) {
     setDeletingId(id);
     try {
-      const res = await fetch(`/api/personas/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setPersonas((prev) => prev.filter((p) => p.id !== id));
-        toast("Persona deleted", "success");
-      } else {
-        const data = await res.json();
-        toast(data.error ?? "Failed to delete persona", "error");
-      }
-    } catch {
-      toast("Failed to delete persona", "error");
+      await apiDelete(`/api/personas/${id}`);
+      setPersonas((prev) => prev.filter((p) => p.id !== id));
+      toast("Persona deleted", "success");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : undefined;
+      toast(msg && !msg.startsWith("HTTP") ? msg : "Failed to delete persona", "error");
     } finally {
       setDeletingId(null);
     }

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { XMarkIcon, SparklesIcon, BoltIcon, ClockIcon } from "@heroicons/react/24/outline";
 import { track } from "@/lib/analytics";
+import { apiGet } from "@/lib/api-client";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 
 interface UpgradeModalProps {
@@ -49,8 +50,7 @@ export function UpgradeModal({ trigger, onClose }: UpgradeModalProps) {
   }, [trigger]);
 
   useEffect(() => {
-    fetch("/api/billing/status")
-      .then((r) => r.json())
+    apiGet<{ stripeConfigured?: boolean }>("/api/billing/status")
       .then((d) => setStripeConfigured(d.stripeConfigured ?? true))
       .catch(() => {/* keep optimistic default */});
   }, []);

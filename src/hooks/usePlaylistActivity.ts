@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { apiGet } from "@/lib/api-client";
 
 export interface PlaylistActivityItem {
   id: string;
@@ -34,11 +35,10 @@ export function usePlaylistActivity({
   const handleLoadActivity = useCallback(async () => {
     setActivityLoading(true);
     try {
-      const res = await fetch(`/api/playlists/${playlistId}/activity`);
-      if (res.ok) {
-        const data = await res.json();
-        setActivities(data.activities ?? data);
-      }
+      const data = await apiGet<{ activities?: PlaylistActivityItem[] } | PlaylistActivityItem[]>(`/api/playlists/${playlistId}/activity`);
+      setActivities((Array.isArray(data) ? data : data.activities) ?? []);
+    } catch {
+      // ignore
     } finally {
       setActivityLoading(false);
     }

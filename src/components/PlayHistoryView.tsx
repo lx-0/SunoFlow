@@ -13,6 +13,7 @@ import Image from "next/image";
 import { useQueue, type QueueSong } from "./QueueContext";
 import { useToast } from "./Toast";
 import { getCurrentQueueSong } from "@/components/queue/queue-selectors";
+import { apiGet, apiDelete } from "@/lib/api-client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -70,9 +71,7 @@ export function PlayHistoryView() {
     try {
       const params = new URLSearchParams({ limit: "20" });
       if (cursor) params.set("cursor", cursor);
-      const res = await fetch(`/api/history?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch history");
-      return await res.json() as { items: HistoryItem[]; nextCursor: string | null; total: number };
+      return await apiGet<{ items: HistoryItem[]; nextCursor: string | null; total: number }>(`/api/history?${params}`);
     } catch {
       return null;
     }
@@ -108,8 +107,7 @@ export function PlayHistoryView() {
     if (clearing) return;
     setClearing(true);
     try {
-      const res = await fetch("/api/history", { method: "DELETE" });
-      if (!res.ok) throw new Error();
+      await apiDelete("/api/history");
       setItems([]);
       setNextCursor(null);
       setTotal(0);

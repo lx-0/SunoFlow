@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { apiPatch } from "@/lib/api-client";
 
 interface UsePlaylistShareOptions {
   playlistId: string;
@@ -24,14 +25,7 @@ export function usePlaylistShare({
     if (isTogglingShare) return;
     setIsTogglingShare(true);
     try {
-      const res = await fetch(`/api/playlists/${playlistId}/share`, {
-        method: "PATCH",
-      });
-      if (!res.ok) {
-        toast("Failed to update sharing", "error");
-        return;
-      }
-      const data = await res.json();
+      const data = await apiPatch<{ isPublic: boolean; slug: string | null }>(`/api/playlists/${playlistId}/share`, {});
       setIsPublic(data.isPublic);
       setSlug(data.slug);
       toast(

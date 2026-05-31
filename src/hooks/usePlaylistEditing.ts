@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { apiPatch, apiDelete } from "@/lib/api-client";
 
 interface UsePlaylistEditingOptions {
   playlistId: string;
@@ -40,13 +41,7 @@ export function usePlaylistEditing({
     if (!editName.trim() || saving) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/playlists/${playlistId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editName.trim(), description: editDesc.trim() || null }),
-      });
-      if (!res.ok) { toast("Failed to update playlist", "error"); return; }
-      const data = await res.json();
+      const data = await apiPatch<Record<string, unknown>>(`/api/playlists/${playlistId}`, { name: editName.trim(), description: editDesc.trim() || null });
       onPlaylistUpdate(data);
       setEditing(false);
       toast("Playlist updated", "success");
@@ -60,8 +55,7 @@ export function usePlaylistEditing({
   const handleDelete = useCallback(async () => {
     setShowDeleteConfirm(false);
     try {
-      const res = await fetch(`/api/playlists/${playlistId}`, { method: "DELETE" });
-      if (!res.ok) { toast("Failed to delete playlist", "error"); return; }
+      await apiDelete(`/api/playlists/${playlistId}`);
       toast("Playlist deleted", "success");
       onDeleted();
     } catch {

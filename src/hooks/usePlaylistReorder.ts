@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { apiPatch } from "@/lib/api-client";
 
 interface PlaylistSongItemBase {
   id: string;
@@ -22,15 +23,7 @@ async function persistReorder<T extends PlaylistSongItemBase>(
   toast: (message: string, type: "success" | "error") => void,
 ) {
   try {
-    const res = await fetch(`/api/playlists/${playlistId}/reorder`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ songIds: reordered.map((ps) => ps.songId) }),
-    });
-    if (!res.ok) {
-      onError();
-      toast("Failed to reorder", "error");
-    }
+    await apiPatch(`/api/playlists/${playlistId}/reorder`, { songIds: reordered.map((ps) => ps.songId) });
   } catch {
     onError();
     toast("Failed to reorder", "error");

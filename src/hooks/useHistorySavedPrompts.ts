@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useToast } from "@/components/Toast";
+import { apiPost } from "@/lib/api-client";
 
 interface PromptEntry {
   id: string;
@@ -21,23 +22,15 @@ export function useHistorySavedPrompts() {
       try {
         const name =
           entry.title || entry.prompt.slice(0, 40) + (entry.prompt.length > 40 ? "…" : "");
-        const res = await fetch("/api/presets", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name,
-            stylePrompt: entry.prompt,
-            isInstrumental: entry.isInstrumental,
-          }),
+        await apiPost("/api/presets", {
+          name,
+          stylePrompt: entry.prompt,
+          isInstrumental: entry.isInstrumental,
         });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          toast(data.error ?? "Could not save prompt.", "error");
-          return;
-        }
         toast("Prompt saved to library!", "success");
-      } catch {
-        toast("Network error saving prompt.", "error");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : undefined;
+        toast(msg && !msg.startsWith("HTTP") ? msg : "Could not save prompt.", "error");
       } finally {
         setSavingPromptId(null);
       }
