@@ -1,12 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-
-interface RateLimitStatus {
-  remaining: number;
-  limit: number;
-  resetAt: string;
-}
+import type { RateLimitStatus } from "@/lib/rate-limit";
 
 export function useMashupRateLimit() {
   const [rateLimit, setRateLimit] = useState<RateLimitStatus | null>(null);

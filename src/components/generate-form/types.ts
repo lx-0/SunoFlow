@@ -6,11 +6,7 @@ export interface PersonaOption {
   style: string | null;
 }
 
-export interface RateLimitStatus {
-  remaining: number;
-  limit: number;
-  resetAt: string;
-}
+export type { RateLimitStatus } from "@/lib/rate-limit";
 
 export interface CreditInfo {
   creditsRemaining: number;

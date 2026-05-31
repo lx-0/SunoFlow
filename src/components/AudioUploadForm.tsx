@@ -11,15 +11,10 @@ import { useToast } from "./Toast";
 import { Spinner } from "./Spinner";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { GenerationProgress } from "./GenerationProgress";
+import type { RateLimitStatus } from "@/lib/rate-limit";
 
 type UploadMode = "cover" | "extend";
 type UploadStep = "idle" | "uploading" | "generating";
-
-interface RateLimitStatus {
-  remaining: number;
-  limit: number;
-  resetAt: string;
-}
 
 const ACCEPTED_TYPES = ["audio/mpeg", "audio/wav", "audio/ogg", "audio/flac", "audio/mp4", "audio/x-m4a", "audio/aac"];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB for base64

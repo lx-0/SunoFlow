@@ -20,11 +20,7 @@ export interface TrackState {
   fileUrl: string;
 }
 
-export interface RateLimitStatus {
-  remaining: number;
-  limit: number;
-  resetAt: string;
-}
+export type { RateLimitStatus } from "@/lib/rate-limit";
 
 export const ACCEPTED_TYPES = [
   "audio/mpeg",

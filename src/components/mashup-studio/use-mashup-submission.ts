@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { RateLimitStatus } from "@/lib/rate-limit";
 import { useToast } from "../Toast";
 
 type TrackSourceType = "library" | "upload" | "url";
@@ -14,12 +15,6 @@ interface TrackState {
   previewUrl: string | null;
   duration: number | null;
   fileUrl: string;
-}
-
-interface RateLimitStatus {
-  remaining: number;
-  limit: number;
-  resetAt: string;
 }
 
 function fileToBase64(f: File): Promise<string> {
