@@ -6,6 +6,8 @@ import FormTextarea from "./ui/FormTextarea";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { ModalShell } from "./ModalShell";
+import { apiPost } from "@/lib/api-client";
+import { HttpError } from "./QueryProvider";
 
 const REASONS = [
   { value: "offensive", label: "Offensive content" },
@@ -31,33 +33,17 @@ export function ReportModal({ songId, playlistId, songTitle, onClose }: ReportMo
 
   const [doSubmit, submitting] = useAsyncAction(async () => {
     try {
-      const res = await fetch("/api/reports", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songId, playlistId, reason, description: description.trim() || undefined }),
-      });
-
-      if (res.status === 429) {
-        toast("Too many reports. Please try again later.", "error");
-        return;
-      }
-
-      if (res.status === 409) {
-        toast(`You have already reported this ${entityType}.`, "error");
-        onClose();
-        return;
-      }
-
-      if (!res.ok) {
-        const data = await res.json();
-        toast(data.error || "Failed to submit report", "error");
-        return;
-      }
-
+      await apiPost("/api/reports", { songId, playlistId, reason, description: description.trim() || undefined });
       toast("Report submitted. Thank you for helping keep SunoFlow safe.", "success");
       onClose();
-    } catch {
-      toast("Failed to submit report", "error");
+    } catch (err) {
+      if (err instanceof HttpError) {
+        if (err.status === 429) { toast("Too many reports. Please try again later.", "error"); return; }
+        if (err.status === 409) { toast(`You have already reported this ${entityType}.`, "error"); onClose(); return; }
+        toast(err.message || "Failed to submit report", "error");
+      } else {
+        toast("Failed to submit report", "error");
+      }
     }
   });
 

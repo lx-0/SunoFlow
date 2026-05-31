@@ -8,6 +8,7 @@ import { useToast } from "./Toast";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { ModalShell } from "./ModalShell";
+import { apiPost } from "@/lib/api-client";
 
 const CATEGORIES = [
   { value: "bug_report", label: "Bug report" },
@@ -30,27 +31,11 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
 
   const [doSubmit, submitting] = useAsyncAction(async () => {
     try {
-      const res = await fetch("/api/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          category,
-          score: score ?? undefined,
-          comment: comment.trim() || undefined,
-          pageUrl: window.location.href,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        toast(data.error || "Failed to submit feedback", "error");
-        return;
-      }
-
+      await apiPost("/api/feedback", { category, score: score ?? undefined, comment: comment.trim() || undefined, pageUrl: window.location.href });
       toast("Thanks for your feedback!", "success");
       onClose();
-    } catch {
-      toast("Failed to submit feedback", "error");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to submit feedback", "error");
     }
   });
 

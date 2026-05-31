@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
+import { apiGet, apiPost, apiDelete } from "@/lib/api-client";
 
 interface Tag {
   id: string;
@@ -85,11 +86,8 @@ export function TagInput({ songId, initialTags = [], onTagsChange }: TagInputPro
 
   // Fetch all user tags for auto-suggest
   useEffect(() => {
-    fetch("/api/tags")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.tags) setAllTags(data.tags);
-      })
+    apiGet<{ tags?: Tag[] }>("/api/tags")
+      .then((data) => { if (data.tags) setAllTags(data.tags); })
       .catch(() => {});
   }, []);
 
@@ -122,19 +120,10 @@ export function TagInput({ songId, initialTags = [], onTagsChange }: TagInputPro
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/songs/${songId}/tags`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(existingTag ? { tagId: existingTag.id } : { name }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const newTag = data.tag as Tag;
-        updateTags([...tags, newTag]);
-        // Update allTags if this is a new tag
-        if (!allTags.some((t) => t.id === newTag.id)) {
-          setAllTags((prev) => [...prev, newTag]);
-        }
+      const data = await apiPost<{ tag: Tag }>(`/api/songs/${songId}/tags`, existingTag ? { tagId: existingTag.id } : { name });
+      updateTags([...tags, data.tag]);
+      if (!allTags.some((t) => t.id === data.tag.id)) {
+        setAllTags((prev) => [...prev, data.tag]);
       }
     } catch {
       // ignore
@@ -147,10 +136,8 @@ export function TagInput({ songId, initialTags = [], onTagsChange }: TagInputPro
 
   async function removeTag(tagId: string) {
     try {
-      const res = await fetch(`/api/songs/${songId}/tags/${tagId}`, { method: "DELETE" });
-      if (res.ok) {
-        updateTags(tags.filter((t) => t.id !== tagId));
-      }
+      await apiDelete(`/api/songs/${songId}/tags/${tagId}`);
+      updateTags(tags.filter((t) => t.id !== tagId));
     } catch {
       // ignore
     }

@@ -15,6 +15,7 @@ import {
   getIsVisible,
   subscribeVisibility,
 } from "@/lib/realtime/visibility";
+import { apiGet, apiPost, apiPatch } from "@/lib/api-client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -127,11 +128,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   // Fetch notifications from DB
   const fetchNotifications = useCallback(async () => {
     try {
-      const res = await fetch(
+      const data = await apiGet<{ notifications?: Notification[]; unreadCount?: number }>(
         `/api/notifications?limit=${MAX_DROPDOWN_NOTIFICATIONS}`
       );
-      if (!res.ok) return;
-      const data = await res.json();
       setNotifications(data.notifications ?? []);
       setUnreadCount(data.unreadCount ?? 0);
     } catch {
@@ -157,11 +156,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         setUnreadCount((c) => c + 1);
 
         // Persist to DB
-        await fetch("/api/notifications", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(n),
-        });
+        await apiPost("/api/notifications", n);
 
         // Send browser notification
         sendBrowserNotification(n.title, n.message, n.href);
@@ -184,7 +179,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setUnreadCount((c) => Math.max(0, c - 1));
 
       try {
-        await fetch(`/api/notifications/${id}/read`, { method: "PATCH" });
+        await apiPatch(`/api/notifications/${id}/read`, {});
       } catch {
         // Revert on error by refetching
         await fetchNotifications();
@@ -199,7 +194,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setUnreadCount(0);
 
     try {
-      await fetch("/api/notifications/read-all", { method: "PATCH" });
+      await apiPatch("/api/notifications/read-all", {});
     } catch {
       await fetchNotifications();
     }
@@ -227,9 +222,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (!getIsVisible()) return;
       try {
         // Fetch pending songs
-        const pendingRes = await fetch("/api/songs?status=pending");
-        if (!pendingRes.ok) return;
-        const { songs: pendingSongs } = await pendingRes.json();
+        const { songs: pendingSongs } = await apiGet<{ songs: { id: string }[] }>("/api/songs?status=pending");
         const pendingIds = new Set<string>(
           pendingSongs.map((s: { id: string }) => s.id)
         );
@@ -249,9 +242,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
         if (resolvedIds.length > 0) {
           // Fetch all songs to check their final status
-          const allRes = await fetch("/api/songs");
-          if (!allRes.ok) return;
-          const { songs: allSongs } = await allRes.json();
+          const { songs: allSongs } = await apiGet<{ songs: { id: string; title: string | null; generationStatus: string; variationCount?: number }[] }>("/api/songs");
           const songMap = new Map<
             string,
             { id: string; title: string | null; generationStatus: string; variationCount?: number }

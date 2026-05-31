@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { PlaylistSongItem } from "./types";
+import { apiPatch } from "@/lib/api-client";
 
 interface UsePlaylistReorderOptions {
   playlistId: string;
@@ -56,19 +57,11 @@ export function usePlaylistReorder({ playlistId, songs, setSongs, onError }: Use
       const [moved] = reordered.splice(from, 1);
       reordered.splice(to, 0, moved);
       setSongs(reordered);
-      fetch(`/api/playlists/${playlistId}/reorder`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songIds: reordered.map((ps) => ps.songId) }),
-      }).then((res) => {
-        if (!res.ok) {
+      apiPatch(`/api/playlists/${playlistId}/reorder`, { songIds: reordered.map((ps) => ps.songId) })
+        .catch(() => {
           setSongs(prev);
           onError("Failed to reorder");
-        }
-      }).catch(() => {
-        setSongs(prev);
-        onError("Failed to reorder");
-      });
+        });
     }
 
     document.addEventListener("touchmove", onTouchMove, { passive: false });
@@ -96,15 +89,7 @@ export function usePlaylistReorder({ playlistId, songs, setSongs, onError }: Use
     reordered.splice(newIndex, 0, moved);
     setSongs(reordered);
     try {
-      const res = await fetch(`/api/playlists/${playlistId}/reorder`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songIds: reordered.map((ps) => ps.songId) }),
-      });
-      if (!res.ok) {
-        setSongs(prev);
-        onError("Failed to reorder");
-      }
+      await apiPatch(`/api/playlists/${playlistId}/reorder`, { songIds: reordered.map((ps) => ps.songId) });
     } catch {
       setSongs(prev);
       onError("Failed to reorder");
@@ -137,15 +122,7 @@ export function usePlaylistReorder({ playlistId, songs, setSongs, onError }: Use
     setDragOverIndex(null);
 
     try {
-      const res = await fetch(`/api/playlists/${playlistId}/reorder`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songIds: reordered.map((ps) => ps.songId) }),
-      });
-      if (!res.ok) {
-        setSongs(songs);
-        onError("Failed to reorder");
-      }
+      await apiPatch(`/api/playlists/${playlistId}/reorder`, { songIds: reordered.map((ps) => ps.songId) });
     } catch {
       setSongs(songs);
       onError("Failed to reorder");

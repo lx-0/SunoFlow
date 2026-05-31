@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ShareIcon, CheckIcon, GlobeAltIcon } from "@heroicons/react/24/solid";
 import { useToast } from "./Toast";
 import { track } from "@/lib/analytics";
+import { apiPatch } from "@/lib/api-client";
 
 export interface ShareableSong {
   id: string;
@@ -78,12 +79,7 @@ export function ShareButton({
     setConfirmPublic(false);
     setLoading(true);
     try {
-      const res = await fetch(`/api/songs/${song.id}/share`, { method: "PATCH" });
-      if (!res.ok) {
-        toast("Failed to share song", "error");
-        return;
-      }
-      const data = (await res.json()) as { isPublic: boolean; publicSlug: string | null };
+      const data = await apiPatch<{ isPublic: boolean; publicSlug: string | null }>(`/api/songs/${song.id}/share`, {});
       onUpdate?.({ isPublic: data.isPublic, publicSlug: data.publicSlug });
       if (data.isPublic && data.publicSlug) {
         await copyOrShare(data.publicSlug);

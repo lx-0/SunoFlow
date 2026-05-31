@@ -7,6 +7,7 @@ import {
   ArrowUpTrayIcon,
   CheckIcon,
 } from "@heroicons/react/24/solid";
+import { apiPost, apiPatch } from "@/lib/api-client";
 
 interface CoverArtVariant {
   style: string;
@@ -42,14 +43,7 @@ export function CoverArtModal({
     setError(null);
     setSelected(null);
     try {
-      const res = await fetch(`/api/songs/${songId}/cover-art/generate`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Generation failed");
-      }
-      const data = await res.json();
+      const data = await apiPost<{ variants?: CoverArtVariant[] }>(`/api/songs/${songId}/cover-art/generate`, {});
       setVariants(data.variants ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed");
@@ -88,15 +82,7 @@ export function CoverArtModal({
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch(`/api/songs/${songId}/cover-art`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl: selected }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to save cover art");
-      }
+      await apiPatch(`/api/songs/${songId}/cover-art`, { imageUrl: selected });
       onSave(selected);
       onClose();
     } catch (err) {
