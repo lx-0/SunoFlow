@@ -4,7 +4,12 @@ import { publicRoute } from "@/lib/route-handler";
 import { generateApiKey, verifyPassword } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api-error";
+import { rateLimitCheck } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
+
+// Brute-force cap: login attempts per email per hour. Counts failures too, so a
+// password-guessing loop trips the limit. (Per-IP hardening is a follow-up.)
+const AUTH_TOKEN_HOURLY_LIMIT = 10;
 
 /**
  * POST /api/v1/auth/token  (M004-S02-T01)
@@ -19,9 +24,9 @@ import { logger } from "@/lib/logger";
  * future /api/v1/auth/revoke). The raw key is returned exactly once; only its
  * SHA-256 hash is stored.
  *
- * TODO(security, M004-S02): add brute-force rate-limiting (per-IP + per-email)
- * before public launch. Bounded for now: closed beta + the credential mints a
- * REVOCABLE key, not a session, and failures are generic 401s.
+ * Brute-force protected: per-email hourly rate limit (failed attempts count).
+ * Follow-up hardening: add a per-IP limit too. Failures are generic 401s and the
+ * minted credential is a REVOCABLE key, not a session.
  */
 const tokenBody = z.object({
   email: z.string().email(),
@@ -31,6 +36,14 @@ const tokenBody = z.object({
 
 export const POST = publicRoute(
   async (_request, { body }) => {
+    // Rate-limit BEFORE touching the DB, keyed by email — failed attempts count.
+    const rl = await rateLimitCheck(
+      `auth_token:${body.email.toLowerCase()}`,
+      "auth_token",
+      AUTH_TOKEN_HOURLY_LIMIT,
+    );
+    if (!rl.ok) return rl.response;
+
     const user = await prisma.user.findUnique({
       where: { email: body.email },
       select: { id: true, email: true, passwordHash: true, isDisabled: true },
