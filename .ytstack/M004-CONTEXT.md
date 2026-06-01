@@ -47,6 +47,21 @@ Pitch: `.ytstack/OFFICE-HOURS-native-app.md` (framework matrix, architecture, au
 - 2026-06-01: M004 starts while M003 stays formally open on its manual T05 smoke-test
   (user-run, independent). current_milestone moves to M004; M003/S04/T05 remains a
   user TODO.
+- 2026-06-01: Repo structure = **monorepo restructure APPROVED** by user (pnpm/Turborepo:
+  apps/web + apps/mobile + packages/core). Web `pnpm build` must be verified locally
+  before any push (prod-breaking risk: Dockerfile paths, NEXT_PUBLIC ARGs, standalone
+  port handling).
+- 2026-06-01: Distribution requires an **Expo development build** (custom dev client) --
+  Expo Go cannot load track-player/carplay (custom native modules). Apple-account reality
+  (verified): a **free Apple ID ("Personal Team")** can install the dev build on the
+  user's OWN device and run the background-audio lock test (S03/T07) -- background-audio
+  mode is allowed; caveat: 7-day provisioning expiry (weekly re-sign), globally-unique
+  bundle id. The **paid ($99) account is needed only for** TestFlight distribution (S05),
+  App Store, and CarPlay entitlement. User has NO paid account yet -> S05 + CarPlay
+  blocked; S03 on-device proof is NOT blocked (free ID path).
+- 2026-06-01: Headless build environment here has **no iOS simulator/device** -> RN/Expo
+  runtime is NOT verifiable by the agent; on-device verification (esp. S03/T07) is the
+  user's, via the free-ID dev build. Backend (S02) IS agent-verifiable via vitest.
 
 ## Open questions
 
