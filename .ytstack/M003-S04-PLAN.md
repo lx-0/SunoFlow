@@ -5,7 +5,7 @@ project: SunoFlow
 created: 2026-05-28T09:30:43Z
 status: planned
 task_count: 5
-completed_tasks: 3
+completed_tasks: 4
 ---
 
 # M003-S04 -- Slice Plan
@@ -17,7 +17,7 @@ completed_tasks: 3
 - [x] T01 -- `.mcp.json` am Repo-Root (= Plugin-Root, da `.claude-plugin/plugin.json` dort liegt). Inhalt: `{ "mcpServers": { "sunoflow": { "type": "http", "url": "${SUNOFLOW_BASE_URL:-https://sunoflow.app}/api/mcp", "headers": { "Authorization": "Bearer ${SUNOFLOW_API_KEY}" } } } }`. Plugin-Loader interpoliert ENV-Vars bei Plugin-Activation. README-Section "Plugin installation" updaten: `/plugin install sunoflow` + `export SUNOFLOW_API_KEY=sk-...` als einziger User-Step.
 - [x] T02 -- Version-Bump + Plugin-Manifest: `.claude-plugin/plugin.json` 0.2.2 → 0.3.0 (semver minor weil Distribution-Modell wechselt). Description aktualisieren: "Remote MCP server hosted by SunoFlow -- install plugin + set SUNOFLOW_API_KEY". `package.json` version sync.
 - [x] T03 -- Stdio-Server deprecaten: `mcp/server.ts` startet weiterhin (Backward-Compat für lokale Self-Hoster) aber printet Stderr-Banner "DEPRECATED: stdio-MCP wird in 0.4.0 entfernt, nutze die remote HTTP-Variante via /plugin install sunoflow + SUNOFLOW_API_KEY". README + `docs/MCP.md` mit Deprecation-Note. Tests bleiben grün.
-- [ ] T04 -- Marketplaces updaten: BEIDE Catalogs in einem Commit (per Memory `feedback_readme_listings_when_adding_plugins`): (a) `lx-0/skills` Marketplace -- `README.md` + falls vorhanden Bundle-README; (b) `Yesterday-AI/yesterday-public-plugins` falls SunoFlow dort gelistet ist (sonst nur lx-0). `compile.mjs` ausführen wo nötig. Beide source-without-ref (= "latest") so dass Plugin-User automatisch 0.3.0 ziehen.
+- [x] T04 -- Marketplaces updaten: BEIDE Catalogs in einem Commit (per Memory `feedback_readme_listings_when_adding_plugins`): (a) `lx-0/skills` Marketplace -- `README.md` + falls vorhanden Bundle-README; (b) `Yesterday-AI/yesterday-public-plugins` falls SunoFlow dort gelistet ist (sonst nur lx-0). `compile.mjs` ausführen wo nötig. Beide source-without-ref (= "latest") so dass Plugin-User automatisch 0.3.0 ziehen.
 - [ ] T05 -- Fresh-Install-Smoke-Test: Auf zweiter Maschine ODER mit frischem `~/.claude/plugins/cache/`-Wipe: `/plugin marketplace update lx-0`, `/plugin install sunoflow`, neue Shell mit `export SUNOFLOW_API_KEY=sk-...`, claude code starten, `/mcp` muss sunoflow als `connected` listen, `sunoflow_info` per Inspector oder direktem Tool-Call verifizieren. Screenshots/Output in M003-S04-T05-SUMMARY.md.
 
 ## Done when

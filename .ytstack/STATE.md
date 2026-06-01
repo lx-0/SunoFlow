@@ -10,11 +10,13 @@ status: brownfield-imported
 
 # State
 
-**Status:** M003 -- S01+S02+S03 done (origin guard + rate-limit + Sentry logging live). S04 next: plugin ship.
+**Status:** M003 -- S01+S02+S03 done. S04: T01-T04 done (`.mcp.json`, 0.3.0 bump, stdio deprecated, lx-0 marketplace synced @ commit 178781c). Only T05 (fresh-install smoke-test) open.
 
 ## Next action
 
-S04: .mcp.json, version bump 0.2.2→0.3.0, both marketplaces updated, stdio deprecated, fresh-install smoke-test. See `M003-S04-PLAN.md`. NOTE: marketplace updates touch lx-0/skills (separate repo) — needs user approval before write.
+M003-S04-T05: fresh-install smoke-test (manual, second machine / cache wipe): `/plugin marketplace update lx-0`, `/plugin install sunoflow`, new shell with `SUNOFLOW_API_KEY`, start Claude Code, `/mcp` must show sunoflow `connected`. User-run step — cannot be faked. Once green, M003 closes. (T04 needed NO cross-repo write: lx-0 already current, sunoflow not listed in Yesterday marketplace.)
+
+Next initiative queued: **native app** (RN + CarPlay) — pitch at `.ytstack/OFFICE-HOURS-native-app.md`, becomes a milestone via `plan-milestone` once M003 closes. iOS-v1 scope = Browse + Play + Playlists.
 
 M002 (Generate-Refactor) stays planned with S01 done; S02-S04 wait until M003 closes.
 
