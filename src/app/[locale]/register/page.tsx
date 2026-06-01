@@ -35,8 +35,8 @@ export default function RegisterPage() {
 
     try {
       await apiPost("/api/register", { name, email, password, inviteCode });
-    } catch {
-      setError("Registration failed");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Registration failed");
       setLoading(false);
       return;
     }

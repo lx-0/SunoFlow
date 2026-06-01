@@ -29,6 +29,7 @@ vi.mock("@/lib/llm", () => ({
 
 vi.mock("@/lib/rate-limit", () => ({
   acquireRateLimitSlot: vi.fn(),
+  rateLimitCheck: vi.fn(),
 }));
 
 vi.mock("@/lib/error-logger", () => ({
@@ -48,7 +49,7 @@ vi.mock("@sentry/nextjs", () => ({
 import { resolveUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateText } from "@/lib/llm";
-import { acquireRateLimitSlot } from "@/lib/rate-limit";
+import { acquireRateLimitSlot, rateLimitCheck } from "@/lib/rate-limit";
 import { POST } from "./route";
 
 const seg = { params: Promise.resolve({}) } as never;
@@ -64,6 +65,10 @@ describe("POST /api/generate/auto", () => {
     });
     vi.mocked(acquireRateLimitSlot).mockResolvedValue({
       acquired: true,
+      status: { limit: 10, resetAt: new Date(Date.now() + 60_000).toISOString() },
+    } as never);
+    vi.mocked(rateLimitCheck).mockResolvedValue({
+      ok: true,
       status: { limit: 10, resetAt: new Date(Date.now() + 60_000).toISOString() },
     } as never);
     vi.mocked(prisma.song.findMany).mockResolvedValue([] as never);

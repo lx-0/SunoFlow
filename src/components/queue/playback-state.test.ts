@@ -11,6 +11,7 @@ describe("loadPlaybackState", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
+        ok: true,
         json: async () => ({ state: {} }),
       })
     );
@@ -22,6 +23,7 @@ describe("loadPlaybackState", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
+        ok: true,
         json: async () => ({
           state: {
             song: {
