@@ -1,25 +1,20 @@
 import * as SecureStore from "expo-secure-store";
 
-// Secure token storage for the native client (bearer-auth, M004-S02 backend).
-// Keychain-backed via expo-secure-store. No tokens in AsyncStorage / plaintext.
+// Secure credential storage for the native client. The backend login
+// (POST /api/v1/auth/token, M004-S02-T01) returns a single long-lived,
+// revocable API key (`sk-...`) — NOT an access/refresh JWT pair. We store that
+// one key in the device keychain and send it as `Authorization: Bearer sk-...`.
 
-const ACCESS = "sunoflow.accessToken";
-const REFRESH = "sunoflow.refreshToken";
+const API_KEY = "sunoflow.apiKey";
 
-export async function getAccessToken(): Promise<string | null> {
-  return SecureStore.getItemAsync(ACCESS);
+export function getApiKey(): Promise<string | null> {
+  return SecureStore.getItemAsync(API_KEY);
 }
 
-export async function getRefreshToken(): Promise<string | null> {
-  return SecureStore.getItemAsync(REFRESH);
+export async function setApiKey(key: string): Promise<void> {
+  await SecureStore.setItemAsync(API_KEY, key);
 }
 
-export async function setTokens(access: string, refresh: string): Promise<void> {
-  await SecureStore.setItemAsync(ACCESS, access);
-  await SecureStore.setItemAsync(REFRESH, refresh);
-}
-
-export async function clearTokens(): Promise<void> {
-  await SecureStore.deleteItemAsync(ACCESS);
-  await SecureStore.deleteItemAsync(REFRESH);
+export async function clearApiKey(): Promise<void> {
+  await SecureStore.deleteItemAsync(API_KEY);
 }

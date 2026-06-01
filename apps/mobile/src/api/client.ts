@@ -1,4 +1,4 @@
-import { getAccessToken } from "@/auth/session";
+import { getApiKey } from "@/auth/session";
 
 // Bearer-auth API client for the native app. Ported from the web app's
 // src/lib/api-client.ts, swapping implicit cookie auth for an Authorization
@@ -18,8 +18,8 @@ export class HttpError extends Error {
 }
 
 async function authHeaders(): Promise<Record<string, string>> {
-  const token = await getAccessToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const key = await getApiKey();
+  return key ? { Authorization: `Bearer ${key}` } : {};
 }
 
 async function parseJsonSafe<T>(res: Response): Promise<T> {
