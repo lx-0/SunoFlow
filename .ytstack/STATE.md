@@ -17,7 +17,11 @@ status: brownfield-imported
 THE GATE: user runs ONE free-Apple-ID Expo dev build (`apps/mobile/README.md`) to verify the whole vertical on-device — esp. background audio surviving a 10+ min lock (S03/T07, the milestone's proof). Everything the agent wrote is unverifiable without this.
 
 iOS-v1 surface CODE-COMPLETE (untested): login, library + search, player (background audio), playlists list + detail, secure sign-out. Remaining agent-writable RN polish (UNTESTED, shape-dependent — better after a device pass): favorites/reactions, native waveform, playlist drag-reorder.
-Follow-ups: upgrade vitest 3.2.4 → ≥4.1.0 (then drop the GHSA ignore); per-IP rate-limit on the login endpoint; M003 OAuth (fixes the failed T05 plugin smoke-test, see `project_plugin_missing_apikey_error`); migrate more shared modules into `@sunoflow/core`.
+Login endpoint now fully brute-force protected: per-IP (30/h) + per-email (10/h), verified (`70694d98`). Mini-player bar added (`2fb2c075`, untested). Login security = closed.
+Deliberate follow-ups (NOT done — risky/uncertain, need focus or a device pass):
+- vitest 3.2.4 → ≥4.1.0: blast radius is 183 test files (major-bump breakage risk that would re-break CI). Own task. The GHSA ignore is fine meanwhile (non-applicable dev-only advisory).
+- Favorites / playlist drag-reorder / native waveform: API-shape-uncertain (favorite toggle endpoint + per-song favorite state not exposed in the library response); do AFTER the device pass clarifies real shapes.
+- M003 OAuth (fixes the failed T05 plugin smoke-test); migrate more shared modules into `@sunoflow/core`.
 
 Parallel user TODO (closes M003): M003-S04-T05 fresh-install smoke-test — `/plugin marketplace update lx-0`, `/plugin install sunoflow`, new shell with `SUNOFLOW_API_KEY`, restart Claude Code, `/mcp` shows sunoflow `connected`.
 
