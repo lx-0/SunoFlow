@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { authDataRoute, authRoute, resultResponse } from "@/lib/route-handler";
+import { authRoute, resultResponse } from "@/lib/route-handler";
 import { CacheControl } from "@/lib/cache";
 import { listPlaylists, createPlaylist } from "@/lib/playlists";
 import { createPlaylistBody } from "@/lib/playlists/schemas";
 
-export const GET = authDataRoute(async (_request, { auth }) => {
+export const GET = authRoute(async (_request, { auth }) => {
   return resultResponse(await listPlaylists(auth.userId), {
     headers: { "Cache-Control": CacheControl.privateShort },
   });

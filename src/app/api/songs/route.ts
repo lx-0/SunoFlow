@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { CacheControl } from "@/lib/cache";
-import { authDataRoute } from "@/lib/route-handler";
+import { authRoute } from "@/lib/route-handler";
 import { querySongLibrary } from "@/lib/songs";
 import { songsQuerySchema } from "@/lib/songs/request";
 import { kickoffStalePendingRecovery } from "@/lib/songs/stale-pending-recovery";
 
-export const GET = authDataRoute(async (_request, { auth, query }) => {
+export const GET = authRoute(async (_request, { auth, query }) => {
   // Lazy-trigger recovery sweep: stuck pending songs (15min+) get
   // re-probed against Suno in the background, independent of the
   // library read below. Fire-and-forget — errors land in GlitchTip.

@@ -1,8 +1,8 @@
-import { authDataRoute, authRoute, resultResponse } from "@/lib/route-handler";
+import { authRoute, resultResponse } from "@/lib/route-handler";
 import { getProfile, updateProfile, deleteAccount } from "@/lib/profile";
 import { updateProfileBody, deleteAccountBody } from "@/lib/profile/request";
 
-export const GET = authDataRoute(async (_request, { auth }) => {
+export const GET = authRoute(async (_request, { auth }) => {
   return resultResponse(await getProfile(auth.userId));
 }, { route: "/api/profile" });
 
