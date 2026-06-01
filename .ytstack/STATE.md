@@ -10,15 +10,14 @@ status: brownfield-imported
 
 # State
 
-**Status:** M004 in progress. **Verifiable backend DONE** (vitest+tsc): `POST /api/v1/auth/token` login (`fe95d8a8`) with per-email brute-force rate-limit; bearer auth + revoke + library endpoints already existed (`resolveUser`, `DELETE /api/profile/api-keys/:id`, `GET /api/songs`). **Mobile core vertical written** (UNTESTED — headless, no simulator): Expo app, track-player background-audio + lock-screen, login→keychain, Library on real `/api/songs`, Player, secure sign-out (server revoke). Commits c8e01544, 8b6ded7e, 2e47b781, fe95d8a8, b6dbeb43.
+**Status:** M004 in progress. **S01 monorepo restructure DONE + DEPLOYED LIVE** (`a8b85236`): pnpm workspace + `packages/core` (`@sunoflow/core`), web at root, Expo standalone; verified local docker build → CI green → Railway build → healthcheck → Online, `sunoflow.app/api/health` = 200. **Verifiable backend DONE** (vitest+tsc): `POST /api/v1/auth/token` login (`fe95d8a8`) with per-email brute-force rate-limit; bearer auth + revoke + library endpoints already existed. **Mobile core vertical written** (UNTESTED — headless, no simulator): Expo app, track-player background-audio + lock-screen, login→keychain, Library on real `/api/songs`, Player, playlists list+detail, search, secure sign-out. CI unblocked by ignoring a non-applicable vitest advisory (`5571ded2`).
 
 ## Next action
 
 THE GATE: user runs ONE free-Apple-ID Expo dev build (`apps/mobile/README.md`) to verify the whole vertical on-device — esp. background audio surviving a 10+ min lock (S03/T07, the milestone's proof). Everything the agent wrote is unverifiable without this.
 
-iOS-v1 surface now CODE-COMPLETE (untested): login, library + search, player (background audio), playlists list + detail, secure sign-out (commits …b6dbeb43, 05baeffb). Remaining agent-writable RN polish (UNTESTED, increasingly shape-dependent — better done after a device pass): favorites/reactions, native waveform, playlist drag-reorder.
-BLOCKED: S01 monorepo restructure — approved but NOT executable safely (Docker daemon down here → can't verify the Railway build; `push→main` auto-deploys → prod-outage risk). Needs Docker up locally OR user hands-on.
-Follow-ups: per-IP rate-limit; M003 OAuth (fixes the failed T05 plugin smoke-test, see `project_plugin_missing_apikey_error`).
+iOS-v1 surface CODE-COMPLETE (untested): login, library + search, player (background audio), playlists list + detail, secure sign-out. Remaining agent-writable RN polish (UNTESTED, shape-dependent — better after a device pass): favorites/reactions, native waveform, playlist drag-reorder.
+Follow-ups: upgrade vitest 3.2.4 → ≥4.1.0 (then drop the GHSA ignore); per-IP rate-limit on the login endpoint; M003 OAuth (fixes the failed T05 plugin smoke-test, see `project_plugin_missing_apikey_error`); migrate more shared modules into `@sunoflow/core`.
 
 Parallel user TODO (closes M003): M003-S04-T05 fresh-install smoke-test — `/plugin marketplace update lx-0`, `/plugin install sunoflow`, new shell with `SUNOFLOW_API_KEY`, restart Claude Code, `/mcp` shows sunoflow `connected`.
 
