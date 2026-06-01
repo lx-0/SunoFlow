@@ -18,6 +18,21 @@ plan, not demand validation.
 `slice-milestone`. The P0–P5 phases below map to slices. Do NOT scaffold a milestone
 mid-M003 (`project_sunoflow_ytstack_adoption`).
 
+## UPDATE 2026-06-01 — audio engine changed: track-player → expo-audio
+
+The framework matrix below still recommends `react-native-track-player`. During the
+build that broke on two facts: **(1)** Expo SDK 56 **forces the New Architecture**
+(`newArchEnabled:false` has no effect), and track-player **v4 has no New-Arch support**;
+**(2)** track-player **v5** (which does support New Arch + has first-class CarPlay) is
+**commercially licensed** — free for personal use, but SunoFlow ships Stripe billing.
+
+Decision (user, 2026-06-01): use the **free, official, New-Arch** path **`expo-audio`** —
+background playback + lock-screen controls (`setActiveForLockScreen`), with a small queue
+controller (expo-audio has no built-in queue). Trade-off: **no first-class CarPlay** in
+expo-audio. CarPlay was already a deferred, paid-account-gated bonus, so this is acceptable;
+revisit CarPlay later (track-player v5 with a license, or native CarPlay scene) if it
+becomes a priority. The RN + Expo + iOS-first + bearer-auth decisions are unchanged.
+
 ## TL;DR
 
 Ship SunoFlow as a **native React Native (Expo) app**, iOS first, because the PWA
