@@ -4,44 +4,44 @@ Native iOS app for SunoFlow. Goal: audio that survives screen lock + native
 Browse/Play/Playlists. Pitch + plan: `../../.ytstack/OFFICE-HOURS-native-app.md`,
 `../../.ytstack/M004-*.md`.
 
-> ⚠️ **UNTESTED scaffold.** This was written in a headless env with no iOS
-> simulator/device. Nothing here has been installed, typechecked, or run.
-> Treat it as a starting skeleton, not working software. Verify on device (below).
+> ⚠️ **UNTESTED scaffold.** Written in a headless env with no iOS simulator/device.
+> Not installed, typechecked, or run. The expo-audio integration in particular is
+> written from the docs and may need small API tweaks on the first dev build.
 
-## Status
+## Audio engine: expo-audio (not track-player)
 
-Foundation skeleton for **M004-S01 / S03**:
-- Expo Router shell (tabs: Library / Playlists / Settings) + Now-Playing modal.
-- `react-native-track-player` setup (`src/playback/setup.ts`) with iOS `playback`
-  category, lock-screen capabilities; playback **service** (`src/playback/service.ts`)
-  registered in `index.js` for OS remote commands.
-- iOS `UIBackgroundModes: ["audio"]` in `app.json` — the lock-screen-audio fix.
-- Bearer-auth API client (`src/api/client.ts`) + secure-store session
-  (`src/auth/session.ts`) — needs the M004-S02 backend (`/api/v1/auth/token`).
-- Library screen plays the list; Player screen drives transport via track-player hooks.
+Expo SDK 56 **forces the New Architecture** (`newArchEnabled: false` has no effect).
+`react-native-track-player` v4 has no New-Arch support, and v5 (which does) is
+**commercially licensed**. So the free, official, New-Arch path is **`expo-audio`**:
+background playback (`enableBackgroundPlayback` plugin + `setAudioModeAsync`) +
+lock-screen / Control Center controls (`setActiveForLockScreen`). expo-audio has no
+built-in queue, so `src/playback/audio.ts` is a small queue controller around it.
+CarPlay is not first-class in expo-audio — deferred (was a bonus, needs paid account anyway).
 
-Playlists/Settings are stubs (M004-S04). Domain types are a placeholder
-(`src/types.ts`) until `packages/core` lands with the monorepo.
+## Setup — install (fixes the chicken-and-egg)
 
-## Why a dev build (not Expo Go)
-
-`react-native-track-player` is a custom native module — Expo Go cannot load it. You
-need an **Expo development build**.
-
-## Run it on your own iPhone (free Apple ID — no $99 account needed)
+`npx expo install` needs `expo` already present. So install first, then align:
 
 ```bash
 cd apps/mobile
-npx expo install expo expo-router expo-secure-store expo-status-bar \
-  react-native-track-player react-native-safe-area-context react-native-screens \
-  react-native-gesture-handler react-native-reanimated   # aligns versions to the SDK
-# set a globally-unique bundle id in app.json (ios.bundleIdentifier)
+pnpm install            # installs expo (pinned ~56) + the rest
+npx expo install --fix  # aligns react / react-native / expo-* / RN libs to the SDK
+```
+
+Then set a globally-unique bundle id in `app.json` (`ios.bundleIdentifier`).
+
+## Run on your own iPhone (free Apple ID — no $99 account)
+
+A **development build** is required (custom native modules aren't in Expo Go):
+
+```bash
 npx expo prebuild -p ios
 # open ios/*.xcworkspace in Xcode, sign with your free "Personal Team",
 # run on a connected iPhone (dev cert lasts 7 days, re-run to renew)
 ```
 
-To point at a local backend: `EXPO_PUBLIC_SUNOFLOW_BASE_URL=http://<lan-ip>:3000`.
+Point at a local backend: `EXPO_PUBLIC_SUNOFLOW_BASE_URL=http://<lan-ip>:3000`.
+Log in with your SunoFlow email + password (the app calls `POST /api/v1/auth/token`).
 
 ## Verify the milestone's core proof (M004-S03-T07)
 
@@ -49,7 +49,12 @@ On a real device: play a track, **lock the screen 10+ minutes**, background the 
 take a call. Audio must keep playing and the lock-screen controls must work. THIS is
 the thing the PWA could not do.
 
-## Paid account ($99) is only needed later for
+## Status
 
-TestFlight distribution (M004-S05), App Store, and CarPlay entitlement — none of which
-block the on-device proof above.
+- Expo Router shell (Library / Playlists / Settings tabs + Now-Playing modal + mini-player).
+- expo-audio background + lock-screen controls via `src/playback/audio.ts` queue controller.
+- Bearer-auth API client + secure-store session; Library on real `GET /api/songs`;
+  Playlists list + detail; library search; secure sign-out (server-side key revoke).
+- Domain types are a placeholder (`src/types.ts`) until more move into `@sunoflow/core`.
+
+Paid Apple account ($99) is only needed later for TestFlight (M004-S05) and the App Store.

@@ -1,19 +1,19 @@
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { Text, Pressable, StyleSheet, type GestureResponderEvent } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import TrackPlayer, { useActiveTrack, useIsPlaying } from "react-native-track-player";
+import { usePlayback } from "@/playback/usePlayback";
+import { togglePlay } from "@/playback/audio";
 
-// Persistent now-playing bar shown above the tab bar on every Browse screen, so
-// playback stays controllable while the user browses. Pure track-player state —
-// no API. Tap opens the full Now-Playing screen. Renders nothing when idle.
+// Persistent now-playing bar above the tab bar on every Browse screen, so
+// playback stays controllable while the user browses. Driven by the expo-audio
+// controller's store. Tap opens the full Now-Playing screen. Hidden when idle.
 const TAB_BAR_HEIGHT = 49; // iOS default
 
 export function MiniPlayer() {
   const insets = useSafeAreaInsets();
-  const track = useActiveTrack();
-  const { playing } = useIsPlaying();
+  const { current, playing } = usePlayback();
 
-  if (!track) return null;
+  if (!current) return null;
 
   return (
     <Pressable
@@ -21,13 +21,13 @@ export function MiniPlayer() {
       onPress={() => router.push("/player")}
     >
       <Text style={styles.title} numberOfLines={1}>
-        {track.title ?? "Now playing"}
+        {current.title}
       </Text>
       <Pressable
         hitSlop={12}
-        onPress={(e) => {
-          e.stopPropagation?.();
-          playing ? TrackPlayer.pause() : TrackPlayer.play();
+        onPress={(e: GestureResponderEvent) => {
+          e.stopPropagation();
+          togglePlay();
         }}
       >
         <Text style={styles.btn}>{playing ? "⏸" : "▶"}</Text>

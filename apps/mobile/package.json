@@ -11,7 +11,8 @@
     "lint": "expo lint"
   },
   "dependencies": {
-    "expo": "*",
+    "expo": "~56.0.8",
+    "expo-audio": "*",
     "expo-router": "*",
     "expo-secure-store": "*",
     "expo-status-bar": "*",
@@ -20,12 +21,11 @@
     "react-native-gesture-handler": "*",
     "react-native-reanimated": "*",
     "react-native-safe-area-context": "*",
-    "react-native-screens": "*",
-    "react-native-track-player": "*"
+    "react-native-screens": "*"
   },
   "devDependencies": {
     "@types/react": "*",
     "typescript": "*"
   },
-  "comment": "Versions intentionally floated to '*'. Pin them with `npx expo install` (see README) so they match the installed Expo SDK. UNTESTED scaffold — no install/run happened in the build env."
+  "comment": "expo is pinned to the SDK; everything else floats to '*' and is aligned by `npx expo install --fix` after `pnpm install` (see README). Audio engine = expo-audio (free, New-Arch, lock-screen + background). track-player was dropped: v4 has no New Arch (Expo SDK 56 forces it) and v5 is commercially licensed. UNTESTED scaffold."
 }

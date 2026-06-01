@@ -1,8 +1,4 @@
-import TrackPlayer from "react-native-track-player";
-
-// Register the playback service in global scope BEFORE the app renders
-// (track-player requirement) so OS remote commands work even when the JS app
-// is backgrounded. Then hand off to expo-router's entry.
-TrackPlayer.registerPlaybackService(() => require("./src/playback/service"));
-
+// expo-audio needs no playback-service registration (unlike track-player).
+// Background + lock-screen behaviour is configured via the expo-audio config
+// plugin (app.json) + setAudioModeAsync at runtime (see src/playback/audio.ts).
 import "expo-router/entry";

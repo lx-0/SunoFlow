@@ -1,36 +1,27 @@
 import { View, Text, Pressable, StyleSheet } from "react-native";
-import TrackPlayer, {
-  State,
-  useActiveTrack,
-  useIsPlaying,
-  useProgress,
-} from "react-native-track-player";
+import { usePlayback } from "@/playback/usePlayback";
+import { togglePlay, skipToNext, skipToPrevious } from "@/playback/audio";
 
-// Now-Playing screen. State comes from track-player hooks so it stays in sync
-// with lock-screen / Control Center controls (single source of truth).
+// Now-Playing screen. State comes from the expo-audio queue controller's store
+// so it stays in sync with lock-screen / Control Center controls.
 export default function PlayerScreen() {
-  const track = useActiveTrack();
-  const { playing } = useIsPlaying();
-  const { position, duration } = useProgress();
+  const { current, playing, positionSeconds, durationSeconds } = usePlayback();
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{track?.title ?? "Nothing playing"}</Text>
-      <Text style={styles.artist}>{track?.artist ?? ""}</Text>
+      <Text style={styles.title}>{current?.title ?? "Nothing playing"}</Text>
+      <Text style={styles.artist}>{current?.artist ?? ""}</Text>
       <Text style={styles.time}>
-        {fmt(position)} / {fmt(duration)}
+        {fmt(positionSeconds)} / {fmt(durationSeconds)}
       </Text>
       <View style={styles.row}>
-        <Pressable style={styles.btn} onPress={() => TrackPlayer.skipToPrevious()}>
+        <Pressable style={styles.btn} onPress={() => skipToPrevious()}>
           <Text style={styles.btnText}>⏮</Text>
         </Pressable>
-        <Pressable
-          style={styles.btn}
-          onPress={() => (playing ? TrackPlayer.pause() : TrackPlayer.play())}
-        >
+        <Pressable style={styles.btn} onPress={togglePlay}>
           <Text style={styles.btnText}>{playing ? "⏸" : "▶"}</Text>
         </Pressable>
-        <Pressable style={styles.btn} onPress={() => TrackPlayer.skipToNext()}>
+        <Pressable style={styles.btn} onPress={() => skipToNext()}>
           <Text style={styles.btnText}>⏭</Text>
         </Pressable>
       </View>
@@ -54,6 +45,3 @@ const styles = StyleSheet.create({
   btn: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", backgroundColor: "#1c1c22" },
   btnText: { color: "#fff", fontSize: 22 },
 });
-
-// silence unused-import lint if State is tree-shaken; kept for future buffering UI
-void State;
