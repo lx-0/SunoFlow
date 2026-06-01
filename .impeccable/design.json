@@ -1,0 +1,251 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-29T00:00:00Z",
+  "title": "Design System: SunoFlow",
+  "extensions": {
+    "colorMeta": {
+      "magenta": {
+        "role": "primary",
+        "displayName": "Electric Magenta",
+        "canonical": "oklch(62% 0.27 350)",
+        "tonalRamp": [
+          "oklch(20% 0.10 350)",
+          "oklch(30% 0.16 350)",
+          "oklch(40% 0.20 350)",
+          "oklch(50% 0.22 350)",
+          "oklch(62% 0.27 350)",
+          "oklch(70% 0.24 350)",
+          "oklch(80% 0.18 350)",
+          "oklch(92% 0.08 350)"
+        ]
+      },
+      "surface-deep": {
+        "role": "neutral",
+        "displayName": "Surface Deep",
+        "canonical": "oklch(15% 0.01 350)",
+        "tonalRamp": [
+          "oklch(12% 0.01 350)",
+          "oklch(15% 0.01 350)",
+          "oklch(18% 0.01 350)",
+          "oklch(22% 0.015 350)",
+          "oklch(26% 0.015 350)",
+          "oklch(32% 0.02 350)",
+          "oklch(45% 0.02 350)",
+          "oklch(65% 0.015 350)"
+        ]
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "Warm Off-White",
+        "canonical": "oklch(96% 0.005 350)",
+        "tonalRamp": [
+          "oklch(30% 0.01 350)",
+          "oklch(45% 0.01 350)",
+          "oklch(58% 0.01 350)",
+          "oklch(72% 0.01 350)",
+          "oklch(82% 0.008 350)",
+          "oklch(90% 0.006 350)",
+          "oklch(96% 0.005 350)",
+          "oklch(99% 0.003 350)"
+        ]
+      },
+      "status-ready": {
+        "role": "tertiary",
+        "displayName": "Analog Green",
+        "canonical": "oklch(72% 0.18 145)",
+        "tonalRamp": [
+          "oklch(25% 0.10 145)",
+          "oklch(35% 0.14 145)",
+          "oklch(45% 0.17 145)",
+          "oklch(58% 0.18 145)",
+          "oklch(72% 0.18 145)",
+          "oklch(80% 0.15 145)",
+          "oklch(88% 0.10 145)",
+          "oklch(95% 0.04 145)"
+        ]
+      },
+      "status-generating": {
+        "role": "tertiary",
+        "displayName": "Sodium Amber",
+        "canonical": "oklch(78% 0.18 85)",
+        "tonalRamp": [
+          "oklch(28% 0.10 85)",
+          "oklch(40% 0.14 85)",
+          "oklch(52% 0.17 85)",
+          "oklch(65% 0.18 85)",
+          "oklch(78% 0.18 85)",
+          "oklch(86% 0.14 85)",
+          "oklch(92% 0.08 85)",
+          "oklch(97% 0.03 85)"
+        ]
+      },
+      "status-error": {
+        "role": "tertiary",
+        "displayName": "Warm Red",
+        "canonical": "oklch(65% 0.22 25)",
+        "tonalRamp": [
+          "oklch(22% 0.10 25)",
+          "oklch(32% 0.15 25)",
+          "oklch(45% 0.19 25)",
+          "oklch(55% 0.21 25)",
+          "oklch(65% 0.22 25)",
+          "oklch(75% 0.18 25)",
+          "oklch(85% 0.12 25)",
+          "oklch(95% 0.04 25)"
+        ]
+      },
+      "status-info": {
+        "role": "tertiary",
+        "displayName": "Steel Blue",
+        "canonical": "oklch(72% 0.15 235)",
+        "tonalRamp": [
+          "oklch(25% 0.08 235)",
+          "oklch(36% 0.11 235)",
+          "oklch(48% 0.14 235)",
+          "oklch(60% 0.15 235)",
+          "oklch(72% 0.15 235)",
+          "oklch(82% 0.12 235)",
+          "oklch(90% 0.08 235)",
+          "oklch(96% 0.03 235)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page-defining headlines; landing hero, empty-state, large numeric totals." },
+      "headline": { "displayName": "Headline", "purpose": "Section openers within a page; expanded-player track title." },
+      "title": { "displayName": "Title", "purpose": "Card titles, sheet headers, song-row titles." },
+      "body": { "displayName": "Body", "purpose": "The workhorse: labels, descriptions, helper copy." },
+      "label": { "displayName": "Label", "purpose": "Chips, button text, status pills, metadata captions." },
+      "mono": { "displayName": "Mono", "purpose": "Lyrics editor, prompt body, persona IDs, slugs, timestamps. Any user-authored or identifying content." }
+    },
+    "shadows": [
+      { "name": "player-float", "value": "0 -8px 24px oklch(0% 0 0 / 0.4)", "purpose": "Upward-cast shadow under the global player bar so it floats over content." },
+      { "name": "drag-lift", "value": "0 12px 32px oklch(0% 0 0 / 0.5)", "purpose": "Active drag state on a draggable row or card. Returns to flat on drop." },
+      { "name": "focus-glow", "value": "0 0 0 3px oklch(62% 0.27 350 / 0.35)", "purpose": "Magenta-tinted focus ring on text inputs and the lyrics editor." }
+    ],
+    "motion": [
+      { "name": "ease-out-quart", "value": "cubic-bezier(0.25, 1, 0.5, 1)", "purpose": "Default easing for state transitions, sheet open, mode swap." },
+      { "name": "ease-out-expo", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Snappier easing for player controls, queue-item slide-in." },
+      { "name": "duration-fast", "value": "150ms", "purpose": "Hover, focus, button press." },
+      { "name": "duration-default", "value": "240ms", "purpose": "Sheet open, mode swap, card expand." },
+      { "name": "duration-slow", "value": "400ms", "purpose": "Waveform breathing cycle (per half-cycle), expanded-player open." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single committing action on a screen: Generate, Save, Sign In. Budget one per visible region.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">Generate</button>",
+      "css": ".ds-btn-primary { background: oklch(62% 0.27 350); color: oklch(15% 0.01 350); padding: 10px 18px; border-radius: 12px; border: none; font-family: 'Geist Sans', system-ui, sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer; transition: background 150ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-btn-primary:hover { background: oklch(68% 0.24 350); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px oklch(62% 0.27 350 / 0.35); } .ds-btn-primary:active { background: oklch(50% 0.22 350); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary inline action. The workhorse: row actions, toolbar items, dismiss buttons.",
+      "html": "<button class=\"ds-btn-ghost\" type=\"button\">Add to playlist</button>",
+      "css": ".ds-btn-ghost { background: transparent; color: oklch(96% 0.005 350); padding: 10px 18px; border-radius: 12px; border: none; font-family: 'Geist Sans', system-ui, sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 0.04em; cursor: pointer; transition: background 150ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-btn-ghost:hover { background: oklch(26% 0.015 350); } .ds-btn-ghost:focus-visible { outline: none; box-shadow: 0 0 0 3px oklch(62% 0.27 350 / 0.35); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-text",
+      "description": "Default single-line text field. Surface Raised, no border at rest, magenta focus glow.",
+      "html": "<input class=\"ds-input-text\" type=\"text\" placeholder=\"Style tag, persona, search\" />",
+      "css": ".ds-input-text { background: oklch(22% 0.015 350); color: oklch(96% 0.005 350); padding: 10px 14px; border-radius: 12px; border: none; font-family: 'Geist Sans', system-ui, sans-serif; font-size: 15px; font-weight: 400; line-height: 1.55; width: 100%; transition: box-shadow 150ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-input-text::placeholder { color: oklch(50% 0.01 350); } .ds-input-text:focus { outline: none; box-shadow: 0 0 0 3px oklch(62% 0.27 350 / 0.35); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Default container for focused content. Surface Raised, rounded-xl, no shadow at rest, never nested.",
+      "html": "<article class=\"ds-card\"><h3 class=\"ds-card-title\">Late Night Drive</h3><p class=\"ds-card-meta\">Generated 2 minutes ago, style: synthwave</p></article>",
+      "css": ".ds-card { background: oklch(22% 0.015 350); color: oklch(96% 0.005 350); padding: 20px; border-radius: 16px; border: none; } .ds-card-title { font-family: 'Geist Sans', system-ui, sans-serif; font-size: 18px; font-weight: 600; line-height: 1.3; letter-spacing: -0.005em; margin: 0 0 4px; color: oklch(96% 0.005 350); } .ds-card-meta { font-family: 'Geist Sans', system-ui, sans-serif; font-size: 13px; font-weight: 400; line-height: 1.4; margin: 0; color: oklch(72% 0.01 350); }"
+    },
+    {
+      "name": "Chip (Active)",
+      "kind": "chip",
+      "refersTo": "chip-active",
+      "description": "Selected filter, persona, or style tag. The magenta variant of the chip family; default (inactive) chip uses Surface Hover and Text Secondary.",
+      "html": "<button class=\"ds-chip-active\" type=\"button\">synthwave</button>",
+      "css": ".ds-chip-active { background: oklch(62% 0.27 350); color: oklch(15% 0.01 350); padding: 4px 12px; border-radius: 9999px; border: none; font-family: 'Geist Sans', system-ui, sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 0.04em; cursor: pointer; transition: background 150ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-chip-active:hover { background: oklch(68% 0.24 350); }"
+    },
+    {
+      "name": "Status Pill (Generating)",
+      "kind": "chip",
+      "refersTo": "status-pill-generating",
+      "description": "In-flight generation indicator on a song row. Sodium amber, never reused as a filter chip.",
+      "html": "<span class=\"ds-pill-generating\"><svg width=\"10\" height=\"10\" viewBox=\"0 0 10 10\" aria-hidden=\"true\"><circle cx=\"5\" cy=\"5\" r=\"4\" fill=\"oklch(15% 0.01 350)\"/></svg> Generating</span>",
+      "css": ".ds-pill-generating { display: inline-flex; align-items: center; gap: 6px; background: oklch(78% 0.18 85); color: oklch(15% 0.01 350); padding: 2px 10px; border-radius: 9999px; font-family: 'Geist Sans', system-ui, sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 0.04em; } .ds-pill-generating svg { animation: ds-pulse 1.2s cubic-bezier(0.16, 1, 0.3, 1) infinite; } @keyframes ds-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.7); } } @media (prefers-reduced-motion: reduce) { .ds-pill-generating svg { animation: none; } }"
+    },
+    {
+      "name": "Cover Art (Playing)",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Square cover art with magenta ring indicating it is the currently-playing track. Signature visual element across library row, queue, expanded player.",
+      "html": "<figure class=\"ds-cover-playing\"><div class=\"ds-cover-img\" role=\"img\" aria-label=\"Cover art for Late Night Drive\"></div></figure>",
+      "css": ".ds-cover-playing { position: relative; width: 96px; height: 96px; margin: 0; padding: 4px; } .ds-cover-playing::before { content: ''; position: absolute; inset: 0; border-radius: 16px; box-shadow: 0 0 0 2px oklch(62% 0.27 350); pointer-events: none; } .ds-cover-img { width: 100%; height: 100%; border-radius: 12px; background: linear-gradient(135deg, oklch(40% 0.20 350), oklch(28% 0.015 350)); }"
+    },
+    {
+      "name": "Bottom Nav Item (Active)",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "Mobile-PWA bottom nav, one of three slots (Browse, Generate, Edit). Active state uses Text Primary with a thin magenta underline.",
+      "html": "<button class=\"ds-nav-item ds-nav-item--active\" type=\"button\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 18V5l12-2v13\"/><circle cx=\"6\" cy=\"18\" r=\"3\"/><circle cx=\"18\" cy=\"16\" r=\"3\"/></svg><span>Browse</span></button>",
+      "css": ".ds-nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; background: transparent; border: none; padding: 8px 16px; color: oklch(50% 0.01 350); font-family: 'Geist Sans', system-ui, sans-serif; font-size: 10px; font-weight: 500; letter-spacing: 0.05em; cursor: pointer; position: relative; transition: color 150ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-nav-item--active { color: oklch(96% 0.005 350); } .ds-nav-item--active::after { content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 24px; height: 2px; background: oklch(62% 0.27 350); border-radius: 1px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Late-Night Studio Console",
+    "overview": "SunoFlow is the dim console at the side of a home studio at 11pm. The surface is tinted-near-black so the work, cover art, waveforms, generation progress, can do the talking. One accent burns hot through that dark like a status LED on a piece of audio hardware: electric magenta, used surgically, never as decoration. Density is high but never anxious. This is a tool for someone making their tenth playlist of the night, not their first. Three modes (Browse, Generate, Edit) share the same chrome, and each one earns full focus when active. The system explicitly rejects the 2025 AI-tool look (mesh gradients, glassy violet cards, glowing orbs), the generic SaaS template, the consumer-music-app feed, and Suno.com's own visual chrome. SunoFlow takes Suno's creative energy and refuses Suno's surface.",
+    "keyCharacteristics": [
+      "Dark-first surface tinted toward the brand magenta (chroma 0.01)",
+      "One hot accent, used on roughly 5 to 10 percent of any given screen",
+      "Cover art is the loudest visual element by design",
+      "Geist Sans for everything, Geist Mono for lyrics, IDs, and timing data",
+      "Generous radii (12 to 20 px), flat surfaces, no shadow drama",
+      "High information density; modes do not co-render",
+      "Status as color language: ready, generating, error, info each own a hue"
+    ],
+    "rules": [
+      { "name": "The One Spark Rule", "body": "Electric Magenta lives on no more than 10% of any rendered screen. Its rarity is what makes it read as 'the system is alive.' If you find yourself reaching for it twice in the same component, it is wrong both times; pick the more important one.", "section": "colors" },
+      { "name": "The Tinted Neutrals Rule", "body": "No pure #000 or #fff anywhere, ever. Every neutral carries a faint chroma toward the magenta hue (chroma 0.005 to 0.015).", "section": "colors" },
+      { "name": "The Status-as-Sentence Rule", "body": "Status colors are the only place outside the primary accent where saturation goes above 0.15. Use them as verbs (generating, ready, error), not as decoration.", "section": "colors" },
+      { "name": "The Single-Family Rule", "body": "Geist Sans + Geist Mono. No third typeface, no display script, no editorial serif. The brand voice is studio console, not magazine.", "section": "typography" },
+      { "name": "The Mono-for-Content Rule", "body": "Any text the user authored or that comes back from an external system as identifying data (lyrics, prompt, slug, ID, timestamp) renders in Geist Mono. Any text the interface owns renders in Geist Sans. The visual seam is the signal.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat at rest. Shadows are reserved for floating chrome (player), kinetic state (drag), and accent-focus moments (lyrics editor).", "section": "elevation" },
+      { "name": "The No-Glassmorphism Rule", "body": "No backdrop-filter blur, no semitransparent surfaces over content, no frosted-glass headers, no glowing translucent cards. The surface is opaque; depth is tonal.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use Electric Magenta on the one most-important interactive state per screen. Treat its appearance as a budget.",
+      "Do keep the surface tonal: Surface Deep, Surface, Surface Raised, Surface Hover. Four planes, no shadows, no borders if a tonal step works.",
+      "Do render user-authored content (lyrics, prompts, slugs, IDs, timestamps) in Geist Mono. Render interface chrome in Geist Sans.",
+      "Do let cover art be the loudest thing on screen. Never apply gradient overlays, tints, or AI filter effects to it.",
+      "Do use status colors as verbs: Ready, Generating, Error, Info.",
+      "Do validate contrast on every magenta-on-surface combination at WCAG AA before shipping.",
+      "Do honor prefers-reduced-motion everywhere."
+    ],
+    "donts": [
+      "Don't use violet, indigo, or purple as accent colors anywhere in the UI. The 1049 inline text-violet and bg-violet utility usages in current components are a migration backlog, not a pattern to extend.",
+      "Don't use #000, #fff, #f9fafb, or any pure or barely-tinted gray. The font-family: Arial declaration in globals.css is a stale bug to remove; Geist Sans is the only sans-serif in this system.",
+      "Don't ever render gradient text.",
+      "Don't use glassmorphism, backdrop-filter blur, frosted overlays, or semitransparent surfaces over content.",
+      "Don't build hero-metric cards (big number, small label, supporting stats, gradient accent).",
+      "Don't nest cards. A card inside a card means the outer card should have been a section header.",
+      "Don't add a side-stripe border greater than 1px as a callout or alert treatment.",
+      "Don't use modal dialogs as the first thought. Drawers and inline expansion handle most cases.",
+      "Don't co-render Browse, Generate, and Edit. One mode owns the surface at a time.",
+      "Don't add 'Made for you' sections, recommendation rails, marketing banners inside the player, or any algorithmic feed surface.",
+      "Don't animate CSS layout properties. Animate transform and opacity. Use ease-out-quart or ease-out-expo; never bounce, never elastic.",
+      "Don't use em dashes in UI copy."
+    ]
+  }
+}
