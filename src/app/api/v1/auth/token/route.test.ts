@@ -108,11 +108,24 @@ describe("POST /api/v1/auth/token", () => {
     expect(res.status).toBe(400);
   });
 
-  it("429s when the per-email rate limit is exceeded, before any DB lookup", async () => {
-    (rateLimitCheck as ReturnType<typeof vi.fn>).mockResolvedValue({
+  it("429s on the per-IP rate limit (spray), before email check or DB", async () => {
+    (rateLimitCheck as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
       response: NextResponse.json({ error: "rate limited" }, { status: 429 }),
     });
+
+    const res = await POST(req({ email: "a@b.de", password: "x" }), seg);
+    expect(res.status).toBe(429);
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("429s on the per-email rate limit, before any DB lookup", async () => {
+    (rateLimitCheck as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ ok: true, status: {} }) // IP check passes
+      .mockResolvedValueOnce({
+        ok: false,
+        response: NextResponse.json({ error: "rate limited" }, { status: 429 }),
+      }); // email check denied
 
     const res = await POST(req({ email: "a@b.de", password: "x" }), seg);
     expect(res.status).toBe(429);
