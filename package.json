@@ -116,5 +116,12 @@
     "tree-sitter",
     "tree-sitter-json",
     "unrs-resolver"
-  ]
+  ],
+  "pnpm": {
+    "auditConfig": {
+      "ignoreGhsas": [
+        "GHSA-5xrq-8626-4rwp"
+      ]
+    }
+  }
 }
