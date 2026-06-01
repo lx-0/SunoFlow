@@ -1,20 +1,22 @@
 ---
 project: SunoFlow
 slug: SunoFlow
-last_updated: 2026-06-01T15:02:29Z
+last_updated: 2026-06-01T17:28:00Z
 current_milestone: M004
-active_slice: none
+active_slice: S02
 active_task: none
 status: brownfield-imported
 ---
 
 # State
 
-**Status:** M004 planned (L) — native iOS app (RN + Expo). Ready to slice. M003 stays formally open on its manual T05 smoke-test (user-run, parallel, independent of M004).
+**Status:** M004 sliced (S01-S05). S02 in progress: T01 (`POST /api/v1/auth/token`) DONE + verified (5 vitest, tsc clean); T02 (bearer middleware) already existed via `resolveUser`. S01 mobile scaffold exists (UNTESTED, no device). Monorepo restructure APPROVED but not yet executed. M003 formally open on user's T05 smoke-test (which FAILED — see `project_plugin_missing_apikey_error`).
 
 ## Next action
 
-Run `ytstack:slice-milestone` to break M004 into its 5 slices (S01 Foundations → S02 Backend auth → S03 Core playback → S04 Library/Playlists UI → S05 TestFlight). See `M004-ROADMAP.md` + `M004-CONTEXT.md`. NOTE: the monorepo-restructure step that touches the live Railway deploy is GATED on user approval.
+Continue S02: T03 (revoke alias, optional) + reconcile `apps/mobile/src/auth/session.ts` to store the single API key (not access+refresh). Then S01 monorepo restructure (approved, verify web build before push) OR S03 core playback (RN code — agent writes, user verifies on free-Apple-ID dev build). Brute-force rate-limit on `/api/v1/auth/token` before public launch. See `M004-S02-PLAN.md`.
+
+Parallel user TODOs: M003-S04-T05 smoke-test FAILED (SUNOFLOW_API_KEY hard-error) — fix is OAuth (deferred); the M004 on-device audio proof (S03/T07) needs a free-Apple-ID Expo dev build.
 
 Parallel user TODO (closes M003): M003-S04-T05 fresh-install smoke-test — `/plugin marketplace update lx-0`, `/plugin install sunoflow`, new shell with `SUNOFLOW_API_KEY`, restart Claude Code, `/mcp` shows sunoflow `connected`.
 
