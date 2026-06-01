@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "SunoFlow",
+    "slug": "sunoflow",
+    "scheme": "sunoflow",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "PLACEHOLDER.set.your.unique.bundle.id",
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"]
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
