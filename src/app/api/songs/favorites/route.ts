@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authDataRoute } from "@/lib/route-handler";
+import { authRoute } from "@/lib/route-handler";
 import { CacheControl } from "@/lib/cache";
 import { listFavorites } from "@/lib/songs";
 import {
@@ -17,7 +17,7 @@ const favoritesQuery = zCursorPaginationQuery(20, 100).extend({
   ),
 });
 
-export const GET = authDataRoute(async (_request, { auth, query }) => {
+export const GET = authRoute(async (_request, { auth, query }) => {
   const result = await listFavorites({
     userId: auth.userId,
     search: query.q,
