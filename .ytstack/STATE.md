@@ -1,24 +1,24 @@
 ---
 project: SunoFlow
 slug: SunoFlow
-last_updated: 2026-05-28T10:55:00Z
-current_milestone: M003
-active_slice: S04
+last_updated: 2026-06-01T15:02:29Z
+current_milestone: M004
+active_slice: none
 active_task: none
 status: brownfield-imported
 ---
 
 # State
 
-**Status:** M003 -- S01+S02+S03 done. S04: T01-T04 done (`.mcp.json`, 0.3.0 bump, stdio deprecated, lx-0 marketplace synced @ commit 178781c). Only T05 (fresh-install smoke-test) open.
+**Status:** M004 planned (L) — native iOS app (RN + Expo). Ready to slice. M003 stays formally open on its manual T05 smoke-test (user-run, parallel, independent of M004).
 
 ## Next action
 
-M003-S04-T05: fresh-install smoke-test (manual, second machine / cache wipe): `/plugin marketplace update lx-0`, `/plugin install sunoflow`, new shell with `SUNOFLOW_API_KEY`, start Claude Code, `/mcp` must show sunoflow `connected`. User-run step — cannot be faked. Once green, M003 closes. (T04 needed NO cross-repo write: lx-0 already current, sunoflow not listed in Yesterday marketplace.)
+Run `ytstack:slice-milestone` to break M004 into its 5 slices (S01 Foundations → S02 Backend auth → S03 Core playback → S04 Library/Playlists UI → S05 TestFlight). See `M004-ROADMAP.md` + `M004-CONTEXT.md`. NOTE: the monorepo-restructure step that touches the live Railway deploy is GATED on user approval.
 
-Next initiative queued: **native app** (RN + CarPlay) — pitch at `.ytstack/OFFICE-HOURS-native-app.md`, becomes a milestone via `plan-milestone` once M003 closes. iOS-v1 scope = Browse + Play + Playlists.
+Parallel user TODO (closes M003): M003-S04-T05 fresh-install smoke-test — `/plugin marketplace update lx-0`, `/plugin install sunoflow`, new shell with `SUNOFLOW_API_KEY`, restart Claude Code, `/mcp` shows sunoflow `connected`.
 
-M002 (Generate-Refactor) stays planned with S01 done; S02-S04 wait until M003 closes.
+M002 (Generate-Refactor) stays planned with S01 done; resumes after M004.
 
 ## M001 progress
 
