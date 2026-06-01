@@ -1,0 +1,6 @@
+# apps/mobile is intentionally NOT a member of the root workspace (that keeps the
+# Expo / React Native dependency tree out of the server lockfile + Docker image).
+# This standalone workspace marker stops pnpm from walking up to the root
+# workspace, so `pnpm install` / `npx expo install` run HERE install the mobile
+# app's own deps into apps/mobile/node_modules (with its own pnpm-lock.yaml).
+packages: []
