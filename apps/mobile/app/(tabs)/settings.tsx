@@ -1,18 +1,25 @@
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { router } from "expo-router";
-import { clearApiKey } from "@/auth/session";
+import { getApiKeyId, clearSession } from "@/auth/session";
+import { apiDelete } from "@/api/client";
 
-// STUB — M004-S04 fleshes this out. Sign-out clears the secure-store tokens
-// (and should call the backend revoke endpoint from M004-S02-T03 once wired).
+// STUB — M004-S04 fleshes this out. Sign-out revokes the API key server-side
+// (so a stolen device key can't be reused) then clears the keychain.
 export default function SettingsScreen() {
   return (
     <View style={styles.c}>
       <Pressable
         style={styles.btn}
         onPress={async () => {
-          // TODO(M004-S02-T03): revoke the key server-side (DELETE the ApiKey)
-          // before clearing, so a stolen device key can't be reused.
-          await clearApiKey();
+          const id = await getApiKeyId();
+          if (id) {
+            try {
+              await apiDelete(`/api/profile/api-keys/${id}`);
+            } catch (e) {
+              console.error("[signout] key revoke failed", e);
+            }
+          }
+          await clearSession();
           router.replace("/login");
         }}
       >

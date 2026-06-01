@@ -1,20 +1,26 @@
 import * as SecureStore from "expo-secure-store";
 
-// Secure credential storage for the native client. The backend login
-// (POST /api/v1/auth/token, M004-S02-T01) returns a single long-lived,
-// revocable API key (`sk-...`) — NOT an access/refresh JWT pair. We store that
-// one key in the device keychain and send it as `Authorization: Bearer sk-...`.
+// Secure credential storage. Login (POST /api/v1/auth/token) returns a single
+// revocable API key (`sk-...`) plus its id. We keep both in the keychain: the
+// key for `Authorization: Bearer`, the id to revoke on sign-out.
 
 const API_KEY = "sunoflow.apiKey";
+const API_KEY_ID = "sunoflow.apiKeyId";
 
 export function getApiKey(): Promise<string | null> {
   return SecureStore.getItemAsync(API_KEY);
 }
 
-export async function setApiKey(key: string): Promise<void> {
-  await SecureStore.setItemAsync(API_KEY, key);
+export function getApiKeyId(): Promise<string | null> {
+  return SecureStore.getItemAsync(API_KEY_ID);
 }
 
-export async function clearApiKey(): Promise<void> {
+export async function setSession(key: string, id: string): Promise<void> {
+  await SecureStore.setItemAsync(API_KEY, key);
+  await SecureStore.setItemAsync(API_KEY_ID, id);
+}
+
+export async function clearSession(): Promise<void> {
   await SecureStore.deleteItemAsync(API_KEY);
+  await SecureStore.deleteItemAsync(API_KEY_ID);
 }

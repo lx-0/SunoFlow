@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { router } from "expo-router";
 import { API_BASE_URL } from "@/api/client";
-import { setApiKey } from "@/auth/session";
+import { setSession } from "@/auth/session";
 
 // Login → POST /api/v1/auth/token (M004-S02-T01) → store the returned API key.
 // Every branch ends in visible feedback (error text or redirect).
@@ -25,8 +25,8 @@ export default function LoginScreen() {
         setError(res.status === 401 ? "Invalid credentials" : `Login failed (${res.status})`);
         return;
       }
-      const json = (await res.json()) as { key: string };
-      await setApiKey(json.key);
+      const json = (await res.json()) as { key: string; id: string };
+      await setSession(json.key, json.id);
       router.replace("/(tabs)");
     } catch (e) {
       setError("Network error — check your connection.");

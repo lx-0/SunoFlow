@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { router } from "expo-router";
-import { apiGet, HttpError } from "@/api/client";
+import { HttpError } from "@/api/client";
+import { fetchLibrary } from "@/api/songs";
 import { playQueue } from "@/playback/controls";
 import type { Song } from "@/types";
 
@@ -13,9 +14,7 @@ export default function LibraryScreen() {
 
   useEffect(() => {
     let alive = true;
-    // PLACEHOLDER endpoint — align with the real songs route + response shape
-    // (and bearer auth from M004-S02) when wiring against the live API.
-    apiGet<Song[]>("/api/v1/songs")
+    fetchLibrary()
       .then((data) => alive && setSongs(data))
       .catch((e: unknown) => {
         const msg = e instanceof HttpError ? `Failed to load library (HTTP ${e.status})` : "Network error";
