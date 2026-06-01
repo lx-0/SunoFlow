@@ -10,13 +10,15 @@ status: brownfield-imported
 
 # State
 
-**Status:** M004 sliced (S01-S05). S02 in progress: T01 (`POST /api/v1/auth/token`) DONE + verified (5 vitest, tsc clean); T02 (bearer middleware) already existed via `resolveUser`. S01 mobile scaffold exists (UNTESTED, no device). Monorepo restructure APPROVED but not yet executed. M003 formally open on user's T05 smoke-test (which FAILED — see `project_plugin_missing_apikey_error`).
+**Status:** M004 in progress. **Verifiable backend DONE** (vitest+tsc): `POST /api/v1/auth/token` login (`fe95d8a8`) with per-email brute-force rate-limit; bearer auth + revoke + library endpoints already existed (`resolveUser`, `DELETE /api/profile/api-keys/:id`, `GET /api/songs`). **Mobile core vertical written** (UNTESTED — headless, no simulator): Expo app, track-player background-audio + lock-screen, login→keychain, Library on real `/api/songs`, Player, secure sign-out (server revoke). Commits c8e01544, 8b6ded7e, 2e47b781, fe95d8a8, b6dbeb43.
 
 ## Next action
 
-Continue S02: T03 (revoke alias, optional) + reconcile `apps/mobile/src/auth/session.ts` to store the single API key (not access+refresh). Then S01 monorepo restructure (approved, verify web build before push) OR S03 core playback (RN code — agent writes, user verifies on free-Apple-ID dev build). Brute-force rate-limit on `/api/v1/auth/token` before public launch. See `M004-S02-PLAN.md`.
+THE GATE: user runs ONE free-Apple-ID Expo dev build (`apps/mobile/README.md`) to verify the whole vertical on-device — esp. background audio surviving a 10+ min lock (S03/T07, the milestone's proof). Everything the agent wrote is unverifiable without this.
 
-Parallel user TODOs: M003-S04-T05 smoke-test FAILED (SUNOFLOW_API_KEY hard-error) — fix is OAuth (deferred); the M004 on-device audio proof (S03/T07) needs a free-Apple-ID Expo dev build.
+Remaining agent-writable (RN, UNTESTED): S04 — playlists screen on `/api/playlists`, library search box (fetchLibrary already accepts a query), favorites, native waveform.
+BLOCKED: S01 monorepo restructure — approved but NOT executable safely (Docker daemon down here → can't verify the Railway build; `push→main` auto-deploys → prod-outage risk). Needs Docker up locally OR user hands-on.
+Follow-ups: per-IP rate-limit; M003 OAuth (fixes the failed T05 plugin smoke-test, see `project_plugin_missing_apikey_error`).
 
 Parallel user TODO (closes M003): M003-S04-T05 fresh-install smoke-test — `/plugin marketplace update lx-0`, `/plugin install sunoflow`, new shell with `SUNOFLOW_API_KEY`, restart Claude Code, `/mcp` shows sunoflow `connected`.
 
