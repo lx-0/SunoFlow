@@ -32,6 +32,7 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/rate-limit", () => ({
   acquireRateLimitSlot: vi.fn(),
   acquireAnonRateLimitSlot: vi.fn(),
+  rateLimitCheck: vi.fn(),
 }));
 
 vi.mock("@/lib/songs", () => ({
@@ -40,7 +41,7 @@ vi.mock("@/lib/songs", () => ({
 
 import { resolveUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { acquireRateLimitSlot } from "@/lib/rate-limit";
+import { acquireRateLimitSlot, rateLimitCheck } from "@/lib/rate-limit";
 import { prepareSongDownload } from "@/lib/songs";
 
 const seg = { params: Promise.resolve({ id: "song-1" }) };
@@ -70,6 +71,10 @@ beforeEach(() => {
   vi.mocked(prisma.user.findUnique).mockResolvedValue({ name: "Artist" } as never);
   vi.mocked(acquireRateLimitSlot).mockResolvedValue({
     acquired: true,
+    status: { remaining: 49, resetAt: "2026-01-01T00:00:00.000Z" },
+  } as never);
+  vi.mocked(rateLimitCheck).mockResolvedValue({
+    ok: true,
     status: { remaining: 49, resetAt: "2026-01-01T00:00:00.000Z" },
   } as never);
   vi.mocked(prepareSongDownload).mockResolvedValue({

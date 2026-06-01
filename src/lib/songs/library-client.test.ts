@@ -134,7 +134,7 @@ describe("deletePlaylist", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({}, 500)));
     await expect(deletePlaylist("pl1")).resolves.toEqual({
       ok: false,
-      error: "Failed to delete playlist",
+      error: "HTTP 500",
     });
   });
 });

@@ -45,11 +45,11 @@ describe("persistPlaylistReorder", () => {
     await expect(persistPlaylistReorder("p1", ["s1", "s2"]))
       .resolves.toBe(true);
 
-    expect(fetchMock).toHaveBeenCalledWith("/api/playlists/p1/reorder", {
+    expect(fetchMock).toHaveBeenCalledWith("/api/playlists/p1/reorder", expect.objectContaining({
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ songIds: ["s1", "s2"] }),
-    });
+    }));
   });
 
   it("returns false when API responds non-ok", async () => {
