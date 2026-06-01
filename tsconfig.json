@@ -27,6 +27,9 @@
       ],
       "@mcp/*": [
         "./mcp/*"
+      ],
+      "@sunoflow/core": [
+        "./packages/core/index.ts"
       ]
     },
     "target": "ES2017"

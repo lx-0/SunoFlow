@@ -40,6 +40,8 @@ const nextConfig = {
   // Enable gzip/brotli compression for all responses
   compress: true,
   serverExternalPackages: ["@prisma/client", "bcryptjs", "node-cron"],
+  // Workspace package shipped as TS source — Next transpiles it into the bundle.
+  transpilePackages: ["@sunoflow/core"],
   experimental: {},
   env: {
     NEXT_PUBLIC_BUILD_ID: buildId,

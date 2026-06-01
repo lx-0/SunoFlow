@@ -8,7 +8,8 @@ WORKDIR /app
 
 # --- Dependencies ---
 FROM base AS deps
-COPY package.json pnpm-lock.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml ./
+COPY packages ./packages/
 COPY prisma ./prisma/
 RUN pnpm install --frozen-lockfile
 RUN pnpm exec prisma generate

@@ -26,6 +26,7 @@
     "*.{ts,tsx}": "eslint"
   },
   "dependencies": {
+    "@sunoflow/core": "workspace:*",
     "@auth/prisma-adapter": "^2.11.1",
     "@heroicons/react": "^2.2.0",
     "@modelcontextprotocol/sdk": "^1.28.0",

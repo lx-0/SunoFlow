@@ -1,0 +1,7 @@
+# Monorepo workspace. The Next.js web app stays at the repo root (keeps the
+# finely-tuned Dockerfile + Railway deploy untouched); shared, framework-agnostic
+# TypeScript lives in packages/*. The Expo app (apps/mobile) is intentionally NOT
+# a workspace member so its React Native / Expo dependency tree never enters the
+# server lockfile or the production Docker image.
+packages:
+  - "packages/*"
