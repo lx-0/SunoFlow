@@ -12,20 +12,22 @@
   },
   "dependencies": {
     "expo": "~56.0.8",
-    "expo-audio": "*",
-    "expo-router": "*",
-    "expo-secure-store": "*",
-    "expo-status-bar": "*",
-    "react": "*",
-    "react-native": "*",
-    "react-native-gesture-handler": "*",
-    "react-native-reanimated": "*",
-    "react-native-safe-area-context": "*",
-    "react-native-screens": "*"
+    "expo-audio": "~56.0.11",
+    "expo-router": "~56.2.8",
+    "expo-secure-store": "~56.0.4",
+    "expo-status-bar": "~56.0.4",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.85.3",
+    "react-native-gesture-handler": "~2.31.1",
+    "react-native-reanimated": "4.3.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "4.25.2",
+    "react-native-worklets": "0.8.3"
   },
   "devDependencies": {
-    "@types/react": "*",
-    "typescript": "*"
+    "@types/react": "~19.2.0",
+    "typescript": "~5.9.2"
   },
-  "comment": "expo is pinned to the SDK; everything else floats to '*' and is aligned by `npx expo install --fix` after `pnpm install` (see README). Audio engine = expo-audio (free, New-Arch, lock-screen + background). track-player was dropped: v4 has no New Arch (Expo SDK 56 forces it) and v5 is commercially licensed. UNTESTED scaffold."
+  "comment": "Versions pinned to Expo SDK 56 (from expo/bundledNativeModules.json sdk-56) so a plain `pnpm install` gets the right tree without `expo install --fix`. Audio = expo-audio (free, New-Arch). reanimated 4 needs react-native-worklets (0.8.3). UNTESTED scaffold."
 }
