@@ -23,6 +23,7 @@ import { generateCoverArtVariants } from "@/lib/cover-art-generator";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
 import { applySongsGalleryFilters, type SongWithMeta } from "./songs-gallery/filtering";
 import { apiGet, apiPost, apiDelete } from "@/lib/api-client";
+import { formatDuration } from "@/lib/time-format";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -31,13 +32,6 @@ interface SongsGalleryViewProps {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatDuration(seconds: number | null): string {
-  if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
 
 function formatDate(date: Date | string): string {
   return new Date(date).toLocaleDateString(undefined, {

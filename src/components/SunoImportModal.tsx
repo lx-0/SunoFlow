@@ -15,6 +15,7 @@ import { Skeleton } from "./Skeleton";
 import { useNotifications } from "./NotificationContext";
 import { apiGet, apiPost } from "@/lib/api-client";
 import { HttpError } from "@/components/QueryProvider";
+import { formatDuration } from "@/lib/time-format";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -49,13 +50,6 @@ interface SunoImportModalProps {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDuration(seconds: number | null): string {
-  if (!seconds || isNaN(seconds)) return "";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
 
 function SongCardSkeleton() {
   return (

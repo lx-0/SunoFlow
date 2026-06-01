@@ -5,7 +5,8 @@ import { MusicalNoteIcon, PauseIcon, PlayIcon } from "@heroicons/react/24/solid"
 import { AddToPlaylistButton } from "@/components/AddToPlaylistButton";
 import { FollowButton } from "@/components/FollowButton";
 
-import { formatDuration, parseSongTags } from "./discover-view.utils";
+import { formatDuration } from "@/lib/time-format";
+import { parseSongTags } from "./discover-view.utils";
 import type {
   CollectionPreview,
   DiscoverPlaylist,

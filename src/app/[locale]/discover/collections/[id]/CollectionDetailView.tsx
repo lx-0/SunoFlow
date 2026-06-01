@@ -9,6 +9,7 @@ import {
   MusicalNoteIcon,
   ArrowLeftIcon,
 } from "@heroicons/react/24/solid";
+import { formatDuration } from "@/lib/time-format";
 
 interface CollectionSong {
   id: string;
@@ -35,13 +36,6 @@ interface CollectionDetail {
 }
 
 const FALLBACK_IMAGE = "https://placehold.co/400x400/1e1b4b/a78bfa?text=♪";
-
-function formatDuration(seconds: number | null): string {
-  if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "--:--";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
 
 export function CollectionDetailView({ collection }: { collection: CollectionDetail }) {
   const [playingSongId, setPlayingSongId] = useState<string | null>(null);

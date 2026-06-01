@@ -12,6 +12,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { ShareMenu } from "@/components/ShareMenu";
 import { apiGet, apiPost, apiDelete } from "@/lib/api-client";
+import { formatDuration } from "@/lib/time-format";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -73,13 +74,6 @@ interface Playlist {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDuration(seconds: number | null): string {
-  if (!seconds) return "";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
 
 function formatCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;

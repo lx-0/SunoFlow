@@ -11,7 +11,7 @@ import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 import { apiGet } from "@/lib/api-client";
 import { Spinner } from "../Spinner";
 import type { LibrarySong } from "./types";
-import { formatDuration } from "./types";
+import { formatDuration } from "@/lib/time-format";
 
 export function SongPickerModal({
   open,

@@ -69,13 +69,6 @@ const MOOD_KEYWORDS_CLIENT = new Set([
   "calm",
 ]);
 
-export function formatDuration(seconds: number | null): string {
-  if (!seconds || Number.isNaN(seconds) || !Number.isFinite(seconds)) return "--:--";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
 export function parseSongTags(tagsStr: string | null): {
   genres: string[];
   moods: string[];

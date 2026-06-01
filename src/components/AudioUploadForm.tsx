@@ -14,6 +14,7 @@ import { GenerationProgress } from "./GenerationProgress";
 import type { RateLimitStatus } from "@/lib/rate-limit";
 import { apiGet } from "@/lib/api-client";
 import { fetchWithTimeout } from "@/lib/fetch-client";
+import { formatDuration } from "@/lib/time-format";
 
 type UploadMode = "cover" | "extend";
 type UploadStep = "idle" | "uploading" | "generating";
@@ -25,12 +26,6 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 export function AudioUploadForm() {

@@ -14,8 +14,8 @@ import {
   MAX_FILE_SIZE,
   emptyTrack,
   formatFileSize,
-  formatDuration,
 } from "./types";
+import { formatDuration } from "@/lib/time-format";
 
 export function TrackSelector({
   label,
