@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { AppShell } from "@/components/AppShell";
 import { useToast } from "@/components/Toast";
-import { apiGet, apiPatch, apiPost, apiDelete } from "@/lib/api-client";
+import { apiPatch, apiPost } from "@/lib/api-client";
+import { useApiGet } from "@/hooks/useApiGet";
 import {
   MusicalNoteIcon,
   HeartIcon,
@@ -151,15 +152,7 @@ function ProfileHeader() {
 // ─── Account Stats ────────────────────────────────────────────────────────────
 
 function AccountStats() {
-  const [stats, setStats] = useState<ProfileStats | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    apiGet<ProfileStats>("/api/profile/stats")
-      .then((data) => setStats(data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: stats, loading } = useApiGet<ProfileStats>("/api/profile/stats");
 
   if (loading) {
     return (
@@ -241,15 +234,8 @@ interface PlaylistPreview {
 }
 
 function MyPlaylistsSection() {
-  const [playlists, setPlaylists] = useState<PlaylistPreview[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    apiGet<{ playlists: PlaylistPreview[] }>("/api/playlists")
-      .then((data) => setPlaylists(data.playlists ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: playlistsData, loading } = useApiGet<{ playlists: PlaylistPreview[] }>("/api/playlists");
+  const playlists = playlistsData?.playlists ?? [];
 
   if (loading) {
     return (
@@ -338,15 +324,8 @@ interface StreakData {
 }
 
 function StreakSection() {
-  const [streak, setStreak] = useState<StreakData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    apiGet<{ streak: StreakData }>("/api/streaks")
-      .then((d) => setStreak(d.streak))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: streakData, loading } = useApiGet<{ streak: StreakData }>("/api/streaks");
+  const streak = streakData?.streak ?? null;
 
   if (loading) {
     return (
@@ -400,15 +379,8 @@ interface Milestone {
 }
 
 function MilestonesSection() {
-  const [milestones, setMilestones] = useState<Milestone[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    apiGet<{ milestones: Milestone[] }>("/api/milestones")
-      .then((d) => setMilestones(d.milestones ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: milestonesData, loading } = useApiGet<{ milestones: Milestone[] }>("/api/milestones");
+  const milestones = milestonesData?.milestones ?? [];
 
   if (loading) {
     return (
