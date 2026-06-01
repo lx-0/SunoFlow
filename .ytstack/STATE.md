@@ -16,7 +16,7 @@ status: brownfield-imported
 
 THE GATE: user runs ONE free-Apple-ID Expo dev build (`apps/mobile/README.md`) to verify the whole vertical on-device — esp. background audio surviving a 10+ min lock (S03/T07, the milestone's proof). Everything the agent wrote is unverifiable without this.
 
-Remaining agent-writable (RN, UNTESTED): S04 — playlists screen on `/api/playlists`, library search box (fetchLibrary already accepts a query), favorites, native waveform.
+iOS-v1 surface now CODE-COMPLETE (untested): login, library + search, player (background audio), playlists list + detail, secure sign-out (commits …b6dbeb43, 05baeffb). Remaining agent-writable RN polish (UNTESTED, increasingly shape-dependent — better done after a device pass): favorites/reactions, native waveform, playlist drag-reorder.
 BLOCKED: S01 monorepo restructure — approved but NOT executable safely (Docker daemon down here → can't verify the Railway build; `push→main` auto-deploys → prod-outage risk). Needs Docker up locally OR user hands-on.
 Follow-ups: per-IP rate-limit; M003 OAuth (fixes the failed T05 plugin smoke-test, see `project_plugin_missing_apikey_error`).
 
