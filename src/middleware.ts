@@ -32,6 +32,11 @@ const PUBLIC_PATHS = [
   "/login", "/register", "/forgot-password", "/reset-password", "/verify-email",
   "/api/auth", "/api/register", "/api/health", "/api/agent-skill", "/api/test/login",
   "/api/songs/public",
+  // Native-client login: unauthenticated email/password → mints an API key.
+  // No JWT cookie + no Bearer yet, so without this the edge redirects it to
+  // /login (307) and the mobile fetch gets HTML instead of the token JSON.
+  // Bearer-authed /api/v1/* routes pass through via the hasApiKeyHeader check.
+  "/api/v1/auth/token",
   // MCP HTTP endpoint — auth is Bearer header, not JWT cookie. Route enforces
   // its own origin allowlist + rate limit + bearer auth.
   "/api/mcp",
