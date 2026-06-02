@@ -9,7 +9,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "PLACEHOLDER.set.your.unique.bundle.id",
+      "bundleIdentifier": "app.sunoflow.mobile",
       "infoPlist": {
         "UIBackgroundModes": ["audio"]
       }
