@@ -1,7 +1,7 @@
 ---
 project: SunoFlow
 slug: SunoFlow
-last_updated: 2026-06-01T17:28:00Z
+last_updated: 2026-06-02T15:00:00Z
 current_milestone: M004
 active_slice: S02
 active_task: none
@@ -21,9 +21,10 @@ Login endpoint now fully brute-force protected: per-IP (30/h) + per-email (10/h)
 Deliberate follow-ups (NOT done — risky/uncertain, need focus or a device pass):
 - vitest 3.2.4 → ≥4.1.0: blast radius is 183 test files (major-bump breakage risk that would re-break CI). Own task. The GHSA ignore is fine meanwhile (non-applicable dev-only advisory).
 - Favorites / playlist drag-reorder / native waveform: API-shape-uncertain (favorite toggle endpoint + per-song favorite state not exposed in the library response); do AFTER the device pass clarifies real shapes.
-- M003 OAuth (fixes the failed T05 plugin smoke-test); migrate more shared modules into `@sunoflow/core`.
+- OAuth for `/api/mcp` (would be a new milestone, not M003-S05 — that slice is cancelled). Bearer-only is production-fine for the closed beta.
+- Migrate more shared modules into `@sunoflow/core` (mcp/* relocation is the obvious next batch — collapses the `@mcp/*` alias).
 
-Parallel user TODO (closes M003): M003-S04-T05 fresh-install smoke-test — `/plugin marketplace update lx-0`, `/plugin install sunoflow`, new shell with `SUNOFLOW_API_KEY`, restart Claude Code, `/mcp` shows sunoflow `connected`.
+**M003 closed 2026-06-02.** Remote `/api/mcp` lives on `sunoflow.app` (deploy `35b34cde`, uptime stable since 2026-05-28 14:35 +02:00). S04-T05 closed as `passed_with_caveats`: server boundary (`401` + `WWW-Authenticate: Bearer realm="sunoflow"` + Origin allowlist) verified live; full E2E tools/call against prod DB never run from this session (needs a real API key + operator). Smoke-script at `scripts/smoke-mcp.mjs` for any operator who wants to run it. S05 OAuth cancelled (out of M003 scope).
 
 M002 (Generate-Refactor) stays planned with S01 done; resumes after M004.
 

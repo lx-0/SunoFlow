@@ -3,9 +3,10 @@ milestone: M003
 project: SunoFlow
 size: L
 created: 2026-05-28T09:30:43Z
-status: planned
+status: done
 total_slices: 5
-completed_slices: 3
+completed_slices: 4
+cancelled_slices: 1
 ---
 
 # M003 Roadmap
@@ -21,8 +22,8 @@ Slice detail lives in per-slice `M003-S##-PLAN.md` files, created by `ytstack:sl
 - [x] S01 -- Spike: `/api/mcp` Route mit `sunoflow_info` only, Streamable-HTTP-Transport verdrahtet, MCP Inspector verifiziert E2E (4 tasks)
 - [x] S02 -- Tools + Resources Port: alle 15 Tools + 4 Resource-Providers auf der HTTP-Route, shared registry, existierende Handler wiederverwendet (5 tasks)
 - [x] S03 -- Security-Härtung: Origin-Header-Allowlist, Per-User-Rate-Limit, Per-Tool-Sentry/GlitchTip-Logging (4 tasks)
-- [ ] S04 -- Plugin-Ship: `.mcp.json` ins Plugin, 0.2.2→0.3.0, beide Marketplaces, stdio deprecated, Fresh-Install-Smoke-Test (5 tasks)
-- [ ] S05 -- OAuth 2.0 Path: `.well-known/oauth-protected-resource` + Auth-Server-Metadata, PKCE-Flow, alternative zu Bearer-Token (4 tasks)
+- [x] S04 -- Plugin-Ship: `.mcp.json` ins Plugin, 0.2.2→0.3.0, beide Marketplaces, stdio deprecated, Fresh-Install-Smoke-Test (5 tasks)
+- [~] S05 -- OAuth 2.0 Path (CANCELLED 2026-06-02, see M003-S05-PLAN.md): `.well-known/oauth-protected-resource` + Auth-Server-Metadata, PKCE-Flow, alternative zu Bearer-Token (4 tasks)
 
 ## Run order
 
