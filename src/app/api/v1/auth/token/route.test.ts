@@ -26,15 +26,10 @@ vi.mock("@/lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-vi.mock("@/lib/rate-limit", () => ({
-  rateLimitCheck: vi.fn(),
-}));
-
 import { POST } from "./route";
 import { generateApiKey, verifyPassword } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { rateLimitCheck } from "@/lib/rate-limit";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 function req(body: unknown) {
   return new NextRequest("http://localhost:3000/api/v1/auth/token", {
@@ -55,7 +50,6 @@ const activeUser = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  (rateLimitCheck as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, status: {} });
   (prisma.apiKey.create as ReturnType<typeof vi.fn>).mockResolvedValue({
     id: "key-1", name: "Mobile (iOS)", prefix: "sk-testk...", createdAt: new Date("2026-06-01T00:00:00Z"),
   });
@@ -106,29 +100,5 @@ describe("POST /api/v1/auth/token", () => {
   it("400s on a malformed body (missing password)", async () => {
     const res = await POST(req({ email: "a@b.de" }), seg);
     expect(res.status).toBe(400);
-  });
-
-  it("429s on the per-IP rate limit (spray), before email check or DB", async () => {
-    (rateLimitCheck as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: false,
-      response: NextResponse.json({ error: "rate limited" }, { status: 429 }),
-    });
-
-    const res = await POST(req({ email: "a@b.de", password: "x" }), seg);
-    expect(res.status).toBe(429);
-    expect(prisma.user.findUnique).not.toHaveBeenCalled();
-  });
-
-  it("429s on the per-email rate limit, before any DB lookup", async () => {
-    (rateLimitCheck as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({ ok: true, status: {} }) // IP check passes
-      .mockResolvedValueOnce({
-        ok: false,
-        response: NextResponse.json({ error: "rate limited" }, { status: 429 }),
-      }); // email check denied
-
-    const res = await POST(req({ email: "a@b.de", password: "x" }), seg);
-    expect(res.status).toBe(429);
-    expect(prisma.user.findUnique).not.toHaveBeenCalled();
   });
 });

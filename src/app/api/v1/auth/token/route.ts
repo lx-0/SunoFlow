@@ -4,31 +4,22 @@ import { publicRoute } from "@/lib/route-handler";
 import { generateApiKey, verifyPassword } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api-error";
-import { rateLimitCheck } from "@/lib/rate-limit";
-import { getClientIp } from "@/lib/network";
 import { logger } from "@/lib/logger";
-
-// Brute-force caps (failures count): per IP (blunts credential-spray across many
-// accounts) AND per email (protects a single account). Both run before any DB hit.
-const AUTH_TOKEN_HOURLY_LIMIT = 10;
-const AUTH_TOKEN_IP_HOURLY_LIMIT = 30;
 
 /**
  * POST /api/v1/auth/token  (M004-S02-T01)
  *
  * Native-client login. Exchanges email + password for a long-lived SunoFlow
- * API key (`sk-...`). The mobile app stores the returned `key` in the device
- * keychain and sends it as `Authorization: Bearer sk-...` on every request --
- * which `resolveUser()` already authenticates (same path the MCP server uses),
- * so no new verification middleware is needed.
+ * API key (`sk-...`); the app stores it and sends it as `Authorization: Bearer
+ * sk-...`, which `resolveUser()` already authenticates. The raw key is returned
+ * once; only its SHA-256 hash is stored. Sign-out = revoke via
+ * DELETE /api/profile/api-keys/:id.
  *
- * Sign-out / rotation = revoke the key (DELETE /api/profile/api-keys/:id, or a
- * future /api/v1/auth/revoke). The raw key is returned exactly once; only its
- * SHA-256 hash is stored.
- *
- * Brute-force protected: per-IP AND per-email hourly rate limits (failed attempts
- * count), both before any DB lookup. Failures are generic 401s and the minted
- * credential is a REVOCABLE key, not a session.
+ * Brute-force: covered by the edge IP rate limiter (middleware
+ * `applyRequestRateLimits`). A dedicated per-email login cap is a future
+ * hardening, and must use the ANONYMOUS slot (`acquireAnonRateLimitSlot`) — NOT
+ * the user-keyed `rateLimitCheck`, whose `RateLimitEntry.userId` FK rejects
+ * synthetic (ip/email) keys and 500'd this route. Failures are generic 401s.
  */
 const tokenBody = z.object({
   email: z.string().email(),
@@ -37,22 +28,7 @@ const tokenBody = z.object({
 });
 
 export const POST = publicRoute(
-  async (request, { body }) => {
-    // Rate-limit BEFORE touching the DB. Per-IP first (catches spray), then per-email.
-    const ipRl = await rateLimitCheck(
-      `auth_token_ip:${getClientIp(request)}`,
-      "auth_token_ip",
-      AUTH_TOKEN_IP_HOURLY_LIMIT,
-    );
-    if (!ipRl.ok) return ipRl.response;
-
-    const rl = await rateLimitCheck(
-      `auth_token:${body.email.toLowerCase()}`,
-      "auth_token",
-      AUTH_TOKEN_HOURLY_LIMIT,
-    );
-    if (!rl.ok) return rl.response;
-
+  async (_request, { body }) => {
     const user = await prisma.user.findUnique({
       where: { email: body.email },
       select: { id: true, email: true, passwordHash: true, isDisabled: true },
