@@ -1,14 +1,10 @@
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
 import type { Song } from "@/types";
 
-// Queue controller around expo-audio (which is a single-player engine with no
-// built-in queue). Holds the play queue + current index, advances on track end,
-// drives lock-screen / Control Center now-playing, and exposes a tiny external
-// store so screens subscribe without coupling to expo-audio's hooks.
-//
-// ⚠️ UNTESTED against a device. expo-audio's exact event/field names
-// (`playbackStatusUpdate`, `didJustFinish`, `setActiveForLockScreen` signature)
-// are written from the docs and may need a small tweak on the first dev build.
+// Queue controller around expo-audio. expo-audio is a single-player engine with
+// no built-in queue, so we keep ONE long-lived player and swap tracks with
+// replace() — never create a second player (that leaves the previous one playing
+// → overlapping audio + dead controls). Lock-screen metadata is updated per track.
 
 export interface PlaybackSnapshot {
   current: Song | null;
@@ -27,7 +23,6 @@ interface StatusUpdate {
 let player: AudioPlayer | null = null;
 let queue: Song[] = [];
 let index = 0;
-let configured = false;
 
 let snapshot: PlaybackSnapshot = {
   current: null,
@@ -53,32 +48,20 @@ export function getSnapshot(): PlaybackSnapshot {
   return snapshot;
 }
 
-async function ensureConfigured() {
-  if (configured) return;
+// Lazily create the single player on first play. Audio session + lock-screen
+// binding + the status listener are set up exactly once here.
+async function ensurePlayer(): Promise<AudioPlayer> {
+  if (player) return player;
+
   await setAudioModeAsync({
     playsInSilentMode: true,
     shouldPlayInBackground: true,
     interruptionMode: "doNotMix",
   });
-  configured = true;
-}
 
-async function loadCurrent() {
-  const song = queue[index];
-  if (!song) return;
-
-  player?.remove();
-  player = createAudioPlayer({ uri: song.streamUrl });
-
-  // Lock screen + Control Center now-playing + remote transport.
-  // expo-audio API: setActiveForLockScreen(active: boolean, metadata?, options?).
-  player.setActiveForLockScreen(
-    true,
-    { title: song.title, artist: song.artist ?? "SunoFlow", artworkUrl: song.artworkUrl },
-    { showSeekForward: true, showSeekBackward: true },
-  );
-
-  player.addListener("playbackStatusUpdate", (status: StatusUpdate) => {
+  const p = createAudioPlayer(null);
+  p.setActiveForLockScreen(true, {}, { showSeekForward: true, showSeekBackward: true });
+  p.addListener("playbackStatusUpdate", (status: StatusUpdate) => {
     patch({
       playing: Boolean(status.playing),
       positionSeconds: typeof status.currentTime === "number" ? status.currentTime : snapshot.positionSeconds,
@@ -87,13 +70,28 @@ async function loadCurrent() {
     if (status.didJustFinish) void skipToNext();
   });
 
+  player = p;
+  return p;
+}
+
+// Swap the single player's source to the current queue item — no new player.
+async function loadCurrent(): Promise<void> {
+  const song = queue[index];
+  if (!song) return;
+  const p = await ensurePlayer();
+
+  p.replace({ uri: song.streamUrl });
+  p.updateLockScreenMetadata({
+    title: song.title,
+    artist: song.artist ?? "SunoFlow",
+    artworkUrl: song.artworkUrl,
+  });
   patch({ current: song, playing: true, positionSeconds: 0, durationSeconds: song.durationSeconds ?? 0 });
-  player.play();
+  p.play();
 }
 
 /** Replace the queue with `songs` and start playing at `startIndex`. */
 export async function playQueue(songs: Song[], startIndex = 0): Promise<void> {
-  await ensureConfigured();
   queue = songs;
   index = Math.max(0, Math.min(startIndex, songs.length - 1));
   await loadCurrent();
