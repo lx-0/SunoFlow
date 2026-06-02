@@ -1,15 +1,13 @@
 import { useEffect } from "react";
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { setupPlayer } from "@/playback/setup";
 import { getApiKey } from "@/auth/session";
 
-// Root layout. Initialises the audio engine once (the playback service in
-// index.js handles lock-screen / Control Center commands), and gates the app
-// on a stored API key — no key → login.
+// Root layout. Gates the app on a stored API key — no key → login. expo-audio is
+// configured lazily on first playback (see src/playback/audio.ts), so no engine
+// setup is needed here.
 export default function RootLayout() {
   useEffect(() => {
-    setupPlayer().catch((e) => console.error("[player] setup failed", e));
     getApiKey()
       .then((key) => {
         if (!key) router.replace("/login");
