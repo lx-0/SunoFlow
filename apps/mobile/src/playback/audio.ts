@@ -71,8 +71,10 @@ async function loadCurrent() {
   player = createAudioPlayer({ uri: song.streamUrl });
 
   // Lock screen + Control Center now-playing + remote transport.
-  player.setActiveForLockScreen?.(
-    { title: song.title, artist: song.artist ?? "SunoFlow", artwork: song.artworkUrl },
+  // expo-audio API: setActiveForLockScreen(active: boolean, metadata?, options?).
+  player.setActiveForLockScreen(
+    true,
+    { title: song.title, artist: song.artist ?? "SunoFlow", artworkUrl: song.artworkUrl },
     { showSeekForward: true, showSeekBackward: true },
   );
 
