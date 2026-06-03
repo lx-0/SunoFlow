@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePlayback } from "@/playback/usePlayback";
 import { togglePlay } from "@/playback/audio";
+import { PlayIcon, PauseIcon } from "@/components/Icons";
 
 // Persistent now-playing bar above the tab bar on every Browse screen, so
 // playback stays controllable while the user browses. Driven by the expo-audio
@@ -35,7 +36,7 @@ export function MiniPlayer() {
           togglePlay();
         }}
       >
-        <Text style={styles.btn}>{playing ? "⏸" : "▶"}</Text>
+        {playing ? <PauseIcon color="#fff" size={16} /> : <PlayIcon color="#fff" size={16} />}
       </Pressable>
     </Pressable>
   );
@@ -57,5 +58,4 @@ const styles = StyleSheet.create({
   thumb: { width: 36, height: 36, borderRadius: 6, marginRight: 10 },
   thumbPlaceholder: { backgroundColor: "#2a2a32" },
   title: { color: "#fff", fontSize: 14, flex: 1, marginRight: 12 },
-  btn: { color: "#fff", fontSize: 20 },
 });

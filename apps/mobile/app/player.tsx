@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { usePlayback } from "@/playback/usePlayback";
 import { togglePlay, skipToNext, skipToPrevious, seekTo } from "@/playback/audio";
+import { PlayIcon, PauseIcon, SkipNextIcon, SkipPrevIcon } from "@/components/Icons";
 
 // Now-Playing screen. State from the queue controller's store (in sync with the
 // lock-screen). Basic player surface: artwork, tap-to-seek bar, transport.
@@ -52,13 +53,13 @@ export default function PlayerScreen() {
 
       <View style={styles.row}>
         <Pressable hitSlop={12} style={styles.btn} onPress={() => skipToPrevious()}>
-          <Text style={styles.btnText}>⏮</Text>
+          <SkipPrevIcon color="#fff" size={26} />
         </Pressable>
         <Pressable hitSlop={12} style={[styles.btn, styles.btnPlay]} onPress={togglePlay}>
-          <Text style={styles.btnPlayText}>{playing ? "⏸" : "▶"}</Text>
+          {playing ? <PauseIcon color="#000" size={22} /> : <PlayIcon color="#000" size={22} />}
         </Pressable>
         <Pressable hitSlop={12} style={styles.btn} onPress={() => skipToNext()}>
-          <Text style={styles.btnText}>⏭</Text>
+          <SkipNextIcon color="#fff" size={26} />
         </Pressable>
       </View>
     </View>
@@ -85,7 +86,5 @@ const styles = StyleSheet.create({
   time: { color: "#9a9aa2", fontSize: 12, fontVariant: ["tabular-nums"] },
   row: { flexDirection: "row", alignItems: "center", gap: 32, marginTop: 28 },
   btn: { width: 56, height: 56, alignItems: "center", justifyContent: "center" },
-  btnText: { color: "#fff", fontSize: 30 },
   btnPlay: { width: 72, height: 72, borderRadius: 36, backgroundColor: "#fff" },
-  btnPlayText: { color: "#000", fontSize: 30 },
 });
