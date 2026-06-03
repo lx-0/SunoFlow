@@ -5,7 +5,7 @@ import { togglePlay, skipToNext, skipToPrevious } from "@/playback/audio";
 // Now-Playing screen. State comes from the expo-audio queue controller's store
 // so it stays in sync with lock-screen / Control Center controls.
 export default function PlayerScreen() {
-  const { current, playing, positionSeconds, durationSeconds, index, queueLength } = usePlayback();
+  const { current, playing, positionSeconds, durationSeconds } = usePlayback();
 
   return (
     <View style={styles.container}>
@@ -25,9 +25,6 @@ export default function PlayerScreen() {
           <Text style={styles.btnText}>⏭</Text>
         </Pressable>
       </View>
-      <Text style={styles.debug}>
-        DEBUG  idx {index + 1}/{queueLength} · {playing ? "playing" : "stopped"} · {fmt(positionSeconds)}/{fmt(durationSeconds)}
-      </Text>
     </View>
   );
 }
@@ -47,5 +44,4 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: 28, marginTop: 32 },
   btn: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", backgroundColor: "#1c1c22" },
   btnText: { color: "#fff", fontSize: 22 },
-  debug: { color: "#6a6a72", fontSize: 12, marginTop: 28, fontVariant: ["tabular-nums"] },
 });
