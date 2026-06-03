@@ -58,6 +58,9 @@ function startPolling() {
   pollTimer = setInterval(() => {
     const p = player;
     if (!p) return;
+    // Re-assert next/prev (+ seek off) every tick: expo-audio keeps reconfiguring
+    // MPRemoteCommandCenter (showing ±seek), so a one-shot enable() loses to it.
+    enableRemoteControls();
     const dur = typeof p.duration === "number" ? p.duration : 0;
     const pos = typeof p.currentTime === "number" ? p.currentTime : 0;
     const playing = Boolean(p.playing);
