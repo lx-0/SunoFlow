@@ -1,4 +1,4 @@
-import { Text, Pressable, StyleSheet, type GestureResponderEvent } from "react-native";
+import { View, Text, Image, Pressable, StyleSheet, type GestureResponderEvent } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePlayback } from "@/playback/usePlayback";
@@ -20,6 +20,11 @@ export function MiniPlayer() {
       style={[styles.bar, { bottom: insets.bottom + TAB_BAR_HEIGHT }]}
       onPress={() => router.push("/player")}
     >
+      {current.artworkUrl ? (
+        <Image source={{ uri: current.artworkUrl }} style={styles.thumb} />
+      ) : (
+        <View style={[styles.thumb, styles.thumbPlaceholder]} />
+      )}
       <Text style={styles.title} numberOfLines={1}>
         {current.title}
       </Text>
@@ -49,6 +54,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 14,
   },
+  thumb: { width: 36, height: 36, borderRadius: 6, marginRight: 10 },
+  thumbPlaceholder: { backgroundColor: "#2a2a32" },
   title: { color: "#fff", fontSize: 14, flex: 1, marginRight: 12 },
   btn: { color: "#fff", fontSize: 20 },
 });
