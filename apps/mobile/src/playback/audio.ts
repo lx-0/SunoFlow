@@ -1,6 +1,9 @@
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
 import type { Song } from "@/types";
+import { recordPlay } from "@/api/history";
 import { enableRemoteControls, onRemoteNext, onRemotePrevious } from "../../modules/remote-controls";
+
+export type RepeatMode = "off" | "all" | "one";
 
 // Queue controller around expo-audio. ONE long-lived AudioPlayer (it owns the
 // lock-screen / Control Center widget — AudioPlaylist has no lock-screen support).
@@ -17,13 +20,16 @@ export interface PlaybackSnapshot {
   durationSeconds: number;
   index: number;
   queueLength: number;
+  queue: Song[];
   shuffle: boolean;
+  repeat: RepeatMode;
 }
 
 let player: AudioPlayer | null = null;
 let queue: Song[] = []; // active (possibly shuffled) order
 let originalQueue: Song[] = []; // canonical order, to restore when shuffle is off
 let shuffle = false;
+let repeat: RepeatMode = "off";
 let index = 0;
 let advancing = false; // guard: one auto-advance per track end
 let pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -37,7 +43,9 @@ let snapshot: PlaybackSnapshot = {
   durationSeconds: 0,
   index: 0,
   queueLength: 0,
+  queue: [],
   shuffle: false,
+  repeat: "off",
 };
 const listeners = new Set<() => void>();
 
@@ -79,7 +87,7 @@ function startPolling() {
 
     if (ended && !advancing) {
       advancing = true;
-      void skipToNext();
+      void skipToNext(true); // auto-advance: honors repeat mode
     }
   }, 700);
 }
@@ -125,8 +133,12 @@ async function loadCurrent(): Promise<void> {
   // Re-assert next/prev: expo-audio reconfigures the command center per track and
   // may disable them, so enable again after updateLockScreenMetadata.
   enableRemoteControls();
-  patch({ current: song, playing: true, positionSeconds: 0, durationSeconds: song.durationSeconds ?? 0, index, queueLength: queue.length });
+  patch({ current: song, playing: true, positionSeconds: 0, durationSeconds: song.durationSeconds ?? 0, index, queueLength: queue.length, queue });
   p.play();
+
+  // Record the play (server-side history + active-user metric). Fire-and-forget:
+  // dedupe + ownership are handled by the backend; a failure never breaks playback.
+  void recordPlay(song.id).catch(() => {});
 }
 
 /** Fisher-Yates in place. Math.random is fine in the app runtime. */
@@ -168,7 +180,7 @@ export function toggleShuffle(): void {
     queue = [...originalQueue];
     index = Math.max(0, queue.findIndex((s) => s.id === currentSong?.id));
   }
-  patch({ index, queueLength: queue.length, shuffle });
+  patch({ index, queueLength: queue.length, queue, shuffle });
 }
 
 export function togglePlay(): void {
@@ -182,9 +194,23 @@ export function togglePlay(): void {
   }
 }
 
-export async function skipToNext(): Promise<void> {
+/**
+ * Advance to the next track. `auto` = triggered by a track ending (vs. the user
+ * tapping next), which is what makes repeat-one repeat instead of skip.
+ */
+export async function skipToNext(auto = false): Promise<void> {
+  if (auto && repeat === "one") {
+    await loadCurrent(); // replay the same track
+    return;
+  }
   if (index < queue.length - 1) {
     index += 1;
+    await loadCurrent();
+    return;
+  }
+  // At the last track: wrap around if repeating the whole queue, else stop.
+  if (repeat === "all" && queue.length > 0) {
+    index = 0;
     await loadCurrent();
   }
 }
@@ -193,7 +219,23 @@ export async function skipToPrevious(): Promise<void> {
   if (index > 0) {
     index -= 1;
     await loadCurrent();
+  } else if (repeat === "all" && queue.length > 0) {
+    index = queue.length - 1;
+    await loadCurrent();
   }
+}
+
+/** Jump to an explicit queue position (Up-Next list tap). */
+export async function jumpTo(target: number): Promise<void> {
+  if (target < 0 || target >= queue.length || target === index) return;
+  index = target;
+  await loadCurrent();
+}
+
+/** Cycle repeat mode: off → all → one → off. */
+export function toggleRepeat(): void {
+  repeat = repeat === "off" ? "all" : repeat === "all" ? "one" : "off";
+  patch({ repeat });
 }
 
 export function seekTo(seconds: number): void {

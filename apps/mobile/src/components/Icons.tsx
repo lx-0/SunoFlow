@@ -1,4 +1,4 @@
-import { Heart, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward } from "lucide-react-native";
+import { Heart, ListMusic, Pause, Play, Repeat, Repeat1, Shuffle, SkipBack, SkipForward } from "lucide-react-native";
 
 // Thin adapter over lucide-react-native — the SAME icon set the web app uses, so
 // the native UI matches 1:1 (DRY). Transport glyphs are filled (fill=color) to
@@ -27,8 +27,13 @@ export function ShuffleIcon({ color = "#fff", size = 22 }: IconProps) {
   return <Shuffle color={color} size={size} strokeWidth={2.5} />;
 }
 
-export function RepeatIcon({ color = "#fff", size = 22 }: IconProps) {
-  return <Repeat color={color} size={size} strokeWidth={2.5} />;
+export function RepeatIcon({ color = "#fff", size = 22, one = false }: IconProps & { one?: boolean }) {
+  const Glyph = one ? Repeat1 : Repeat;
+  return <Glyph color={color} size={size} strokeWidth={2.5} />;
+}
+
+export function QueueIcon({ color = "#fff", size = 22 }: IconProps) {
+  return <ListMusic color={color} size={size} strokeWidth={2} />;
 }
 
 export function HeartIcon({ color = "#fff", size = 22, filled = false }: IconProps & { filled?: boolean }) {

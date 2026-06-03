@@ -8,9 +8,10 @@ import {
   type GestureResponderEvent,
   type LayoutChangeEvent,
 } from "react-native";
+import { router } from "expo-router";
 import { usePlayback } from "@/playback/usePlayback";
-import { togglePlay, skipToNext, skipToPrevious, seekTo, toggleShuffle } from "@/playback/audio";
-import { PlayIcon, PauseIcon, SkipNextIcon, SkipPrevIcon, ShuffleIcon, HeartIcon } from "@/components/Icons";
+import { togglePlay, skipToNext, skipToPrevious, seekTo, toggleShuffle, toggleRepeat } from "@/playback/audio";
+import { PlayIcon, PauseIcon, SkipNextIcon, SkipPrevIcon, ShuffleIcon, HeartIcon, RepeatIcon, QueueIcon } from "@/components/Icons";
 import { getFavorite, setFavorite as setFavoriteApi } from "@/api/favorites";
 
 const ACCENT = "#8b7cff";
@@ -18,7 +19,7 @@ const ACCENT = "#8b7cff";
 // Now-Playing screen. State from the queue controller's store (in sync with the
 // lock-screen). Basic player surface: artwork, tap-to-seek bar, transport.
 export default function PlayerScreen() {
-  const { current, playing, positionSeconds, durationSeconds, shuffle } = usePlayback();
+  const { current, playing, positionSeconds, durationSeconds, shuffle, repeat } = usePlayback();
   const [barWidth, setBarWidth] = useState(0);
   const [favorite, setFavorite] = useState(false);
   const songId = current?.id;
@@ -83,20 +84,29 @@ export default function PlayerScreen() {
       </View>
 
       <View style={styles.row}>
+        <Pressable hitSlop={12} style={styles.btn} onPress={() => skipToPrevious()}>
+          <SkipPrevIcon color="#fff" size={28} />
+        </Pressable>
+        <Pressable hitSlop={12} style={[styles.btn, styles.btnPlay]} onPress={togglePlay}>
+          {playing ? <PauseIcon color="#000" size={24} /> : <PlayIcon color="#000" size={24} />}
+        </Pressable>
+        <Pressable hitSlop={12} style={styles.btn} onPress={() => skipToNext()}>
+          <SkipNextIcon color="#fff" size={28} />
+        </Pressable>
+      </View>
+
+      <View style={styles.secondaryRow}>
         <Pressable hitSlop={10} style={styles.btnSmall} onPress={toggleShuffle}>
           <ShuffleIcon color={shuffle ? ACCENT : "#5a5a62"} size={22} />
         </Pressable>
-        <Pressable hitSlop={12} style={styles.btn} onPress={() => skipToPrevious()}>
-          <SkipPrevIcon color="#fff" size={26} />
-        </Pressable>
-        <Pressable hitSlop={12} style={[styles.btn, styles.btnPlay]} onPress={togglePlay}>
-          {playing ? <PauseIcon color="#000" size={22} /> : <PlayIcon color="#000" size={22} />}
-        </Pressable>
-        <Pressable hitSlop={12} style={styles.btn} onPress={() => skipToNext()}>
-          <SkipNextIcon color="#fff" size={26} />
+        <Pressable hitSlop={10} style={styles.btnSmall} onPress={toggleRepeat}>
+          <RepeatIcon color={repeat !== "off" ? ACCENT : "#5a5a62"} one={repeat === "one"} size={22} />
         </Pressable>
         <Pressable hitSlop={10} style={styles.btnSmall} onPress={onToggleFavorite}>
           <HeartIcon color={favorite ? "#ff4d6d" : "#9a9aa2"} filled={favorite} size={22} />
+        </Pressable>
+        <Pressable hitSlop={10} style={styles.btnSmall} onPress={() => router.push("/queue")}>
+          <QueueIcon color="#9a9aa2" size={22} />
         </Pressable>
       </View>
     </View>
@@ -121,8 +131,9 @@ const styles = StyleSheet.create({
   barFill: { height: 4, backgroundColor: "#fff" },
   times: { alignSelf: "stretch", flexDirection: "row", justifyContent: "space-between", marginTop: -6 },
   time: { color: "#9a9aa2", fontSize: 12, fontVariant: ["tabular-nums"] },
-  row: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 28 },
+  row: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 32, marginTop: 28 },
+  secondaryRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 36, marginTop: 24 },
   btnSmall: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  btn: { width: 52, height: 52, alignItems: "center", justifyContent: "center" },
-  btnPlay: { width: 68, height: 68, borderRadius: 34, backgroundColor: "#fff" },
+  btn: { width: 56, height: 56, alignItems: "center", justifyContent: "center" },
+  btnPlay: { width: 72, height: 72, borderRadius: 36, backgroundColor: "#fff" },
 });

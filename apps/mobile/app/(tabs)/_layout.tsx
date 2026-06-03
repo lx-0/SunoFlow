@@ -1,5 +1,6 @@
 import { View } from "react-native";
 import { Tabs } from "expo-router";
+import { Library, ListMusic, Heart, Clock, Settings } from "lucide-react-native";
 import { MiniPlayer } from "@/components/MiniPlayer";
 
 // Browse-first tab shell (iOS-v1 scope: Browse + Play + Playlists). A persistent
@@ -14,11 +15,29 @@ export default function TabsLayout() {
           headerTintColor: "#fff",
           tabBarStyle: { backgroundColor: "#0b0b0f", borderTopColor: "#1c1c22" },
           tabBarActiveTintColor: "#fff",
+          tabBarInactiveTintColor: "#6a6a72",
         }}
       >
-        <Tabs.Screen name="index" options={{ title: "Library" }} />
-        <Tabs.Screen name="playlists" options={{ title: "Playlists" }} />
-        <Tabs.Screen name="settings" options={{ title: "Settings" }} />
+        <Tabs.Screen
+          name="index"
+          options={{ title: "Library", tabBarIcon: ({ color, size }) => <Library color={color} size={size} /> }}
+        />
+        <Tabs.Screen
+          name="playlists"
+          options={{ title: "Playlists", tabBarIcon: ({ color, size }) => <ListMusic color={color} size={size} /> }}
+        />
+        <Tabs.Screen
+          name="favorites"
+          options={{ title: "Favorites", tabBarIcon: ({ color, size }) => <Heart color={color} size={size} /> }}
+        />
+        <Tabs.Screen
+          name="history"
+          options={{ title: "History", tabBarIcon: ({ color, size }) => <Clock color={color} size={size} /> }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{ title: "Settings", tabBarIcon: ({ color, size }) => <Settings color={color} size={size} /> }}
+        />
       </Tabs>
       <MiniPlayer />
     </View>
