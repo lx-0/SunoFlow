@@ -2,11 +2,12 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-aud
 import type { Song } from "@/types";
 
 // Queue controller around expo-audio. ONE long-lived AudioPlayer (it owns the
-// lock-screen / Control Center widget via setActiveForLockScreen +
-// updateLockScreenMetadata — AudioPlaylist has no lock-screen support, so we keep
-// the player). Tracks are swapped with replace(); auto-advance is driven from the
-// status listener (didJustFinish OR currentTime≈duration, since didJustFinish was
-// unreliable on device), guarded against double-firing.
+// lock-screen / Control Center widget — AudioPlaylist has no lock-screen support).
+// Tracks are swapped with replace(). Auto-advance is driven by POLLING the
+// player's currentTime/duration/playing every 700ms: the didJustFinish event was
+// unreliable on device (sometimes it never fired / the player went silent without
+// a final status event), so we don't depend on it. Polling reads native state
+// directly and advances when the current track reaches/stops at its end.
 
 export interface PlaybackSnapshot {
   current: Song | null;
@@ -15,17 +16,13 @@ export interface PlaybackSnapshot {
   durationSeconds: number;
 }
 
-interface StatusUpdate {
-  playing?: boolean;
-  currentTime?: number;
-  duration?: number;
-  didJustFinish?: boolean;
-}
-
 let player: AudioPlayer | null = null;
 let queue: Song[] = [];
 let index = 0;
-let advancing = false; // guard: only fire one auto-advance per track end
+let advancing = false; // guard: one auto-advance per track end
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+let lastPlaying = false;
+let lastPos = 0;
 
 let snapshot: PlaybackSnapshot = {
   current: null,
@@ -51,6 +48,30 @@ export function getSnapshot(): PlaybackSnapshot {
   return snapshot;
 }
 
+function startPolling() {
+  if (pollTimer) return;
+  pollTimer = setInterval(() => {
+    const p = player;
+    if (!p) return;
+    const dur = typeof p.duration === "number" ? p.duration : 0;
+    const pos = typeof p.currentTime === "number" ? p.currentTime : 0;
+    const playing = Boolean(p.playing);
+    patch({ playing, positionSeconds: pos, durationSeconds: dur });
+
+    const justStopped = lastPlaying && !playing;
+    // Track ended if: position reached the end, OR playback just stopped while it
+    // was near the end (covers the player resetting currentTime to 0 on finish).
+    const ended = dur > 0 && (pos >= dur - 0.6 || (justStopped && lastPos >= dur - 2));
+    lastPlaying = playing;
+    lastPos = pos;
+
+    if (ended && !advancing) {
+      advancing = true;
+      void skipToNext();
+    }
+  }, 700);
+}
+
 async function ensurePlayer(): Promise<AudioPlayer> {
   if (player) return player;
 
@@ -62,23 +83,8 @@ async function ensurePlayer(): Promise<AudioPlayer> {
 
   const p = createAudioPlayer(null);
   p.setActiveForLockScreen(true, {}, { showSeekForward: true, showSeekBackward: true });
-  p.addListener("playbackStatusUpdate", (status: StatusUpdate) => {
-    const pos = typeof status.currentTime === "number" ? status.currentTime : snapshot.positionSeconds;
-    const dur = typeof status.duration === "number" ? status.duration : snapshot.durationSeconds;
-    patch({ playing: Boolean(status.playing), positionSeconds: pos, durationSeconds: dur });
-
-    // Auto-advance: didJustFinish is the intended signal but proved unreliable on
-    // device, so also treat "stopped at (near) the end" as finished.
-    const ended =
-      status.didJustFinish === true ||
-      (dur > 0 && pos >= dur - 0.5 && status.playing === false);
-    if (ended && !advancing) {
-      advancing = true;
-      void skipToNext();
-    }
-  });
-
   player = p;
+  startPolling();
   return p;
 }
 
@@ -87,6 +93,8 @@ async function loadCurrent(): Promise<void> {
   if (!song) return;
   const p = await ensurePlayer();
   advancing = false;
+  lastPlaying = false;
+  lastPos = 0;
 
   p.replace({ uri: song.streamUrl });
   p.updateLockScreenMetadata({
