@@ -17,10 +17,13 @@ export interface PlaybackSnapshot {
   durationSeconds: number;
   index: number;
   queueLength: number;
+  shuffle: boolean;
 }
 
 let player: AudioPlayer | null = null;
-let queue: Song[] = [];
+let queue: Song[] = []; // active (possibly shuffled) order
+let originalQueue: Song[] = []; // canonical order, to restore when shuffle is off
+let shuffle = false;
 let index = 0;
 let advancing = false; // guard: one auto-advance per track end
 let pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -34,6 +37,7 @@ let snapshot: PlaybackSnapshot = {
   durationSeconds: 0,
   index: 0,
   queueLength: 0,
+  shuffle: false,
 };
 const listeners = new Set<() => void>();
 
@@ -125,11 +129,46 @@ async function loadCurrent(): Promise<void> {
   p.play();
 }
 
+/** Fisher-Yates in place. Math.random is fine in the app runtime. */
+function shuffleInPlace<T>(arr: T[]): void {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
 /** Replace the queue with `songs` and start playing at `startIndex`. */
 export async function playQueue(songs: Song[], startIndex = 0): Promise<void> {
-  queue = songs;
-  index = Math.max(0, Math.min(startIndex, songs.length - 1));
+  originalQueue = [...songs];
+  const start = Math.max(0, Math.min(startIndex, songs.length - 1));
+  if (shuffle) {
+    // Keep the chosen track first, shuffle the rest behind it.
+    const startSong = songs[start];
+    const rest = songs.filter((_, i) => i !== start);
+    shuffleInPlace(rest);
+    queue = startSong ? [startSong, ...rest] : rest;
+    index = 0;
+  } else {
+    queue = [...songs];
+    index = start;
+  }
   await loadCurrent();
+}
+
+/** Toggle shuffle. Keeps the current track playing; reorders what comes next. */
+export function toggleShuffle(): void {
+  shuffle = !shuffle;
+  const currentSong = queue[index];
+  if (shuffle) {
+    const rest = originalQueue.filter((s) => s.id !== currentSong?.id);
+    shuffleInPlace(rest);
+    queue = currentSong ? [currentSong, ...rest] : rest;
+    index = 0;
+  } else {
+    queue = [...originalQueue];
+    index = Math.max(0, queue.findIndex((s) => s.id === currentSong?.id));
+  }
+  patch({ index, queueLength: queue.length, shuffle });
 }
 
 export function togglePlay(): void {
