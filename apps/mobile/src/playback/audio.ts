@@ -1,5 +1,6 @@
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
 import type { Song } from "@/types";
+import { enableRemoteControls, onRemoteNext, onRemotePrevious } from "../../modules/remote-controls";
 
 // Queue controller around expo-audio. ONE long-lived AudioPlayer (it owns the
 // lock-screen / Control Center widget — AudioPlaylist has no lock-screen support).
@@ -86,8 +87,16 @@ async function ensurePlayer(): Promise<AudioPlayer> {
   });
 
   const p = createAudioPlayer(null);
-  p.setActiveForLockScreen(true, {}, { showSeekForward: true, showSeekBackward: true });
+  // showSeek* off → iOS shows next/prev track buttons instead of ±seconds, which
+  // our native RemoteControls module enables + forwards to the queue below.
+  p.setActiveForLockScreen(true, {}, { showSeekForward: false, showSeekBackward: false });
   player = p;
+
+  // Native lock-screen next/prev → our queue (expo-audio has no next/prev).
+  enableRemoteControls();
+  onRemoteNext(() => void skipToNext());
+  onRemotePrevious(() => void skipToPrevious());
+
   startPolling();
   return p;
 }
@@ -106,6 +115,9 @@ async function loadCurrent(): Promise<void> {
     artist: song.artist ?? "SunoFlow",
     artworkUrl: song.artworkUrl,
   });
+  // Re-assert next/prev: expo-audio reconfigures the command center per track and
+  // may disable them, so enable again after updateLockScreenMetadata.
+  enableRemoteControls();
   patch({ current: song, playing: true, positionSeconds: 0, durationSeconds: song.durationSeconds ?? 0, index, queueLength: queue.length });
   p.play();
 }
