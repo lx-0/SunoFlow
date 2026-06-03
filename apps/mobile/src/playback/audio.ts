@@ -14,6 +14,8 @@ export interface PlaybackSnapshot {
   playing: boolean;
   positionSeconds: number;
   durationSeconds: number;
+  index: number;
+  queueLength: number;
 }
 
 let player: AudioPlayer | null = null;
@@ -29,6 +31,8 @@ let snapshot: PlaybackSnapshot = {
   playing: false,
   positionSeconds: 0,
   durationSeconds: 0,
+  index: 0,
+  queueLength: 0,
 };
 const listeners = new Set<() => void>();
 
@@ -102,7 +106,7 @@ async function loadCurrent(): Promise<void> {
     artist: song.artist ?? "SunoFlow",
     artworkUrl: song.artworkUrl,
   });
-  patch({ current: song, playing: true, positionSeconds: 0, durationSeconds: song.durationSeconds ?? 0 });
+  patch({ current: song, playing: true, positionSeconds: 0, durationSeconds: song.durationSeconds ?? 0, index, queueLength: queue.length });
   p.play();
 }
 
