@@ -1,10 +1,12 @@
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
 import type { Song } from "@/types";
 
-// Queue controller around expo-audio. expo-audio is a single-player engine with
-// no built-in queue, so we keep ONE long-lived player and swap tracks with
-// replace() — never create a second player (that leaves the previous one playing
-// → overlapping audio + dead controls). Lock-screen metadata is updated per track.
+// Queue controller around expo-audio. ONE long-lived AudioPlayer (it owns the
+// lock-screen / Control Center widget via setActiveForLockScreen +
+// updateLockScreenMetadata — AudioPlaylist has no lock-screen support, so we keep
+// the player). Tracks are swapped with replace(); auto-advance is driven from the
+// status listener (didJustFinish OR currentTime≈duration, since didJustFinish was
+// unreliable on device), guarded against double-firing.
 
 export interface PlaybackSnapshot {
   current: Song | null;
@@ -23,6 +25,7 @@ interface StatusUpdate {
 let player: AudioPlayer | null = null;
 let queue: Song[] = [];
 let index = 0;
+let advancing = false; // guard: only fire one auto-advance per track end
 
 let snapshot: PlaybackSnapshot = {
   current: null,
@@ -48,8 +51,6 @@ export function getSnapshot(): PlaybackSnapshot {
   return snapshot;
 }
 
-// Lazily create the single player on first play. Audio session + lock-screen
-// binding + the status listener are set up exactly once here.
 async function ensurePlayer(): Promise<AudioPlayer> {
   if (player) return player;
 
@@ -62,23 +63,30 @@ async function ensurePlayer(): Promise<AudioPlayer> {
   const p = createAudioPlayer(null);
   p.setActiveForLockScreen(true, {}, { showSeekForward: true, showSeekBackward: true });
   p.addListener("playbackStatusUpdate", (status: StatusUpdate) => {
-    patch({
-      playing: Boolean(status.playing),
-      positionSeconds: typeof status.currentTime === "number" ? status.currentTime : snapshot.positionSeconds,
-      durationSeconds: typeof status.duration === "number" ? status.duration : snapshot.durationSeconds,
-    });
-    if (status.didJustFinish) void skipToNext();
+    const pos = typeof status.currentTime === "number" ? status.currentTime : snapshot.positionSeconds;
+    const dur = typeof status.duration === "number" ? status.duration : snapshot.durationSeconds;
+    patch({ playing: Boolean(status.playing), positionSeconds: pos, durationSeconds: dur });
+
+    // Auto-advance: didJustFinish is the intended signal but proved unreliable on
+    // device, so also treat "stopped at (near) the end" as finished.
+    const ended =
+      status.didJustFinish === true ||
+      (dur > 0 && pos >= dur - 0.5 && status.playing === false);
+    if (ended && !advancing) {
+      advancing = true;
+      void skipToNext();
+    }
   });
 
   player = p;
   return p;
 }
 
-// Swap the single player's source to the current queue item — no new player.
 async function loadCurrent(): Promise<void> {
   const song = queue[index];
   if (!song) return;
   const p = await ensurePlayer();
+  advancing = false;
 
   p.replace({ uri: song.streamUrl });
   p.updateLockScreenMetadata({
