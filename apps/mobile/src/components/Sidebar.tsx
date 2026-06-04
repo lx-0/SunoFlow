@@ -4,7 +4,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
 import {
   Menu, Search, Plus, BookOpen, ListMusic, Heart, Clock, Layers, Globe, Sparkles, UserPlus, Wand2,
-  LayoutGrid, Tag, Radio, Users, BarChart3, Bell, Settings, type LucideIcon,
+  LayoutGrid, Tag, Radio, Users, BarChart3, Bell, Settings,
+  Drama, FileText, Palette, SlidersHorizontal, type LucideIcon,
 } from "lucide-react-native";
 
 // Custom slide-in sidebar (drawer) — mirrors the PWA's mobile nav (a translate-x
@@ -53,6 +54,15 @@ const SECTIONS: Section[] = [
       { label: "Favorites", route: "/favorites", Icon: Heart },
       { label: "History", route: "/history", Icon: Clock },
       { label: "Generations", route: "/generations", Icon: Layers },
+    ],
+  },
+  {
+    title: "Create",
+    items: [
+      { label: "Personas", route: "/personas", Icon: Drama },
+      { label: "Prompt Templates", route: "/prompt-templates", Icon: FileText },
+      { label: "Style Templates", route: "/style-templates", Icon: Palette },
+      { label: "Presets", route: "/presets", Icon: SlidersHorizontal },
     ],
   },
   {

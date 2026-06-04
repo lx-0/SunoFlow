@@ -11,7 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { Stack, router } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { Sparkles, AlertCircle, CheckCircle2 } from "lucide-react-native";
 import {
   GENERATION_PROMPT_MAX_LENGTH,
@@ -38,11 +38,19 @@ type Phase = "form" | "submitting" | "polling" | "failed";
 const POLL_INTERVAL_MS = 4000;
 const MAX_POLLS = 75; // backend caps at 60 server-side polls; allow some slack
 
+function paramStr(v: string | string[] | undefined): string {
+  if (Array.isArray(v)) return v[0] ?? "";
+  return typeof v === "string" ? v : "";
+}
+
 export default function GenerateScreen() {
-  const [prompt, setPrompt] = useState("");
+  // Prefilled from a persona / template / preset deep-link (router.push params).
+  const params = useLocalSearchParams<{ prompt?: string; style?: string; personaId?: string }>();
+  const [prompt, setPrompt] = useState(() => paramStr(params.prompt));
   const [title, setTitle] = useState("");
-  const [tags, setTags] = useState("");
+  const [tags, setTags] = useState(() => paramStr(params.style));
   const [instrumental, setInstrumental] = useState(false);
+  const personaId = paramStr(params.personaId) || undefined;
 
   const [phase, setPhase] = useState<Phase>("form");
   const [error, setError] = useState<string | null>(null);
@@ -95,6 +103,7 @@ export default function GenerateScreen() {
         title: title.trim() || undefined,
         tags: tags.trim() || undefined,
         makeInstrumental: instrumental,
+        personaId,
       });
       setStarted(job);
       await runPolling(job);
@@ -106,7 +115,7 @@ export default function GenerateScreen() {
       setError(msg);
       setPhase("failed");
     }
-  }, [prompt, title, tags, instrumental, runPolling]);
+  }, [prompt, title, tags, instrumental, personaId, runPolling]);
 
   const reset = useCallback(() => {
     setError(null);
