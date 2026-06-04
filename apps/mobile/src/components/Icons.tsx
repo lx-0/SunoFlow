@@ -1,4 +1,4 @@
-import { Captions, Heart, ListMusic, ListPlus, Pause, Play, Repeat, Repeat1, Shuffle, SkipBack, SkipForward } from "lucide-react-native";
+import { Captions, EllipsisVertical, Heart, ListMusic, ListPlus, Pause, Play, Repeat, Repeat1, Shuffle, SkipBack, SkipForward } from "lucide-react-native";
 
 // Thin adapter over lucide-react-native — the SAME icon set the web app uses, so
 // the native UI matches 1:1 (DRY). Transport glyphs are filled (fill=color) to
@@ -42,6 +42,10 @@ export function LyricsIcon({ color = "#fff", size = 22 }: IconProps) {
 
 export function AddToPlaylistIcon({ color = "#fff", size = 22 }: IconProps) {
   return <ListPlus color={color} size={size} strokeWidth={2} />;
+}
+
+export function MoreIcon({ color = "#fff", size = 22 }: IconProps) {
+  return <EllipsisVertical color={color} size={size} strokeWidth={2} />;
 }
 
 export function HeartIcon({ color = "#fff", size = 22, filled = false }: IconProps & { filled?: boolean }) {

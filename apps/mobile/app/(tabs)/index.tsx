@@ -1,25 +1,39 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, TextInput, StyleSheet } from "react-native";
 import { router } from "expo-router";
 import { HttpError } from "@/api/client";
-import { fetchLibrary } from "@/api/songs";
+import { fetchSongsPage } from "@/api/songs";
 import { playQueue } from "@/playback/controls";
 import type { Song } from "@/types";
 
-// Library: search + browse the user's songs, tap to play the list from that index.
-// Hits the real GET /api/songs (bearer-authed). Every async branch ends in visible
-// feedback (loading / error / empty / data).
+// Library: search + browse the user's songs with cursor-based infinite scroll
+// (the API paginates; we eager-load the next page on scroll). Tap to play the
+// loaded list from that index. Every async branch ends in visible feedback.
 export default function LibraryScreen() {
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const cursorRef = useRef<string | null>(null);
+  const hasMoreRef = useRef(true);
+  const activeQueryRef = useRef(""); // guards against stale pages after a new search
 
   const load = useCallback((q: string) => {
+    activeQueryRef.current = q;
+    cursorRef.current = null;
+    hasMoreRef.current = true;
     setSongs(null);
     setError(null);
-    fetchLibrary(q || undefined)
-      .then(setSongs)
+    fetchSongsPage({ query: q || undefined })
+      .then((page) => {
+        if (activeQueryRef.current !== q) return; // a newer search superseded this
+        cursorRef.current = page.nextCursor;
+        hasMoreRef.current = page.nextCursor !== null;
+        setSongs(page.songs);
+      })
       .catch((e: unknown) => {
+        if (activeQueryRef.current !== q) return;
         setError(e instanceof HttpError ? `Failed to load library (HTTP ${e.status})` : "Network error");
         console.error("[library] load failed", e);
       });
@@ -28,6 +42,24 @@ export default function LibraryScreen() {
   useEffect(() => {
     load("");
   }, [load]);
+
+  const loadMore = useCallback(() => {
+    if (loadingMore || !hasMoreRef.current || !cursorRef.current) return;
+    const q = activeQueryRef.current;
+    setLoadingMore(true);
+    fetchSongsPage({ query: q || undefined, cursor: cursorRef.current })
+      .then((page) => {
+        if (activeQueryRef.current !== q) return;
+        cursorRef.current = page.nextCursor;
+        hasMoreRef.current = page.nextCursor !== null;
+        setSongs((prev) => [...(prev ?? []), ...page.songs]);
+      })
+      .catch((e: unknown) => {
+        console.error("[library] load more failed", e);
+        hasMoreRef.current = false; // stop hammering on a failing cursor
+      })
+      .finally(() => setLoadingMore(false));
+  }, [loadingMore]);
 
   return (
     <View style={styles.container}>
@@ -50,7 +82,12 @@ export default function LibraryScreen() {
       ) : (
         <FlatList
           data={songs}
-          keyExtractor={(s) => s.id}
+          keyExtractor={(s, i) => `${s.id}:${i}`}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.6}
+          ListFooterComponent={
+            loadingMore ? <ActivityIndicator color="#6a6a72" style={styles.footer} /> : null
+          }
           renderItem={({ item, index }) => (
             <Pressable
               style={styles.row}
@@ -84,4 +121,5 @@ const styles = StyleSheet.create({
   row: { paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: "#1c1c22", borderBottomWidth: StyleSheet.hairlineWidth },
   title: { color: "#fff", fontSize: 16 },
   dim: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
+  footer: { paddingVertical: 18 },
 });

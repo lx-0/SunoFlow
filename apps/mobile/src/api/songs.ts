@@ -29,8 +29,29 @@ export function mapApiSong(raw: unknown): Song | null {
   };
 }
 
+export interface SongPage {
+  songs: Song[];
+  nextCursor: string | null;
+}
+
+/**
+ * One page of the library. `nextCursor` (from the server's raw result) drives
+ * infinite scroll; it's correct even though we drop unplayable rows client-side,
+ * because the server computes it before our filter.
+ */
+export async function fetchSongsPage(opts: { query?: string; cursor?: string | null } = {}): Promise<SongPage> {
+  const params = new URLSearchParams();
+  if (opts.query) params.set("q", opts.query);
+  if (opts.cursor) params.set("cursor", opts.cursor);
+  const qs = params.toString();
+  const res = await apiGet<LibraryResponse>(`/api/songs${qs ? `?${qs}` : ""}`);
+  const songs = (Array.isArray(res.songs) ? res.songs : [])
+    .map(mapApiSong)
+    .filter((s): s is Song => s !== null);
+  return { songs, nextCursor: res.nextCursor ?? null };
+}
+
+/** Back-compat: first page only, songs array. */
 export async function fetchLibrary(query?: string): Promise<Song[]> {
-  const qs = query ? `?q=${encodeURIComponent(query)}` : "";
-  const res = await apiGet<LibraryResponse>(`/api/songs${qs}`);
-  return (Array.isArray(res.songs) ? res.songs : []).map(mapApiSong).filter((s): s is Song => s !== null);
+  return (await fetchSongsPage({ query })).songs;
 }
