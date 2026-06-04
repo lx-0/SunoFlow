@@ -10,6 +10,7 @@ import {
   type LayoutChangeEvent,
 } from "react-native";
 import { router } from "expo-router";
+import { formatDuration } from "@sunoflow/core";
 import { usePlayback } from "@/playback/usePlayback";
 import { togglePlay, skipToNext, skipToPrevious, seekTo, toggleShuffle, toggleRepeat } from "@/playback/audio";
 import { PlayIcon, PauseIcon, SkipNextIcon, SkipPrevIcon, ShuffleIcon, HeartIcon, RepeatIcon, MoreIcon } from "@/components/Icons";
@@ -138,8 +139,8 @@ export default function PlayerScreen() {
           </View>
         </Pressable>
         <View style={styles.times}>
-          <Text style={styles.time}>{fmt(positionSeconds)}</Text>
-          <Text style={styles.time}>{fmt(durationSeconds)}</Text>
+          <Text style={styles.time}>{formatDuration(positionSeconds)}</Text>
+          <Text style={styles.time}>{formatDuration(durationSeconds)}</Text>
         </View>
 
         {/* Emoji reactions behind a popover (drops one at the current timestamp) */}
@@ -168,13 +169,6 @@ export default function PlayerScreen() {
       </View>
     </View>
   );
-}
-
-function fmt(s: number): string {
-  if (!s || Number.isNaN(s)) return "0:00";
-  const m = Math.floor(s / 60);
-  const sec = Math.floor(s % 60);
-  return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
 const styles = StyleSheet.create({

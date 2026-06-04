@@ -1,25 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-
-const ALL_EMOJIS = [
-  "🔥", "🤯", "😭", "🥵", "💀", "🫶", "👑", "🎸", "😤", "🚀", "💥", "✨",
-  "🎵", "🎶", "💜", "🙌", "😍", "🫠", "🤩", "😮‍💨", "🥹", "💫", "🌊", "⚡",
-  "🎤", "🪩", "🤘", "💃", "🕺", "🧠", "👏", "😈", "🦋", "🌟", "❤️‍🔥", "🫡",
-];
-
-const DISPLAY_COUNT = 6;
-const TOP_USED_COUNT = 4;
-
-/** Fisher-Yates shuffle (non-mutating) */
-function shuffled<T>(arr: T[]): T[] {
-  const copy = [...arr];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
+import { pickReactionEmojis } from "@sunoflow/core";
 
 interface EmojiReactionPickerProps {
   isPlaying: boolean;
@@ -38,28 +20,10 @@ export function EmojiReactionPicker({
   const [animating, setAnimating] = useState<string | null>(null);
   const [debounced, setDebounced] = useState<Set<string>>(new Set());
 
-  // Compute displayed emojis: top-used half + random half
-  // useMemo keyed on reactionEmojis length so it re-shuffles when reactions change
-  const displayEmojis = useMemo(() => {
-    // Count emoji frequencies from existing reactions
-    const counts = new Map<string, number>();
-    for (const e of reactionEmojis) {
-      counts.set(e, (counts.get(e) ?? 0) + 1);
-    }
-
-    // Top used emojis sorted by frequency (descending), capped at TOP_USED_COUNT
-    const topUsed = [...counts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, TOP_USED_COUNT)
-      .map(([emoji]) => emoji);
-
-    // Fill remaining slots with random emojis not already in top-used
-    const remaining = ALL_EMOJIS.filter((e) => !topUsed.includes(e));
-    const randomPick = shuffled(remaining).slice(0, DISPLAY_COUNT - topUsed.length);
-
-    return [...topUsed, ...randomPick];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reactionEmojis.length]);
+  // Displayed emojis (top-used + random) come from @sunoflow/core so web + mobile
+  // share the exact same set + rule. Keyed on length so it re-shuffles on change.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const displayEmojis = useMemo(() => pickReactionEmojis(reactionEmojis), [reactionEmojis.length]);
 
   const handleClick = useCallback(
     (emoji: string) => {
