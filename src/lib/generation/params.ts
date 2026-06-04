@@ -1,16 +1,30 @@
 import { z } from "zod";
 import { stripHtml } from "@/lib/sanitize";
 import { type Result, fail, success } from "@/lib/result";
+import {
+  GENERATION_PROMPT_MAX_LENGTH,
+  GENERATION_TITLE_MAX_LENGTH,
+  GENERATION_STYLE_MAX_LENGTH,
+  GENERATION_PROMPT_REQUIRED_MESSAGE,
+  GENERATION_PROMPT_MAX_MESSAGE,
+  GENERATION_TITLE_MAX_MESSAGE,
+  GENERATION_STYLE_MAX_MESSAGE,
+} from "@sunoflow/core";
 
 export const MIN_BATCH_SIZE = 2;
 export const MAX_BATCH_SIZE = 5;
-export const GENERATION_PROMPT_MAX_LENGTH = 3000;
-export const GENERATION_TITLE_MAX_LENGTH = 200;
-export const GENERATION_STYLE_MAX_LENGTH = 500;
-export const GENERATION_PROMPT_REQUIRED_MESSAGE = "A style/genre prompt is required";
-export const GENERATION_PROMPT_MAX_MESSAGE = `Prompt must be ${GENERATION_PROMPT_MAX_LENGTH} characters or less`;
-export const GENERATION_TITLE_MAX_MESSAGE = `Title must be ${GENERATION_TITLE_MAX_LENGTH} characters or less`;
-export const GENERATION_STYLE_MAX_MESSAGE = `Style must be ${GENERATION_STYLE_MAX_LENGTH} characters or less`;
+// Field limits + messages are shared 1:1 with the mobile client via
+// @sunoflow/core (single source of truth). Re-exported so existing importers of
+// "@/lib/generation/params" keep working.
+export {
+  GENERATION_PROMPT_MAX_LENGTH,
+  GENERATION_TITLE_MAX_LENGTH,
+  GENERATION_STYLE_MAX_LENGTH,
+  GENERATION_PROMPT_REQUIRED_MESSAGE,
+  GENERATION_PROMPT_MAX_MESSAGE,
+  GENERATION_TITLE_MAX_MESSAGE,
+  GENERATION_STYLE_MAX_MESSAGE,
+};
 
 const promptField = z
   .string()

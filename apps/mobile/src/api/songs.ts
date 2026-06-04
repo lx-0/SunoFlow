@@ -26,6 +26,8 @@ export function mapApiSong(raw: unknown): Song | null {
     streamUrl: audioUrl,
     artworkUrl: typeof src.imageUrl === "string" ? src.imageUrl : undefined,
     durationSeconds: typeof src.duration === "number" ? src.duration : undefined,
+    isFavorite: src.isFavorite === true,
+    rating: typeof src.rating === "number" ? src.rating : null,
   };
 }
 

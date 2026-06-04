@@ -3,7 +3,7 @@ import { View, Text, Pressable, Animated, ScrollView, PanResponder, StyleSheet }
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
 import {
-  Menu, Search, BookOpen, ListMusic, Heart, Clock, Layers, Globe, Sparkles, UserPlus, Wand2,
+  Menu, Search, Plus, BookOpen, ListMusic, Heart, Clock, Layers, Globe, Sparkles, UserPlus, Wand2,
   LayoutGrid, Tag, Radio, Users, BarChart3, Bell, Settings, type LucideIcon,
 } from "lucide-react-native";
 
@@ -47,6 +47,7 @@ const SECTIONS: Section[] = [
   {
     items: [
       { label: "Search", route: "/search", Icon: Search },
+      { label: "Generate", route: "/generate", Icon: Plus },
       { label: "Library", route: "/", Icon: BookOpen },
       { label: "Playlists", route: "/playlists", Icon: ListMusic },
       { label: "Favorites", route: "/favorites", Icon: Heart },

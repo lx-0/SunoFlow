@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { View, Text, Image, Pressable, StyleSheet } from "react-native";
 import { formatDuration } from "@sunoflow/core";
+import { HeartIcon } from "@/components/Icons";
 import type { Song } from "@/types";
 
 // Shared song list row used across every song list (library, favorites, history,
@@ -30,7 +31,7 @@ export function SongRow({
         <Text style={styles.title} numberOfLines={1}>{song.title}</Text>
         {subtitle ? <Text style={styles.sub} numberOfLines={1}>{subtitle}</Text> : null}
       </View>
-      {right}
+      {right ?? (song.isFavorite ? <HeartIcon color="#ff4d6d" filled size={16} /> : null)}
     </Pressable>
   );
 }

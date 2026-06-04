@@ -1,9 +1,10 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, FlatList, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
 import { HttpError } from "@/api/client";
 import { fetchDiscover } from "@/api/discover";
 import { playQueue } from "@/playback/controls";
+import { SongRow } from "@/components/SongRow";
 import type { Song } from "@/types";
 
 // Discover: a public feed of songs (trending / new / recommended). v1 flattens
@@ -40,8 +41,8 @@ export default function DiscoverScreen() {
           data={songs}
           keyExtractor={(s) => s.id}
           renderItem={({ item, index }) => (
-            <Pressable
-              style={styles.row}
+            <SongRow
+              song={item}
               onPress={async () => {
                 try {
                   await playQueue(songs, index);
@@ -50,10 +51,7 @@ export default function DiscoverScreen() {
                   console.error("[discover] play failed", e);
                 }
               }}
-            >
-              <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
-              {item.artist ? <Text style={styles.dim} numberOfLines={1}>{item.artist}</Text> : null}
-            </Pressable>
+            />
           )}
         />
       )}

@@ -1,10 +1,11 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, FlatList, ActivityIndicator, StyleSheet } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { HttpError } from "@/api/client";
 import { fetchFavorites } from "@/api/favorites";
 import { playQueue } from "@/playback/controls";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
+import { SongRow } from "@/components/SongRow";
 import type { Song } from "@/types";
 
 // Favorites: the user's liked songs. Reloads on focus so toggles made elsewhere
@@ -40,8 +41,8 @@ export default function FavoritesScreen() {
           keyExtractor={(s) => s.id}
           contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
           renderItem={({ item, index }) => (
-            <Pressable
-              style={styles.row}
+            <SongRow
+              song={item}
               onPress={async () => {
                 try {
                   await playQueue(songs, index);
@@ -50,10 +51,7 @@ export default function FavoritesScreen() {
                   console.error("[favorites] play failed", e);
                 }
               }}
-            >
-              <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
-              {item.artist ? <Text style={styles.dim} numberOfLines={1}>{item.artist}</Text> : null}
-            </Pressable>
+            />
           )}
         />
       )}

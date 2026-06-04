@@ -12,4 +12,7 @@ export interface Song {
   /** cover art URL for now-playing metadata */
   artworkUrl?: string;
   durationSeconds?: number;
+  /** enriched library fields (present when the API returns them) */
+  isFavorite?: boolean;
+  rating?: number | null;
 }

@@ -1,34 +1,13 @@
-import { z } from "zod";
-import {
-  sanitizeGenerationInput,
-  GENERATION_PROMPT_MAX_LENGTH,
-  GENERATION_PROMPT_MAX_MESSAGE,
-  GENERATION_PROMPT_REQUIRED_MESSAGE,
-  GENERATION_STYLE_MAX_LENGTH,
-  GENERATION_TITLE_MAX_LENGTH,
-  GENERATION_TITLE_MAX_MESSAGE,
-} from "./params";
+import { sanitizeGenerationInput } from "./params";
 
-export const generateSongRequestSchema = z.object({
-  prompt: z
-    .string()
-    .trim()
-    .min(1, GENERATION_PROMPT_REQUIRED_MESSAGE)
-    .max(GENERATION_PROMPT_MAX_LENGTH, GENERATION_PROMPT_MAX_MESSAGE),
-  title: z.string().max(GENERATION_TITLE_MAX_LENGTH, GENERATION_TITLE_MAX_MESSAGE).optional(),
-  tags: z
-    .string()
-    .max(
-      GENERATION_STYLE_MAX_LENGTH,
-      `Tags must be ${GENERATION_STYLE_MAX_LENGTH} characters or less`,
-    )
-    .optional(),
-  makeInstrumental: z.boolean().optional(),
-  personaId: z.string().optional(),
-  parentSongId: z.string().optional(),
-});
-
-export type GenerateSongRequest = z.infer<typeof generateSongRequestSchema>;
+// The /api/generate request schema is shared 1:1 with the mobile client and
+// lives in @sunoflow/core (single source of truth). Re-exported here so existing
+// "@/lib/generation/request" importers keep working.
+export {
+  generateSongRequestSchema,
+  type GenerateSongRequest,
+} from "@sunoflow/core";
+import type { GenerateSongRequest } from "@sunoflow/core";
 
 export function sanitizeGenerateSongRequest(body: GenerateSongRequest) {
   return sanitizeGenerationInput({
