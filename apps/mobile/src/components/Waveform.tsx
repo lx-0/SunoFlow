@@ -48,9 +48,18 @@ export function Waveform({
   onSeek: (seconds: number) => void;
   popups: WaveformPopup[];
 }) {
-  const { extractWaveformData } = useAudioPlayer();
+  const { extractWaveformData, onCurrentExtractedWaveformData } = useAudioPlayer();
   const [width, setWidth] = useState(0);
   const [peaks, setPeaks] = useState<number[] | null>(null);
+
+  // The native extractor emits progress events during extractWaveformData; we only
+  // use the final Promise, but RN warns "Sending onCurrentExtractedWaveformData
+  // with no listeners registered" unless something is subscribed. Register a no-op.
+  useEffect(() => {
+    const sub = onCurrentExtractedWaveformData(() => {});
+    return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
