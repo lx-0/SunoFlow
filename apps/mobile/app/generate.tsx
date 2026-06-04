@@ -25,6 +25,7 @@ import {
   type StartedGeneration,
 } from "@/api/generate";
 import { boostStyle } from "@/api/style-boost";
+import { autoFill } from "@/api/generate-auto";
 import { HttpError } from "@/api/client";
 
 // Generate: prompt + key options → POST /api/generate → poll status until the
@@ -53,6 +54,7 @@ export default function GenerateScreen() {
   const [tags, setTags] = useState(() => paramStr(params.style));
   const [instrumental, setInstrumental] = useState(false);
   const [boosting, setBoosting] = useState(false);
+  const [autoFilling, setAutoFilling] = useState(false);
   const personaId = paramStr(params.personaId) || undefined;
   const parentSongId = paramStr(params.parentSongId) || undefined;
 
@@ -70,6 +72,24 @@ export default function GenerateScreen() {
       setBoosting(false);
     }
   }, [tags, boosting]);
+
+  const onAutoFill = useCallback(async () => {
+    const idea = prompt.trim();
+    if (!idea || autoFilling) return;
+    setAutoFilling(true);
+    setError(null);
+    try {
+      const r = await autoFill(idea);
+      if (r.title) setTitle(r.title);
+      if (r.style) setTags(r.style);
+      if (r.lyricsPrompt) setPrompt(r.lyricsPrompt);
+    } catch (e) {
+      setError(e instanceof HttpError && e.status === 402 ? "Out of credits for auto-fill." : "Auto-fill failed.");
+      console.error("[generate] auto-fill failed", e);
+    } finally {
+      setAutoFilling(false);
+    }
+  }, [prompt, autoFilling]);
 
   const [phase, setPhase] = useState<Phase>("form");
   const [error, setError] = useState<string | null>(null);
@@ -212,6 +232,14 @@ export default function GenerateScreen() {
               maxLength={GENERATION_PROMPT_MAX_LENGTH}
               autoFocus
             />
+            <Pressable
+              style={[styles.boostBtn, (!prompt.trim() || autoFilling) && styles.btnDisabled]}
+              disabled={!prompt.trim() || autoFilling}
+              onPress={onAutoFill}
+            >
+              {autoFilling ? <ActivityIndicator color="#8b7cff" size="small" /> : <Wand2 color="#8b7cff" size={16} />}
+              <Text style={styles.boostText}>{autoFilling ? "Filling…" : "Auto-fill title + style from idea"}</Text>
+            </Pressable>
 
             <Text style={styles.label}>Title (optional)</Text>
             <TextInput

@@ -55,3 +55,4 @@ export {
   type GenerationStatus,
   isTerminalGenerationStatus,
 } from "./generation";
+export { mashupRequestSchema, type MashupRequest } from "./mashup";

@@ -1,0 +1,184 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { View, Text, TextInput, Pressable, Switch, FlatList, ActivityIndicator, StyleSheet } from "react-native";
+import { Stack, router, useFocusEffect } from "expo-router";
+import { Check, AlertCircle } from "lucide-react-native";
+import { HttpError } from "@/api/client";
+import { fetchLibrary } from "@/api/songs";
+import { startMashup } from "@/api/mashup";
+import { pollStatus, GenerationError } from "@/api/generate";
+import { SongRow } from "@/components/SongRow";
+import type { Song } from "@/types";
+
+// Mashup: pick two songs from the library → POST /api/mashup → poll until ready.
+type Phase = "form" | "submitting" | "polling" | "failed";
+const POLL_INTERVAL_MS = 4000;
+const MAX_POLLS = 75;
+
+export default function MashupScreen() {
+  const [songs, setSongs] = useState<Song[] | null>(null);
+  const [selected, setSelected] = useState<string[]>([]); // ordered: [A, B]
+  const [title, setTitle] = useState("");
+  const [style, setStyle] = useState("");
+  const [instrumental, setInstrumental] = useState(false);
+  const [phase, setPhase] = useState<Phase>("form");
+  const [error, setError] = useState<string | null>(null);
+
+  const aliveRef = useRef(true);
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+    };
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      setSongs(null);
+      fetchLibrary()
+        .then((s) => !cancelled && setSongs(s))
+        .catch((e) => {
+          if (!cancelled) setError(e instanceof HttpError ? `Failed to load songs (HTTP ${e.status})` : "Network error");
+          console.error("[mashup] load failed", e);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 2) return prev; // cap at two
+      return [...prev, id];
+    });
+  }
+
+  const titleFor = (id: string) => songs?.find((s) => s.id === id)?.title ?? "Track";
+
+  async function onSubmit() {
+    if (selected.length !== 2) return;
+    setError(null);
+    setPhase("submitting");
+    try {
+      const job = await startMashup({
+        trackAId: selected[0],
+        trackBId: selected[1],
+        title: title.trim() || undefined,
+        style: style.trim() || undefined,
+        instrumental,
+      });
+      setPhase("polling");
+      for (let attempt = 0; attempt < MAX_POLLS; attempt++) {
+        if (!aliveRef.current) return;
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+        if (!aliveRef.current) return;
+        let res;
+        try {
+          res = await pollStatus(job.songId);
+        } catch (e) {
+          console.error("[mashup] poll failed", e);
+          continue;
+        }
+        if (res.ready) {
+          router.replace(`/song/${job.songId}`);
+          return;
+        }
+        if (res.failed) {
+          setError(res.errorMessage ?? "Mashup failed. Please try again.");
+          setPhase("failed");
+          return;
+        }
+      }
+      setError("Mashup is taking longer than expected. Check your library shortly.");
+      setPhase("failed");
+    } catch (e) {
+      setError(e instanceof GenerationError ? e.message : "Something went wrong. Please try again.");
+      setPhase("failed");
+    }
+  }
+
+  if (phase === "submitting" || phase === "polling") {
+    return (
+      <View style={styles.centered}>
+        <Stack.Screen options={{ title: "Mashup" }} />
+        <ActivityIndicator color="#8b7cff" size="large" />
+        <Text style={styles.statusTitle}>
+          {phase === "submitting" ? "Starting mashup…" : "Blending your tracks…"}
+        </Text>
+        <Text style={styles.dim}>This usually takes a minute or two. Keep this screen open.</Text>
+      </View>
+    );
+  }
+  if (phase === "failed") {
+    return (
+      <View style={styles.centered}>
+        <Stack.Screen options={{ title: "Mashup" }} />
+        <AlertCircle color="#ff7a85" size={40} />
+        <Text style={styles.statusTitle}>Mashup failed</Text>
+        <Text style={styles.dim}>{error}</Text>
+        <Pressable style={styles.primaryBtn} onPress={() => { setError(null); setPhase("form"); }}>
+          <Text style={styles.primaryBtnText}>Try again</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <Stack.Screen options={{ title: "Mashup" }} />
+      <FlatList
+        data={songs ?? []}
+        keyExtractor={(s) => s.id}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <Text style={styles.dim}>Pick two songs to blend into a new track.</Text>
+            <Text style={styles.slot}>{selected[0] ? `A · ${titleFor(selected[0])}` : "A · tap a song"}</Text>
+            <Text style={styles.slot}>{selected[1] ? `B · ${titleFor(selected[1])}` : "B · tap a song"}</Text>
+            <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="Title (optional)" placeholderTextColor="#5a5a62" />
+            <TextInput style={styles.input} value={style} onChangeText={setStyle} placeholder="Style / tags (optional)" placeholderTextColor="#5a5a62" />
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>Instrumental</Text>
+              <Switch value={instrumental} onValueChange={setInstrumental} trackColor={{ false: "#2a2a32", true: "#7c3aed" }} thumbColor="#fff" />
+            </View>
+            <Pressable style={[styles.primaryBtn, selected.length !== 2 && styles.btnDisabled]} disabled={selected.length !== 2} onPress={onSubmit}>
+              <Text style={styles.primaryBtnText}>Create Mashup</Text>
+            </Pressable>
+            <Text style={[styles.dim, styles.listLabel]}>Your songs</Text>
+          </View>
+        }
+        ListEmptyComponent={
+          songs === null
+            ? <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
+            : <View style={styles.centered}><Text style={styles.dim}>No songs to mash up yet.</Text></View>
+        }
+        renderItem={({ item }) => (
+          <SongRow
+            song={item}
+            onPress={() => toggle(item.id)}
+            right={selected.includes(item.id) ? <Check color="#8b7cff" size={20} /> : null}
+          />
+        )}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#0b0b0f" },
+  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 12, backgroundColor: "#0b0b0f" },
+  listContent: { paddingBottom: 96 },
+  header: { padding: 16, gap: 10 },
+  slot: { color: "#fff", fontSize: 15, backgroundColor: "#16161c", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12 },
+  input: { backgroundColor: "#16161c", borderColor: "#26262e", borderWidth: 1, borderRadius: 10, color: "#fff", fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
+  switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 4 },
+  switchLabel: { color: "#fff", fontSize: 15 },
+  primaryBtn: { backgroundColor: "#7c3aed", borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 4 },
+  btnDisabled: { opacity: 0.45 },
+  primaryBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  statusTitle: { color: "#fff", fontSize: 18, fontWeight: "700", marginTop: 6 },
+  dim: { color: "#9a9aa2", fontSize: 13, textAlign: "center" },
+  listLabel: { textAlign: "left", marginTop: 10, fontWeight: "600" },
+});
