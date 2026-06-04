@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { MusicalNoteIcon } from "@heroicons/react/24/solid";
 import { formatDuration as formatTime } from "@/lib/time-format";
-import { firstTag } from "@/lib/tags";
+import { firstTag } from "@sunoflow/core";
 import { apiGet } from "@/lib/api-client";
 
 interface RecommendedSong {

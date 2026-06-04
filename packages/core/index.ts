@@ -3,6 +3,16 @@
 // Node-only or Expo-only imports, so it is safe to consume from either runtime.
 export { formatDuration } from "./time-format";
 export {
+  parseTags,
+  splitTagCsv,
+  normalizedTagList,
+  firstTag,
+  normalizeTagCombo,
+  collectSongTokens,
+  tagOverlapScore,
+  countGenres,
+} from "./tags";
+export {
   EMOJI_REACTIONS,
   REACTION_DISPLAY_COUNT,
   REACTION_TOP_USED_COUNT,

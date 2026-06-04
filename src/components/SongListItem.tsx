@@ -35,7 +35,7 @@ import { useRouter } from "next/navigation";
 import { HighlightText } from "./HighlightText";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
 import { formatDuration as formatTime } from "@/lib/time-format";
-import { firstTag } from "@/lib/tags";
+import { firstTag } from "@sunoflow/core";
 import { useLongPress } from "./song-list-item/use-long-press";
 import { useSongTracking } from "./song-list-item/use-song-tracking";
 import { useSaveStyleTemplate } from "./song-list-item/use-save-style-template";
