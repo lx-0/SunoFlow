@@ -1,18 +1,24 @@
-import { useEffect, useState } from "react";
-import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
-import { router } from "expo-router";
+import { useCallback, useState } from "react";
+import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert } from "react-native";
+import { Stack, router, useFocusEffect } from "expo-router";
+import { Plus } from "lucide-react-native";
 import { fetchPlaylists, type PlaylistSummary } from "@/api/playlists";
+import { createPlaylist } from "@/api/playlist-actions";
+import { HttpError } from "@/api/client";
 
 export default function PlaylistsScreen() {
   const [items, setItems] = useState<PlaylistSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     let alive = true;
+    setError(null);
     fetchPlaylists()
       .then((p) => alive && setItems(p))
       .catch((e) => {
-        if (alive) setError("Failed to load playlists");
+        if (alive) {
+          setError(e instanceof HttpError && e.status === 401 ? "Please sign in again." : "Failed to load playlists");
+        }
         console.error("[playlists] load failed", e);
       });
     return () => {
@@ -20,22 +26,57 @@ export default function PlaylistsScreen() {
     };
   }, []);
 
-  if (error) return <C><Text style={st.dim}>{error}</Text></C>;
-  if (!items) return <C><ActivityIndicator color="#fff" /></C>;
-  if (items.length === 0) return <C><Text style={st.dim}>No playlists yet.</Text></C>;
+  useFocusEffect(load);
+
+  const promptCreate = useCallback(() => {
+    Alert.prompt(
+      "New Playlist",
+      "Name your playlist",
+      async (value) => {
+        const name = value?.trim();
+        if (!name) return;
+        try {
+          await createPlaylist(name);
+          load();
+        } catch (e) {
+          console.error("[playlists] create failed", e);
+          Alert.alert("Couldn't create playlist", "Please try again.");
+        }
+      },
+      "plain-text",
+    );
+  }, [load]);
+
+  const header = (
+    <Stack.Screen
+      options={{
+        headerRight: () => (
+          <Pressable onPress={promptCreate} hitSlop={8}>
+            <Plus color="#8b7cff" size={24} />
+          </Pressable>
+        ),
+      }}
+    />
+  );
+
+  if (error) return <C>{header}<Text style={st.dim}>{error}</Text></C>;
+  if (!items) return <C>{header}<ActivityIndicator color="#fff" /></C>;
+  if (items.length === 0) return <C>{header}<Text style={st.dim}>No playlists yet.</Text></C>;
 
   return (
-    <FlatList
-      style={st.list}
-      data={items}
-      keyExtractor={(p) => p.id}
-      renderItem={({ item }) => (
-        <Pressable style={st.row} onPress={() => router.push(`/playlist/${item.id}`)}>
-          <Text style={st.title} numberOfLines={1}>{item.name}</Text>
-          <Text style={st.dim}>{item.songCount} {item.songCount === 1 ? "track" : "tracks"}</Text>
-        </Pressable>
-      )}
-    />
+    <View style={st.list}>
+      {header}
+      <FlatList
+        data={items}
+        keyExtractor={(p) => p.id}
+        renderItem={({ item }) => (
+          <Pressable style={st.row} onPress={() => router.push(`/playlist/${item.id}`)}>
+            <Text style={st.title} numberOfLines={1}>{item.name}</Text>
+            <Text style={st.dim}>{item.songCount} {item.songCount === 1 ? "track" : "tracks"}</Text>
+          </Pressable>
+        )}
+      />
+    </View>
   );
 }
 

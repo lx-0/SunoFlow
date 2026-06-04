@@ -18,6 +18,7 @@ export interface SongDetail {
   rating: number | null;
   isFavorite: boolean;
   favoriteCount: number;
+  publicSlug: string | null;
 }
 
 function toStringTags(v: unknown): string[] {
@@ -52,6 +53,7 @@ export async function fetchSongDetail(id: string): Promise<SongDetail> {
     rating: typeof s.rating === "number" ? s.rating : null,
     isFavorite: s.isFavorite === true,
     favoriteCount: typeof s.favoriteCount === "number" ? s.favoriteCount : 0,
+    publicSlug: typeof s.publicSlug === "string" ? s.publicSlug : null,
   };
 }
 

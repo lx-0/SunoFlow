@@ -2,10 +2,11 @@ import { useCallback, useState } from "react";
 import { View, Text, Image, Pressable, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, useFocusEffect, useLocalSearchParams, router } from "expo-router";
 import { formatDuration } from "@sunoflow/core";
-import { Play, Disc3 } from "lucide-react-native";
+import { Play, Disc3, Share2 } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchSongDetail, detailToSong, type SongDetail } from "@/api/song-detail";
 import { playQueue } from "@/playback/controls";
+import { shareSong } from "@/lib/share";
 
 // Song details — mirrors the web SongDetailView: cover, title, metadata (model /
 // duration / date), tags, prompt, and play + related actions.
@@ -86,6 +87,12 @@ export default function SongDetailScreen() {
           <Disc3 color="#fff" size={18} />
           <Text style={styles.relatedText}>Related</Text>
         </Pressable>
+        <Pressable
+          style={styles.iconBtn}
+          onPress={() => void shareSong({ id: song.id, title: song.title, publicSlug: song.publicSlug })}
+        >
+          <Share2 color="#fff" size={18} />
+        </Pressable>
       </View>
 
       {song.tags.length > 0 ? (
@@ -131,6 +138,7 @@ const styles = StyleSheet.create({
   playText: { color: "#fff", fontSize: 15, fontWeight: "600" },
   relatedBtn: { flex: 1, flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center", backgroundColor: "#1c1c22", borderRadius: 12, paddingVertical: 12 },
   relatedText: { color: "#fff", fontSize: 15, fontWeight: "600" },
+  iconBtn: { width: 48, alignItems: "center", justifyContent: "center", backgroundColor: "#1c1c22", borderRadius: 12, paddingVertical: 12 },
   section: { alignSelf: "stretch", marginTop: 24 },
   sectionTitle: { color: "#cfcfd6", fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: 8 },

@@ -68,6 +68,55 @@ export async function fetchUserSongs(username: string): Promise<Song[]> {
     .filter((s): s is Song => s !== null);
 }
 
+/** A user's publicly-liked songs. Same `{ songs: [...] }` shape + mapping as fetchUserSongs. */
+export async function fetchUserLikedSongs(username: string): Promise<Song[]> {
+  const raw = await apiGet<unknown>(`/api/u/${encodeURIComponent(username)}/liked-songs`);
+  const list =
+    raw && typeof raw === "object" && Array.isArray((raw as Record<string, unknown>).songs)
+      ? ((raw as Record<string, unknown>).songs as unknown[])
+      : [];
+  return list
+    .map((entry) => {
+      const mapped = mapApiSong(entry);
+      if (mapped) return mapped;
+      if (entry && typeof entry === "object") {
+        const e = entry as Record<string, unknown>;
+        if (typeof e.albumArtUrl === "string" && !e.imageUrl) {
+          return mapApiSong({ ...e, imageUrl: e.albumArtUrl });
+        }
+      }
+      return null;
+    })
+    .filter((s): s is Song => s !== null);
+}
+
+export interface UserPlaylist {
+  id: string;
+  name: string;
+  songCount: number;
+}
+
+/** Defensive map of the raw `{ playlists: [...] }` payload → UserPlaylist[]. */
+export async function fetchUserPlaylists(username: string): Promise<UserPlaylist[]> {
+  const raw = await apiGet<unknown>(`/api/u/${encodeURIComponent(username)}/playlists`);
+  const list =
+    raw && typeof raw === "object" && Array.isArray((raw as Record<string, unknown>).playlists)
+      ? ((raw as Record<string, unknown>).playlists as unknown[])
+      : [];
+  return list
+    .map((entry): UserPlaylist | null => {
+      if (!entry || typeof entry !== "object") return null;
+      const p = entry as Record<string, unknown>;
+      if (typeof p.id !== "string" || !p.id) return null;
+      return {
+        id: p.id,
+        name: typeof p.name === "string" && p.name ? p.name : "Untitled playlist",
+        songCount: num(p.songCount),
+      };
+    })
+    .filter((p): p is UserPlaylist => p !== null);
+}
+
 export async function followUser(userId: string): Promise<void> {
   await apiPost<unknown>(`/api/users/${encodeURIComponent(userId)}/follow`, {});
 }

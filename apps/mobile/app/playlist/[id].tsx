@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { ChevronUp, ChevronDown } from "lucide-react-native";
+import { ChevronUp, ChevronDown, Pencil, Trash2 } from "lucide-react-native";
 import { fetchPlaylistSongs } from "@/api/playlists";
-import { reorderPlaylistSongs } from "@/api/playlist-actions";
+import { reorderPlaylistSongs, renamePlaylist, deletePlaylist } from "@/api/playlist-actions";
 import { playQueue } from "@/playback/controls";
 import type { Song } from "@/types";
 
@@ -45,6 +45,45 @@ export default function PlaylistDetailScreen() {
     }
   }
 
+  function promptRename() {
+    if (!id) return;
+    Alert.prompt(
+      "Rename Playlist",
+      "Enter a new name",
+      async (value) => {
+        const name = value?.trim();
+        if (!name) return;
+        try {
+          await renamePlaylist(id, name);
+        } catch (e) {
+          console.error("[playlist] rename failed", e);
+          Alert.alert("Couldn't rename playlist", "Please try again.");
+        }
+      },
+      "plain-text",
+    );
+  }
+
+  function confirmDelete() {
+    if (!id) return;
+    Alert.alert("Delete Playlist", "This can't be undone.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deletePlaylist(id);
+            router.back();
+          } catch (e) {
+            console.error("[playlist] delete failed", e);
+            Alert.alert("Couldn't delete playlist", "Please try again.");
+          }
+        },
+      },
+    ]);
+  }
+
   if (error) return <C><Text style={st.dim}>{error}</Text></C>;
   if (!songs) return <C><ActivityIndicator color="#fff" /></C>;
 
@@ -53,14 +92,21 @@ export default function PlaylistDetailScreen() {
       <Stack.Screen
         options={{
           title: "Playlist",
-          headerRight:
-            songs.length > 0
-              ? () => (
-                  <Pressable onPress={() => setEditing((v) => !v)} hitSlop={8}>
-                    <Text style={st.editBtn}>{editing ? "Done" : "Edit"}</Text>
-                  </Pressable>
-                )
-              : undefined,
+          headerRight: () => (
+            <View style={st.headerActions}>
+              {songs.length > 0 ? (
+                <Pressable onPress={() => setEditing((v) => !v)} hitSlop={8}>
+                  <Text style={st.editBtn}>{editing ? "Done" : "Edit"}</Text>
+                </Pressable>
+              ) : null}
+              <Pressable onPress={promptRename} hitSlop={8}>
+                <Pencil color="#8b7cff" size={20} />
+              </Pressable>
+              <Pressable onPress={confirmDelete} hitSlop={8}>
+                <Trash2 color="#ff6b6b" size={20} />
+              </Pressable>
+            </View>
+          ),
         }}
       />
       {songs.length === 0 ? (
@@ -132,6 +178,7 @@ const st = StyleSheet.create({
   title: { color: "#fff", fontSize: 16 },
   dim: { color: "#9a9aa2", fontSize: 13 },
   editBtn: { color: "#8b7cff", fontSize: 16 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 16 },
   arrows: { flexDirection: "row", alignItems: "center", marginLeft: 12 },
   arrowBtn: { paddingHorizontal: 6, paddingVertical: 2 },
 });
