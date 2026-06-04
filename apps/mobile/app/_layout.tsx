@@ -24,6 +24,9 @@ export default function RootLayout() {
           headerStyle: { backgroundColor: "#0b0b0f" },
           headerTintColor: "#fff",
           contentStyle: { backgroundColor: "#0b0b0f" },
+          // Chevron-only back button; otherwise the "(tabs)" group name leaks as
+          // the back-title when pushing a feature screen from a primary screen.
+          headerBackButtonDisplayMode: "minimal",
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
