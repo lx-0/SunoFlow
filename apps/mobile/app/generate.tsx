@@ -23,6 +23,9 @@ import { boostStyle } from "@/api/style-boost";
 import { autoFill } from "@/api/generate-auto";
 import { generateLyrics } from "@/api/lyrics-generate";
 import { fetchPresets, type Preset } from "@/api/presets";
+import { fetchStyleTemplates, type StyleTemplate } from "@/api/style-templates";
+import { fetchPromptTemplates, type PromptTemplate } from "@/api/prompt-templates";
+import { fetchPersonas, type Persona } from "@/api/personas";
 import { HttpError } from "@/api/client";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
@@ -50,7 +53,11 @@ export default function GenerateScreen() {
   const [lyrics, setLyrics] = useState(() => paramStr(params.prompt));
   const [title, setTitle] = useState("");
   const [instrumental, setInstrumental] = useState(false);
+  const [personaId, setPersonaId] = useState<string | undefined>(() => paramStr(params.personaId) || undefined);
   const [presets, setPresets] = useState<Preset[]>([]);
+  const [styleTemplates, setStyleTemplates] = useState<StyleTemplate[]>([]);
+  const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
+  const [personas, setPersonas] = useState<Persona[]>([]);
 
   const [boosting, setBoosting] = useState(false);
   const [autoFilling, setAutoFilling] = useState(false);
@@ -60,7 +67,6 @@ export default function GenerateScreen() {
   const [error, setError] = useState<string | null>(null);
   const [started, setStarted] = useState<StartedGeneration | null>(null);
 
-  const personaId = paramStr(params.personaId) || undefined;
   const parentSongId = paramStr(params.parentSongId) || undefined;
 
   const aliveRef = useRef(true);
@@ -73,6 +79,9 @@ export default function GenerateScreen() {
 
   useEffect(() => {
     fetchPresets().then(setPresets).catch((e) => console.error("[generate] presets load failed", e));
+    fetchStyleTemplates().then(setStyleTemplates).catch((e) => console.error("[generate] style templates load failed", e));
+    fetchPromptTemplates().then(setPromptTemplates).catch((e) => console.error("[generate] prompt templates load failed", e));
+    fetchPersonas().then(setPersonas).catch((e) => console.error("[generate] personas load failed", e));
   }, []);
 
   function applyPreset(p: Preset) {
@@ -81,6 +90,16 @@ export default function GenerateScreen() {
     setLyrics(p.lyricsPrompt ?? "");
     setInstrumental(p.isInstrumental);
     setCustomMode(p.customMode);
+  }
+
+  function applyStyleTemplate(t: StyleTemplate) {
+    setStyle(t.tags);
+  }
+
+  function applyPromptTemplate(t: PromptTemplate) {
+    if (t.style) setStyle(t.style);
+    setLyrics(t.prompt);
+    setCustomMode(true);
   }
 
   const onBoost = useCallback(async () => {
@@ -240,13 +259,69 @@ export default function GenerateScreen() {
           </View>
 
           {presets.length > 0 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetRow}>
-              {presets.map((p) => (
-                <Pressable key={p.id} style={styles.presetChip} onPress={() => applyPreset(p)}>
-                  <Text style={styles.presetText} numberOfLines={1}>{p.name}</Text>
+            <>
+              <Text style={styles.label}>Presets</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetRow}>
+                {presets.map((p) => (
+                  <Pressable key={p.id} style={styles.presetChip} onPress={() => applyPreset(p)}>
+                    <Text style={styles.presetText} numberOfLines={1}>{p.name}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </>
+          ) : null}
+
+          {styleTemplates.length > 0 ? (
+            <>
+              <Text style={styles.label}>Style templates</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetRow}>
+                {styleTemplates.map((t) => (
+                  <Pressable key={t.id} style={styles.presetChip} onPress={() => applyStyleTemplate(t)}>
+                    <Text style={styles.presetText} numberOfLines={1}>{t.name}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </>
+          ) : null}
+
+          {promptTemplates.length > 0 ? (
+            <>
+              <Text style={styles.label}>Prompt templates</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetRow}>
+                {promptTemplates.map((t) => (
+                  <Pressable key={t.id} style={styles.presetChip} onPress={() => applyPromptTemplate(t)}>
+                    <Text style={styles.presetText} numberOfLines={1}>{t.name}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </>
+          ) : null}
+
+          {personas.length > 0 ? (
+            <>
+              <Text style={styles.label}>Voice persona</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetRow}>
+                <Pressable
+                  style={[styles.presetChip, !personaId && styles.chipActive]}
+                  onPress={() => setPersonaId(undefined)}
+                >
+                  <Text style={[styles.presetText, !personaId && styles.chipActiveText]}>None</Text>
                 </Pressable>
-              ))}
-            </ScrollView>
+                {personas.map((p) => {
+                  const pid = p.personaId ?? undefined;
+                  const active = !!pid && personaId === pid;
+                  return (
+                    <Pressable
+                      key={p.id}
+                      style={[styles.presetChip, active && styles.chipActive]}
+                      onPress={() => setPersonaId(pid)}
+                    >
+                      <Text style={[styles.presetText, active && styles.chipActiveText]} numberOfLines={1}>{p.name}</Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </>
           ) : null}
 
           <Text style={styles.label}>Style / genre</Text>
@@ -344,6 +419,8 @@ function makeStyles(c: ThemeColors) {
     presetRow: { gap: 8, paddingVertical: 8 },
     presetChip: { backgroundColor: c.surfaceAlt, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8, maxWidth: 180 },
     presetText: { color: c.textDim, fontSize: 13 },
+    chipActive: { backgroundColor: c.accentStrong },
+    chipActiveText: { color: c.onAccent },
     label: { color: c.textDim, fontSize: 13, marginTop: 12, marginBottom: 6 },
     input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: 1, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
     lyricsInput: { minHeight: 140, textAlignVertical: "top" },
