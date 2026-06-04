@@ -9,3 +9,4 @@ export {
   shuffleEmojis,
   pickReactionEmojis,
 } from "./reactions";
+export { downsamplePeaks } from "./peaks";

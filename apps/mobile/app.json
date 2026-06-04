@@ -12,7 +12,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "app.sunoflow.mobile",
       "infoPlist": {
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": ["audio"],
+        "NSMicrophoneUsageDescription": "SunoFlow does not record audio; this is required because the waveform library bundles recording code."
       }
     },
     "plugins": [

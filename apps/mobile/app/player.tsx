@@ -1,20 +1,13 @@
 import { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  Image,
-  Pressable,
-  StyleSheet,
-  ActionSheetIOS,
-  type GestureResponderEvent,
-  type LayoutChangeEvent,
-} from "react-native";
+import { View, Text, Image, Pressable, StyleSheet, ActionSheetIOS } from "react-native";
 import { router } from "expo-router";
 import { formatDuration } from "@sunoflow/core";
 import { usePlayback } from "@/playback/usePlayback";
 import { togglePlay, skipToNext, skipToPrevious, seekTo, toggleShuffle, toggleRepeat } from "@/playback/audio";
 import { PlayIcon, PauseIcon, SkipNextIcon, SkipPrevIcon, ShuffleIcon, HeartIcon, RepeatIcon, MoreIcon } from "@/components/Icons";
 import { ReactionPicker } from "@/components/ReactionPicker";
+import { Waveform } from "@/components/Waveform";
+import { useTimedPopups } from "@/hooks/useTimedPopups";
 import { getFavorite, setFavorite as setFavoriteApi } from "@/api/favorites";
 import { fetchReactions, addReaction, type Reaction } from "@/api/reactions";
 
@@ -26,10 +19,19 @@ const PLAY_BG = "#7c3aed"; // violet-600, matches the web player
 // and an overflow (kebab) menu for the secondary actions.
 export default function PlayerScreen() {
   const { current, playing, positionSeconds, durationSeconds, shuffle, repeat } = usePlayback();
-  const [barWidth, setBarWidth] = useState(0);
   const [favorite, setFavorite] = useState(false);
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const songId = current?.id;
+
+  // Transient emoji popups that float up as playback crosses each reaction's time.
+  const { activePopups } = useTimedPopups({
+    items: reactions,
+    currentTime: positionSeconds,
+    duration: durationSeconds,
+    isPlaying: playing,
+    displayDurationMs: 2000,
+    makePopup: (r, key, leftPct) => ({ key, emoji: r.emoji, leftPct }),
+  });
 
   // Favorite + reaction state load whenever the song changes.
   useEffect(() => {
@@ -83,14 +85,6 @@ export default function PlayerScreen() {
     );
   }
 
-  const pct = durationSeconds > 0 ? Math.min(1, positionSeconds / durationSeconds) : 0;
-
-  function onSeek(e: GestureResponderEvent) {
-    if (barWidth <= 0 || durationSeconds <= 0) return;
-    const frac = Math.max(0, Math.min(1, e.nativeEvent.locationX / barWidth));
-    seekTo(frac * durationSeconds);
-  }
-
   return (
     <View style={styles.container}>
       {/* Header actions (right-aligned), like the web overflow menu placement */}
@@ -113,31 +107,15 @@ export default function PlayerScreen() {
         <Text style={styles.title} numberOfLines={1}>{current?.title ?? "Nothing playing"}</Text>
         <Text style={styles.artist} numberOfLines={1}>{current?.artist ?? ""}</Text>
 
-        {/* Timecoded reaction markers above the seek bar */}
-        <View style={styles.reactionLane}>
-          {durationSeconds > 0 && barWidth > 0
-            ? reactions.map((r) => (
-                <Pressable
-                  key={r.id}
-                  hitSlop={6}
-                  style={[styles.marker, { left: Math.min(1, r.timestamp / durationSeconds) * barWidth - 9 }]}
-                  onPress={() => seekTo(r.timestamp)}
-                >
-                  <Text style={styles.markerEmoji}>{r.emoji}</Text>
-                </Pressable>
-              ))
-            : null}
-        </View>
-
-        <Pressable
-          style={styles.barWrap}
-          onPress={onSeek}
-          onLayout={(e: LayoutChangeEvent) => setBarWidth(e.nativeEvent.layout.width)}
-        >
-          <View style={styles.barBg}>
-            <View style={[styles.barFill, { width: `${pct * 100}%` }]} />
-          </View>
-        </Pressable>
+        {/* Real waveform + timecoded reaction popups */}
+        <Waveform
+          songId={songId}
+          streamUrl={current?.streamUrl}
+          positionSeconds={positionSeconds}
+          durationSeconds={durationSeconds}
+          onSeek={seekTo}
+          popups={activePopups}
+        />
         <View style={styles.times}>
           <Text style={styles.time}>{formatDuration(positionSeconds)}</Text>
           <Text style={styles.time}>{formatDuration(durationSeconds)}</Text>
@@ -180,13 +158,7 @@ const styles = StyleSheet.create({
   artPlaceholder: { backgroundColor: "#1c1c22" },
   title: { color: "#fff", fontSize: 22, fontWeight: "700", textAlign: "center", alignSelf: "stretch" },
   artist: { color: "#9a9aa2", fontSize: 16, marginTop: 4, textAlign: "center" },
-  reactionLane: { alignSelf: "stretch", height: 22, marginTop: 24 },
-  marker: { position: "absolute", bottom: 0, width: 18, alignItems: "center" },
-  markerEmoji: { fontSize: 14 },
-  barWrap: { alignSelf: "stretch", paddingVertical: 12 },
-  barBg: { height: 4, borderRadius: 2, backgroundColor: "#2a2a32", overflow: "hidden" },
-  barFill: { height: 4, backgroundColor: "#fff" },
-  times: { alignSelf: "stretch", flexDirection: "row", justifyContent: "space-between", marginTop: -4 },
+  times: { alignSelf: "stretch", flexDirection: "row", justifyContent: "space-between", marginTop: 2 },
   time: { color: "#9a9aa2", fontSize: 12, fontVariant: ["tabular-nums"] },
   emojiRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: 14 },
   row: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 22, marginTop: 24 },

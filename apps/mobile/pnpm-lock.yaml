@@ -8,12 +8,18 @@ importers:
 
   .:
     dependencies:
+      '@simform_solutions/react-native-audio-waveform':
+        specifier: ^2.1.6
+        version: 2.1.6(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.3))(react@19.2.3)
       expo:
         specifier: ~56.0.8
         version: 56.0.8(@babel/core@7.29.7)(@expo/dom-webview@56.0.5)(@expo/metro-runtime@56.0.13)(expo-router@56.2.8)(react-dom@19.2.3(react@19.2.3))(react-native-worklets@0.8.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
       expo-audio:
         specifier: ~56.0.11
         version: 56.0.11(expo-asset@56.0.15(expo@56.0.8)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.3))(react@19.2.3)(typescript@5.9.3))(expo@56.0.8)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.3))(react@19.2.3)
+      expo-file-system:
+        specifier: ~56.0.7
+        version: 56.0.7(expo@56.0.8)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.3))
       expo-modules-core:
         specifier: ~56.0.14
         version: 56.0.14(react-native-worklets@0.8.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.3))(react@19.2.3)
@@ -1018,6 +1024,12 @@ packages:
       '@types/react':
         optional: true
 
+  '@simform_solutions/react-native-audio-waveform@2.1.6':
+    resolution: {integrity: sha512-eEjRyRa4Ixo0zTgG20cJqLXKwK2/dQOZgo1GDDckq4AQxV86biaOrmldnKmK8blVaBfDx8IbR6gWdVJQ12D4Bw==}
+    peerDependencies:
+      react: '*'
+      react-native: '*'
+
   '@sinclair/typebox@0.27.10':
     resolution: {integrity: sha512-MTBk/3jGLNB2tVxv6uLlFh1iu64iYOQ2PbdOSK3NW8JZsmlaOh2q6sdtKowBhfw8QFLmYNzTW4/oK4uATIi6ZA==}
 
@@ -1932,6 +1944,9 @@ packages:
 
   lodash.throttle@4.1.1:
     resolution: {integrity: sha512-wIkUCfVKpVsWo3JSZlc+8MB5it+2AN5W8J7YVMST30UrvcQNZ1Okbj+rbVniijTWE6FGYy4XJq/rHkas8qJMLQ==}
+
+  lodash@4.18.1:
+    resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
 
   log-symbols@2.2.0:
     resolution: {integrity: sha512-VeIAFslyIerEJLXHziedo2basKbMKtTw3vfn5IzG0XTjhAVEJyNHnL2p7vc+wBDSdQuUpNw3M2u6xb9QsAY5Eg==}
@@ -4053,6 +4068,12 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.16
 
+  '@simform_solutions/react-native-audio-waveform@2.1.6(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      lodash: 4.18.1
+      react: 19.2.3
+      react-native: 0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.3)
+
   '@sinclair/typebox@0.27.10': {}
 
   '@testing-library/dom@10.4.1':
@@ -4966,6 +4987,8 @@ snapshots:
   lodash.debounce@4.0.8: {}
 
   lodash.throttle@4.1.1: {}
+
+  lodash@4.18.1: {}
 
   log-symbols@2.2.0:
     dependencies:

@@ -11,8 +11,10 @@
     "lint": "expo lint"
   },
   "dependencies": {
+    "@simform_solutions/react-native-audio-waveform": "^2.1.6",
     "expo": "~56.0.8",
     "expo-audio": "~56.0.11",
+    "expo-file-system": "~56.0.7",
     "expo-modules-core": "~56.0.14",
     "expo-router": "~56.2.8",
     "expo-secure-store": "~56.0.4",
