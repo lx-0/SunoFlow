@@ -6,6 +6,7 @@ import { usePlayback } from "@/playback/usePlayback";
 import { togglePlay, skipToNext, skipToPrevious, seekTo, toggleShuffle, toggleRepeat } from "@/playback/audio";
 import { PlayIcon, PauseIcon, SkipNextIcon, SkipPrevIcon, ShuffleIcon, HeartIcon, RepeatIcon, MoreIcon } from "@/components/Icons";
 import { ReactionPicker } from "@/components/ReactionPicker";
+import { RatingStars } from "@/components/RatingStars";
 import { Waveform } from "@/components/Waveform";
 import { useTimedPopups } from "@/hooks/useTimedPopups";
 import { getFavorite, setFavorite as setFavoriteApi } from "@/api/favorites";
@@ -76,12 +77,18 @@ export default function PlayerScreen() {
 
   function openMenu() {
     ActionSheetIOS.showActionSheetWithOptions(
-      { options: ["Lyrics", "Add to Playlist", "Up Next", "Comments", "Cancel"], cancelButtonIndex: 4, userInterfaceStyle: "dark" },
+      {
+        options: ["Lyrics", "Add to Playlist", "Up Next", "Comments", "Related", "Song Details", "Cancel"],
+        cancelButtonIndex: 6,
+        userInterfaceStyle: "dark",
+      },
       (i) => {
         if (i === 0) router.push("/lyrics");
         else if (i === 1) router.push("/add-to-playlist");
         else if (i === 2) router.push("/queue");
         else if (i === 3 && songId) router.push(`/comments/${songId}`);
+        else if (i === 4 && songId) router.push(`/related/${songId}`);
+        else if (i === 5 && songId) router.push(`/song/${songId}`);
       },
     );
   }
@@ -107,6 +114,11 @@ export default function PlayerScreen() {
 
         <Text style={styles.title} numberOfLines={1}>{current?.title ?? "Nothing playing"}</Text>
         <Text style={styles.artist} numberOfLines={1}>{current?.artist ?? ""}</Text>
+        {songId ? (
+          <View style={styles.ratingRow}>
+            <RatingStars songId={songId} />
+          </View>
+        ) : null}
 
         {/* Real waveform + timecoded reaction popups */}
         <Waveform
@@ -159,6 +171,7 @@ const styles = StyleSheet.create({
   artPlaceholder: { backgroundColor: "#1c1c22" },
   title: { color: "#fff", fontSize: 22, fontWeight: "700", textAlign: "center", alignSelf: "stretch" },
   artist: { color: "#9a9aa2", fontSize: 16, marginTop: 4, textAlign: "center" },
+  ratingRow: { marginTop: 10 },
   times: { alignSelf: "stretch", flexDirection: "row", justifyContent: "space-between", marginTop: 2 },
   time: { color: "#9a9aa2", fontSize: 12, fontVariant: ["tabular-nums"] },
   emojiRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: 14 },

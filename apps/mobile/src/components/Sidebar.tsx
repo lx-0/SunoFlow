@@ -3,8 +3,8 @@ import { View, Text, Pressable, Animated, ScrollView, StyleSheet } from "react-n
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
 import {
-  Menu, BookOpen, ListMusic, Heart, Clock, Globe, Sparkles, UserPlus, Wand2,
-  LayoutGrid, Tag, BarChart3, Bell, Settings, type LucideIcon,
+  Menu, Search, BookOpen, ListMusic, Heart, Clock, Globe, Sparkles, UserPlus, Wand2,
+  LayoutGrid, Tag, Radio, BarChart3, Bell, Settings, type LucideIcon,
 } from "lucide-react-native";
 
 // Custom slide-in sidebar (drawer) — mirrors the PWA's mobile nav (a translate-x
@@ -46,6 +46,7 @@ type Section = { title?: string; items: Item[] };
 const SECTIONS: Section[] = [
   {
     items: [
+      { label: "Search", route: "/search", Icon: Search },
       { label: "Library", route: "/", Icon: BookOpen },
       { label: "Playlists", route: "/playlists", Icon: ListMusic },
       { label: "Favorites", route: "/favorites", Icon: Heart },
@@ -57,6 +58,7 @@ const SECTIONS: Section[] = [
     items: [
       { label: "Discover", route: "/discover", Icon: Globe },
       { label: "For You", route: "/recommendations", Icon: Sparkles },
+      { label: "Radio", route: "/radio", Icon: Radio },
       { label: "Following", route: "/feed", Icon: UserPlus },
       { label: "Smart Playlists", route: "/smart-playlists", Icon: Wand2 },
       { label: "Collections", route: "/collections", Icon: LayoutGrid },
