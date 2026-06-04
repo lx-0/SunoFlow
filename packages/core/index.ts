@@ -59,3 +59,4 @@ export {
 } from "./generation";
 export { mashupRequestSchema, type MashupRequest } from "./mashup";
 export { changePasswordBody, type ChangePasswordBody } from "./auth";
+export { uploadBodySchema, MAX_BASE64_SIZE, type UploadBody } from "./upload";
