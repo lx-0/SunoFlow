@@ -1,7 +1,3 @@
-import { z } from "zod";
-
-export const recordHistoryRequestSchema = z.object({
-  songId: z.string().min(1, "songId is required"),
-});
-
-export type RecordHistoryRequest = z.infer<typeof recordHistoryRequestSchema>;
+// Shared with the mobile client via @sunoflow/core (single source of the
+// record-play request contract). Re-exported for existing importers.
+export { recordHistoryRequestSchema, type RecordHistoryRequest } from "@sunoflow/core";

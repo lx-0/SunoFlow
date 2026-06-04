@@ -1,14 +1,17 @@
+import { createPlaylistBody, reorderPlaylistSongsBody } from "@sunoflow/core";
 import { apiDelete, apiPatch, apiPost } from "./client";
 
-// Mutating playlist actions. Reorder takes the FULL ordered id list; the server
-// validates length === playlist length. NOTE: the detail screen builds songIds
-// from mapApiSong, which DROPS unplayable rows — so a playlist with skipped
-// tracks yields a shorter list and the server length check rejects (HttpError).
-// Callers must handle that (revert + log), not assume success.
+// Mutating playlist actions. Request bodies are built + validated against the
+// SHARED @sunoflow/core schemas — the same zod the web routes validate with, so
+// the client can't send a body the server would reject for shape reasons.
+// Reorder takes the FULL ordered id list; the server also checks length ===
+// playlist length, and the detail screen's list drops unplayable rows, so callers
+// must handle the resulting HttpError (revert + log), not assume success.
 
-/** PATCH /api/playlists/[id]/reorder { songIds }. Resolves on success, throws HttpError otherwise. */
+/** PATCH /api/playlists/[id]/reorder { songIds }. Resolves on success, throws otherwise. */
 export async function reorderPlaylistSongs(playlistId: string, songIds: string[]): Promise<void> {
-  await apiPatch(`/api/playlists/${playlistId}/reorder`, { songIds });
+  const body = reorderPlaylistSongsBody.parse({ songIds });
+  await apiPatch(`/api/playlists/${playlistId}/reorder`, body);
 }
 
 /**
@@ -16,7 +19,8 @@ export async function reorderPlaylistSongs(playlistId: string, songIds: string[]
  * Read the id defensively (shape may drift) and surface it to the caller.
  */
 export async function createPlaylist(name: string): Promise<{ id: string }> {
-  const res = await apiPost<{ playlist?: { id?: unknown } }>("/api/playlists", { name });
+  const body = createPlaylistBody.parse({ name });
+  const res = await apiPost<{ playlist?: { id?: unknown } }>("/api/playlists", body);
   const id = res?.playlist?.id;
   if (typeof id !== "string") {
     throw new Error("Playlist created but response shape was unexpected");

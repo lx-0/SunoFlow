@@ -1,3 +1,4 @@
+import { recordHistoryRequestSchema } from "@sunoflow/core";
 import { apiGet, apiPost } from "./client";
 import { mapApiSong } from "./songs";
 import type { Song } from "@/types";
@@ -14,7 +15,8 @@ interface HistoryResponse {
 
 /** Record a play. Fire-and-forget from the player; backend dedupes. */
 export async function recordPlay(songId: string): Promise<void> {
-  await apiPost(`/api/history`, { songId });
+  const body = recordHistoryRequestSchema.parse({ songId }); // shared contract w/ web
+  await apiPost(`/api/history`, body);
 }
 
 /** Recently played songs (newest first). History items nest the song under `.song`. */

@@ -11,6 +11,18 @@ export {
 } from "./reactions";
 export { downsamplePeaks } from "./peaks";
 export {
+  createPlaylistBody,
+  updatePlaylistBody,
+  addPlaylistSongBody,
+  reorderPlaylistSongsBody,
+  recordHistoryRequestSchema,
+  type CreatePlaylistBody,
+  type UpdatePlaylistBody,
+  type AddPlaylistSongBody,
+  type ReorderPlaylistSongsBody,
+  type RecordHistoryRequest,
+} from "./schemas";
+export {
   MILESTONE_TYPES,
   MILESTONE_META,
   MILESTONE_CATALOG,

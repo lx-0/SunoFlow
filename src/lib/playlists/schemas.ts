@@ -1,40 +1,15 @@
 import { z } from "zod";
 
-export const createPlaylistBody = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, "Name is required")
-    .max(100, "Name must be 100 characters or less"),
-  description: z
-    .string()
-    .max(1000, "Description must be 1000 characters or less")
-    .optional(),
-});
-
-export type CreatePlaylistBody = z.infer<typeof createPlaylistBody>;
-
-export const updatePlaylistBody = z
-  .object({
-    name: z.string().trim().min(1).max(100).optional(),
-    description: z.string().max(1000).nullable().optional(),
-  })
-  .strict()
-  .refine((value) => value.name !== undefined || value.description !== undefined, {
-    message: "At least one of name or description is required",
-  });
-
-export const addPlaylistSongBody = z
-  .object({
-    songId: z.string().min(1),
-  })
-  .strict();
-
-export const reorderPlaylistSongsBody = z
-  .object({
-    songIds: z.array(z.string().min(1)),
-  })
-  .strict();
+// Playlist request schemas live in @sunoflow/core (shared 1:1 with the mobile
+// client). Re-exported here so existing "@/lib/playlists/schemas" importers keep
+// working. Web-only schemas (togglePublishBody) stay below.
+export {
+  createPlaylistBody,
+  updatePlaylistBody,
+  addPlaylistSongBody,
+  reorderPlaylistSongsBody,
+  type CreatePlaylistBody,
+} from "@sunoflow/core";
 
 export const togglePublishBody = z
   .object({
