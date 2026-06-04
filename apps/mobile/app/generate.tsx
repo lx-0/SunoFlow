@@ -12,7 +12,7 @@ import {
   Platform,
 } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { Sparkles, AlertCircle, CheckCircle2 } from "lucide-react-native";
+import { Sparkles, AlertCircle, CheckCircle2, Wand2 } from "lucide-react-native";
 import {
   GENERATION_PROMPT_MAX_LENGTH,
   GENERATION_TITLE_MAX_LENGTH,
@@ -24,6 +24,8 @@ import {
   GenerationError,
   type StartedGeneration,
 } from "@/api/generate";
+import { boostStyle } from "@/api/style-boost";
+import { HttpError } from "@/api/client";
 
 // Generate: prompt + key options → POST /api/generate → poll status until the
 // song is ready, then route to it. Mirrors the web GenerateForm's style-mode
@@ -45,12 +47,29 @@ function paramStr(v: string | string[] | undefined): string {
 
 export default function GenerateScreen() {
   // Prefilled from a persona / template / preset deep-link (router.push params).
-  const params = useLocalSearchParams<{ prompt?: string; style?: string; personaId?: string }>();
+  const params = useLocalSearchParams<{ prompt?: string; style?: string; personaId?: string; parentSongId?: string }>();
   const [prompt, setPrompt] = useState(() => paramStr(params.prompt));
   const [title, setTitle] = useState("");
   const [tags, setTags] = useState(() => paramStr(params.style));
   const [instrumental, setInstrumental] = useState(false);
+  const [boosting, setBoosting] = useState(false);
   const personaId = paramStr(params.personaId) || undefined;
+  const parentSongId = paramStr(params.parentSongId) || undefined;
+
+  const onBoost = useCallback(async () => {
+    const content = tags.trim();
+    if (!content || boosting) return;
+    setBoosting(true);
+    setError(null);
+    try {
+      setTags(await boostStyle(content));
+    } catch (e) {
+      setError(e instanceof HttpError && e.status === 402 ? "Out of credits for style boost." : "Style boost failed.");
+      console.error("[generate] style boost failed", e);
+    } finally {
+      setBoosting(false);
+    }
+  }, [tags, boosting]);
 
   const [phase, setPhase] = useState<Phase>("form");
   const [error, setError] = useState<string | null>(null);
@@ -104,6 +123,7 @@ export default function GenerateScreen() {
         tags: tags.trim() || undefined,
         makeInstrumental: instrumental,
         personaId,
+        parentSongId,
       });
       setStarted(job);
       await runPolling(job);
@@ -115,7 +135,7 @@ export default function GenerateScreen() {
       setError(msg);
       setPhase("failed");
     }
-  }, [prompt, title, tags, instrumental, personaId, runPolling]);
+  }, [prompt, title, tags, instrumental, personaId, parentSongId, runPolling]);
 
   const reset = useCallback(() => {
     setError(null);
@@ -175,7 +195,9 @@ export default function GenerateScreen() {
             <View style={styles.hero}>
               <Sparkles color="#8b7cff" size={22} />
               <Text style={styles.heroText}>
-                Describe the song you want. Style, mood, genre &mdash; anything.
+                {parentSongId
+                  ? "Extending an existing song — describe what to add or change."
+                  : "Describe the song you want. Style, mood, genre — anything."}
               </Text>
             </View>
 
@@ -210,6 +232,14 @@ export default function GenerateScreen() {
               placeholderTextColor="#5a5a62"
               maxLength={GENERATION_STYLE_MAX_LENGTH}
             />
+            <Pressable
+              style={[styles.boostBtn, (!tags.trim() || boosting) && styles.btnDisabled]}
+              disabled={!tags.trim() || boosting}
+              onPress={onBoost}
+            >
+              {boosting ? <ActivityIndicator color="#8b7cff" size="small" /> : <Wand2 color="#8b7cff" size={16} />}
+              <Text style={styles.boostText}>{boosting ? "Boosting…" : "Boost style with AI"}</Text>
+            </Pressable>
 
             <View style={styles.switchRow}>
               <View style={styles.flex}>
@@ -291,6 +321,8 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   btnDisabled: { opacity: 0.45 },
+  boostBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 8, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: "#2e2840" },
+  boostText: { color: "#8b7cff", fontSize: 14, fontWeight: "600" },
   primaryBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   secondaryBtn: { paddingVertical: 12 },
   secondaryBtnText: { color: "#8b7cff", fontSize: 15, fontWeight: "600" },

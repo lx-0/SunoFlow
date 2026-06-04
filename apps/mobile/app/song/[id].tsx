@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { View, Text, Image, Pressable, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, useFocusEffect, useLocalSearchParams, router } from "expo-router";
 import { formatDuration } from "@sunoflow/core";
-import { Play, Disc3, Share2 } from "lucide-react-native";
+import { Play, Disc3, Share2, Sparkles } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchSongDetail, detailToSong, type SongDetail } from "@/api/song-detail";
 import { getFavorite, setFavorite as setFavoriteApi } from "@/api/favorites";
@@ -124,6 +124,9 @@ export default function SongDetailScreen() {
         </Pressable>
         <Pressable style={styles.iconBtn} onPress={() => router.push(`/related/${song.id}`)}>
           <Disc3 color="#fff" size={18} />
+        </Pressable>
+        <Pressable style={styles.iconBtn} onPress={() => router.push(`/generate?parentSongId=${song.id}`)}>
+          <Sparkles color="#fff" size={18} />
         </Pressable>
         <Pressable style={styles.iconBtn} onPress={() => void shareSong({ id: song.id, title: song.title, publicSlug: song.publicSlug })}>
           <Share2 color="#fff" size={18} />

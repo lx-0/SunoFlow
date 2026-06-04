@@ -78,8 +78,8 @@ export default function PlayerScreen() {
   function openMenu() {
     ActionSheetIOS.showActionSheetWithOptions(
       {
-        options: ["Lyrics", "Add to Playlist", "Up Next", "Comments", "Related", "Song Details", "Cancel"],
-        cancelButtonIndex: 6,
+        options: ["Lyrics", "Add to Playlist", "Up Next", "Comments", "Related", "Song Details", "Extend", "Cancel"],
+        cancelButtonIndex: 7,
         userInterfaceStyle: "dark",
       },
       (i) => {
@@ -89,6 +89,7 @@ export default function PlayerScreen() {
         else if (i === 3 && songId) router.push(`/comments/${songId}`);
         else if (i === 4 && songId) router.push(`/related/${songId}`);
         else if (i === 5 && songId) router.push(`/song/${songId}`);
+        else if (i === 6 && songId) router.push(`/generate?parentSongId=${songId}`);
       },
     );
   }
