@@ -1,48 +1,28 @@
 import { View } from "react-native";
-import { Tabs } from "expo-router";
-import { Library, ListMusic, Heart, Clock, Compass, Settings } from "lucide-react-native";
+import { Stack } from "expo-router";
 import { MiniPlayer } from "@/components/MiniPlayer";
+import { SidebarToggle } from "@/components/Sidebar";
 
-// Browse-first tab shell (iOS-v1 scope: Browse + Play + Playlists). A persistent
-// MiniPlayer floats above the tab bar so playback stays controllable everywhere.
-// Generate/Edit are deferred to a fast-follow milestone.
-export default function TabsLayout() {
+// Primary screens shell. Navigation is the slide-in Sidebar (hamburger in the
+// header) instead of a bottom tab bar — the feature set outgrew the tab bar and
+// this mirrors the PWA's sidebar. A persistent MiniPlayer floats at the bottom.
+export default function PrimaryLayout() {
   return (
     <View style={{ flex: 1 }}>
-      <Tabs
+      <Stack
         screenOptions={{
           headerStyle: { backgroundColor: "#0b0b0f" },
           headerTintColor: "#fff",
-          tabBarStyle: { backgroundColor: "#0b0b0f", borderTopColor: "#1c1c22" },
-          tabBarActiveTintColor: "#fff",
-          tabBarInactiveTintColor: "#6a6a72",
+          contentStyle: { backgroundColor: "#0b0b0f" },
+          headerLeft: () => <SidebarToggle />,
         }}
       >
-        <Tabs.Screen
-          name="index"
-          options={{ title: "Library", tabBarIcon: ({ color, size }) => <Library color={color} size={size} /> }}
-        />
-        <Tabs.Screen
-          name="playlists"
-          options={{ title: "Playlists", tabBarIcon: ({ color, size }) => <ListMusic color={color} size={size} /> }}
-        />
-        <Tabs.Screen
-          name="favorites"
-          options={{ title: "Favorites", tabBarIcon: ({ color, size }) => <Heart color={color} size={size} /> }}
-        />
-        <Tabs.Screen
-          name="history"
-          options={{ title: "History", tabBarIcon: ({ color, size }) => <Clock color={color} size={size} /> }}
-        />
-        <Tabs.Screen
-          name="explore"
-          options={{ title: "Explore", tabBarIcon: ({ color, size }) => <Compass color={color} size={size} /> }}
-        />
-        <Tabs.Screen
-          name="settings"
-          options={{ title: "Settings", tabBarIcon: ({ color, size }) => <Settings color={color} size={size} /> }}
-        />
-      </Tabs>
+        <Stack.Screen name="index" options={{ title: "Library" }} />
+        <Stack.Screen name="playlists" options={{ title: "Playlists" }} />
+        <Stack.Screen name="favorites" options={{ title: "Favorites" }} />
+        <Stack.Screen name="history" options={{ title: "History" }} />
+        <Stack.Screen name="settings" options={{ title: "Settings" }} />
+      </Stack>
       <MiniPlayer />
     </View>
   );

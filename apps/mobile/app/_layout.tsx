@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { getApiKey } from "@/auth/session";
+import { SidebarProvider, Sidebar } from "@/components/Sidebar";
 
 // Root layout. Gates the app on a stored API key — no key → login. expo-audio is
 // configured lazily on first playback (see src/playback/audio.ts), so no engine
@@ -16,7 +17,7 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <>
+    <SidebarProvider>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -30,6 +31,7 @@ export default function RootLayout() {
         <Stack.Screen name="player" options={{ presentation: "modal", title: "Now Playing" }} />
         <Stack.Screen name="playlist/[id]" options={{ title: "Playlist" }} />
       </Stack>
-    </>
+      <Sidebar />
+    </SidebarProvider>
   );
 }

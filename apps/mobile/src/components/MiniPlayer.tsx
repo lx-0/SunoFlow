@@ -5,10 +5,10 @@ import { usePlayback } from "@/playback/usePlayback";
 import { togglePlay } from "@/playback/audio";
 import { PlayIcon, PauseIcon } from "@/components/Icons";
 
-// Persistent now-playing bar above the tab bar on every Browse screen, so
-// playback stays controllable while the user browses. Driven by the expo-audio
-// controller's store. Tap opens the full Now-Playing screen. Hidden when idle.
-const TAB_BAR_HEIGHT = 49; // iOS default
+// Persistent now-playing bar near the bottom of every primary screen, so playback
+// stays controllable while the user browses. Driven by the expo-audio controller's
+// store. Tap opens the full Now-Playing screen. Hidden when idle.
+const BOTTOM_GAP = 10; // sits just above the home indicator (no tab bar anymore)
 
 export function MiniPlayer() {
   const insets = useSafeAreaInsets();
@@ -18,7 +18,7 @@ export function MiniPlayer() {
 
   return (
     <Pressable
-      style={[styles.bar, { bottom: insets.bottom + TAB_BAR_HEIGHT }]}
+      style={[styles.bar, { bottom: insets.bottom + BOTTOM_GAP }]}
       onPress={() => router.push("/player")}
     >
       {current.artworkUrl ? (

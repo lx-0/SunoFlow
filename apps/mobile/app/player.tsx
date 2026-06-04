@@ -76,11 +76,12 @@ export default function PlayerScreen() {
 
   function openMenu() {
     ActionSheetIOS.showActionSheetWithOptions(
-      { options: ["Lyrics", "Add to Playlist", "Up Next", "Cancel"], cancelButtonIndex: 3, userInterfaceStyle: "dark" },
+      { options: ["Lyrics", "Add to Playlist", "Up Next", "Comments", "Cancel"], cancelButtonIndex: 4, userInterfaceStyle: "dark" },
       (i) => {
         if (i === 0) router.push("/lyrics");
         else if (i === 1) router.push("/add-to-playlist");
         else if (i === 2) router.push("/queue");
+        else if (i === 3 && songId) router.push(`/comments/${songId}`);
       },
     );
   }
