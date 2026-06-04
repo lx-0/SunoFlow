@@ -9,10 +9,11 @@ import {
   GENERATION_PROMPT_MAX_MESSAGE,
   GENERATION_TITLE_MAX_MESSAGE,
   GENERATION_STYLE_MAX_MESSAGE,
+  MIN_BATCH_SIZE,
+  MAX_BATCH_SIZE,
 } from "@sunoflow/core";
 
-export const MIN_BATCH_SIZE = 2;
-export const MAX_BATCH_SIZE = 5;
+export { MIN_BATCH_SIZE, MAX_BATCH_SIZE };
 // Field limits + messages are shared 1:1 with the mobile client via
 // @sunoflow/core (single source of truth). Re-exported so existing importers of
 // "@/lib/generation/params" keep working.

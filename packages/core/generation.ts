@@ -17,6 +17,10 @@ export const GENERATION_TITLE_MAX_MESSAGE = `Title must be ${GENERATION_TITLE_MA
 export const GENERATION_STYLE_MAX_MESSAGE = `Style must be ${GENERATION_STYLE_MAX_LENGTH} characters or less`;
 export const GENERATION_TAGS_MAX_MESSAGE = `Tags must be ${GENERATION_STYLE_MAX_LENGTH} characters or less`;
 
+// Batch generation bounds (shared by the web batch validator + mobile picker).
+export const MIN_BATCH_SIZE = 2;
+export const MAX_BATCH_SIZE = 5;
+
 // ── /api/generate request body ─────────────────────────────────────────────
 
 export const generateSongRequestSchema = z.object({

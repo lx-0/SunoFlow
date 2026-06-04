@@ -10,6 +10,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { Sparkles, AlertCircle, CheckCircle2, Wand2 } from "lucide-react-native";
@@ -17,7 +18,9 @@ import {
   GENERATION_PROMPT_MAX_LENGTH,
   GENERATION_TITLE_MAX_LENGTH,
   GENERATION_STYLE_MAX_LENGTH,
+  MAX_BATCH_SIZE,
 } from "@sunoflow/core";
+import { startBatch } from "@/api/batch";
 import { startGeneration, pollStatus, GenerationError, type StartedGeneration } from "@/api/generate";
 import { boostStyle } from "@/api/style-boost";
 import { autoFill } from "@/api/generate-auto";
@@ -53,6 +56,7 @@ export default function GenerateScreen() {
   const [lyrics, setLyrics] = useState(() => paramStr(params.prompt));
   const [title, setTitle] = useState("");
   const [instrumental, setInstrumental] = useState(false);
+  const [count, setCount] = useState(1);
   const [personaId, setPersonaId] = useState<string | undefined>(() => paramStr(params.personaId) || undefined);
   const [presets, setPresets] = useState<Preset[]>([]);
   const [styleTemplates, setStyleTemplates] = useState<StyleTemplate[]>([]);
@@ -189,6 +193,27 @@ export default function GenerateScreen() {
     }
     setError(null);
     setPhase("submitting");
+
+    // Batch: fire N variations of the same config; they surface in the library.
+    if (count > 1) {
+      const config = {
+        prompt: submitPrompt,
+        title: title.trim() || undefined,
+        tags: style.trim() || undefined,
+        makeInstrumental: instrumental,
+        personaId,
+      };
+      try {
+        const { count: n } = await startBatch(Array.from({ length: count }, () => config));
+        Alert.alert("Generating", `${n} song${n === 1 ? "" : "s"} are being created — they'll appear in your Library.`);
+        router.replace("/");
+      } catch (e) {
+        setError(e instanceof GenerationError ? e.message : "Something went wrong. Please try again.");
+        setPhase("failed");
+      }
+      return;
+    }
+
     try {
       const job = await startGeneration({
         prompt: submitPrompt,
@@ -204,7 +229,7 @@ export default function GenerateScreen() {
       setError(e instanceof GenerationError ? e.message : "Something went wrong. Please try again.");
       setPhase("failed");
     }
-  }, [customMode, lyrics, style, title, instrumental, personaId, parentSongId, runPolling]);
+  }, [customMode, lyrics, style, title, instrumental, count, personaId, parentSongId, runPolling]);
 
   const reset = useCallback(() => {
     setError(null);
@@ -391,6 +416,26 @@ export default function GenerateScreen() {
             <Switch value={instrumental} onValueChange={setInstrumental} trackColor={{ false: colors.surfaceAlt, true: colors.accentStrong }} thumbColor={colors.onAccent} />
           </View>
 
+          {!parentSongId ? (
+            <>
+              <Text style={styles.label}>Variations</Text>
+              <View style={styles.countRow}>
+                {Array.from({ length: MAX_BATCH_SIZE }, (_, i) => i + 1).map((n) => {
+                  const active = count === n;
+                  return (
+                    <Pressable
+                      key={n}
+                      style={[styles.countChip, active && styles.chipActive]}
+                      onPress={() => setCount(n)}
+                    >
+                      <Text style={[styles.countText, active && styles.chipActiveText]}>{n}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          ) : null}
+
           {error ? (
             <View style={styles.inlineError}>
               <AlertCircle color={colors.danger} size={16} />
@@ -400,7 +445,7 @@ export default function GenerateScreen() {
 
           <Pressable style={[styles.primaryBtn, !canSubmit && styles.btnDisabled]} disabled={!canSubmit} onPress={onSubmit}>
             <CheckCircle2 color={colors.onAccent} size={18} />
-            <Text style={styles.primaryBtnText}>Generate</Text>
+            <Text style={styles.primaryBtnText}>{count > 1 ? `Generate ${count}` : "Generate"}</Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -421,6 +466,9 @@ function makeStyles(c: ThemeColors) {
     presetText: { color: c.textDim, fontSize: 13 },
     chipActive: { backgroundColor: c.accentStrong },
     chipActiveText: { color: c.onAccent },
+    countRow: { flexDirection: "row", gap: 8, marginTop: 4 },
+    countChip: { width: 44, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: c.surfaceAlt },
+    countText: { color: c.textDim, fontSize: 15, fontWeight: "600" },
     label: { color: c.textDim, fontSize: 13, marginTop: 12, marginBottom: 6 },
     input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: 1, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
     lyricsInput: { minHeight: 140, textAlignVertical: "top" },
