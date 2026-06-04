@@ -4,6 +4,7 @@ import { router, useFocusEffect } from "expo-router";
 import { HttpError } from "@/api/client";
 import { fetchFavorites } from "@/api/favorites";
 import { playQueue } from "@/playback/controls";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import type { Song } from "@/types";
 
 // Favorites: the user's liked songs. Reloads on focus so toggles made elsewhere
@@ -37,6 +38,7 @@ export default function FavoritesScreen() {
         <FlatList
           data={songs}
           keyExtractor={(s) => s.id}
+          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
           renderItem={({ item, index }) => (
             <Pressable
               style={styles.row}

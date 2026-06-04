@@ -5,6 +5,7 @@ import { Plus } from "lucide-react-native";
 import { fetchPlaylists, type PlaylistSummary } from "@/api/playlists";
 import { createPlaylist } from "@/api/playlist-actions";
 import { HttpError } from "@/api/client";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 
 export default function PlaylistsScreen() {
   const [items, setItems] = useState<PlaylistSummary[] | null>(null);
@@ -69,6 +70,7 @@ export default function PlaylistsScreen() {
       <FlatList
         data={items}
         keyExtractor={(p) => p.id}
+        contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
         renderItem={({ item }) => (
           <Pressable style={st.row} onPress={() => router.push(`/playlist/${item.id}`)}>
             <Text style={st.title} numberOfLines={1}>{item.name}</Text>

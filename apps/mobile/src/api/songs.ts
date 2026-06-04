@@ -39,10 +39,21 @@ export interface SongPage {
  * infinite scroll; it's correct even though we drop unplayable rows client-side,
  * because the server computes it before our filter.
  */
-export async function fetchSongsPage(opts: { query?: string; cursor?: string | null } = {}): Promise<SongPage> {
+export type SongSortBy =
+  | "newest"
+  | "oldest"
+  | "highest_rated"
+  | "most_played"
+  | "recently_modified"
+  | "title_az";
+
+export async function fetchSongsPage(
+  opts: { query?: string; cursor?: string | null; sortBy?: SongSortBy } = {},
+): Promise<SongPage> {
   const params = new URLSearchParams();
   if (opts.query) params.set("q", opts.query);
   if (opts.cursor) params.set("cursor", opts.cursor);
+  if (opts.sortBy && opts.sortBy !== "newest") params.set("sortBy", opts.sortBy);
   const qs = params.toString();
   const res = await apiGet<LibraryResponse>(`/api/songs${qs ? `?${qs}` : ""}`);
   const songs = (Array.isArray(res.songs) ? res.songs : [])

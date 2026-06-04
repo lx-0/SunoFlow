@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { View, Text, Pressable, Animated, ScrollView, StyleSheet } from "react-native";
+import { View, Text, Pressable, Animated, ScrollView, PanResponder, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
 import {
@@ -78,10 +78,22 @@ const SECTIONS: Section[] = [
 ];
 
 export function Sidebar() {
-  const { open, closeSidebar } = useSidebar();
+  const { open, openSidebar, closeSidebar } = useSidebar();
   const insets = useSafeAreaInsets();
   const anim = useRef(new Animated.Value(0)).current;
   const [mounted, setMounted] = useState(false);
+
+  // Edge-swipe to open: a thin left strip claims the gesture only on a clear
+  // rightward drag (taps + vertical scrolls pass through to the screen below).
+  const edgePan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_e, g) => g.dx > 6 && Math.abs(g.dy) < 25,
+      onPanResponderRelease: (_e, g) => {
+        if (g.dx > 36) openSidebar();
+      },
+    }),
+  ).current;
 
   useEffect(() => {
     if (open) setMounted(true);
@@ -90,7 +102,10 @@ export function Sidebar() {
     });
   }, [open, anim]);
 
-  if (!mounted) return null;
+  // When closed, only the left edge-swipe catcher is present.
+  if (!mounted) {
+    return <View style={[styles.edge, { top: insets.top + 44 }]} {...edgePan.panHandlers} />;
+  }
 
   const translateX = anim.interpolate({ inputRange: [0, 1], outputRange: [-WIDTH, 0] });
   const backdropOpacity = anim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.55] });
@@ -128,6 +143,7 @@ export function Sidebar() {
 
 const styles = StyleSheet.create({
   toggle: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginLeft: 4 },
+  edge: { position: "absolute", left: 0, bottom: 0, width: 22 },
   backdrop: { backgroundColor: "#000" },
   panel: {
     position: "absolute",

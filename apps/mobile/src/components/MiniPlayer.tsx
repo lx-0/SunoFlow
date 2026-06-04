@@ -10,6 +10,10 @@ import { PlayIcon, PauseIcon } from "@/components/Icons";
 // store. Tap opens the full Now-Playing screen. Hidden when idle.
 const BOTTOM_GAP = 10; // sits just above the home indicator (no tab bar anymore)
 
+// Bottom padding screens with lists should add so the floating MiniPlayer doesn't
+// cover the last items. ~bar height (52) + gap + a comfortable margin.
+export const MINIPLAYER_CLEARANCE = 96;
+
 export function MiniPlayer() {
   const insets = useSafeAreaInsets();
   const { current, playing } = usePlayback();
