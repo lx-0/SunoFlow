@@ -13,12 +13,12 @@ import { router } from "expo-router";
 import { usePlayback } from "@/playback/usePlayback";
 import { togglePlay, skipToNext, skipToPrevious, seekTo, toggleShuffle, toggleRepeat } from "@/playback/audio";
 import { PlayIcon, PauseIcon, SkipNextIcon, SkipPrevIcon, ShuffleIcon, HeartIcon, RepeatIcon, MoreIcon } from "@/components/Icons";
+import { ReactionPicker } from "@/components/ReactionPicker";
 import { getFavorite, setFavorite as setFavoriteApi } from "@/api/favorites";
 import { fetchReactions, addReaction, type Reaction } from "@/api/reactions";
 
 const ACCENT = "#8b7cff";
 const PLAY_BG = "#7c3aed"; // violet-600, matches the web player
-const QUICK_EMOJIS = ["🔥", "❤️", "😂", "😮", "🎵", "👍"];
 
 // Now-Playing screen — mirrors the web ExpandedPlayer: cover, title, a seek bar
 // with timecoded emoji-reaction markers, a quick-react row, transport controls,
@@ -142,13 +142,9 @@ export default function PlayerScreen() {
           <Text style={styles.time}>{fmt(durationSeconds)}</Text>
         </View>
 
-        {/* Quick emoji reactions — drop one at the current timestamp */}
+        {/* Emoji reactions behind a popover (drops one at the current timestamp) */}
         <View style={styles.emojiRow}>
-          {QUICK_EMOJIS.map((e) => (
-            <Pressable key={e} hitSlop={6} style={styles.emojiBtn} onPress={() => void onReact(e)}>
-              <Text style={styles.emoji}>{e}</Text>
-            </Pressable>
-          ))}
+          <ReactionPicker onReact={(e) => void onReact(e)} reactionEmojis={reactions.map((r) => r.emoji)} />
         </View>
 
         {/* Main transport */}
@@ -198,9 +194,7 @@ const styles = StyleSheet.create({
   barFill: { height: 4, backgroundColor: "#fff" },
   times: { alignSelf: "stretch", flexDirection: "row", justifyContent: "space-between", marginTop: -4 },
   time: { color: "#9a9aa2", fontSize: 12, fontVariant: ["tabular-nums"] },
-  emojiRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 18, marginTop: 18 },
-  emojiBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
-  emoji: { fontSize: 22 },
+  emojiRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: 14 },
   row: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 22, marginTop: 24 },
   btnSmall: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   btn: { width: 56, height: 56, alignItems: "center", justifyContent: "center" },
