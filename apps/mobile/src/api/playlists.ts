@@ -1,6 +1,11 @@
-import { apiGet } from "./client";
+import { apiGet, apiPost } from "./client";
 import { mapApiSong } from "./songs";
 import type { Song } from "@/types";
+
+/** Add a song to a playlist. POST /api/playlists/[id]/songs { songId }. */
+export async function addSongToPlaylist(playlistId: string, songId: string): Promise<void> {
+  await apiPost(`/api/playlists/${playlistId}/songs`, { songId });
+}
 
 // GET /api/playlists → { playlists: [{ id, name, _count: { songs } }] } (confirmed).
 // Playlist detail / track shape is mapped DEFENSIVELY (unverified from headless).

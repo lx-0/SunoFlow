@@ -1,0 +1,98 @@
+import { useEffect, useRef, useState } from "react";
+import { View, Text, ScrollView, ActivityIndicator, StyleSheet, type LayoutChangeEvent } from "react-native";
+import { Stack } from "expo-router";
+import { usePlayback } from "@/playback/usePlayback";
+import { fetchLyrics, type LyricLine } from "@/api/lyrics";
+
+// Lyrics view. Loads the current song's lyrics (+ optional line timestamps). When
+// timestamps exist, the active line is highlighted and auto-scrolled to follow
+// playback; without timestamps it's a static, scrollable lyric sheet.
+export default function LyricsScreen() {
+  const { current, positionSeconds } = usePlayback();
+  const songId = current?.id;
+  const [lines, setLines] = useState<LyricLine[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const scrollRef = useRef<ScrollView>(null);
+  const offsets = useRef<number[]>([]);
+
+  useEffect(() => {
+    setLines(null);
+    setError(null);
+    offsets.current = [];
+    if (!songId) return;
+    let cancelled = false;
+    fetchLyrics(songId)
+      .then((l) => {
+        if (!cancelled) setLines(l);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setError("Couldn't load lyrics");
+        console.error("[lyrics] load failed", e);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [songId]);
+
+  const hasTimestamps = !!lines?.some((l) => l.time !== null);
+  // Active line = last timestamped line whose start is at/under the playhead.
+  let activeLine = -1;
+  if (hasTimestamps && lines) {
+    for (let i = 0; i < lines.length; i++) {
+      const t = lines[i].time;
+      if (t !== null && t <= positionSeconds) activeLine = i;
+    }
+  }
+
+  // Follow the active line.
+  useEffect(() => {
+    if (activeLine < 0) return;
+    const y = offsets.current[activeLine];
+    if (typeof y === "number") {
+      scrollRef.current?.scrollTo({ y: Math.max(0, y - 140), animated: true });
+    }
+  }, [activeLine]);
+
+  return (
+    <View style={styles.container}>
+      <Stack.Screen options={{ title: current?.title ?? "Lyrics" }} />
+      {error ? (
+        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+      ) : !lines ? (
+        <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
+      ) : lines.length === 0 ? (
+        <View style={styles.centered}><Text style={styles.dim}>No lyrics for this song.</Text></View>
+      ) : (
+        <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
+          {lines.map((line, i) => (
+            <Text
+              key={i}
+              onLayout={(e: LayoutChangeEvent) => {
+                offsets.current[i] = e.nativeEvent.layout.y;
+              }}
+              style={[
+                styles.line,
+                line.text.trim() === "" && styles.blank,
+                hasTimestamps && (i === activeLine ? styles.active : styles.inactive),
+              ]}
+            >
+              {line.text || " "}
+            </Text>
+          ))}
+        </ScrollView>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#0b0b0f" },
+  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+  content: { paddingHorizontal: 24, paddingVertical: 28, paddingBottom: 120 },
+  line: { color: "#fff", fontSize: 19, lineHeight: 30, marginVertical: 3 },
+  blank: { height: 14 },
+  active: { color: "#fff", fontWeight: "700" },
+  inactive: { color: "#6a6a72" },
+  dim: { color: "#9a9aa2", fontSize: 14 },
+});

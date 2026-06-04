@@ -11,7 +11,7 @@ import {
 import { router } from "expo-router";
 import { usePlayback } from "@/playback/usePlayback";
 import { togglePlay, skipToNext, skipToPrevious, seekTo, toggleShuffle, toggleRepeat } from "@/playback/audio";
-import { PlayIcon, PauseIcon, SkipNextIcon, SkipPrevIcon, ShuffleIcon, HeartIcon, RepeatIcon, QueueIcon } from "@/components/Icons";
+import { PlayIcon, PauseIcon, SkipNextIcon, SkipPrevIcon, ShuffleIcon, HeartIcon, RepeatIcon, QueueIcon, LyricsIcon, AddToPlaylistIcon } from "@/components/Icons";
 import { getFavorite, setFavorite as setFavoriteApi } from "@/api/favorites";
 
 const ACCENT = "#8b7cff";
@@ -105,6 +105,12 @@ export default function PlayerScreen() {
         <Pressable hitSlop={10} style={styles.btnSmall} onPress={onToggleFavorite}>
           <HeartIcon color={favorite ? "#ff4d6d" : "#9a9aa2"} filled={favorite} size={22} />
         </Pressable>
+        <Pressable hitSlop={10} style={styles.btnSmall} onPress={() => router.push("/add-to-playlist")}>
+          <AddToPlaylistIcon color="#9a9aa2" size={22} />
+        </Pressable>
+        <Pressable hitSlop={10} style={styles.btnSmall} onPress={() => router.push("/lyrics")}>
+          <LyricsIcon color="#9a9aa2" size={22} />
+        </Pressable>
         <Pressable hitSlop={10} style={styles.btnSmall} onPress={() => router.push("/queue")}>
           <QueueIcon color="#9a9aa2" size={22} />
         </Pressable>
@@ -132,8 +138,8 @@ const styles = StyleSheet.create({
   times: { alignSelf: "stretch", flexDirection: "row", justifyContent: "space-between", marginTop: -6 },
   time: { color: "#9a9aa2", fontSize: 12, fontVariant: ["tabular-nums"] },
   row: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 32, marginTop: 28 },
-  secondaryRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 36, marginTop: 24 },
-  btnSmall: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  secondaryRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 14, marginTop: 24 },
+  btnSmall: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   btn: { width: 56, height: 56, alignItems: "center", justifyContent: "center" },
   btnPlay: { width: 72, height: 72, borderRadius: 36, backgroundColor: "#fff" },
 });
