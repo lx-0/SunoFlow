@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePlayback } from "@/playback/usePlayback";
 import { togglePlay } from "@/playback/audio";
 import { PlayIcon, PauseIcon } from "@/components/Icons";
+import { useTheme } from "@/theme/ThemeContext";
 
 // Persistent now-playing bar near the bottom of every primary screen, so playback
 // stays controllable while the user browses. Driven by the expo-audio controller's
@@ -16,21 +17,22 @@ export const MINIPLAYER_CLEARANCE = 96;
 
 export function MiniPlayer() {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const { current, playing } = usePlayback();
 
   if (!current) return null;
 
   return (
     <Pressable
-      style={[styles.bar, { bottom: insets.bottom + BOTTOM_GAP }]}
+      style={[styles.bar, { backgroundColor: colors.surfaceAlt, bottom: insets.bottom + BOTTOM_GAP }]}
       onPress={() => router.push("/player")}
     >
       {current.artworkUrl ? (
         <Image source={{ uri: current.artworkUrl }} style={styles.thumb} />
       ) : (
-        <View style={[styles.thumb, styles.thumbPlaceholder]} />
+        <View style={[styles.thumb, { backgroundColor: colors.border }]} />
       )}
-      <Text style={styles.title} numberOfLines={1}>
+      <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
         {current.title}
       </Text>
       <Pressable
@@ -40,7 +42,7 @@ export function MiniPlayer() {
           togglePlay();
         }}
       >
-        {playing ? <PauseIcon color="#fff" size={16} /> : <PlayIcon color="#fff" size={16} />}
+        {playing ? <PauseIcon color={colors.text} size={16} /> : <PlayIcon color={colors.text} size={16} />}
       </Pressable>
     </Pressable>
   );
@@ -53,13 +55,11 @@ const styles = StyleSheet.create({
     right: 8,
     height: 52,
     borderRadius: 12,
-    backgroundColor: "#1c1c22",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 14,
   },
   thumb: { width: 36, height: 36, borderRadius: 6, marginRight: 10 },
-  thumbPlaceholder: { backgroundColor: "#2a2a32" },
-  title: { color: "#fff", fontSize: 14, flex: 1, marginRight: 12 },
+  title: { fontSize: 14, flex: 1, marginRight: 12 },
 });

@@ -2,18 +2,19 @@ import { View } from "react-native";
 import { Stack } from "expo-router";
 import { MiniPlayer } from "@/components/MiniPlayer";
 import { SidebarToggle } from "@/components/Sidebar";
+import { useTheme } from "@/theme/ThemeContext";
 
 // Primary screens shell. Navigation is the slide-in Sidebar (hamburger in the
-// header) instead of a bottom tab bar — the feature set outgrew the tab bar and
-// this mirrors the PWA's sidebar. A persistent MiniPlayer floats at the bottom.
+// header) instead of a bottom tab bar. A MiniPlayer floats at the bottom.
 export default function PrimaryLayout() {
+  const { colors } = useTheme();
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: "#0b0b0f" },
-          headerTintColor: "#fff",
-          contentStyle: { backgroundColor: "#0b0b0f" },
+          headerStyle: { backgroundColor: colors.bg },
+          headerTintColor: colors.text,
+          contentStyle: { backgroundColor: colors.bg },
           headerLeft: () => <SidebarToggle />,
         }}
       >

@@ -3,11 +3,21 @@ import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { getApiKey } from "@/auth/session";
 import { SidebarProvider, Sidebar } from "@/components/Sidebar";
+import { ThemeProvider, useTheme } from "@/theme/ThemeContext";
 
-// Root layout. Gates the app on a stored API key — no key → login. expo-audio is
-// configured lazily on first playback (see src/playback/audio.ts), so no engine
-// setup is needed here.
+// Root layout. ThemeProvider supplies colors app-wide (dark/light, persisted).
+// Gates the app on a stored API key — no key → login.
 export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <RootNav />
+    </ThemeProvider>
+  );
+}
+
+function RootNav() {
+  const { colors, scheme } = useTheme();
+
   useEffect(() => {
     getApiKey()
       .then((key) => {
@@ -18,14 +28,12 @@ export default function RootLayout() {
 
   return (
     <SidebarProvider>
-      <StatusBar style="light" />
+      <StatusBar style={scheme === "dark" ? "light" : "dark"} />
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: "#0b0b0f" },
-          headerTintColor: "#fff",
-          contentStyle: { backgroundColor: "#0b0b0f" },
-          // Chevron-only back button; otherwise the "(tabs)" group name leaks as
-          // the back-title when pushing a feature screen from a primary screen.
+          headerStyle: { backgroundColor: colors.bg },
+          headerTintColor: colors.text,
+          contentStyle: { backgroundColor: colors.bg },
           headerBackButtonDisplayMode: "minimal",
         }}
       >

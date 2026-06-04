@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { View, Text, Pressable, Animated, ScrollView, PanResponder, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
+import { useTheme } from "@/theme/ThemeContext";
 import {
   Menu, Search, Plus, BookOpen, ListMusic, Heart, Clock, Layers, Globe, Sparkles, UserPlus, Wand2,
   LayoutGrid, Tag, Radio, Users, BarChart3, Bell, Settings,
@@ -34,9 +35,10 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
 /** Hamburger button for screen headers. */
 export function SidebarToggle() {
   const { openSidebar } = useSidebar();
+  const { colors } = useTheme();
   return (
     <Pressable hitSlop={12} onPress={openSidebar} style={styles.toggle}>
-      <Menu color="#fff" size={24} />
+      <Menu color={colors.text} size={24} />
     </Pressable>
   );
 }
@@ -91,6 +93,7 @@ const SECTIONS: Section[] = [
 
 export function Sidebar() {
   const { open, openSidebar, closeSidebar } = useSidebar();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const anim = useRef(new Animated.Value(0)).current;
   const [mounted, setMounted] = useState(false);
@@ -133,16 +136,16 @@ export function Sidebar() {
         <Pressable style={StyleSheet.absoluteFill} onPress={closeSidebar} />
       </Animated.View>
 
-      <Animated.View style={[styles.panel, { width: WIDTH, paddingTop: insets.top + 12, transform: [{ translateX }] }]}>
-        <Text style={styles.brand}>SunoFlow</Text>
+      <Animated.View style={[styles.panel, { backgroundColor: colors.surface, borderRightColor: colors.border, width: WIDTH, paddingTop: insets.top + 12, transform: [{ translateX }] }]}>
+        <Text style={[styles.brand, { color: colors.text }]}>SunoFlow</Text>
         <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
           {SECTIONS.map((section, si) => (
             <View key={si} style={styles.section}>
-              {section.title ? <Text style={styles.sectionTitle}>{section.title}</Text> : null}
+              {section.title ? <Text style={[styles.sectionTitle, { color: colors.textFaint }]}>{section.title}</Text> : null}
               {section.items.map((it) => (
                 <Pressable key={it.label} style={styles.row} onPress={() => go(it.route)}>
-                  <it.Icon color="#cfcfd6" size={20} />
-                  <Text style={styles.label}>{it.label}</Text>
+                  <it.Icon color={colors.textDim} size={20} />
+                  <Text style={[styles.label, { color: colors.text }]}>{it.label}</Text>
                 </Pressable>
               ))}
             </View>

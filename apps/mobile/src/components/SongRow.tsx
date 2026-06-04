@@ -2,11 +2,11 @@ import type { ReactNode } from "react";
 import { View, Text, Image, Pressable, StyleSheet } from "react-native";
 import { formatDuration } from "@sunoflow/core";
 import { HeartIcon } from "@/components/Icons";
+import { useTheme } from "@/theme/ThemeContext";
 import type { Song } from "@/types";
 
-// Shared song list row used across every song list (library, favorites, history,
-// discover, playlists, search, …) so they all look the same. Artwork thumbnail +
-// title + "artist · duration", with an optional right-hand slot (e.g. an icon).
+// Shared song list row (artwork + title + "artist · duration" + optional right
+// slot, defaulting to a favorite marker). Themed via useTheme.
 export function SongRow({
   song,
   onPress,
@@ -16,22 +16,23 @@ export function SongRow({
   onPress: () => void;
   right?: ReactNode;
 }) {
+  const { colors } = useTheme();
   const subtitle = [song.artist, song.durationSeconds ? formatDuration(song.durationSeconds) : null]
     .filter(Boolean)
     .join("  ·  ");
 
   return (
-    <Pressable style={styles.row} onPress={onPress}>
+    <Pressable style={[styles.row, { borderBottomColor: colors.border }]} onPress={onPress}>
       {song.artworkUrl ? (
-        <Image source={{ uri: song.artworkUrl }} style={styles.thumb} />
+        <Image source={{ uri: song.artworkUrl }} style={[styles.thumb, { backgroundColor: colors.surfaceAlt }]} />
       ) : (
-        <View style={[styles.thumb, styles.placeholder]} />
+        <View style={[styles.thumb, { backgroundColor: colors.surfaceAlt }]} />
       )}
       <View style={styles.meta}>
-        <Text style={styles.title} numberOfLines={1}>{song.title}</Text>
-        {subtitle ? <Text style={styles.sub} numberOfLines={1}>{subtitle}</Text> : null}
+        <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>{song.title}</Text>
+        {subtitle ? <Text style={[styles.sub, { color: colors.textDim }]} numberOfLines={1}>{subtitle}</Text> : null}
       </View>
-      {right ?? (song.isFavorite ? <HeartIcon color="#ff4d6d" filled size={16} /> : null)}
+      {right ?? (song.isFavorite ? <HeartIcon color={colors.danger} filled size={16} /> : null)}
     </Pressable>
   );
 }
@@ -43,12 +44,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     gap: 12,
-    borderBottomColor: "#1c1c22",
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  thumb: { width: 52, height: 52, borderRadius: 8, backgroundColor: "#1c1c22" },
-  placeholder: { backgroundColor: "#1c1c22" },
+  thumb: { width: 52, height: 52, borderRadius: 8 },
   meta: { flex: 1, minWidth: 0 },
-  title: { color: "#fff", fontSize: 16 },
-  sub: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
+  title: { fontSize: 16 },
+  sub: { fontSize: 13, marginTop: 2 },
 });
