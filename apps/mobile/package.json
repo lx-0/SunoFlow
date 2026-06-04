@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@simform_solutions/react-native-audio-waveform": "^2.1.6",
+    "@sunoflow/core": "link:../../packages/core",
     "expo": "~56.0.8",
     "expo-audio": "~56.0.11",
     "expo-file-system": "~56.0.7",

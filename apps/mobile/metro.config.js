@@ -1,8 +1,8 @@
-// Metro config so the standalone Expo app can consume the shared, framework-
-// agnostic source in `packages/core` (@sunoflow/core) WITHOUT making apps/mobile
-// a pnpm workspace member (that isolation keeps the RN dep tree out of the server
-// lockfile + Docker image). We point the alias straight at the package source and
-// add it to watchFolders so Metro transforms + hot-reloads it.
+// Metro config so the standalone Expo app can consume the shared source in
+// `packages/core` (@sunoflow/core). It's installed as a `link:` dependency
+// (symlink in node_modules), so Metro resolves it normally — we just need to
+// (1) watch the linked source so it's transformed + hot-reloaded, and (2) let
+// resolution fall back to the repo-root node_modules for core's own deps (zod).
 const { getDefaultConfig } = require("expo/metro-config");
 const path = require("path");
 
@@ -13,11 +13,9 @@ const coreDir = path.resolve(repoRoot, "packages/core");
 const config = getDefaultConfig(projectRoot);
 
 config.watchFolders = [coreDir];
-config.resolver.extraNodeModules = {
-  ...(config.resolver.extraNodeModules ?? {}),
-  "@sunoflow/core": coreDir,
-};
-// Keep resolving the app's own deps from apps/mobile/node_modules only.
-config.resolver.nodeModulesPaths = [path.resolve(projectRoot, "node_modules")];
+config.resolver.nodeModulesPaths = [
+  path.resolve(projectRoot, "node_modules"),
+  path.resolve(repoRoot, "node_modules"),
+];
 
 module.exports = config;
