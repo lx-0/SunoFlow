@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import { getApiKeyId, clearSession } from "@/auth/session";
 import { apiDelete } from "@/api/client";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeMode } from "@/theme/theme";
+import { THEMES, THEME_LABELS, type ThemeMode, type ThemeName } from "@/theme/theme";
 
 const MODES: { key: ThemeMode; label: string }[] = [
   { key: "system", label: "System" },
@@ -11,8 +11,10 @@ const MODES: { key: ThemeMode; label: string }[] = [
   { key: "dark", label: "Dark" },
 ];
 
+const THEME_NAMES = Object.keys(THEMES) as ThemeName[];
+
 export default function SettingsScreen() {
-  const { colors, mode, setMode } = useTheme();
+  const { colors, scheme, mode, setMode, themeName, setThemeName } = useTheme();
 
   async function signOut() {
     const id = await getApiKeyId();
@@ -45,6 +47,24 @@ export default function SettingsScreen() {
         })}
       </View>
 
+      <Text style={[styles.sectionTitle, { color: colors.textFaint }]}>Theme</Text>
+      <View style={styles.themeRow}>
+        {THEME_NAMES.map((name) => {
+          const active = themeName === name;
+          const swatch = THEMES[name][scheme].accent;
+          return (
+            <Pressable
+              key={name}
+              style={[styles.themeChip, { backgroundColor: colors.surface, borderColor: active ? colors.accent : "transparent" }]}
+              onPress={() => setThemeName(name)}
+            >
+              <View style={[styles.swatch, { backgroundColor: swatch }]} />
+              <Text style={[styles.themeText, { color: colors.text }]}>{THEME_LABELS[name]}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       <Pressable style={[styles.signOut, { backgroundColor: colors.surfaceAlt }]} onPress={signOut}>
         <Text style={[styles.signOutText, { color: colors.danger }]}>Sign out</Text>
       </Pressable>
@@ -58,6 +78,10 @@ const styles = StyleSheet.create({
   segment: { flexDirection: "row", borderRadius: 12, padding: 4, gap: 4 },
   segmentItem: { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 9 },
   segmentText: { fontSize: 14, fontWeight: "600" },
+  themeRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  themeChip: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, borderWidth: 2 },
+  swatch: { width: 16, height: 16, borderRadius: 8 },
+  themeText: { fontSize: 14, fontWeight: "600" },
   signOut: { marginTop: "auto", alignItems: "center", paddingVertical: 14, borderRadius: 12 },
   signOutText: { fontSize: 15, fontWeight: "600" },
 });

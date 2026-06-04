@@ -1,36 +1,33 @@
-// Centralized design tokens. Every screen/component should pull colors from here
-// (via useTheme()) instead of hardcoding hex, so dark/light — and additional
-// themes later — work app-wide. Add a new theme by adding a ThemeColors palette
-// to THEMES and a ThemeName entry.
+// Centralized design tokens. Screens pull colors via useTheme() — never hardcode
+// hex — so dark/light AND multiple named themes work app-wide. A theme is a named
+// palette family with a dark + light variant; the user picks the theme (accent
+// family) and the mode (dark/light/system) independently.
 
 export interface ThemeColors {
-  /** screen background */
   bg: string;
-  /** cards, inputs, raised rows */
   surface: string;
-  /** secondary raised surface / chips */
   surfaceAlt: string;
-  /** hairline borders / dividers */
   border: string;
-  /** primary text */
   text: string;
-  /** secondary/muted text */
   textDim: string;
-  /** faint text / placeholders */
   textFaint: string;
-  /** brand accent (icons, active states) */
   accent: string;
-  /** stronger accent (filled buttons) */
   accentStrong: string;
-  /** text/icon on top of accentStrong */
   onAccent: string;
-  /** destructive / favorite heart */
   danger: string;
-  /** rating stars */
+  dangerBg: string;
   star: string;
+  // status badge pairs (generation states)
+  successFg: string;
+  successBg: string;
+  warnFg: string;
+  warnBg: string;
 }
 
-export const darkColors: ThemeColors = {
+export type ColorScheme = "dark" | "light";
+
+// Neutral bases shared by every theme; themes only override the accent pair.
+const darkBase = {
   bg: "#0b0b0f",
   surface: "#15151b",
   surfaceAlt: "#1c1c22",
@@ -38,14 +35,17 @@ export const darkColors: ThemeColors = {
   text: "#ffffff",
   textDim: "#9a9aa2",
   textFaint: "#6a6a72",
-  accent: "#8b7cff",
-  accentStrong: "#7c3aed",
   onAccent: "#ffffff",
-  danger: "#ff4d6d",
+  danger: "#ff6b81",
+  dangerBg: "#3a1a1d",
   star: "#f5c518",
-};
+  successFg: "#5cd17e",
+  successBg: "#16331f",
+  warnFg: "#e0cf6a",
+  warnBg: "#2c2a1a",
+} as const;
 
-export const lightColors: ThemeColors = {
+const lightBase = {
   bg: "#ffffff",
   surface: "#f4f4f7",
   surfaceAlt: "#e9e9ee",
@@ -53,20 +53,43 @@ export const lightColors: ThemeColors = {
   text: "#0b0b0f",
   textDim: "#5c5c66",
   textFaint: "#9a9aa2",
-  accent: "#7c3aed",
-  accentStrong: "#7c3aed",
   onAccent: "#ffffff",
   danger: "#e11d48",
+  dangerBg: "#fee2e2",
   star: "#c79100",
+  successFg: "#15803d",
+  successBg: "#dcfce7",
+  warnFg: "#a16207",
+  warnBg: "#fef9c3",
+} as const;
+
+function theme(accent: { dark: [string, string]; light: [string, string] }): Record<ColorScheme, ThemeColors> {
+  return {
+    dark: { ...darkBase, accent: accent.dark[0], accentStrong: accent.dark[1] },
+    light: { ...lightBase, accent: accent.light[0], accentStrong: accent.light[1] },
+  };
+}
+
+// Add a theme here and it appears in the Settings picker automatically.
+export const THEMES = {
+  violet: theme({ dark: ["#8b7cff", "#7c3aed"], light: ["#7c3aed", "#7c3aed"] }),
+  ocean: theme({ dark: ["#4cc9f0", "#0096c7"], light: ["#0096c7", "#0077b6"] }),
+  sunset: theme({ dark: ["#ff8fab", "#e5383b"], light: ["#e5383b", "#d00000"] }),
+  forest: theme({ dark: ["#74c69d", "#2d9d6f"], light: ["#2d9d6f", "#1b7a52"] }),
+} satisfies Record<string, Record<ColorScheme, ThemeColors>>;
+
+export type ThemeName = keyof typeof THEMES;
+
+export const THEME_LABELS: Record<ThemeName, string> = {
+  violet: "Violet",
+  ocean: "Ocean",
+  sunset: "Sunset",
+  forest: "Forest",
 };
 
-export type ColorScheme = "dark" | "light";
-
-/** All available themes. Extend this map to add more (e.g. an "oled" or branded theme). */
-export const THEMES: Record<ColorScheme, ThemeColors> = {
-  dark: darkColors,
-  light: lightColors,
-};
-
-/** User preference: follow the OS, or force one. */
+/** User preference for light/dark. */
 export type ThemeMode = "system" | "dark" | "light";
+
+// Back-compat exports (the default theme's palettes).
+export const darkColors: ThemeColors = THEMES.violet.dark;
+export const lightColors: ThemeColors = THEMES.violet.light;

@@ -15,21 +15,21 @@ import type { Song } from "@/types";
 // Normalize the backend's free-form status into a small set with distinct colors.
 type Badge = { label: string; bg: string; fg: string };
 
-function statusBadge(raw: string): Badge {
+function statusBadge(raw: string, c: ThemeColors): Badge {
   const s = raw.toLowerCase();
   if (s === "ready" || s === "complete" || s === "completed" || s === "success" || s === "succeeded") {
-    return { label: "Ready", bg: "#16331f", fg: "#5cd17e" };
+    return { label: "Ready", bg: c.successBg, fg: c.successFg };
   }
   if (s === "failed" || s === "error" || s === "cancelled" || s === "canceled") {
-    return { label: "Failed", bg: "#3a1a1d", fg: "#ff7a85" };
+    return { label: "Failed", bg: c.dangerBg, fg: c.danger };
   }
   if (s === "processing" || s === "running" || s === "generating" || s === "in_progress") {
-    return { label: "Processing", bg: "#2a2440", fg: "#b3a7ff" };
+    return { label: "Processing", bg: c.surfaceAlt, fg: c.accent };
   }
   if (s === "pending" || s === "queued" || s === "waiting" || s === "submitted") {
-    return { label: "Pending", bg: "#2c2a1a", fg: "#e0cf6a" };
+    return { label: "Pending", bg: c.warnBg, fg: c.warnFg };
   }
-  return { label: raw || "Unknown", bg: "#1c1c22", fg: "#9a9aa2" };
+  return { label: raw || "Unknown", bg: c.surfaceAlt, fg: c.textDim };
 }
 
 function formatDate(iso: string | null): string {
@@ -72,7 +72,7 @@ export default function GenerationsScreen() {
           data={items}
           keyExtractor={(g) => g.id}
           renderItem={({ item }) => {
-            const badge = statusBadge(item.status);
+            const badge = statusBadge(item.status, colors);
             const label = item.title ?? item.prompt ?? "Untitled";
             const playable: Song | null = item.song;
             const Row = (
