@@ -1,6 +1,6 @@
 import { View } from "react-native";
 import { Tabs } from "expo-router";
-import { Library, ListMusic, Heart, Clock, Settings } from "lucide-react-native";
+import { Library, ListMusic, Heart, Clock, Compass, Settings } from "lucide-react-native";
 import { MiniPlayer } from "@/components/MiniPlayer";
 
 // Browse-first tab shell (iOS-v1 scope: Browse + Play + Playlists). A persistent
@@ -33,6 +33,10 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="history"
           options={{ title: "History", tabBarIcon: ({ color, size }) => <Clock color={color} size={size} /> }}
+        />
+        <Tabs.Screen
+          name="explore"
+          options={{ title: "Explore", tabBarIcon: ({ color, size }) => <Compass color={color} size={size} /> }}
         />
         <Tabs.Screen
           name="settings"

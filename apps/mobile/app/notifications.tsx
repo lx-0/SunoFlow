@@ -1,0 +1,151 @@
+import { useCallback, useState } from "react";
+import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { Stack, useFocusEffect } from "expo-router";
+import { HttpError } from "@/api/client";
+import {
+  fetchNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  type AppNotification,
+} from "@/api/notifications";
+
+// Notifications feed. Reloads on focus. Unread rows are brighter and carry an
+// accent dot; tapping an unread row marks it read. A header action clears all.
+export default function NotificationsScreen() {
+  const [items, setItems] = useState<AppNotification[] | null>(null);
+  const [unread, setUnread] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    setItems(null);
+    setError(null);
+    fetchNotifications()
+      .then((res) => {
+        setItems(res.notifications);
+        setUnread(res.unreadCount);
+      })
+      .catch((e: unknown) => {
+        setError(
+          e instanceof HttpError
+            ? `Failed to load notifications (HTTP ${e.status})`
+            : "Network error",
+        );
+        console.error("[notifications] load failed", e);
+      });
+  }, []);
+
+  useFocusEffect(useCallback(() => load(), [load]));
+
+  const onRowPress = useCallback((n: AppNotification) => {
+    if (n.read) return;
+    setItems((prev) => prev?.map((x) => (x.id === n.id ? { ...x, read: true } : x)) ?? prev);
+    setUnread((u) => Math.max(0, u - 1));
+    markNotificationRead(n.id).catch((e: unknown) =>
+      console.error("[notifications] mark read failed", e),
+    );
+  }, []);
+
+  const onMarkAll = useCallback(() => {
+    setItems((prev) => prev?.map((x) => ({ ...x, read: true })) ?? prev);
+    setUnread(0);
+    markAllNotificationsRead().catch((e: unknown) =>
+      console.error("[notifications] mark all read failed", e),
+    );
+  }, []);
+
+  return (
+    <View style={styles.container}>
+      <Stack.Screen
+        options={{
+          title: "Notifications",
+          headerRight: () =>
+            unread > 0 ? (
+              <Pressable onPress={onMarkAll} hitSlop={8}>
+                <Text style={styles.headerAction}>Mark all read</Text>
+              </Pressable>
+            ) : null,
+        }}
+      />
+      {error ? (
+        <View style={styles.centered}>
+          <Text style={styles.dim}>{error}</Text>
+        </View>
+      ) : !items ? (
+        <View style={styles.centered}>
+          <ActivityIndicator color="#fff" />
+        </View>
+      ) : items.length === 0 ? (
+        <View style={styles.centered}>
+          <Text style={styles.dim}>You&apos;re all caught up. No notifications yet.</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={items}
+          keyExtractor={(n) => n.id}
+          renderItem={({ item }) => (
+            <Pressable style={styles.row} onPress={() => onRowPress(item)}>
+              <View style={styles.dotCol}>
+                {!item.read ? <View style={styles.dot} /> : null}
+              </View>
+              <View style={styles.meta}>
+                {item.title ? (
+                  <Text
+                    style={[styles.title, item.read && styles.titleRead]}
+                    numberOfLines={1}
+                  >
+                    {item.title}
+                  </Text>
+                ) : null}
+                {item.message ? (
+                  <Text style={styles.message} numberOfLines={3}>
+                    {item.message}
+                  </Text>
+                ) : null}
+                {item.createdAt ? (
+                  <Text style={styles.time}>{formatRelative(item.createdAt)}</Text>
+                ) : null}
+              </View>
+            </Pressable>
+          )}
+        />
+      )}
+    </View>
+  );
+}
+
+// createdAt is a timestamp, not a duration — render a coarse relative-time string,
+// falling back to the raw value if it isn't parseable.
+function formatRelative(iso: string): string {
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return iso;
+  const secs = Math.round((Date.now() - t) / 1000);
+  if (secs < 60) return "just now";
+  const mins = Math.round(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(t).toLocaleDateString();
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#0b0b0f" },
+  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+  dim: { color: "#9a9aa2", fontSize: 13, textAlign: "center" },
+  headerAction: { color: "#8b7cff", fontSize: 14, marginRight: 4 },
+  row: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomColor: "#1c1c22",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  dotCol: { width: 18, paddingTop: 6, alignItems: "flex-start" },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#8b7cff" },
+  meta: { flex: 1 },
+  title: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  titleRead: { color: "#c8c8d0", fontWeight: "500" },
+  message: { color: "#9a9aa2", fontSize: 14, marginTop: 2, lineHeight: 19 },
+  time: { color: "#6a6a72", fontSize: 12, marginTop: 6 },
+});

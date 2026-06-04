@@ -10,3 +10,10 @@ export {
   pickReactionEmojis,
 } from "./reactions";
 export { downsamplePeaks } from "./peaks";
+export {
+  MILESTONE_TYPES,
+  MILESTONE_META,
+  MILESTONE_CATALOG,
+  type MilestoneType,
+  type MilestoneMeta,
+} from "./milestones";

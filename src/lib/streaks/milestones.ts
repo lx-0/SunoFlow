@@ -1,46 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notifications";
+import { MILESTONE_TYPES, MILESTONE_META, type MilestoneType } from "@sunoflow/core";
 
-export const MILESTONE_TYPES = [
-  "first_song",
-  "songs_10",
-  "songs_100",
-  "first_follower",
-  "streak_5",
-] as const;
-
-export type MilestoneType = (typeof MILESTONE_TYPES)[number];
-
-export const MILESTONE_META: Record<
-  MilestoneType,
-  { label: string; description: string; emoji: string }
-> = {
-  first_song: {
-    label: "First Song",
-    description: "Generated your first song",
-    emoji: "🎵",
-  },
-  songs_10: {
-    label: "10 Songs",
-    description: "Generated 10 songs",
-    emoji: "🎶",
-  },
-  songs_100: {
-    label: "100 Songs",
-    description: "Generated 100 songs",
-    emoji: "🎸",
-  },
-  first_follower: {
-    label: "First Follower",
-    description: "Got your first follower",
-    emoji: "🌟",
-  },
-  streak_5: {
-    label: "5-Day Streak",
-    description: "Active 5 days in a row",
-    emoji: "🔥",
-  },
-};
+// The milestone catalog (types + display meta) is the single source of truth in
+// @sunoflow/core, shared with the mobile stats screen. Re-exported so existing
+// importers of "@/lib/streaks/milestones" keep working. Awarding logic (prisma)
+// stays below.
+export { MILESTONE_TYPES, MILESTONE_META };
+export type { MilestoneType };
 
 async function awardMilestone(userId: string, type: MilestoneType): Promise<void> {
   const meta = MILESTONE_META[type];
