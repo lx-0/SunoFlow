@@ -15,6 +15,8 @@ import {
 } from "@/api/users";
 import { playQueue } from "@/playback/controls";
 import type { Song } from "@/types";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 
 type Tab = "songs" | "liked" | "playlists";
 const TABS: { key: Tab; label: string }[] = [
@@ -27,6 +29,8 @@ const TABS: { key: Tab; label: string }[] = [
 // Follow toggle) over the user's public songs. Reloads on focus. Four states.
 // The follow toggle keys off the profile's user ID, not the username.
 export default function UserProfileScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { username } = useLocalSearchParams<{ username: string }>();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [songs, setSongs] = useState<Song[] | null>(null);
@@ -101,9 +105,10 @@ export default function UserProfileScreen() {
       {error ? (
         <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
       ) : !profile || !songs || !liked || !playlists ? (
-        <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : (
         <ProfileContent
+          colors={colors}
           profile={profile}
           songs={songs}
           liked={liked}
@@ -120,6 +125,7 @@ export default function UserProfileScreen() {
 }
 
 function ProfileContent({
+  colors,
   profile,
   songs,
   liked,
@@ -130,6 +136,7 @@ function ProfileContent({
   followBusy,
   onToggleFollow,
 }: {
+  colors: ThemeColors;
   profile: UserProfile;
   songs: Song[];
   liked: Song[];
@@ -140,11 +147,12 @@ function ProfileContent({
   followBusy: boolean;
   onToggleFollow: () => Promise<void>;
 }) {
+  const styles = makeStyles(colors);
   const header = (
     <View>
       <View style={styles.header}>
         <View style={styles.identity}>
-          <User color="#8b7cff" size={28} />
+          <User color={colors.accent} size={28} />
           <View style={styles.identityText}>
             <Text style={styles.name} numberOfLines={1}>{profile.displayName}</Text>
             <Text style={styles.handle} numberOfLines={1}>@{profile.username}</Text>
@@ -152,9 +160,9 @@ function ProfileContent({
         </View>
         {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
         <View style={styles.stats}>
-          <Stat value={profile.followersCount} label="Followers" />
-          <Stat value={profile.followingCount} label="Following" />
-          <Stat value={profile.songsCount} label="Songs" />
+          <Stat colors={colors} value={profile.followersCount} label="Followers" />
+          <Stat colors={colors} value={profile.followingCount} label="Following" />
+          <Stat colors={colors} value={profile.songsCount} label="Songs" />
         </View>
         <Pressable
           style={[styles.followBtn, following && styles.followingBtn]}
@@ -233,7 +241,8 @@ function ProfileContent({
   );
 }
 
-function Stat({ value, label }: { value: number; label: string }) {
+function Stat({ colors, value, label }: { colors: ThemeColors; value: number; label: string }) {
+  const styles = makeStyles(colors);
   return (
     <View style={styles.stat}>
       <Text style={styles.statValue}>{value}</Text>
@@ -242,53 +251,55 @@ function Stat({ value, label }: { value: number; label: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 8,
-    borderBottomColor: "#1c1c22",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  identity: { flexDirection: "row", alignItems: "center" },
-  identityText: { marginLeft: 12, flex: 1 },
-  name: { color: "#fff", fontSize: 22, fontWeight: "700" },
-  handle: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
-  bio: { color: "#fff", fontSize: 14, marginTop: 12, lineHeight: 20 },
-  stats: { flexDirection: "row", marginTop: 16 },
-  stat: { marginRight: 24, alignItems: "flex-start" },
-  statValue: { color: "#fff", fontSize: 16, fontWeight: "700", fontVariant: ["tabular-nums"] },
-  statLabel: { color: "#9a9aa2", fontSize: 12, marginTop: 2 },
-  followBtn: {
-    marginTop: 16,
-    alignSelf: "flex-start",
-    paddingHorizontal: 22,
-    paddingVertical: 9,
-    borderRadius: 999,
-    backgroundColor: "#8b7cff",
-  },
-  followingBtn: { backgroundColor: "transparent", borderColor: "#1c1c22", borderWidth: 1 },
-  followText: { color: "#0b0b0f", fontSize: 14, fontWeight: "700" },
-  followingText: { color: "#fff" },
-  segment: {
-    flexDirection: "row",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomColor: "#1c1c22",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  segmentItem: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 999,
-    marginRight: 8,
-  },
-  segmentItemActive: { backgroundColor: "#8b7cff" },
-  segmentText: { color: "#9a9aa2", fontSize: 14, fontWeight: "600" },
-  segmentTextActive: { color: "#0b0b0f" },
-  row: { paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: "#1c1c22", borderBottomWidth: StyleSheet.hairlineWidth },
-  title: { color: "#fff", fontSize: 16 },
-  dim: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    header: {
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      paddingBottom: 8,
+      borderBottomColor: c.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    identity: { flexDirection: "row", alignItems: "center" },
+    identityText: { marginLeft: 12, flex: 1 },
+    name: { color: c.text, fontSize: 22, fontWeight: "700" },
+    handle: { color: c.textDim, fontSize: 13, marginTop: 2 },
+    bio: { color: c.text, fontSize: 14, marginTop: 12, lineHeight: 20 },
+    stats: { flexDirection: "row", marginTop: 16 },
+    stat: { marginRight: 24, alignItems: "flex-start" },
+    statValue: { color: c.text, fontSize: 16, fontWeight: "700", fontVariant: ["tabular-nums"] },
+    statLabel: { color: c.textDim, fontSize: 12, marginTop: 2 },
+    followBtn: {
+      marginTop: 16,
+      alignSelf: "flex-start",
+      paddingHorizontal: 22,
+      paddingVertical: 9,
+      borderRadius: 999,
+      backgroundColor: c.accent,
+    },
+    followingBtn: { backgroundColor: "transparent", borderColor: c.border, borderWidth: 1 },
+    followText: { color: c.onAccent, fontSize: 14, fontWeight: "700" },
+    followingText: { color: c.text },
+    segment: {
+      flexDirection: "row",
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      borderBottomColor: c.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    segmentItem: {
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+      borderRadius: 999,
+      marginRight: 8,
+    },
+    segmentItemActive: { backgroundColor: c.accent },
+    segmentText: { color: c.textDim, fontSize: 14, fontWeight: "600" },
+    segmentTextActive: { color: c.onAccent },
+    row: { paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: c.border, borderBottomWidth: StyleSheet.hairlineWidth },
+    title: { color: c.text, fontSize: 16 },
+    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
+  });
+}

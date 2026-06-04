@@ -2,6 +2,8 @@ import { useState } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { pickReactionEmojis } from "@sunoflow/core";
 import { ReactIcon } from "@/components/Icons";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 
 // Emoji reaction picker as a popover (mirrors the PWA): a trigger button opens a
 // floating pill of 6 emojis — the 4 most-used for this song plus 2 random — and
@@ -15,6 +17,8 @@ export function ReactionPicker({
   onReact: (emoji: string) => void;
   reactionEmojis: string[];
 }) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const [open, setOpen] = useState(false);
   const [display, setDisplay] = useState<string[]>([]);
 
@@ -43,30 +47,32 @@ export function ReactionPicker({
         </View>
       ) : null}
       <Pressable hitSlop={10} style={styles.trigger} onPress={toggle}>
-        <ReactIcon color={open ? "#8b7cff" : "#9a9aa2"} size={24} />
+        <ReactIcon color={open ? colors.accent : colors.textDim} size={24} />
       </Pressable>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: { alignItems: "center" },
-  popover: {
-    position: "absolute",
-    bottom: 48,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#1c1c22",
-    borderRadius: 24,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    shadowColor: "#000",
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  emojiBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center", borderRadius: 18 },
-  emoji: { fontSize: 22 },
-  trigger: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    wrap: { alignItems: "center" },
+    popover: {
+      position: "absolute",
+      bottom: 48,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: c.surfaceAlt,
+      borderRadius: 24,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+      shadowColor: "#000",
+      shadowOpacity: 0.4,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+    },
+    emojiBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center", borderRadius: 18 },
+    emoji: { fontSize: 22 },
+    trigger: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  });
+}

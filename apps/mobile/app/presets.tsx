@@ -4,12 +4,16 @@ import { Stack, router, useFocusEffect } from "expo-router";
 import { SlidersHorizontal } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchPresets, type Preset } from "@/api/presets";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 
 // Presets: the user's saved generation-param bundles. Reloads on focus so
 // presets created/deleted on the web app appear. Tap a row to open the Generate
 // screen prefilled from the preset (lyrics -> prompt, style -> style, plus the
 // title + instrumental flag). The Generate screen reads these params separately.
 export default function PresetsScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const [presets, setPresets] = useState<Preset[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,7 +47,7 @@ export default function PresetsScreen() {
       {error ? (
         <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
       ) : !presets ? (
-        <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : presets.length === 0 ? (
         <View style={styles.centered}>
           <Text style={styles.dim}>No presets yet. Save one from the web app to reuse it here.</Text>
@@ -55,7 +59,7 @@ export default function PresetsScreen() {
           renderItem={({ item }) => (
             <Pressable style={styles.row} onPress={() => openPreset(item)}>
               <View style={styles.icon}>
-                <SlidersHorizontal color="#8b7cff" size={18} />
+                <SlidersHorizontal color={colors.accent} size={18} />
               </View>
               <View style={styles.meta}>
                 <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
@@ -77,19 +81,21 @@ function subtitle(p: Preset): string {
   return parts.length > 0 ? parts.join(" · ") : "Empty preset";
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomColor: "#1c1c22",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  icon: { width: 36, alignItems: "flex-start", justifyContent: "center" },
-  meta: { flex: 1 },
-  title: { color: "#fff", fontSize: 16 },
-  dim: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomColor: c.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    icon: { width: 36, alignItems: "flex-start", justifyContent: "center" },
+    meta: { flex: 1 },
+    title: { color: c.text, fontSize: 16 },
+    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
+  });
+}

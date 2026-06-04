@@ -4,6 +4,8 @@ import { Stack, router, useFocusEffect } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchStyleTemplates, type StyleTemplate } from "@/api/style-templates";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 
 // Style Templates: browse the user's saved style presets. These feed the
 // Generate screen — tapping a row navigates to /generate with the template's
@@ -11,6 +13,8 @@ import { fetchStyleTemplates, type StyleTemplate } from "@/api/style-templates";
 // elsewhere appear. Four states: loading / error / empty / data. Runtime is
 // UNTESTED (headless env).
 export default function StyleTemplatesScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const [templates, setTemplates] = useState<StyleTemplate[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,7 +44,7 @@ export default function StyleTemplatesScreen() {
         </View>
       ) : !templates ? (
         <View style={styles.centered}>
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.text} />
         </View>
       ) : templates.length === 0 ? (
         <View style={styles.centered}>
@@ -65,7 +69,7 @@ export default function StyleTemplatesScreen() {
                   {item.tags}
                 </Text>
               </View>
-              <ChevronRight color="#6a6a72" size={18} />
+              <ChevronRight color={colors.textFaint} size={18} />
             </Pressable>
           )}
         />
@@ -74,18 +78,20 @@ export default function StyleTemplatesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomColor: "#1c1c22",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  meta: { flex: 1, marginRight: 12 },
-  title: { color: "#fff", fontSize: 16 },
-  dim: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomColor: c.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    meta: { flex: 1, marginRight: 12 },
+    title: { color: c.text, fontSize: 16 },
+    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
+  });
+}

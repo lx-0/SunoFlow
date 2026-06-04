@@ -6,9 +6,13 @@ import { HttpError } from "@/api/client";
 import { fetchCollectionSongs } from "@/api/collections";
 import { playQueue } from "@/playback/controls";
 import type { Song } from "@/types";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 
 // One collection's songs. Tap a row → play the collection from that index.
 export default function CollectionDetailScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { id } = useLocalSearchParams<{ id: string }>();
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +40,7 @@ export default function CollectionDetailScreen() {
       {error ? (
         <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
       ) : !songs ? (
-        <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : songs.length === 0 ? (
         <View style={styles.centered}><Text style={styles.dim}>This collection has no playable songs.</Text></View>
       ) : (
@@ -70,19 +74,21 @@ export default function CollectionDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomColor: "#1c1c22",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  meta: { flex: 1 },
-  title: { color: "#fff", fontSize: 16 },
-  dim: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
-  duration: { color: "#9a9aa2", fontSize: 13, marginLeft: 12, fontVariant: ["tabular-nums"] },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomColor: c.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    meta: { flex: 1 },
+    title: { color: c.text, fontSize: 16 },
+    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
+    duration: { color: c.textDim, fontSize: 13, marginLeft: 12, fontVariant: ["tabular-nums"] },
+  });
+}

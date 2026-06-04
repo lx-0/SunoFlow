@@ -5,11 +5,15 @@ import { HttpError } from "@/api/client";
 import { fetchFeed } from "@/api/feed";
 import { playQueue } from "@/playback/controls";
 import { SongRow } from "@/components/SongRow";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
 // Following: playable songs from the creators the user follows. Reloads on focus.
 // Tap a row to play the feed from that index.
 export default function FeedScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +36,7 @@ export default function FeedScreen() {
       {error ? (
         <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
       ) : !songs ? (
-        <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : songs.length === 0 ? (
         <View style={styles.centered}>
           <Text style={styles.dim}>Nothing here yet. Follow creators to hear their new songs.</Text>
@@ -60,10 +64,12 @@ export default function FeedScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  row: { paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: "#1c1c22", borderBottomWidth: StyleSheet.hairlineWidth },
-  title: { color: "#fff", fontSize: 16 },
-  dim: { color: "#9a9aa2", fontSize: 13, marginTop: 2, textAlign: "center" },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    row: { paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: c.border, borderBottomWidth: StyleSheet.hairlineWidth },
+    title: { color: c.text, fontSize: 16 },
+    dim: { color: c.textDim, fontSize: 13, marginTop: 2, textAlign: "center" },
+  });
+}

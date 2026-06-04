@@ -3,10 +3,14 @@ import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet } from 
 import { router } from "expo-router";
 import { API_BASE_URL } from "@/api/client";
 import { setSession } from "@/auth/session";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 
 // Login → POST /api/v1/auth/token (M004-S02-T01) → store the returned API key.
 // Every branch ends in visible feedback (error text or redirect).
 export default function LoginScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -42,7 +46,7 @@ export default function LoginScreen() {
       <TextInput
         style={styles.input}
         placeholder="Email"
-        placeholderTextColor="#6a6a72"
+        placeholderTextColor={colors.textFaint}
         autoCapitalize="none"
         keyboardType="email-address"
         value={email}
@@ -51,24 +55,26 @@ export default function LoginScreen() {
       <TextInput
         style={styles.input}
         placeholder="Password"
-        placeholderTextColor="#6a6a72"
+        placeholderTextColor={colors.textFaint}
         secureTextEntry
         value={password}
         onChangeText={setPassword}
       />
       {error ? <Text style={styles.err}>{error}</Text> : null}
       <Pressable style={styles.btn} disabled={busy} onPress={submit}>
-        {busy ? <ActivityIndicator color="#000" /> : <Text style={styles.btnText}>Sign in</Text>}
+        {busy ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.btnText}>Sign in</Text>}
       </Pressable>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  c: { flex: 1, justifyContent: "center", backgroundColor: "#0b0b0f", padding: 24, gap: 12 },
-  h: { color: "#fff", fontSize: 28, fontWeight: "700", marginBottom: 16 },
-  input: { backgroundColor: "#15151b", color: "#fff", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16 },
-  err: { color: "#ff6b6b", fontSize: 13 },
-  btn: { backgroundColor: "#fff", borderRadius: 10, paddingVertical: 14, alignItems: "center", marginTop: 4 },
-  btnText: { color: "#000", fontSize: 16, fontWeight: "600" },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    c: { flex: 1, justifyContent: "center", backgroundColor: c.bg, padding: 24, gap: 12 },
+    h: { color: c.text, fontSize: 28, fontWeight: "700", marginBottom: 16 },
+    input: { backgroundColor: c.surface, color: c.text, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16 },
+    err: { color: c.danger, fontSize: 13 },
+    btn: { backgroundColor: c.accentStrong, borderRadius: 10, paddingVertical: 14, alignItems: "center", marginTop: 4 },
+    btnText: { color: c.onAccent, fontSize: 16, fontWeight: "600" },
+  });
+}

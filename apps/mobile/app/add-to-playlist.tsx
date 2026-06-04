@@ -5,10 +5,14 @@ import { Check } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchPlaylists, addSongToPlaylist, type PlaylistSummary } from "@/api/playlists";
 import { usePlayback } from "@/playback/usePlayback";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 
 // Add the currently-playing song to a playlist. Lists the user's playlists; tap a
 // row to add. Adds show a check; a failed add reverts and surfaces an error row.
 export default function AddToPlaylistScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { current } = usePlayback();
   const songId = current?.id;
   const [playlists, setPlaylists] = useState<PlaylistSummary[] | null>(null);
@@ -58,7 +62,7 @@ export default function AddToPlaylistScreen() {
       ) : error ? (
         <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
       ) : !playlists ? (
-        <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : playlists.length === 0 ? (
         <View style={styles.centered}><Text style={styles.dim}>No playlists yet.</Text></View>
       ) : (
@@ -76,7 +80,7 @@ export default function AddToPlaylistScreen() {
                   {failed.has(item.id) ? "Failed — tap to retry" : `${item.songCount} songs`}
                 </Text>
               </View>
-              {added.has(item.id) ? <Check color="#1db954" size={22} /> : null}
+              {added.has(item.id) ? <Check color={colors.accent} size={22} /> : null}
             </Pressable>
           )}
         />
@@ -85,19 +89,21 @@ export default function AddToPlaylistScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  header: { color: "#9a9aa2", fontSize: 14, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomColor: "#1c1c22",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  meta: { flex: 1, marginRight: 12 },
-  title: { color: "#fff", fontSize: 16 },
-  dim: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    header: { color: c.textDim, fontSize: 14, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomColor: c.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    meta: { flex: 1, marginRight: 12 },
+    title: { color: c.text, fontSize: 16 },
+    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
+  });
+}

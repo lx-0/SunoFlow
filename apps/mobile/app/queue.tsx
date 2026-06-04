@@ -3,10 +3,14 @@ import { Stack } from "expo-router";
 import { usePlayback } from "@/playback/usePlayback";
 import { jumpTo } from "@/playback/audio";
 import { PlayIcon } from "@/components/Icons";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 
 // Up-Next: the live playback queue (reads the controller's snapshot). Tap a row
 // to jump straight to that track. The currently-playing row is highlighted.
 export default function QueueScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { queue, index } = usePlayback();
 
   return (
@@ -26,7 +30,7 @@ export default function QueueScreen() {
               <Pressable style={styles.row} onPress={() => void jumpTo(i)}>
                 <View style={styles.position}>
                   {isCurrent ? (
-                    <PlayIcon color="#8b7cff" size={13} />
+                    <PlayIcon color={colors.accent} size={13} />
                   ) : (
                     <Text style={styles.positionNum}>{i + 1}</Text>
                   )}
@@ -48,21 +52,23 @@ export default function QueueScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomColor: "#1c1c22",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  position: { width: 28, alignItems: "flex-start", justifyContent: "center" },
-  positionNum: { color: "#6a6a72", fontSize: 13, fontVariant: ["tabular-nums"] },
-  meta: { flex: 1 },
-  title: { color: "#fff", fontSize: 16 },
-  current: { color: "#8b7cff", fontWeight: "700" },
-  dim: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomColor: c.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    position: { width: 28, alignItems: "flex-start", justifyContent: "center" },
+    positionNum: { color: c.textFaint, fontSize: 13, fontVariant: ["tabular-nums"] },
+    meta: { flex: 1 },
+    title: { color: c.text, fontSize: 16 },
+    current: { color: c.accent, fontWeight: "700" },
+    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
+  });
+}

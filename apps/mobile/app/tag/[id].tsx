@@ -5,6 +5,8 @@ import { HttpError } from "@/api/client";
 import { fetchSongsByTag, fetchTags } from "@/api/tags";
 import { playQueue } from "@/playback/controls";
 import { formatDuration } from "@sunoflow/core";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
 // Songs for one tag. The id comes from the route; the name is resolved from the
@@ -14,6 +16,8 @@ export default function TagSongsScreen() {
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [title, setTitle] = useState("Tag");
   const [error, setError] = useState<string | null>(null);
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
 
   useFocusEffect(
     useCallback(() => {
@@ -43,7 +47,7 @@ export default function TagSongsScreen() {
       {error ? (
         <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
       ) : !songs ? (
-        <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : songs.length === 0 ? (
         <View style={styles.centered}><Text style={styles.dim}>No songs with this tag.</Text></View>
       ) : (
@@ -77,19 +81,21 @@ export default function TagSongsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomColor: "#1c1c22",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  meta: { flex: 1 },
-  title: { color: "#fff", fontSize: 16 },
-  duration: { color: "#6a6a72", fontSize: 13, marginLeft: 12, fontVariant: ["tabular-nums"] },
-  dim: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomColor: c.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    meta: { flex: 1 },
+    title: { color: c.text, fontSize: 16 },
+    duration: { color: c.textFaint, fontSize: 13, marginLeft: 12, fontVariant: ["tabular-nums"] },
+    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
+  });
+}

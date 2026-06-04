@@ -5,12 +5,16 @@ import { ChevronRight } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchPersonas, type Persona } from "@/api/personas";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 
 // Personas: the user's saved voice/style personas. Reloads on focus. Tapping a
 // row jumps to the Generate screen prefilled with that persona, so a new song
 // can be generated in its voice. Style is passed too when the persona carries
 // one (Generate reads these params separately).
 export default function PersonasScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const [personas, setPersonas] = useState<Persona[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +39,7 @@ export default function PersonasScreen() {
       {error ? (
         <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
       ) : !personas ? (
-        <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : personas.length === 0 ? (
         <View style={styles.centered}>
           <Text style={styles.empty}>No personas yet.</Text>
@@ -67,7 +71,7 @@ export default function PersonasScreen() {
                   <Text style={styles.dim} numberOfLines={1}>{item.style}</Text>
                 ) : null}
               </View>
-              <ChevronRight color="#6a6a72" size={18} />
+              <ChevronRight color={colors.textFaint} size={18} />
             </Pressable>
           )}
         />
@@ -76,19 +80,21 @@ export default function PersonasScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomColor: "#1c1c22",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  meta: { flex: 1, marginRight: 12 },
-  title: { color: "#fff", fontSize: 16 },
-  empty: { color: "#fff", fontSize: 15, marginBottom: 4 },
-  dim: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomColor: c.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    meta: { flex: 1, marginRight: 12 },
+    title: { color: c.text, fontSize: 16 },
+    empty: { color: c.text, fontSize: 15, marginBottom: 4 },
+    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
+  });
+}

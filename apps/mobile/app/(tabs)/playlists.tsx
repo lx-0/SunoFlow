@@ -6,8 +6,12 @@ import { fetchPlaylists, type PlaylistSummary } from "@/api/playlists";
 import { createPlaylist } from "@/api/playlist-actions";
 import { HttpError } from "@/api/client";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 
 export default function PlaylistsScreen() {
+  const { colors } = useTheme();
+  const st = makeStyles(colors);
   const [items, setItems] = useState<PlaylistSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,7 +57,7 @@ export default function PlaylistsScreen() {
       options={{
         headerRight: () => (
           <Pressable onPress={promptCreate} hitSlop={8}>
-            <Plus color="#8b7cff" size={24} />
+            <Plus color={colors.accent} size={24} />
           </Pressable>
         ),
       }}
@@ -61,7 +65,7 @@ export default function PlaylistsScreen() {
   );
 
   if (error) return <C>{header}<Text style={st.dim}>{error}</Text></C>;
-  if (!items) return <C>{header}<ActivityIndicator color="#fff" /></C>;
+  if (!items) return <C>{header}<ActivityIndicator color={colors.text} /></C>;
   if (items.length === 0) return <C>{header}<Text style={st.dim}>No playlists yet.</Text></C>;
 
   return (
@@ -83,13 +87,17 @@ export default function PlaylistsScreen() {
 }
 
 function C({ children }: { children: React.ReactNode }) {
+  const { colors } = useTheme();
+  const st = makeStyles(colors);
   return <View style={st.c}>{children}</View>;
 }
 
-const st = StyleSheet.create({
-  list: { flex: 1, backgroundColor: "#0b0b0f" },
-  c: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#0b0b0f", padding: 24 },
-  row: { paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: "#1c1c22", borderBottomWidth: StyleSheet.hairlineWidth },
-  title: { color: "#fff", fontSize: 16 },
-  dim: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    list: { flex: 1, backgroundColor: c.bg },
+    c: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg, padding: 24 },
+    row: { paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: c.border, borderBottomWidth: StyleSheet.hairlineWidth },
+    title: { color: c.text, fontSize: 16 },
+    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
+  });
+}

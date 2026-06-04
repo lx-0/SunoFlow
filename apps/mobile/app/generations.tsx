@@ -4,6 +4,8 @@ import { Stack, router, useFocusEffect } from "expo-router";
 import { HttpError } from "@/api/client";
 import { fetchGenerations, type Generation } from "@/api/generations";
 import { playQueue } from "@/playback/controls";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
 // Generations: read-only history of the user's generation jobs + their status.
@@ -40,6 +42,8 @@ function formatDate(iso: string | null): string {
 export default function GenerationsScreen() {
   const [items, setItems] = useState<Generation[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
 
   useFocusEffect(
     useCallback(() => {
@@ -60,7 +64,7 @@ export default function GenerationsScreen() {
       {error ? (
         <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
       ) : !items ? (
-        <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : items.length === 0 ? (
         <View style={styles.centered}><Text style={styles.dim}>No generations yet.</Text></View>
       ) : (
@@ -106,22 +110,24 @@ export default function GenerationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomColor: "#1c1c22",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  meta: { flex: 1 },
-  title: { color: "#fff", fontSize: 16 },
-  subRow: { flexDirection: "row", alignItems: "center", marginTop: 6 },
-  badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginRight: 8 },
-  badgeText: { fontSize: 11, fontWeight: "600" },
-  date: { color: "#9a9aa2", fontSize: 13 },
-  dim: { color: "#9a9aa2", fontSize: 13 },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomColor: c.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    meta: { flex: 1 },
+    title: { color: c.text, fontSize: 16 },
+    subRow: { flexDirection: "row", alignItems: "center", marginTop: 6 },
+    badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginRight: 8 },
+    badgeText: { fontSize: 11, fontWeight: "600" },
+    date: { color: c.textDim, fontSize: 13 },
+    dim: { color: c.textDim, fontSize: 13 },
+  });
+}

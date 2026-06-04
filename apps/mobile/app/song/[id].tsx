@@ -14,10 +14,14 @@ import { RatingStars } from "@/components/RatingStars";
 import { HeartIcon } from "@/components/Icons";
 import { SongRow } from "@/components/SongRow";
 import type { Song } from "@/types";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 
 // Song details — mirrors the web SongDetailView: cover, title, metadata, favorite
 // + rating, play/related/share, tags, prompt, lyrics, and "listeners also liked".
 export default function SongDetailScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { id } = useLocalSearchParams<{ id: string }>();
   const [song, setSong] = useState<SongDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +78,7 @@ export default function SongDetailScreen() {
     return (
       <View style={styles.centered}>
         <Stack.Screen options={{ title: "Song" }} />
-        <ActivityIndicator color="#fff" />
+        <ActivityIndicator color={colors.text} />
       </View>
     );
   }
@@ -111,7 +115,7 @@ export default function SongDetailScreen() {
       {/* Favorite + rating */}
       <View style={styles.favRow}>
         <Pressable hitSlop={8} style={styles.favBtn} onPress={onToggleFavorite}>
-          <HeartIcon color={favorite ? "#ff4d6d" : "#9a9aa2"} filled={favorite} size={22} />
+          <HeartIcon color={favorite ? colors.danger : colors.textDim} filled={favorite} size={22} />
           <Text style={styles.favCount}>{song.favoriteCount + (favorite && !song.isFavorite ? 1 : 0)}</Text>
         </Pressable>
         <RatingStars songId={song.id} size={22} />
@@ -119,17 +123,17 @@ export default function SongDetailScreen() {
 
       <View style={styles.actions}>
         <Pressable style={styles.playBtn} onPress={play}>
-          <Play color="#fff" fill="#fff" size={18} />
+          <Play color={colors.onAccent} fill={colors.onAccent} size={18} />
           <Text style={styles.playText}>Play</Text>
         </Pressable>
         <Pressable style={styles.iconBtn} onPress={() => router.push(`/related/${song.id}`)}>
-          <Disc3 color="#fff" size={18} />
+          <Disc3 color={colors.text} size={18} />
         </Pressable>
         <Pressable style={styles.iconBtn} onPress={() => router.push(`/generate?parentSongId=${song.id}`)}>
-          <Sparkles color="#fff" size={18} />
+          <Sparkles color={colors.text} size={18} />
         </Pressable>
         <Pressable style={styles.iconBtn} onPress={() => void shareSong({ id: song.id, title: song.title, publicSlug: song.publicSlug })}>
-          <Share2 color="#fff" size={18} />
+          <Share2 color={colors.text} size={18} />
         </Pressable>
       </View>
 
@@ -190,26 +194,28 @@ function fmtDate(iso?: string): string | null {
   return d.toLocaleDateString();
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  content: { paddingVertical: 24, paddingBottom: 120 },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#0b0b0f", padding: 24 },
-  art: { width: 240, height: 240, borderRadius: 16, marginBottom: 20, alignSelf: "center" },
-  artPlaceholder: { backgroundColor: "#1c1c22" },
-  title: { color: "#fff", fontSize: 22, fontWeight: "700", textAlign: "center", paddingHorizontal: 24 },
-  meta: { color: "#9a9aa2", fontSize: 13, marginTop: 6, textAlign: "center", paddingHorizontal: 24 },
-  favRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 20, marginTop: 16 },
-  favBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
-  favCount: { color: "#9a9aa2", fontSize: 14 },
-  actions: { flexDirection: "row", gap: 12, marginTop: 20, paddingHorizontal: 24 },
-  playBtn: { flex: 1, flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center", backgroundColor: "#7c3aed", borderRadius: 12, paddingVertical: 12 },
-  playText: { color: "#fff", fontSize: 15, fontWeight: "600" },
-  iconBtn: { width: 48, alignItems: "center", justifyContent: "center", backgroundColor: "#1c1c22", borderRadius: 12, paddingVertical: 12 },
-  section: { marginTop: 24, paddingHorizontal: 24 },
-  sectionTitle: { color: "#cfcfd6", fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 },
-  tags: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  tag: { backgroundColor: "#1c1c22", borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 },
-  tagText: { color: "#cfcfd6", fontSize: 13 },
-  body: { color: "#9a9aa2", fontSize: 14, lineHeight: 21 },
-  dim: { color: "#9a9aa2", fontSize: 14 },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    content: { paddingVertical: 24, paddingBottom: 120 },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg, padding: 24 },
+    art: { width: 240, height: 240, borderRadius: 16, marginBottom: 20, alignSelf: "center" },
+    artPlaceholder: { backgroundColor: c.surfaceAlt },
+    title: { color: c.text, fontSize: 22, fontWeight: "700", textAlign: "center", paddingHorizontal: 24 },
+    meta: { color: c.textDim, fontSize: 13, marginTop: 6, textAlign: "center", paddingHorizontal: 24 },
+    favRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 20, marginTop: 16 },
+    favBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
+    favCount: { color: c.textDim, fontSize: 14 },
+    actions: { flexDirection: "row", gap: 12, marginTop: 20, paddingHorizontal: 24 },
+    playBtn: { flex: 1, flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center", backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 12 },
+    playText: { color: c.onAccent, fontSize: 15, fontWeight: "600" },
+    iconBtn: { width: 48, alignItems: "center", justifyContent: "center", backgroundColor: c.surfaceAlt, borderRadius: 12, paddingVertical: 12 },
+    section: { marginTop: 24, paddingHorizontal: 24 },
+    sectionTitle: { color: c.textDim, fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 },
+    tags: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+    tag: { backgroundColor: c.surfaceAlt, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 },
+    tagText: { color: c.textDim, fontSize: 13 },
+    body: { color: c.textDim, fontSize: 14, lineHeight: 21 },
+    dim: { color: c.textDim, fontSize: 14 },
+  });
+}

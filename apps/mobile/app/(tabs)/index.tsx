@@ -7,6 +7,8 @@ import { fetchSongsPage, type SongSortBy } from "@/api/songs";
 import { playQueue } from "@/playback/controls";
 import { SongRow } from "@/components/SongRow";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
 // Library: search + sort + grid/list view, with cursor-based infinite scroll.
@@ -20,6 +22,8 @@ const SORTS: { key: SongSortBy; label: string }[] = [
 ];
 
 export default function LibraryScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -98,7 +102,7 @@ export default function LibraryScreen() {
       <TextInput
         style={styles.search}
         placeholder="Search library"
-        placeholderTextColor="#6a6a72"
+        placeholderTextColor={colors.textFaint}
         autoCapitalize="none"
         returnKeyType="search"
         value={query}
@@ -108,18 +112,18 @@ export default function LibraryScreen() {
 
       <View style={styles.controls}>
         <Pressable style={styles.sortBtn} onPress={openSort}>
-          <ArrowUpDown color="#cfcfd6" size={16} />
+          <ArrowUpDown color={colors.textDim} size={16} />
           <Text style={styles.sortText}>{sortLabel}</Text>
         </Pressable>
         <Pressable style={styles.viewBtn} onPress={() => setView((v) => (v === "list" ? "grid" : "list"))}>
-          {view === "list" ? <LayoutGrid color="#cfcfd6" size={18} /> : <List color="#cfcfd6" size={18} />}
+          {view === "list" ? <LayoutGrid color={colors.textDim} size={18} /> : <List color={colors.textDim} size={18} />}
         </Pressable>
       </View>
 
       {error ? (
         <Centered><Text style={styles.dim}>{error}</Text></Centered>
       ) : !songs ? (
-        <Centered><ActivityIndicator color="#fff" /></Centered>
+        <Centered><ActivityIndicator color={colors.text} /></Centered>
       ) : songs.length === 0 ? (
         <Centered><Text style={styles.dim}>{query ? "No matches." : "No songs yet. Generate some on the web."}</Text></Centered>
       ) : (
@@ -132,7 +136,7 @@ export default function LibraryScreen() {
           onEndReached={loadMore}
           onEndReachedThreshold={0.6}
           contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
-          ListFooterComponent={loadingMore ? <ActivityIndicator color="#6a6a72" style={styles.footer} /> : null}
+          ListFooterComponent={loadingMore ? <ActivityIndicator color={colors.textFaint} style={styles.footer} /> : null}
           renderItem={({ item, index }) =>
             view === "grid" ? (
               <Pressable style={styles.gridItem} onPress={() => play(songs, index)}>
@@ -154,22 +158,26 @@ export default function LibraryScreen() {
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   return <View style={styles.centered}>{children}</View>;
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  search: { backgroundColor: "#15151b", color: "#fff", margin: 12, marginBottom: 8, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15 },
-  controls: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14, paddingBottom: 8 },
-  sortBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: "#15151b", borderRadius: 8 },
-  sortText: { color: "#cfcfd6", fontSize: 13 },
-  viewBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center", backgroundColor: "#15151b", borderRadius: 8 },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  dim: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
-  footer: { paddingVertical: 18 },
-  gridRow: { paddingHorizontal: 12, gap: 12 },
-  gridItem: { flex: 1, marginBottom: 16, maxWidth: "50%" },
-  gridArt: { width: "100%", aspectRatio: 1, borderRadius: 10, backgroundColor: "#1c1c22" },
-  gridPlaceholder: { backgroundColor: "#1c1c22" },
-  gridTitle: { color: "#fff", fontSize: 14, marginTop: 6 },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    search: { backgroundColor: c.surface, color: c.text, margin: 12, marginBottom: 8, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15 },
+    controls: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14, paddingBottom: 8 },
+    sortBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: c.surface, borderRadius: 8 },
+    sortText: { color: c.textDim, fontSize: 13 },
+    viewBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center", backgroundColor: c.surface, borderRadius: 8 },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
+    footer: { paddingVertical: 18 },
+    gridRow: { paddingHorizontal: 12, gap: 12 },
+    gridItem: { flex: 1, marginBottom: 16, maxWidth: "50%" },
+    gridArt: { width: "100%", aspectRatio: 1, borderRadius: 10, backgroundColor: c.surfaceAlt },
+    gridPlaceholder: { backgroundColor: c.surfaceAlt },
+    gridTitle: { color: c.text, fontSize: 14, marginTop: 6 },
+  });
+}

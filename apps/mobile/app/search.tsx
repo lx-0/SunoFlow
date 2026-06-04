@@ -13,6 +13,8 @@ import { Search as SearchIcon, ListMusic } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { search, type SearchResults } from "@/api/search";
 import { playQueue } from "@/playback/controls";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
 type Status = "idle" | "loading" | "error" | "results";
@@ -28,6 +30,8 @@ export default function SearchScreen() {
   const [results, setResults] = useState<SearchResults>({ songs: [], playlists: [] });
   // Guards against a slow earlier request overwriting a newer one.
   const reqRef = useRef(0);
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
 
   const runSearch = useCallback((raw: string) => {
     const term = raw.trim();
@@ -60,14 +64,14 @@ export default function SearchScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Search" }} />
       <View style={styles.searchBar}>
-        <SearchIcon color="#9a9aa2" size={18} />
+        <SearchIcon color={colors.textDim} size={18} />
         <TextInput
           style={styles.input}
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={(e) => runSearch(e.nativeEvent.text)}
           placeholder="Search songs and playlists"
-          placeholderTextColor="#6a6a72"
+          placeholderTextColor={colors.textFaint}
           autoFocus
           returnKeyType="search"
           autoCapitalize="none"
@@ -80,7 +84,7 @@ export default function SearchScreen() {
           <Text style={styles.dim}>Search your songs and playlists.</Text>
         </View>
       ) : status === "loading" ? (
-        <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : status === "error" ? (
         <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
       ) : !hasResults ? (
@@ -99,7 +103,7 @@ export default function SearchScreen() {
                     style={styles.row}
                     onPress={() => router.push(`/playlist/${p.id}`)}
                   >
-                    <ListMusic color="#9a9aa2" size={18} style={styles.rowIcon} />
+                    <ListMusic color={colors.textDim} size={18} style={styles.rowIcon} />
                     <View style={styles.meta}>
                       <Text style={styles.title} numberOfLines={1}>{p.name}</Text>
                       {typeof p.songCount === "number" ? (
@@ -140,44 +144,46 @@ export default function SearchScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 4,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: "#15151b",
-    borderRadius: 12,
-    borderColor: "#1c1c22",
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  input: { flex: 1, color: "#fff", fontSize: 16, padding: 0 },
-  sectionHeader: {
-    color: "#9a9aa2",
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 6,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomColor: "#1c1c22",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  rowIcon: { marginRight: 12 },
-  meta: { flex: 1 },
-  title: { color: "#fff", fontSize: 16 },
-  dim: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    searchBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      marginHorizontal: 16,
+      marginTop: 12,
+      marginBottom: 4,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      backgroundColor: c.surface,
+      borderRadius: 12,
+      borderColor: c.border,
+      borderWidth: StyleSheet.hairlineWidth,
+    },
+    input: { flex: 1, color: c.text, fontSize: 16, padding: 0 },
+    sectionHeader: {
+      color: c.textDim,
+      fontSize: 12,
+      fontWeight: "700",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      paddingBottom: 6,
+    },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomColor: c.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    rowIcon: { marginRight: 12 },
+    meta: { flex: 1 },
+    title: { color: c.text, fontSize: 16 },
+    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
+  });
+}

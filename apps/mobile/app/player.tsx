@@ -11,14 +11,15 @@ import { Waveform } from "@/components/Waveform";
 import { useTimedPopups } from "@/hooks/useTimedPopups";
 import { getFavorite, setFavorite as setFavoriteApi } from "@/api/favorites";
 import { fetchReactions, addReaction, type Reaction } from "@/api/reactions";
-
-const ACCENT = "#8b7cff";
-const PLAY_BG = "#7c3aed"; // violet-600, matches the web player
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 
 // Now-Playing screen — mirrors the web ExpandedPlayer: cover, title, a seek bar
 // with timecoded emoji-reaction markers, a quick-react row, transport controls,
 // and an overflow (kebab) menu for the secondary actions.
 export default function PlayerScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { current, playing, positionSeconds, durationSeconds, shuffle, repeat } = usePlayback();
   const [favorite, setFavorite] = useState(false);
   const [reactions, setReactions] = useState<Reaction[]>([]);
@@ -99,10 +100,10 @@ export default function PlayerScreen() {
       {/* Header actions (right-aligned), like the web overflow menu placement */}
       <View style={styles.header}>
         <Pressable hitSlop={10} style={styles.headerBtn} onPress={onToggleFavorite}>
-          <HeartIcon color={favorite ? "#ff4d6d" : "#9a9aa2"} filled={favorite} size={24} />
+          <HeartIcon color={favorite ? colors.danger : colors.textDim} filled={favorite} size={24} />
         </Pressable>
         <Pressable hitSlop={10} style={styles.headerBtn} onPress={openMenu}>
-          <MoreIcon color="#9a9aa2" size={24} />
+          <MoreIcon color={colors.textDim} size={24} />
         </Pressable>
       </View>
 
@@ -139,19 +140,19 @@ export default function PlayerScreen() {
         {/* Main transport */}
         <View style={styles.row}>
           <Pressable hitSlop={10} style={styles.btnSmall} onPress={toggleShuffle}>
-            <ShuffleIcon color={shuffle ? ACCENT : "#5a5a62"} size={22} />
+            <ShuffleIcon color={shuffle ? colors.accent : colors.textFaint} size={22} />
           </Pressable>
           <Pressable hitSlop={12} style={styles.btn} onPress={() => skipToPrevious()}>
-            <SkipPrevIcon color="#fff" size={28} />
+            <SkipPrevIcon color={colors.text} size={28} />
           </Pressable>
           <Pressable hitSlop={12} style={[styles.btn, styles.btnPlay]} onPress={togglePlay}>
-            {playing ? <PauseIcon color="#fff" size={24} /> : <PlayIcon color="#fff" size={24} />}
+            {playing ? <PauseIcon color={colors.onAccent} size={24} /> : <PlayIcon color={colors.onAccent} size={24} />}
           </Pressable>
           <Pressable hitSlop={12} style={styles.btn} onPress={() => skipToNext()}>
-            <SkipNextIcon color="#fff" size={28} />
+            <SkipNextIcon color={colors.text} size={28} />
           </Pressable>
           <Pressable hitSlop={10} style={styles.btnSmall} onPress={toggleRepeat}>
-            <RepeatIcon color={repeat !== "off" ? ACCENT : "#5a5a62"} one={repeat === "one"} size={22} />
+            <RepeatIcon color={repeat !== "off" ? colors.accent : colors.textFaint} one={repeat === "one"} size={22} />
           </Pressable>
         </View>
       </View>
@@ -159,20 +160,22 @@ export default function PlayerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  header: { flexDirection: "row", justifyContent: "flex-end", alignItems: "center", paddingHorizontal: 16, paddingTop: 8, gap: 8 },
-  headerBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  body: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 28 },
-  art: { width: 280, height: 280, borderRadius: 16, marginBottom: 28 },
-  artPlaceholder: { backgroundColor: "#1c1c22" },
-  title: { color: "#fff", fontSize: 22, fontWeight: "700", textAlign: "center", alignSelf: "stretch" },
-  artist: { color: "#9a9aa2", fontSize: 16, marginTop: 4, textAlign: "center" },
-  times: { alignSelf: "stretch", flexDirection: "row", justifyContent: "space-between", marginTop: 2 },
-  time: { color: "#9a9aa2", fontSize: 12, fontVariant: ["tabular-nums"] },
-  emojiRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 14 },
-  row: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 22, marginTop: 24 },
-  btnSmall: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  btn: { width: 56, height: 56, alignItems: "center", justifyContent: "center" },
-  btnPlay: { width: 72, height: 72, borderRadius: 36, backgroundColor: PLAY_BG },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    header: { flexDirection: "row", justifyContent: "flex-end", alignItems: "center", paddingHorizontal: 16, paddingTop: 8, gap: 8 },
+    headerBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+    body: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 28 },
+    art: { width: 280, height: 280, borderRadius: 16, marginBottom: 28 },
+    artPlaceholder: { backgroundColor: c.surfaceAlt },
+    title: { color: c.text, fontSize: 22, fontWeight: "700", textAlign: "center", alignSelf: "stretch" },
+    artist: { color: c.textDim, fontSize: 16, marginTop: 4, textAlign: "center" },
+    times: { alignSelf: "stretch", flexDirection: "row", justifyContent: "space-between", marginTop: 2 },
+    time: { color: c.textDim, fontSize: 12, fontVariant: ["tabular-nums"] },
+    emojiRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 14 },
+    row: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 22, marginTop: 24 },
+    btnSmall: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+    btn: { width: 56, height: 56, alignItems: "center", justifyContent: "center" },
+    btnPlay: { width: 72, height: 72, borderRadius: 36, backgroundColor: c.accentStrong },
+  });
+}

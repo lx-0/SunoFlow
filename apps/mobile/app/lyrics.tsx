@@ -3,11 +3,15 @@ import { View, Text, ScrollView, ActivityIndicator, StyleSheet, type LayoutChang
 import { Stack } from "expo-router";
 import { usePlayback } from "@/playback/usePlayback";
 import { fetchLyrics, type LyricLine } from "@/api/lyrics";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 
 // Lyrics view. Loads the current song's lyrics (+ optional line timestamps). When
 // timestamps exist, the active line is highlighted and auto-scrolled to follow
 // playback; without timestamps it's a static, scrollable lyric sheet.
 export default function LyricsScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { current, positionSeconds } = usePlayback();
   const songId = current?.id;
   const [lines, setLines] = useState<LyricLine[] | null>(null);
@@ -60,7 +64,7 @@ export default function LyricsScreen() {
       {error ? (
         <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
       ) : !lines ? (
-        <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : lines.length === 0 ? (
         <View style={styles.centered}><Text style={styles.dim}>No lyrics for this song.</Text></View>
       ) : (
@@ -86,13 +90,15 @@ export default function LyricsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  content: { paddingHorizontal: 24, paddingVertical: 28, paddingBottom: 120 },
-  line: { color: "#fff", fontSize: 19, lineHeight: 30, marginVertical: 3 },
-  blank: { height: 14 },
-  active: { color: "#fff", fontWeight: "700" },
-  inactive: { color: "#6a6a72" },
-  dim: { color: "#9a9aa2", fontSize: 14 },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    content: { paddingHorizontal: 24, paddingVertical: 28, paddingBottom: 120 },
+    line: { color: c.text, fontSize: 19, lineHeight: 30, marginVertical: 3 },
+    blank: { height: 14 },
+    active: { color: c.text, fontWeight: "700" },
+    inactive: { color: c.textFaint },
+    dim: { color: c.textDim, fontSize: 14 },
+  });
+}

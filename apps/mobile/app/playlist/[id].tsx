@@ -6,8 +6,12 @@ import { fetchPlaylistSongs } from "@/api/playlists";
 import { reorderPlaylistSongs, renamePlaylist, deletePlaylist } from "@/api/playlist-actions";
 import { playQueue } from "@/playback/controls";
 import type { Song } from "@/types";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 
 export default function PlaylistDetailScreen() {
+  const { colors } = useTheme();
+  const st = makeStyles(colors);
   const { id } = useLocalSearchParams<{ id: string }>();
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -84,8 +88,8 @@ export default function PlaylistDetailScreen() {
     ]);
   }
 
-  if (error) return <C><Text style={st.dim}>{error}</Text></C>;
-  if (!songs) return <C><ActivityIndicator color="#fff" /></C>;
+  if (error) return <C colors={colors}><Text style={st.dim}>{error}</Text></C>;
+  if (!songs) return <C colors={colors}><ActivityIndicator color={colors.text} /></C>;
 
   return (
     <View style={st.list}>
@@ -100,17 +104,17 @@ export default function PlaylistDetailScreen() {
                 </Pressable>
               ) : null}
               <Pressable onPress={promptRename} hitSlop={8}>
-                <Pencil color="#8b7cff" size={20} />
+                <Pencil color={colors.accent} size={20} />
               </Pressable>
               <Pressable onPress={confirmDelete} hitSlop={8}>
-                <Trash2 color="#ff6b6b" size={20} />
+                <Trash2 color={colors.danger} size={20} />
               </Pressable>
             </View>
           ),
         }}
       />
       {songs.length === 0 ? (
-        <C><Text style={st.dim}>No playable tracks in this playlist.</Text></C>
+        <C colors={colors}><Text style={st.dim}>No playable tracks in this playlist.</Text></C>
       ) : (
         <FlatList
           data={songs}
@@ -139,7 +143,7 @@ export default function PlaylistDetailScreen() {
                     disabled={index === 0}
                     onPress={() => void move(index, index - 1)}
                   >
-                    <ChevronUp color={index === 0 ? "#3a3a42" : "#8b7cff"} size={20} />
+                    <ChevronUp color={index === 0 ? colors.textFaint : colors.accent} size={20} />
                   </Pressable>
                   <Pressable
                     style={st.arrowBtn}
@@ -147,7 +151,7 @@ export default function PlaylistDetailScreen() {
                     disabled={index === songs.length - 1}
                     onPress={() => void move(index, index + 1)}
                   >
-                    <ChevronDown color={index === songs.length - 1 ? "#3a3a42" : "#8b7cff"} size={20} />
+                    <ChevronDown color={index === songs.length - 1 ? colors.textFaint : colors.accent} size={20} />
                   </Pressable>
                 </View>
               ) : null}
@@ -159,26 +163,29 @@ export default function PlaylistDetailScreen() {
   );
 }
 
-function C({ children }: { children: React.ReactNode }) {
+function C({ colors, children }: { colors: ThemeColors; children: React.ReactNode }) {
+  const st = makeStyles(colors);
   return <View style={st.c}>{children}</View>;
 }
 
-const st = StyleSheet.create({
-  list: { flex: 1, backgroundColor: "#0b0b0f" },
-  c: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#0b0b0f", padding: 24 },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomColor: "#1c1c22",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  titleWrap: { flex: 1 },
-  title: { color: "#fff", fontSize: 16 },
-  dim: { color: "#9a9aa2", fontSize: 13 },
-  editBtn: { color: "#8b7cff", fontSize: 16 },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 16 },
-  arrows: { flexDirection: "row", alignItems: "center", marginLeft: 12 },
-  arrowBtn: { paddingHorizontal: 6, paddingVertical: 2 },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    list: { flex: 1, backgroundColor: c.bg },
+    c: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg, padding: 24 },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomColor: c.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    titleWrap: { flex: 1 },
+    title: { color: c.text, fontSize: 16 },
+    dim: { color: c.textDim, fontSize: 13 },
+    editBtn: { color: c.accent, fontSize: 16 },
+    headerActions: { flexDirection: "row", alignItems: "center", gap: 16 },
+    arrows: { flexDirection: "row", alignItems: "center", marginLeft: 12 },
+    arrowBtn: { paddingHorizontal: 6, paddingVertical: 2 },
+  });
+}

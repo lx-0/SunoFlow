@@ -6,6 +6,8 @@ import { formatDuration } from "@sunoflow/core";
 import { HttpError } from "@/api/client";
 import { fetchRadio } from "@/api/radio";
 import { playQueue } from "@/playback/controls";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
 // Radio: a generated continuous station. Loads the curated queue on focus, shows
@@ -15,6 +17,8 @@ import type { Song } from "@/types";
 export default function RadioScreen() {
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
 
   useFocusEffect(
     useCallback(() => {
@@ -44,7 +48,7 @@ export default function RadioScreen() {
       {error ? (
         <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
       ) : !songs ? (
-        <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : songs.length === 0 ? (
         <View style={styles.centered}><Text style={styles.dim}>No station available right now. Generate or like some songs first.</Text></View>
       ) : (
@@ -53,7 +57,7 @@ export default function RadioScreen() {
           keyExtractor={(s, i) => `${s.id}:${i}`}
           ListHeaderComponent={
             <Pressable style={styles.playButton} onPress={() => void play(songs, 0)}>
-              <Radio color="#0b0b0f" size={20} />
+              <Radio color={colors.onAccent} size={20} />
               <Text style={styles.playButtonText}>Play Radio</Text>
             </Pressable>
           }
@@ -74,30 +78,32 @@ export default function RadioScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  playButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    backgroundColor: "#8b7cff",
-    margin: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  playButtonText: { color: "#0b0b0f", fontSize: 16, fontWeight: "700" },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomColor: "#1c1c22",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  meta: { flex: 1 },
-  title: { color: "#fff", fontSize: 16 },
-  dim: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
-  duration: { color: "#6a6a72", fontSize: 13, marginLeft: 12, fontVariant: ["tabular-nums"] },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    playButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 10,
+      backgroundColor: c.accent,
+      margin: 16,
+      paddingVertical: 14,
+      borderRadius: 12,
+    },
+    playButtonText: { color: c.onAccent, fontSize: 16, fontWeight: "700" },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomColor: c.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    meta: { flex: 1 },
+    title: { color: c.text, fontSize: 16 },
+    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
+    duration: { color: c.textFaint, fontSize: 13, marginLeft: 12, fontVariant: ["tabular-nums"] },
+  });
+}

@@ -8,10 +8,14 @@ import {
   markAllNotificationsRead,
   type AppNotification,
 } from "@/api/notifications";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 
 // Notifications feed. Reloads on focus. Unread rows are brighter and carry an
 // accent dot; tapping an unread row marks it read. A header action clears all.
 export default function NotificationsScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const [items, setItems] = useState<AppNotification[] | null>(null);
   const [unread, setUnread] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +76,7 @@ export default function NotificationsScreen() {
         </View>
       ) : !items ? (
         <View style={styles.centered}>
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.text} />
         </View>
       ) : items.length === 0 ? (
         <View style={styles.centered}>
@@ -129,23 +133,25 @@ function formatRelative(iso: string): string {
   return new Date(t).toLocaleDateString();
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  dim: { color: "#9a9aa2", fontSize: 13, textAlign: "center" },
-  headerAction: { color: "#8b7cff", fontSize: 14, marginRight: 4 },
-  row: {
-    flexDirection: "row",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomColor: "#1c1c22",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  dotCol: { width: 18, paddingTop: 6, alignItems: "flex-start" },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#8b7cff" },
-  meta: { flex: 1 },
-  title: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  titleRead: { color: "#c8c8d0", fontWeight: "500" },
-  message: { color: "#9a9aa2", fontSize: 14, marginTop: 2, lineHeight: 19 },
-  time: { color: "#6a6a72", fontSize: 12, marginTop: 6 },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    dim: { color: c.textDim, fontSize: 13, textAlign: "center" },
+    headerAction: { color: c.accent, fontSize: 14, marginRight: 4 },
+    row: {
+      flexDirection: "row",
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomColor: c.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    dotCol: { width: 18, paddingTop: 6, alignItems: "flex-start" },
+    dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: c.accent },
+    meta: { flex: 1 },
+    title: { color: c.text, fontSize: 16, fontWeight: "600" },
+    titleRead: { color: c.textDim, fontWeight: "500" },
+    message: { color: c.textDim, fontSize: 14, marginTop: 2, lineHeight: 19 },
+    time: { color: c.textFaint, fontSize: 12, marginTop: 6 },
+  });
+}

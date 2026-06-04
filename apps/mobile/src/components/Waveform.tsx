@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { View, Text, Pressable, Animated, StyleSheet, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
 import { useAudioPlayer } from "@simform_solutions/react-native-audio-waveform";
 import { downloadAudioForPeaks, normalizePeaks } from "@/playback/peaks";
+import { useTheme } from "@/theme/ThemeContext";
 
 // Real waveform: peaks are extracted natively from the audio file (see peaks.ts),
 // the same signal the web player draws. Played portion fills white; tap to seek;
@@ -9,8 +10,6 @@ import { downloadAudioForPeaks, normalizePeaks } from "@/playback/peaks";
 // While peaks load (download + decode) a flat placeholder is shown.
 
 const BAR_COUNT = 56;
-const PLAYED = "#fff";
-const UNPLAYED = "#3a3a44";
 const PLACEHOLDER = Array.from({ length: BAR_COUNT }, () => 0.12);
 
 export interface WaveformPopup {
@@ -48,6 +47,7 @@ export function Waveform({
   onSeek: (seconds: number) => void;
   popups: WaveformPopup[];
 }) {
+  const { colors } = useTheme();
   const { extractWaveformData, onCurrentExtractedWaveformData } = useAudioPlayer();
   const [width, setWidth] = useState(0);
   const [peaks, setPeaks] = useState<number[] | null>(null);
@@ -109,7 +109,7 @@ export function Waveform({
               marginHorizontal: 1,
               height: `${Math.max(2, amp * 100)}%`,
               borderRadius: 1,
-              backgroundColor: i < playedBars ? PLAYED : UNPLAYED,
+              backgroundColor: i < playedBars ? colors.text : colors.border,
             }}
           />
         ))}

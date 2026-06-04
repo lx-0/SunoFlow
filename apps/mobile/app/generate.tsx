@@ -24,6 +24,8 @@ import { autoFill } from "@/api/generate-auto";
 import { generateLyrics } from "@/api/lyrics-generate";
 import { fetchPresets, type Preset } from "@/api/presets";
 import { HttpError } from "@/api/client";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 
 // Generate — mirrors the web GenerateForm. Style mode: the style/genre IS the
 // prompt (Suno auto-writes lyrics). Custom mode: you write (or AI-generate) the
@@ -40,6 +42,8 @@ function paramStr(v: string | string[] | undefined): string {
 }
 
 export default function GenerateScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const params = useLocalSearchParams<{ prompt?: string; style?: string; personaId?: string; parentSongId?: string }>();
   const [style, setStyle] = useState(() => paramStr(params.style));
   const [customMode, setCustomMode] = useState(() => Boolean(paramStr(params.prompt) && !paramStr(params.style)));
@@ -195,7 +199,7 @@ export default function GenerateScreen() {
     return (
       <View style={styles.centered}>
         <Stack.Screen options={{ title: "Generate" }} />
-        <ActivityIndicator color="#8b7cff" size="large" />
+        <ActivityIndicator color={colors.accent} size="large" />
         <Text style={styles.statusTitle}>{phase === "submitting" ? "Starting generation…" : "Composing your song…"}</Text>
         <Text style={styles.dim}>This usually takes a minute or two. Keep this screen open.</Text>
         {started?.title ? <Text style={styles.dim} numberOfLines={1}>{started.title}</Text> : null}
@@ -206,7 +210,7 @@ export default function GenerateScreen() {
     return (
       <View style={styles.centered}>
         <Stack.Screen options={{ title: "Generate" }} />
-        <AlertCircle color="#ff7a85" size={40} />
+        <AlertCircle color={colors.danger} size={40} />
         <Text style={styles.statusTitle}>Generation failed</Text>
         <Text style={styles.dim}>{error}</Text>
         <Pressable style={styles.primaryBtn} onPress={reset}>
@@ -227,7 +231,7 @@ export default function GenerateScreen() {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
-            <Sparkles color="#8b7cff" size={22} />
+            <Sparkles color={colors.accent} size={22} />
             <Text style={styles.heroText}>
               {parentSongId
                 ? "Extending an existing song — set the style and (optionally) lyrics."
@@ -251,16 +255,16 @@ export default function GenerateScreen() {
             value={style}
             onChangeText={setStyle}
             placeholder="e.g. dreamy lo-fi hip hop, mellow piano, rain"
-            placeholderTextColor="#5a5a62"
+            placeholderTextColor={colors.textFaint}
             maxLength={GENERATION_STYLE_MAX_LENGTH}
           />
           <View style={styles.miniRow}>
             <Pressable style={[styles.miniBtn, (!style.trim() || boosting) && styles.btnDisabled]} disabled={!style.trim() || boosting} onPress={onBoost}>
-              {boosting ? <ActivityIndicator color="#8b7cff" size="small" /> : <Wand2 color="#8b7cff" size={15} />}
+              {boosting ? <ActivityIndicator color={colors.accent} size="small" /> : <Wand2 color={colors.accent} size={15} />}
               <Text style={styles.miniText}>{boosting ? "Boosting…" : "Boost"}</Text>
             </Pressable>
             <Pressable style={[styles.miniBtn, (!(style.trim() || lyrics.trim()) || autoFilling) && styles.btnDisabled]} disabled={!(style.trim() || lyrics.trim()) || autoFilling} onPress={onAutoFill}>
-              {autoFilling ? <ActivityIndicator color="#8b7cff" size="small" /> : <Sparkles color="#8b7cff" size={15} />}
+              {autoFilling ? <ActivityIndicator color={colors.accent} size="small" /> : <Sparkles color={colors.accent} size={15} />}
               <Text style={styles.miniText}>{autoFilling ? "Filling…" : "Auto-fill"}</Text>
             </Pressable>
           </View>
@@ -270,7 +274,7 @@ export default function GenerateScreen() {
               <Text style={styles.switchLabel}>Custom lyrics</Text>
               <Text style={styles.dim}>Write or generate the words yourself</Text>
             </View>
-            <Switch value={customMode} onValueChange={setCustomMode} trackColor={{ false: "#2a2a32", true: "#7c3aed" }} thumbColor="#fff" />
+            <Switch value={customMode} onValueChange={setCustomMode} trackColor={{ false: colors.surfaceAlt, true: colors.accentStrong }} thumbColor={colors.onAccent} />
           </View>
 
           {customMode ? (
@@ -278,7 +282,7 @@ export default function GenerateScreen() {
               <View style={styles.lyricsHeader}>
                 <Text style={styles.label}>Lyrics</Text>
                 <Pressable style={[styles.miniBtn, (!(style.trim() || title.trim()) || genningLyrics) && styles.btnDisabled]} disabled={!(style.trim() || title.trim()) || genningLyrics} onPress={onGenLyrics}>
-                  {genningLyrics ? <ActivityIndicator color="#8b7cff" size="small" /> : <Wand2 color="#8b7cff" size={15} />}
+                  {genningLyrics ? <ActivityIndicator color={colors.accent} size="small" /> : <Wand2 color={colors.accent} size={15} />}
                   <Text style={styles.miniText}>{genningLyrics ? "Writing…" : "Generate lyrics"}</Text>
                 </Pressable>
               </View>
@@ -287,7 +291,7 @@ export default function GenerateScreen() {
                 value={lyrics}
                 onChangeText={setLyrics}
                 placeholder="[Verse]\nYour lyrics here…"
-                placeholderTextColor="#5a5a62"
+                placeholderTextColor={colors.textFaint}
                 multiline
                 maxLength={GENERATION_PROMPT_MAX_LENGTH}
               />
@@ -300,7 +304,7 @@ export default function GenerateScreen() {
             value={title}
             onChangeText={setTitle}
             placeholder="Untitled"
-            placeholderTextColor="#5a5a62"
+            placeholderTextColor={colors.textFaint}
             maxLength={GENERATION_TITLE_MAX_LENGTH}
           />
 
@@ -309,18 +313,18 @@ export default function GenerateScreen() {
               <Text style={styles.switchLabel}>Instrumental</Text>
               <Text style={styles.dim}>No vocals</Text>
             </View>
-            <Switch value={instrumental} onValueChange={setInstrumental} trackColor={{ false: "#2a2a32", true: "#7c3aed" }} thumbColor="#fff" />
+            <Switch value={instrumental} onValueChange={setInstrumental} trackColor={{ false: colors.surfaceAlt, true: colors.accentStrong }} thumbColor={colors.onAccent} />
           </View>
 
           {error ? (
             <View style={styles.inlineError}>
-              <AlertCircle color="#ff7a85" size={16} />
+              <AlertCircle color={colors.danger} size={16} />
               <Text style={styles.inlineErrorText}>{error}</Text>
             </View>
           ) : null}
 
           <Pressable style={[styles.primaryBtn, !canSubmit && styles.btnDisabled]} disabled={!canSubmit} onPress={onSubmit}>
-            <CheckCircle2 color="#fff" size={18} />
+            <CheckCircle2 color={colors.onAccent} size={18} />
             <Text style={styles.primaryBtnText}>Generate</Text>
           </Pressable>
         </ScrollView>
@@ -329,32 +333,34 @@ export default function GenerateScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  flex: { flex: 1 },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 12 },
-  formContent: { padding: 20, paddingBottom: 48, gap: 8 },
-  hero: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#16131f", borderRadius: 12, padding: 14, marginBottom: 4 },
-  heroText: { flex: 1, color: "#c8c8d0", fontSize: 13, lineHeight: 18 },
-  presetRow: { gap: 8, paddingVertical: 8 },
-  presetChip: { backgroundColor: "#1c1c22", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8, maxWidth: 180 },
-  presetText: { color: "#cfcfd6", fontSize: 13 },
-  label: { color: "#9a9aa2", fontSize: 13, marginTop: 12, marginBottom: 6 },
-  input: { backgroundColor: "#16161c", borderColor: "#26262e", borderWidth: 1, borderRadius: 10, color: "#fff", fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
-  lyricsInput: { minHeight: 140, textAlignVertical: "top" },
-  lyricsHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12 },
-  miniRow: { flexDirection: "row", gap: 10, marginTop: 8 },
-  miniBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: "#2e2840" },
-  miniText: { color: "#8b7cff", fontSize: 13, fontWeight: "600" },
-  switchRow: { flexDirection: "row", alignItems: "center", marginTop: 18, paddingVertical: 4 },
-  switchLabel: { color: "#fff", fontSize: 15 },
-  primaryBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#7c3aed", borderRadius: 12, paddingVertical: 15, marginTop: 24 },
-  btnDisabled: { opacity: 0.45 },
-  primaryBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  secondaryBtn: { paddingVertical: 12 },
-  secondaryBtnText: { color: "#8b7cff", fontSize: 15, fontWeight: "600" },
-  statusTitle: { color: "#fff", fontSize: 18, fontWeight: "700", marginTop: 6 },
-  dim: { color: "#9a9aa2", fontSize: 13 },
-  inlineError: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#2a1518", borderRadius: 10, padding: 12, marginTop: 16 },
-  inlineErrorText: { flex: 1, color: "#ff9aa3", fontSize: 13 },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    flex: { flex: 1 },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 12 },
+    formContent: { padding: 20, paddingBottom: 48, gap: 8 },
+    hero: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 4 },
+    heroText: { flex: 1, color: c.textDim, fontSize: 13, lineHeight: 18 },
+    presetRow: { gap: 8, paddingVertical: 8 },
+    presetChip: { backgroundColor: c.surfaceAlt, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8, maxWidth: 180 },
+    presetText: { color: c.textDim, fontSize: 13 },
+    label: { color: c.textDim, fontSize: 13, marginTop: 12, marginBottom: 6 },
+    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: 1, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
+    lyricsInput: { minHeight: 140, textAlignVertical: "top" },
+    lyricsHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12 },
+    miniRow: { flexDirection: "row", gap: 10, marginTop: 8 },
+    miniBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: c.border },
+    miniText: { color: c.accent, fontSize: 13, fontWeight: "600" },
+    switchRow: { flexDirection: "row", alignItems: "center", marginTop: 18, paddingVertical: 4 },
+    switchLabel: { color: c.text, fontSize: 15 },
+    primaryBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 15, marginTop: 24 },
+    btnDisabled: { opacity: 0.45 },
+    primaryBtnText: { color: c.onAccent, fontSize: 16, fontWeight: "700" },
+    secondaryBtn: { paddingVertical: 12 },
+    secondaryBtnText: { color: c.accent, fontSize: 15, fontWeight: "600" },
+    statusTitle: { color: c.text, fontSize: 18, fontWeight: "700", marginTop: 6 },
+    dim: { color: c.textDim, fontSize: 13 },
+    inlineError: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.surfaceAlt, borderRadius: 10, padding: 12, marginTop: 16 },
+    inlineErrorText: { flex: 1, color: c.danger, fontSize: 13 },
+  });
+}

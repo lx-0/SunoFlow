@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import { Star } from "lucide-react-native";
 import { getRating, setRating } from "@/api/ratings";
+import { useTheme } from "@/theme/ThemeContext";
 
 // Compact 5-star rater for a single song. Loads the current user's rating when
 // songId changes; tapping a star sets it optimistically and reverts on failure.
 // Tapping the currently-selected star clears the rating (sends 0).
 export function RatingStars({ songId, size = 28 }: { songId: string; size?: number }) {
+  const { colors } = useTheme();
   const [rating, setLocalRating] = useState<number | null>(null);
 
   useEffect(() => {
@@ -47,8 +49,8 @@ export function RatingStars({ songId, size = 28 }: { songId: string; size?: numb
           >
             <Star
               size={28}
-              color={active ? "#f5c518" : "#9a9aa2"}
-              fill={active ? "#f5c518" : "transparent"}
+              color={active ? colors.star : colors.textDim}
+              fill={active ? colors.star : "transparent"}
             />
           </Pressable>
         );

@@ -14,11 +14,15 @@ import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { SendIcon } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchComments, addComment, type Comment } from "@/api/comments";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 
 // Comments on a public song. Loads on focus, posts optimistically (the new
 // comment is appended to the top before the server confirms; on failure it's
 // rolled back and an error is surfaced). Four states: loading / error / empty / data.
 export default function CommentsScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { id } = useLocalSearchParams<{ id: string }>();
   const [comments, setComments] = useState<Comment[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +79,7 @@ export default function CommentsScreen() {
       {error ? (
         <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
       ) : !comments ? (
-        <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : comments.length === 0 ? (
         <View style={styles.centered}><Text style={styles.dim}>No comments yet. Be the first.</Text></View>
       ) : (
@@ -99,7 +103,7 @@ export default function CommentsScreen() {
           value={text}
           onChangeText={setText}
           placeholder="Add a comment…"
-          placeholderTextColor="#6a6a72"
+          placeholderTextColor={colors.textFaint}
           maxLength={500}
           multiline
         />
@@ -108,7 +112,7 @@ export default function CommentsScreen() {
           onPress={() => void onSend()}
           disabled={!text.trim() || sending}
         >
-          {sending ? <ActivityIndicator color="#fff" size="small" /> : <SendIcon color="#fff" size={18} />}
+          {sending ? <ActivityIndicator color={colors.onAccent} size="small" /> : <SendIcon color={colors.onAccent} size={18} />}
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -131,41 +135,43 @@ function formatWhen(iso: string | null): string {
   return new Date(then).toLocaleDateString();
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  row: { paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: "#1c1c22", borderBottomWidth: StyleSheet.hairlineWidth },
-  head: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  author: { color: "#fff", fontSize: 15, fontWeight: "600", flex: 1, marginRight: 12 },
-  time: { color: "#6a6a72", fontSize: 12 },
-  body: { color: "#d4d4dc", fontSize: 15, marginTop: 4, lineHeight: 20 },
-  composer: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderTopColor: "#1c1c22",
-    borderTopWidth: StyleSheet.hairlineWidth,
-    gap: 8,
-  },
-  input: {
-    flex: 1,
-    color: "#fff",
-    fontSize: 15,
-    maxHeight: 120,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: "#15151b",
-    borderRadius: 18,
-  },
-  send: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#8b7cff",
-  },
-  sendDisabled: { opacity: 0.4 },
-  dim: { color: "#9a9aa2", fontSize: 13 },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    row: { paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: c.border, borderBottomWidth: StyleSheet.hairlineWidth },
+    head: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+    author: { color: c.text, fontSize: 15, fontWeight: "600", flex: 1, marginRight: 12 },
+    time: { color: c.textFaint, fontSize: 12 },
+    body: { color: c.textDim, fontSize: 15, marginTop: 4, lineHeight: 20 },
+    composer: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderTopColor: c.border,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      gap: 8,
+    },
+    input: {
+      flex: 1,
+      color: c.text,
+      fontSize: 15,
+      maxHeight: 120,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      backgroundColor: c.surface,
+      borderRadius: 18,
+    },
+    send: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: c.accent,
+    },
+    sendDisabled: { opacity: 0.4 },
+    dim: { color: c.textDim, fontSize: 13 },
+  });
+}

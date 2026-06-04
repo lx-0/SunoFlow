@@ -11,6 +11,10 @@ import {
   type Milestone,
   type UserStats,
 } from "@/api/stats";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
+
+type Styles = ReturnType<typeof makeStyles>;
 
 interface StatsData {
   streak: Streak;
@@ -22,6 +26,8 @@ interface StatsData {
 // all three endpoints together; reloads on focus. Each section guards its own
 // data so a sparse response simply renders less.
 export default function StatsScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const [data, setData] = useState<StatsData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,23 +50,23 @@ export default function StatsScreen() {
       {error ? (
         <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
       ) : !data ? (
-        <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
-          <StreakCard streak={data.streak} />
-          <HeadlineStats stats={data.stats} />
-          <Milestones milestones={data.milestones} />
+          <StreakCard streak={data.streak} styles={styles} colors={colors} />
+          <HeadlineStats stats={data.stats} styles={styles} />
+          <Milestones milestones={data.milestones} styles={styles} colors={colors} />
         </ScrollView>
       )}
     </View>
   );
 }
 
-function StreakCard({ streak }: { streak: Streak }) {
+function StreakCard({ streak, styles, colors }: { streak: Streak; styles: Styles; colors: ThemeColors }) {
   return (
     <View style={styles.card}>
       <View style={styles.cardHead}>
-        <Flame color="#8b7cff" size={18} />
+        <Flame color={colors.accent} size={18} />
         <Text style={styles.cardTitle}>Streak</Text>
       </View>
       <View style={styles.streakRow}>
@@ -77,7 +83,7 @@ function StreakCard({ streak }: { streak: Streak }) {
   );
 }
 
-function HeadlineStats({ stats }: { stats: UserStats }) {
+function HeadlineStats({ stats, styles }: { stats: UserStats; styles: Styles }) {
   const items: Array<{ label: string; value: string }> = [
     { label: "Songs", value: String(stats.totalGenerations) },
     { label: "Completed", value: String(stats.completedGenerations) },
@@ -101,12 +107,12 @@ function HeadlineStats({ stats }: { stats: UserStats }) {
   );
 }
 
-function Milestones({ milestones }: { milestones: Milestone[] }) {
+function Milestones({ milestones, styles, colors }: { milestones: Milestone[]; styles: Styles; colors: ThemeColors }) {
   if (milestones.length === 0) return null;
   return (
     <View style={styles.card}>
       <View style={styles.cardHead}>
-        <Trophy color="#8b7cff" size={18} />
+        <Trophy color={colors.accent} size={18} />
         <Text style={styles.cardTitle}>Milestones</Text>
       </View>
       {milestones.map((m) => (
@@ -127,40 +133,42 @@ function Milestones({ milestones }: { milestones: Milestone[] }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  scroll: { padding: 16, gap: 16 },
-  card: {
-    backgroundColor: "#131319",
-    borderRadius: 14,
-    borderColor: "#1c1c22",
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: 16,
-  },
-  cardHead: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
-  cardTitle: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  streakRow: { flexDirection: "row" },
-  streakItem: { flex: 1, alignItems: "center" },
-  bigNum: { color: "#8b7cff", fontSize: 36, fontWeight: "800", fontVariant: ["tabular-nums"] },
-  grid: { flexDirection: "row", flexWrap: "wrap" },
-  gridItem: { width: "33.33%", paddingVertical: 10, alignItems: "center" },
-  gridNum: { color: "#fff", fontSize: 22, fontWeight: "700", fontVariant: ["tabular-nums"] },
-  milestone: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 12,
-    borderTopColor: "#1c1c22",
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  locked: { opacity: 0.5 },
-  milestoneEmoji: { fontSize: 22 },
-  milestoneMeta: { flex: 1 },
-  milestoneLabel: { color: "#fff", fontSize: 15, fontWeight: "600" },
-  lockedText: { color: "#9a9aa2" },
-  badge: { fontSize: 11, fontWeight: "700", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, overflow: "hidden" },
-  badgeOn: { color: "#8b7cff", backgroundColor: "rgba(139,124,255,0.15)" },
-  badgeOff: { color: "#6a6a72", backgroundColor: "rgba(154,154,162,0.1)" },
-  dim: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    scroll: { padding: 16, gap: 16 },
+    card: {
+      backgroundColor: c.surface,
+      borderRadius: 14,
+      borderColor: c.border,
+      borderWidth: StyleSheet.hairlineWidth,
+      padding: 16,
+    },
+    cardHead: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
+    cardTitle: { color: c.text, fontSize: 16, fontWeight: "700" },
+    streakRow: { flexDirection: "row" },
+    streakItem: { flex: 1, alignItems: "center" },
+    bigNum: { color: c.accent, fontSize: 36, fontWeight: "800", fontVariant: ["tabular-nums"] },
+    grid: { flexDirection: "row", flexWrap: "wrap" },
+    gridItem: { width: "33.33%", paddingVertical: 10, alignItems: "center" },
+    gridNum: { color: c.text, fontSize: 22, fontWeight: "700", fontVariant: ["tabular-nums"] },
+    milestone: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingVertical: 12,
+      borderTopColor: c.border,
+      borderTopWidth: StyleSheet.hairlineWidth,
+    },
+    locked: { opacity: 0.5 },
+    milestoneEmoji: { fontSize: 22 },
+    milestoneMeta: { flex: 1 },
+    milestoneLabel: { color: c.text, fontSize: 15, fontWeight: "600" },
+    lockedText: { color: c.textDim },
+    badge: { fontSize: 11, fontWeight: "700", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, overflow: "hidden" },
+    badgeOn: { color: c.accent, backgroundColor: "rgba(139,124,255,0.15)" },
+    badgeOff: { color: c.textFaint, backgroundColor: "rgba(154,154,162,0.1)" },
+    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
+  });
+}

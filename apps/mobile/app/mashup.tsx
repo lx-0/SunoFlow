@@ -7,6 +7,8 @@ import { fetchLibrary } from "@/api/songs";
 import { startMashup } from "@/api/mashup";
 import { pollStatus, GenerationError } from "@/api/generate";
 import { SongRow } from "@/components/SongRow";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
 // Mashup: pick two songs from the library → POST /api/mashup → poll until ready.
@@ -15,6 +17,8 @@ const POLL_INTERVAL_MS = 4000;
 const MAX_POLLS = 75;
 
 export default function MashupScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [selected, setSelected] = useState<string[]>([]); // ordered: [A, B]
   const [title, setTitle] = useState("");
@@ -103,7 +107,7 @@ export default function MashupScreen() {
     return (
       <View style={styles.centered}>
         <Stack.Screen options={{ title: "Mashup" }} />
-        <ActivityIndicator color="#8b7cff" size="large" />
+        <ActivityIndicator color={colors.accent} size="large" />
         <Text style={styles.statusTitle}>
           {phase === "submitting" ? "Starting mashup…" : "Blending your tracks…"}
         </Text>
@@ -115,7 +119,7 @@ export default function MashupScreen() {
     return (
       <View style={styles.centered}>
         <Stack.Screen options={{ title: "Mashup" }} />
-        <AlertCircle color="#ff7a85" size={40} />
+        <AlertCircle color={colors.danger} size={40} />
         <Text style={styles.statusTitle}>Mashup failed</Text>
         <Text style={styles.dim}>{error}</Text>
         <Pressable style={styles.primaryBtn} onPress={() => { setError(null); setPhase("form"); }}>
@@ -137,11 +141,11 @@ export default function MashupScreen() {
             <Text style={styles.dim}>Pick two songs to blend into a new track.</Text>
             <Text style={styles.slot}>{selected[0] ? `A · ${titleFor(selected[0])}` : "A · tap a song"}</Text>
             <Text style={styles.slot}>{selected[1] ? `B · ${titleFor(selected[1])}` : "B · tap a song"}</Text>
-            <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="Title (optional)" placeholderTextColor="#5a5a62" />
-            <TextInput style={styles.input} value={style} onChangeText={setStyle} placeholder="Style / tags (optional)" placeholderTextColor="#5a5a62" />
+            <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="Title (optional)" placeholderTextColor={colors.textFaint} />
+            <TextInput style={styles.input} value={style} onChangeText={setStyle} placeholder="Style / tags (optional)" placeholderTextColor={colors.textFaint} />
             <View style={styles.switchRow}>
               <Text style={styles.switchLabel}>Instrumental</Text>
-              <Switch value={instrumental} onValueChange={setInstrumental} trackColor={{ false: "#2a2a32", true: "#7c3aed" }} thumbColor="#fff" />
+              <Switch value={instrumental} onValueChange={setInstrumental} trackColor={{ false: colors.surfaceAlt, true: colors.accentStrong }} thumbColor={colors.onAccent} />
             </View>
             <Pressable style={[styles.primaryBtn, selected.length !== 2 && styles.btnDisabled]} disabled={selected.length !== 2} onPress={onSubmit}>
               <Text style={styles.primaryBtnText}>Create Mashup</Text>
@@ -151,14 +155,14 @@ export default function MashupScreen() {
         }
         ListEmptyComponent={
           songs === null
-            ? <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
+            ? <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
             : <View style={styles.centered}><Text style={styles.dim}>No songs to mash up yet.</Text></View>
         }
         renderItem={({ item }) => (
           <SongRow
             song={item}
             onPress={() => toggle(item.id)}
-            right={selected.includes(item.id) ? <Check color="#8b7cff" size={20} /> : null}
+            right={selected.includes(item.id) ? <Check color={colors.accent} size={20} /> : null}
           />
         )}
       />
@@ -166,19 +170,21 @@ export default function MashupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 12, backgroundColor: "#0b0b0f" },
-  listContent: { paddingBottom: 96 },
-  header: { padding: 16, gap: 10 },
-  slot: { color: "#fff", fontSize: 15, backgroundColor: "#16161c", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12 },
-  input: { backgroundColor: "#16161c", borderColor: "#26262e", borderWidth: 1, borderRadius: 10, color: "#fff", fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
-  switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 4 },
-  switchLabel: { color: "#fff", fontSize: 15 },
-  primaryBtn: { backgroundColor: "#7c3aed", borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 4 },
-  btnDisabled: { opacity: 0.45 },
-  primaryBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  statusTitle: { color: "#fff", fontSize: 18, fontWeight: "700", marginTop: 6 },
-  dim: { color: "#9a9aa2", fontSize: 13, textAlign: "center" },
-  listLabel: { textAlign: "left", marginTop: 10, fontWeight: "600" },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 12, backgroundColor: c.bg },
+    listContent: { paddingBottom: 96 },
+    header: { padding: 16, gap: 10 },
+    slot: { color: c.text, fontSize: 15, backgroundColor: c.surface, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12 },
+    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: 1, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
+    switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 4 },
+    switchLabel: { color: c.text, fontSize: 15 },
+    primaryBtn: { backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 4 },
+    btnDisabled: { opacity: 0.45 },
+    primaryBtnText: { color: c.onAccent, fontSize: 16, fontWeight: "700" },
+    statusTitle: { color: c.text, fontSize: 18, fontWeight: "700", marginTop: 6 },
+    dim: { color: c.textDim, fontSize: 13, textAlign: "center" },
+    listLabel: { textAlign: "left", marginTop: 10, fontWeight: "600" },
+  });
+}
