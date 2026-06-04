@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { View, Text, FlatList, Pressable, ActivityIndicator, TextInput, StyleSheet } from "react-native";
+import { View, Text, FlatList, ActivityIndicator, TextInput, StyleSheet } from "react-native";
 import { router } from "expo-router";
 import { HttpError } from "@/api/client";
 import { fetchSongsPage } from "@/api/songs";
 import { playQueue } from "@/playback/controls";
+import { SongRow } from "@/components/SongRow";
 import type { Song } from "@/types";
 
 // Library: search + browse the user's songs with cursor-based infinite scroll
@@ -89,8 +90,8 @@ export default function LibraryScreen() {
             loadingMore ? <ActivityIndicator color="#6a6a72" style={styles.footer} /> : null
           }
           renderItem={({ item, index }) => (
-            <Pressable
-              style={styles.row}
+            <SongRow
+              song={item}
               onPress={async () => {
                 try {
                   await playQueue(songs, index);
@@ -99,10 +100,7 @@ export default function LibraryScreen() {
                   console.error("[library] play failed", e);
                 }
               }}
-            >
-              <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
-              {item.artist ? <Text style={styles.dim} numberOfLines={1}>{item.artist}</Text> : null}
-            </Pressable>
+            />
           )}
         />
       )}
@@ -118,8 +116,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0b0b0f" },
   search: { backgroundColor: "#15151b", color: "#fff", margin: 12, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  row: { paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: "#1c1c22", borderBottomWidth: StyleSheet.hairlineWidth },
-  title: { color: "#fff", fontSize: 16 },
   dim: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
   footer: { paddingVertical: 18 },
 });

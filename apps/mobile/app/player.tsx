@@ -114,11 +114,6 @@ export default function PlayerScreen() {
 
         <Text style={styles.title} numberOfLines={1}>{current?.title ?? "Nothing playing"}</Text>
         <Text style={styles.artist} numberOfLines={1}>{current?.artist ?? ""}</Text>
-        {songId ? (
-          <View style={styles.ratingRow}>
-            <RatingStars songId={songId} />
-          </View>
-        ) : null}
 
         {/* Real waveform + timecoded reaction popups */}
         <Waveform
@@ -134,8 +129,9 @@ export default function PlayerScreen() {
           <Text style={styles.time}>{formatDuration(durationSeconds)}</Text>
         </View>
 
-        {/* Emoji reactions behind a popover (drops one at the current timestamp) */}
+        {/* Rating stars + emoji reaction popover share one row to save space */}
         <View style={styles.emojiRow}>
+          {songId ? <RatingStars songId={songId} size={20} /> : null}
           <ReactionPicker onReact={(e) => void onReact(e)} reactionEmojis={reactions.map((r) => r.emoji)} />
         </View>
 
@@ -171,10 +167,9 @@ const styles = StyleSheet.create({
   artPlaceholder: { backgroundColor: "#1c1c22" },
   title: { color: "#fff", fontSize: 22, fontWeight: "700", textAlign: "center", alignSelf: "stretch" },
   artist: { color: "#9a9aa2", fontSize: 16, marginTop: 4, textAlign: "center" },
-  ratingRow: { marginTop: 10 },
   times: { alignSelf: "stretch", flexDirection: "row", justifyContent: "space-between", marginTop: 2 },
   time: { color: "#9a9aa2", fontSize: 12, fontVariant: ["tabular-nums"] },
-  emojiRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: 14 },
+  emojiRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 14 },
   row: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 22, marginTop: 24 },
   btnSmall: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   btn: { width: 56, height: 56, alignItems: "center", justifyContent: "center" },

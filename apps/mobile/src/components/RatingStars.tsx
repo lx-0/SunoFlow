@@ -6,7 +6,7 @@ import { getRating, setRating } from "@/api/ratings";
 // Compact 5-star rater for a single song. Loads the current user's rating when
 // songId changes; tapping a star sets it optimistically and reverts on failure.
 // Tapping the currently-selected star clears the rating (sends 0).
-export function RatingStars({ songId }: { songId: string }) {
+export function RatingStars({ songId, size = 28 }: { songId: string; size?: number }) {
   const [rating, setLocalRating] = useState<number | null>(null);
 
   useEffect(() => {
