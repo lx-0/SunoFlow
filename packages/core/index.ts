@@ -56,3 +56,4 @@ export {
   isTerminalGenerationStatus,
 } from "./generation";
 export { mashupRequestSchema, type MashupRequest } from "./mashup";
+export { changePasswordBody, type ChangePasswordBody } from "./auth";

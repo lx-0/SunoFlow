@@ -1,19 +1,8 @@
-import { z } from "zod";
+import { changePasswordBody } from "@sunoflow/core";
 import { authRoute, successResponse } from "@/lib/route-handler";
 import { prisma } from "@/lib/prisma";
 import { badRequest, notFound } from "@/lib/api-error";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
-
-const changePasswordBody = z
-  .object({
-    currentPassword: z.string().min(1, "Current password is required"),
-    newPassword: z.string().min(8, "New password must be at least 8 characters"),
-    confirmPassword: z.string().min(1, "Confirm password is required"),
-  })
-  .refine((d) => d.newPassword === d.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
 
 export const POST = authRoute(
   async (_request, { auth, body }) => {

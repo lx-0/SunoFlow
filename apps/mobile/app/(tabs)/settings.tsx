@@ -1,7 +1,10 @@
-import { View, Text, Pressable, StyleSheet } from "react-native";
-import { router } from "expo-router";
+import { useState } from "react";
+import { View, Text, Pressable, StyleSheet, Alert, Share, ActivityIndicator } from "react-native";
+import { router, type Href } from "expo-router";
+import * as FileSystem from "expo-file-system/legacy";
 import { getApiKeyId, clearSession } from "@/auth/session";
 import { apiDelete } from "@/api/client";
+import { exportUserData } from "@/api/account";
 import { useTheme } from "@/theme/ThemeContext";
 import { THEMES, THEME_LABELS, type ThemeMode, type ThemeName } from "@/theme/theme";
 
@@ -15,6 +18,25 @@ const THEME_NAMES = Object.keys(THEMES) as ThemeName[];
 
 export default function SettingsScreen() {
   const { colors, scheme, mode, setMode, themeName, setThemeName } = useTheme();
+  const [exporting, setExporting] = useState(false);
+
+  async function onExport() {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const data = await exportUserData();
+      const dir = FileSystem.cacheDirectory;
+      if (!dir) throw new Error("no cacheDirectory");
+      const path = `${dir}sunoflow-export.json`;
+      await FileSystem.writeAsStringAsync(path, JSON.stringify(data, null, 2));
+      await Share.share({ url: path });
+    } catch (e) {
+      Alert.alert("Export failed", "Could not export your data. Please try again.");
+      console.error("[export] failed", e);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   async function signOut() {
     const id = await getApiKeyId();
@@ -65,6 +87,15 @@ export default function SettingsScreen() {
         })}
       </View>
 
+      <Text style={[styles.sectionTitle, { color: colors.textFaint }]}>Account</Text>
+      <Pressable style={[styles.row, { backgroundColor: colors.surface }]} onPress={() => router.push("/change-password" as Href)}>
+        <Text style={[styles.rowText, { color: colors.text }]}>Change password</Text>
+      </Pressable>
+      <Pressable style={[styles.row, { backgroundColor: colors.surface }]} onPress={onExport} disabled={exporting}>
+        <Text style={[styles.rowText, { color: colors.text }]}>Export my data</Text>
+        {exporting ? <ActivityIndicator color={colors.textDim} /> : null}
+      </Pressable>
+
       <Pressable style={[styles.signOut, { backgroundColor: colors.surfaceAlt }]} onPress={signOut}>
         <Text style={[styles.signOutText, { color: colors.danger }]}>Sign out</Text>
       </Pressable>
@@ -82,6 +113,8 @@ const styles = StyleSheet.create({
   themeChip: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, borderWidth: 2 },
   swatch: { width: 16, height: 16, borderRadius: 8 },
   themeText: { fontSize: 14, fontWeight: "600" },
+  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12 },
+  rowText: { fontSize: 15 },
   signOut: { marginTop: "auto", alignItems: "center", paddingVertical: 14, borderRadius: 12 },
   signOutText: { fontSize: 15, fontWeight: "600" },
 });
