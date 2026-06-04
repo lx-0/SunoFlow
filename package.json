@@ -99,25 +99,26 @@
     "icu-minify": ">=4.9.2",
     "ip-address": ">=10.1.1"
   },
-  "onlyBuiltDependencies": [
-    "@parcel/watcher",
-    "@prisma/client",
-    "@prisma/engines",
-    "@scarf/scarf",
-    "@sentry/cli",
-    "@swc/core",
-    "@tree-sitter-grammars/tree-sitter-yaml",
-    "core-js",
-    "core-js-pure",
-    "esbuild",
-    "prisma",
-    "protobufjs",
-    "sharp",
-    "tree-sitter",
-    "tree-sitter-json",
-    "unrs-resolver"
-  ],
+  "packageManager": "pnpm@9.15.0",
   "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "@prisma/client",
+      "@prisma/engines",
+      "@scarf/scarf",
+      "@sentry/cli",
+      "@swc/core",
+      "@tree-sitter-grammars/tree-sitter-yaml",
+      "core-js",
+      "core-js-pure",
+      "esbuild",
+      "prisma",
+      "protobufjs",
+      "sharp",
+      "tree-sitter",
+      "tree-sitter-json",
+      "unrs-resolver"
+    ],
     "auditConfig": {
       "ignoreGhsas": [
         "GHSA-5xrq-8626-4rwp"
