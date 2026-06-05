@@ -165,7 +165,12 @@ export default function SongDetailScreen() {
 
       {lyricsText ? (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Lyrics</Text>
+          <View style={styles.sectionHead}>
+            <Text style={styles.sectionTitle}>Lyrics</Text>
+            <Pressable onPress={() => router.push(`/lyrics-edit/${song.id}` as Href)} hitSlop={8}>
+              <Text style={styles.editLink}>Edit</Text>
+            </Pressable>
+          </View>
           <Text style={styles.body}>{lyricsText}</Text>
         </View>
       ) : null}
@@ -217,6 +222,8 @@ function makeStyles(c: ThemeColors) {
     playText: { color: c.onAccent, fontSize: 15, fontWeight: "600" },
     iconBtn: { width: 48, alignItems: "center", justifyContent: "center", backgroundColor: c.surfaceAlt, borderRadius: 12, paddingVertical: 12 },
     section: { marginTop: 24, paddingHorizontal: 24 },
+    sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
+    editLink: { color: c.accent, fontSize: 13, fontWeight: "600" },
     sectionTitle: { color: c.textDim, fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 },
     tags: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
     tag: { backgroundColor: c.surfaceAlt, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 },
