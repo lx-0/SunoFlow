@@ -145,15 +145,15 @@ export default function PlayerScreen() {
           </Pressable>
           {songId ? <RatingButton songId={songId} /> : null}
           <ReactionPicker onReact={(e) => void onReact(e)} reactionEmojis={reactions.map((r) => r.emoji)} />
-          <Pressable style={styles.secBtn} hitSlop={8} onPress={toggleShuffleVersions} accessibilityLabel="Shuffle versions">
-            <Boxes color={shuffleVersions ? colors.accent : colors.textFaint} size={20} />
-          </Pressable>
         </View>
 
         {/* Main transport */}
         <View style={styles.row}>
-          <Pressable hitSlop={10} style={styles.btnSmall} onPress={toggleShuffle}>
+          <Pressable hitSlop={8} style={styles.btnSmall} onPress={toggleShuffle} accessibilityLabel="Shuffle">
             <ShuffleIcon color={shuffle ? colors.accent : colors.textFaint} size={22} />
+          </Pressable>
+          <Pressable hitSlop={8} style={styles.btnSmall} onPress={toggleShuffleVersions} accessibilityLabel="Shuffle versions">
+            <Boxes color={shuffleVersions ? colors.accent : colors.textFaint} size={22} />
           </Pressable>
           <Pressable hitSlop={12} style={styles.btn} onPress={() => skipToPrevious()}>
             <SkipPrevIcon color={colors.text} size={28} />
@@ -211,7 +211,7 @@ function makeStyles(c: ThemeColors) {
     times: { alignSelf: "stretch", flexDirection: "row", justifyContent: "space-between", marginTop: 2 },
     time: { color: c.textDim, fontSize: 12, fontVariant: ["tabular-nums"] },
     emojiRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 14 },
-    row: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 22, marginTop: 24 },
+    row: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 24 },
     btnSmall: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
     btn: { width: 56, height: 56, alignItems: "center", justifyContent: "center" },
     btnPlay: { width: 72, height: 72, borderRadius: 36, backgroundColor: c.accentStrong },
