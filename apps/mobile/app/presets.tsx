@@ -1,9 +1,11 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import {
+  View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS,
+} from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
 import { SlidersHorizontal } from "lucide-react-native";
 import { HttpError } from "@/api/client";
-import { fetchPresets, type Preset } from "@/api/presets";
+import { fetchPresets, deletePreset, type Preset } from "@/api/presets";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -17,18 +19,18 @@ export default function PresetsScreen() {
   const [presets, setPresets] = useState<Preset[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useFocusEffect(
-    useCallback(() => {
-      setPresets(null);
-      setError(null);
-      fetchPresets()
-        .then(setPresets)
-        .catch((e: unknown) => {
-          setError(e instanceof HttpError ? `Failed to load presets (HTTP ${e.status})` : "Network error");
-          console.error("[presets] load failed", e);
-        });
-    }, []),
-  );
+  const load = useCallback(() => {
+    setPresets(null);
+    setError(null);
+    fetchPresets()
+      .then(setPresets)
+      .catch((e: unknown) => {
+        setError(e instanceof HttpError ? `Failed to load presets (HTTP ${e.status})` : "Network error");
+        console.error("[presets] load failed", e);
+      });
+  }, []);
+
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const openPreset = useCallback((preset: Preset) => {
     // Pass only the params the preset provides; omit empty ones so the Generate
@@ -40,6 +42,34 @@ export default function PresetsScreen() {
     if (preset.isInstrumental) params.instrumental = "1";
     router.push({ pathname: "/generate", params });
   }, []);
+
+  const confirmDelete = useCallback((preset: Preset) => {
+    Alert.alert("Delete preset?", `Delete "${preset.name}"?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete", style: "destructive",
+        onPress: async () => {
+          try { await deletePreset(preset.id); load(); }
+          catch (e) { Alert.alert("Couldn't delete", "Please try again."); console.error("[presets] delete failed", e); }
+        },
+      },
+    ]);
+  }, [load]);
+
+  const rowActions = useCallback((preset: Preset) => {
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        title: preset.name,
+        options: ["Use in Generate", "Delete", "Cancel"],
+        destructiveButtonIndex: 1,
+        cancelButtonIndex: 2,
+      },
+      (i) => {
+        if (i === 0) openPreset(preset);
+        else if (i === 1) confirmDelete(preset);
+      },
+    );
+  }, [openPreset, confirmDelete]);
 
   return (
     <View style={styles.container}>
@@ -57,7 +87,7 @@ export default function PresetsScreen() {
           data={presets}
           keyExtractor={(p) => p.id}
           renderItem={({ item }) => (
-            <Pressable style={styles.row} onPress={() => openPreset(item)}>
+            <Pressable style={styles.row} onPress={() => rowActions(item)}>
               <View style={styles.icon}>
                 <SlidersHorizontal color={colors.accent} size={18} />
               </View>

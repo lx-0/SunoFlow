@@ -1,4 +1,6 @@
-import { apiGet } from "@/api/client";
+import { apiGet, apiPost, apiDelete } from "@/api/client";
+
+export const PRESET_NAME_MAX = 100;
 
 // Generation presets: saved bundles of generation params (style/lyrics prompts,
 // instrumental + custom-mode flags) the user can reuse on the Generate screen.
@@ -41,4 +43,21 @@ export async function fetchPresets(): Promise<Preset[]> {
   const data = await apiGet<{ presets?: unknown }>("/api/presets");
   const list = Array.isArray(data?.presets) ? data.presets : [];
   return list.map(mapPreset).filter((p): p is Preset => p !== null);
+}
+
+// Create a preset from a Generate config. Mirrors web POST /api/presets:
+// name required (<=100), everything else nullish/optional.
+export async function createPreset(input: {
+  name: string;
+  title?: string | null;
+  stylePrompt?: string | null;
+  lyricsPrompt?: string | null;
+  isInstrumental?: boolean;
+  customMode?: boolean;
+}): Promise<void> {
+  await apiPost("/api/presets", { ...input, name: input.name.trim() });
+}
+
+export async function deletePreset(id: string): Promise<void> {
+  await apiDelete(`/api/presets/${id}`);
 }

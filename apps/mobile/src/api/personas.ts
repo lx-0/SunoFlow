@@ -1,4 +1,4 @@
-import { apiGet } from "./client";
+import { apiGet, apiDelete } from "./client";
 
 // Personas talk to the existing web endpoint (authDataRoute → resolveUser accepts
 // the bearer sk- key). GET /api/personas returns { personas: PersonaEntry[] }
@@ -40,4 +40,9 @@ export async function fetchPersonas(): Promise<Persona[]> {
   return (Array.isArray(res?.personas) ? res.personas : [])
     .map(mapApiPersona)
     .filter((p): p is Persona => p !== null);
+}
+
+/** Delete a saved persona by its DB row id. */
+export async function deletePersona(id: string): Promise<void> {
+  await apiDelete(`/api/personas/${id}`);
 }

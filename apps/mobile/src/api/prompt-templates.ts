@@ -1,4 +1,4 @@
-import { apiGet } from "./client";
+import { apiGet, apiPost, apiPatch, apiDelete } from "./client";
 
 // Prompt templates talk to the existing web endpoint (authRoute → resolveUser
 // accepts the bearer sk- key). GET /api/prompt-templates returns the user's
@@ -6,6 +6,9 @@ import { apiGet } from "./client";
 //   { templates: PromptTemplate[], categories: (string | null)[] }
 // The success path returns result.data directly (see route-response.ts), so the
 // payload is NOT wrapped in an envelope. Map defensively — never throw on shape.
+
+// Validation bounds (mirror the server's create/update schema).
+export const PROMPT_TEMPLATE_NAME_MAX = 100;
 
 export interface PromptTemplate {
   id: string;
@@ -47,4 +50,38 @@ export async function fetchPromptTemplates(): Promise<PromptTemplate[]> {
   return (Array.isArray(res?.templates) ? res.templates : [])
     .map(mapTemplate)
     .filter((t): t is PromptTemplate => t !== null);
+}
+
+/** Create a prompt template (name + prompt required; style + instrumental optional). */
+export async function createPromptTemplate(input: {
+  name: string;
+  prompt: string;
+  style?: string;
+  isInstrumental?: boolean;
+}): Promise<void> {
+  const style = input.style?.trim();
+  await apiPost("/api/prompt-templates", {
+    name: input.name.trim(),
+    prompt: input.prompt.trim(),
+    ...(style ? { style } : {}),
+    ...(input.isInstrumental !== undefined ? { isInstrumental: input.isInstrumental } : {}),
+  });
+}
+
+/** Update an existing (non-built-in) prompt template. */
+export async function updatePromptTemplate(
+  id: string,
+  patch: { name?: string; prompt?: string; style?: string; isInstrumental?: boolean },
+): Promise<void> {
+  const body: { name?: string; prompt?: string; style?: string; isInstrumental?: boolean } = {};
+  if (patch.name !== undefined) body.name = patch.name.trim();
+  if (patch.prompt !== undefined) body.prompt = patch.prompt.trim();
+  if (patch.style !== undefined) body.style = patch.style.trim();
+  if (patch.isInstrumental !== undefined) body.isInstrumental = patch.isInstrumental;
+  await apiPatch(`/api/prompt-templates/${id}`, body);
+}
+
+/** Delete a prompt template. */
+export async function deletePromptTemplate(id: string): Promise<void> {
+  await apiDelete(`/api/prompt-templates/${id}`);
 }

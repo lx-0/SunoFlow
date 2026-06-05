@@ -26,7 +26,7 @@ import { startGeneration, pollStatus, GenerationError, type StartedGeneration } 
 import { boostStyle } from "@/api/style-boost";
 import { autoFill } from "@/api/generate-auto";
 import { generateLyrics } from "@/api/lyrics-generate";
-import { fetchPresets, type Preset } from "@/api/presets";
+import { fetchPresets, createPreset, type Preset } from "@/api/presets";
 import { fetchStyleTemplates, type StyleTemplate } from "@/api/style-templates";
 import { fetchPromptTemplates, type PromptTemplate } from "@/api/prompt-templates";
 import { fetchPromptSuggestions, fetchTrendingCombos, type PromptSuggestion, type TrendingCombo } from "@/api/suggestions";
@@ -123,6 +123,33 @@ export default function GenerateScreen() {
   }
 
   const selectedStyleTemplate = styleTemplates.find((t) => t.tags === style) ?? null;
+
+  function saveAsPreset() {
+    if (!style.trim() && !lyrics.trim()) return;
+    Alert.prompt?.(
+      "Save as preset",
+      "Name this preset",
+      async (value) => {
+        const name = value?.trim();
+        if (!name) return;
+        try {
+          await createPreset({
+            name,
+            title: title.trim() || null,
+            stylePrompt: style.trim() || null,
+            lyricsPrompt: customMode ? (lyrics.trim() || null) : null,
+            isInstrumental: instrumental,
+            customMode,
+          });
+          Alert.alert("Saved", `Preset "${name}" saved.`);
+        } catch (e) {
+          Alert.alert("Couldn't save preset", "Please try again.");
+          console.error("[generate] save preset failed", e);
+        }
+      },
+      "plain-text",
+    );
+  }
 
   function applySuggestion(s: PromptSuggestion) {
     setStyle(s.stylePrompt);
@@ -525,6 +552,14 @@ export default function GenerateScreen() {
             <CheckCircle2 color={colors.onAccent} size={18} />
             <Text style={styles.primaryBtnText}>{count > 1 ? `Generate ${count}` : "Generate"}</Text>
           </Pressable>
+
+          <Pressable
+            style={[styles.savePresetBtn, !(style.trim() || lyrics.trim()) && styles.btnDisabled]}
+            disabled={!(style.trim() || lyrics.trim())}
+            onPress={saveAsPreset}
+          >
+            <Text style={styles.savePresetText}>Save as preset</Text>
+          </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -568,6 +603,8 @@ function makeStyles(c: ThemeColors) {
     dropdown: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, backgroundColor: c.surfaceAlt, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 },
     dropdownText: { color: c.text, fontSize: 15, flex: 1 },
     dropdownPlaceholder: { color: c.textFaint },
+    savePresetBtn: { alignItems: "center", paddingVertical: 12, marginTop: 4 },
+    savePresetText: { color: c.accent, fontSize: 14, fontWeight: "600" },
     inlineError: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.surfaceAlt, borderRadius: 10, padding: 12, marginTop: 16 },
     inlineErrorText: { flex: 1, color: c.danger, fontSize: 13 },
   });

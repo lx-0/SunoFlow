@@ -1,9 +1,11 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import {
+  View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS,
+} from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import { HttpError } from "@/api/client";
-import { fetchPersonas, type Persona } from "@/api/personas";
+import { fetchPersonas, deletePersona, type Persona } from "@/api/personas";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
@@ -18,20 +20,60 @@ export default function PersonasScreen() {
   const [personas, setPersonas] = useState<Persona[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useFocusEffect(
-    useCallback(() => {
-      setPersonas(null);
-      setError(null);
-      fetchPersonas()
-        .then(setPersonas)
-        .catch((e: unknown) => {
-          setError(
-            e instanceof HttpError ? `Failed to load personas (HTTP ${e.status})` : "Network error",
-          );
-          console.error("[personas] load failed", e);
-        });
-    }, []),
-  );
+  const load = useCallback(() => {
+    setError(null);
+    fetchPersonas()
+      .then(setPersonas)
+      .catch((e: unknown) => {
+        setError(
+          e instanceof HttpError ? `Failed to load personas (HTTP ${e.status})` : "Network error",
+        );
+        console.error("[personas] load failed", e);
+      });
+  }, []);
+
+  useFocusEffect(useCallback(() => { setPersonas(null); load(); }, [load]));
+
+  function openInGenerate(p: Persona) {
+    // Generate's persona picker matches on the Suno-side personaId (p.personaId),
+    // not the DB row id, so we hand it the same identifier it compares against.
+    const pid = p.personaId ?? undefined;
+    router.push({
+      pathname: "/generate",
+      params: {
+        ...(pid ? { personaId: pid } : {}),
+        ...(p.style ? { style: p.style } : {}),
+      },
+    });
+  }
+
+  function confirmDelete(p: Persona) {
+    Alert.alert("Delete persona?", `Delete "${p.name}"?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete", style: "destructive",
+        onPress: async () => {
+          try { await deletePersona(p.id); load(); }
+          catch (e) { Alert.alert("Couldn't delete", "Please try again."); console.error("[personas] delete failed", e); }
+        },
+      },
+    ]);
+  }
+
+  function rowActions(p: Persona) {
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        title: p.name,
+        options: ["Use in Generate", "Delete", "Cancel"],
+        destructiveButtonIndex: 1,
+        cancelButtonIndex: 2,
+      },
+      (i) => {
+        if (i === 0) openInGenerate(p);
+        else if (i === 1) confirmDelete(p);
+      },
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -51,18 +93,7 @@ export default function PersonasScreen() {
           keyExtractor={(p) => p.id}
           contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
           renderItem={({ item }) => (
-            <Pressable
-              style={styles.row}
-              onPress={() =>
-                router.push({
-                  pathname: "/generate",
-                  params: {
-                    personaId: item.id,
-                    ...(item.style ? { style: item.style } : {}),
-                  },
-                })
-              }
-            >
+            <Pressable style={styles.row} onPress={() => rowActions(item)}>
               <View style={styles.meta}>
                 <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
                 {item.description ? (
