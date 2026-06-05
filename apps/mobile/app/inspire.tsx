@@ -45,7 +45,7 @@ export default function InspireScreen() {
       if (!digest) setError("Couldn't generate picks. Make sure you've added RSS feeds on the web app.");
     } catch (e) {
       setError(
-        e instanceof HttpError && e.status === 400
+        e instanceof HttpError && (e.status === 422 || e.status === 400)
           ? "No RSS feeds configured. Add feeds on the web app to generate picks."
           : "Couldn't generate today's picks. Please try again.",
       );

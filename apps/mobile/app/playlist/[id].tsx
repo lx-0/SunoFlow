@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert } from "react-native";
-import { Stack, router, useLocalSearchParams, type Href } from "expo-router";
+import { Stack, router, useLocalSearchParams, useFocusEffect, type Href } from "expo-router";
 import { ChevronUp, ChevronDown, Pencil, Trash2, Share2, Users } from "lucide-react-native";
 import { fetchPlaylistSongs } from "@/api/playlists";
 import { reorderPlaylistSongs, renamePlaylist, deletePlaylist } from "@/api/playlist-actions";
@@ -18,19 +18,19 @@ export default function PlaylistDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!id) return;
-    let alive = true;
     fetchPlaylistSongs(id)
-      .then((s) => alive && setSongs(s))
+      .then(setSongs)
       .catch((e) => {
-        if (alive) setError("Failed to load playlist");
+        setError("Failed to load playlist");
         console.error("[playlist] load failed", e);
       });
-    return () => {
-      alive = false;
-    };
   }, [id]);
+
+  // Reload on focus so returning after add-to-playlist / collaborator changes
+  // doesn't show stale songs.
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   // Optimistic reorder: swap locally, then persist the FULL id order. On failure
   // (e.g. server length check rejects because mapApiSong dropped unplayable rows,
@@ -60,6 +60,8 @@ export default function PlaylistDetailScreen() {
         if (!name) return;
         try {
           await renamePlaylist(id, name);
+          load();
+          Alert.alert("Renamed", `Playlist renamed to "${name}".`);
         } catch (e) {
           console.error("[playlist] rename failed", e);
           Alert.alert("Couldn't rename playlist", "Please try again.");

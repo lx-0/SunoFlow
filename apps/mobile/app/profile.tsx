@@ -44,6 +44,9 @@ export default function ProfileScreen() {
   const [streak, setStreak] = useState<Streak | null>(null);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // One shared notice for the secondary (stats/streak/milestones) loads, so a
+  // failed sub-load surfaces instead of masquerading as "no data".
+  const [secondaryError, setSecondaryError] = useState(false);
 
   // Editable form fields.
   const [name, setName] = useState("");
@@ -57,6 +60,7 @@ export default function ProfileScreen() {
     useCallback(() => {
       let active = true;
       setError(null);
+      setSecondaryError(false);
 
       fetchProfile()
         .then((p) => {
@@ -74,15 +78,15 @@ export default function ProfileScreen() {
 
       fetchProfileStats()
         .then((s) => active && setStats(s))
-        .catch((e: unknown) => console.error("[profile] load stats failed", e));
+        .catch((e: unknown) => { if (active) setSecondaryError(true); console.error("[profile] load stats failed", e); });
 
       fetchStreak()
         .then((s) => active && setStreak(s))
-        .catch((e: unknown) => console.error("[profile] load streak failed", e));
+        .catch((e: unknown) => { if (active) setSecondaryError(true); console.error("[profile] load streak failed", e); });
 
       fetchMilestones()
         .then((m) => active && setMilestones(m))
-        .catch((e: unknown) => console.error("[profile] load milestones failed", e));
+        .catch((e: unknown) => { if (active) setSecondaryError(true); console.error("[profile] load milestones failed", e); });
 
       return () => {
         active = false;
@@ -199,6 +203,10 @@ export default function ProfileScreen() {
             </View>
           </View>
 
+          {secondaryError ? (
+            <Text style={styles.secondaryError}>Couldn&apos;t load some stats. Pull back later to retry.</Text>
+          ) : null}
+
           {/* Streak */}
           {streak ? (
             <View style={styles.card}>
@@ -290,6 +298,7 @@ function makeStyles(c: ThemeColors) {
     },
     bioInput: { minHeight: 88 },
     error: { color: c.danger, fontSize: 13, marginTop: 14 },
+    secondaryError: { color: c.warnFg ?? c.textDim, fontSize: 12 },
     saveRow: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 20 },
     btn: { backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 28, alignItems: "center" },
     btnDisabled: { opacity: 0.45 },

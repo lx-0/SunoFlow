@@ -15,9 +15,23 @@ export interface SongAnalytics {
 }
 
 export async function fetchSongAnalytics(id: string): Promise<SongAnalytics> {
-  const res = await apiGet<SongAnalytics>(`/api/songs/${id}/analytics`);
+  // Raw JSON at the boundary — coerce every scalar so a null/missing field can't
+  // render as NaN/blank in the tiles or break the bar-chart math.
+  const res = await apiGet<Record<string, unknown>>(`/api/songs/${id}/analytics`);
+  const views7d = Array.isArray(res.views7d)
+    ? res.views7d.filter(
+        (v): v is { date: string; count: number } =>
+          !!v && typeof v === "object" &&
+          typeof (v as { date?: unknown }).date === "string" &&
+          typeof (v as { count?: unknown }).count === "number",
+      )
+    : [];
   return {
-    ...res,
-    views7d: Array.isArray(res.views7d) ? res.views7d : [],
+    songId: typeof res.songId === "string" ? res.songId : id,
+    title: typeof res.title === "string" ? res.title : "Untitled",
+    totalPlays: typeof res.totalPlays === "number" ? res.totalPlays : 0,
+    totalViews: typeof res.totalViews === "number" ? res.totalViews : 0,
+    isPublic: res.isPublic === true,
+    views7d,
   };
 }

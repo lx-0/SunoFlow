@@ -29,6 +29,12 @@ export default function LyricsEditScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    if (!id) {
+      setError("No song specified.");
+      setLoading(false);
+      setLoaded(true);
+      return;
+    }
     try {
       const raw = await fetchRawLyrics(id);
       setOriginal(raw.original);
@@ -55,7 +61,8 @@ export default function LyricsEditScreen() {
     setSaved(false);
     try {
       // Empty draft → clear the override (revert to original) rather than saving "".
-      const next = draft.trim() === original.trim() || draft.trim() === "" ? null : draft;
+      // Otherwise save the draft verbatim (whitespace preserved), matching the web editor.
+      const next = draft.trim() === "" ? null : draft;
       await updateLyrics(id, next);
       setHasOverride(next !== null);
       setSaved(true);

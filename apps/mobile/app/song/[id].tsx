@@ -61,8 +61,9 @@ export default function SongDetailScreen() {
     setFavorite(next);
     try {
       await setFavoriteApi(id, next);
-    } catch {
+    } catch (e) {
       setFavorite(!next);
+      console.error("[song-detail] favorite toggle failed", e);
     }
   }
 

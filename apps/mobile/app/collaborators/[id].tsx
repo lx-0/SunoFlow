@@ -38,6 +38,11 @@ export default function CollaboratorsScreen() {
 
   const load = useCallback(async () => {
     setError(null);
+    if (!id) {
+      setError("No playlist specified.");
+      setList([]);
+      return;
+    }
     try {
       const [meta, cols] = await Promise.all([
         fetchPlaylistCollabMeta(id),
