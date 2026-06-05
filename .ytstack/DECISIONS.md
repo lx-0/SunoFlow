@@ -321,3 +321,30 @@ D) Full waitlist — landing captures emails, operator approves → invite mail.
 **Reason:** User picked invite codes for per-person control without the waitlist build. Design points: (1) `InviteCode` model is single-use (`usedByUserId @unique`, nullable `expiresAt`), claimed atomically via a guarded `updateMany` with user-rollback on a lost race. (2) `isAdminEmail()` (the `ADMIN_EMAILS` env identity) **bypasses** the gate so the operator can always bootstrap. (3) The PrismaAdapter would auto-create a user on first Google login, bypassing the code — but user confirmed `AUTH_GOOGLE_ID/SECRET` are unset in prod (provider inactive), so we did **not** add a `signIn` callback to block new OAuth users. If Google is ever enabled, that gate becomes required (block sign-in when no existing user matches the email). (4) Codes are generated/listed/copied via a new admin UI (`/admin/invite-codes` + `GET/POST /api/admin/invite-codes`). Separately, the landing page was reframed from launch-marketing to an honest "private beta · invite-only · WIP" voice (badge, CTAs "Have an invite? Sign up" / "Request access" mailto, beta-banner copy dropping the false "no limits" claim).
 
 **Reference:** `src/lib/auth/{invite,register}.ts`, `src/app/api/admin/invite-codes/route.ts`, `src/app/[locale]/admin/invite-codes/page.tsx`, `src/components/LandingPage.tsx`; migration `20260521120000_add_invite_code`; commits `7e155c9` (gate) + landing reframe; KNOWLEDGE.md → Gotchas ("registration gate must bypass under `PLAYWRIGHT_TEST`").
+
+## 2026-05-28: Remote MCP server hosted at `/api/mcp` — Streamable HTTP, not stdio refactor (M003)
+
+**Context:** The SunoFlow plugin shipped only the skill; users had to clone the repo, set `DATABASE_URL`, and spawn `tsx mcp/server.ts` to use the MCP server. Goal: `/plugin install sunoflow` + `SUNOFLOW_API_KEY` should yield a working server with nothing else. The stdio server is deeply coupled to Prisma + `src/lib/*` (every tool calls `@/lib/sunoapi`, `@/lib/credits`, etc.), so shipping it standalone meant either bundling the whole app with DB credentials or refactoring all 15 tools to HTTP clients.
+
+**Options considered:**
+A) Stdio + HTTP-client refactor — 15 tools rewritten to fetch the SunoFlow REST API; ship as npm package or via plugin. Multi-day, requires complete HTTP coverage for every tool feature.
+B) Bundle stdio + Prisma client in plugin — ships the DB connection string burden to the user; impossible for hosted users.
+C) **Remote MCP at `/api/mcp` (Streamable HTTP) hosted by SunoFlow itself.** Plugin ships only `.mcp.json` pointing at the URL with env-var interpolation.
+
+**Chose:** **C**.
+
+**Reason:** The MCP spec 2025-06-18 makes Streamable HTTP the recommended transport for remote servers (HTTP+SSE deprecated; stdio reserved for local-only tooling). Hosting the server inside the Next.js app means the existing Prisma + `src/lib/*` coupling becomes a feature (server-side code), not a problem to engineer around. Tools, registry, resources stay byte-for-byte identical; only the transport changes (`StdioServerTransport` → `WebStandardStreamableHTTPServerTransport`, single Next.js route handler). Bearer-API-key auth via `Authorization: Bearer sk-...` reuses the existing `ApiKey` table. Origin-header allowlist + per-key sliding-window rate-limit + `logServerError` GlitchTip events sit in front of the SDK dispatch.
+
+Stdio remains as a deprecated legacy entry point (stderr banner at startup) for self-hosters with the repo cloned; planned removal in a future release.
+
+**Reference:** `src/app/api/mcp/route.ts`, `src/lib/mcp/{http-transport,register-handlers,registry-bootstrap,origin-guard,rate-limit}.ts`, `mcp/auth.ts` (split into env+header paths), `.mcp.json`, `docs/MCP.md`; commits `c38b030` (transport), `7bb8618` (plugin/0.3.0/.mcp.json), `7149191` (@mcp/* alias), `d34a43d` (dockerignore fix); `lx-0/skills` marketplace commit `178781c`; M003-CONTEXT.md, KNOWLEDGE.md → "Streamable-HTTP MCP server in Next.js App Router" + "MCP-Server hardening".
+
+## 2026-06-02: M003-S05 OAuth path cancelled, not deferred to a milestone slot (M003 close)
+
+**Context:** M003's S05 was "OAuth 2.0 path (.well-known + PKCE)" as an alternative to the Bearer API key. The Bearer path landed in S01-S04 and is production-ready; the user-facing M003 goal ("install plugin + set env var → works") is fully satisfied. M004 had previously been verbally tagged as "OAuth follow-up", but when M004 was actually planned (2026-05-30+), the slot went to the Native-iOS-App initiative instead.
+
+**Chose:** Mark S05 `cancelled`, not `deferred`. If OAuth becomes relevant later, plan a fresh milestone — do not revive a slice inside a closed milestone.
+
+**Reason:** A done milestone with a lingering open slice is roadmap drift — future agents see contradictory state. Bearer-only auth is production-fine for the closed beta; closed-beta users (operator + invitees) all have an API key flow already. OAuth is forward-looking infrastructure (Dynamic Client Registration, PKCE, refresh-token rotation) that deserves its own scope discussion (better-auth provider plugin vs node-oauth2-server vs in-house) when the demand surfaces.
+
+**Reference:** `.ytstack/M003-S05-PLAN.md` (status: cancelled), `.ytstack/M003-ROADMAP.md` (4 done + 1 cancelled), STATE.md "M003 closed 2026-06-02" marker.

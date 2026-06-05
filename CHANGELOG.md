@@ -2,6 +2,39 @@
 
 All notable changes to this project. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the version numbers follow [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] — 2026-05-28
+
+Remote MCP server. The `sunoflow` Claude Code plugin used to require the operator to clone the repo, set `DATABASE_URL`, and spawn `tsx mcp/server.ts` to use the MCP server. After this release the plugin ships a `.mcp.json` pointing at the hosted Streamable-HTTP endpoint — `/plugin install sunoflow` + `export SUNOFLOW_API_KEY=sk-...` is the entire setup.
+
+### Added
+
+- **Remote MCP server at `POST/GET /api/mcp` (Streamable HTTP, MCP spec 2025-06-18).** Fresh `Server` instance per request, stateless mode, all 15 tools + 4 resource providers wired via a shared registry that both transports use. Auth: `Authorization: Bearer sk-...` against the existing `ApiKey` table. Origin allowlist (`claude.ai`, `desktop.anthropic.com`, `app.cursor.sh`, `cursor.sh`; override via `MCP_ALLOWED_ORIGINS`). Per-key sliding-window rate limit (60 req/min, override `MCP_RATE_LIMIT_RPM`). Sentry/GlitchTip events on every reject path (`mcp.origin.rejected`, `mcp.auth.rejected`, `mcp.rate_limit.exceeded`, `mcp.handler.error`).
+  - `src/app/api/mcp/route.ts` (handler), `src/lib/mcp/{http-transport,register-handlers,registry-bootstrap,origin-guard,rate-limit}.ts` (shared modules), `mcp/auth.ts` (split into env + header resolvers).
+  - `src/middleware.ts`: `/api/mcp` added to `PUBLIC_PATHS` so the JWT-cookie redirect doesn't shadow Bearer-only clients.
+- **Plugin ships `.mcp.json`** at repo root with env-var interpolation: `${SUNOFLOW_BASE_URL:-https://sunoflow.app}/api/mcp` + `Authorization: Bearer ${SUNOFLOW_API_KEY}`. Self-hosters override the base URL.
+- **`scripts/smoke-mcp.mjs`** — operator CLI that drives `initialize` → `tools/list` → `tools/call sunoflow_info` against any HTTP MCP endpoint; one line per protocol step, exits non-zero on the first failed check.
+- **`@mcp/*` path alias** in `tsconfig.json` + `next.config.mjs` + `vitest.config.ts` so the shared modules under `src/lib/mcp/` can import the legacy `mcp/` directory (tools, providers, registry, resources) without relative-up traversal that breaks the Next.js production webpack build.
+
+### Changed
+
+- **Plugin manifest 0.2.2 → 0.3.0** (`.claude-plugin/plugin.json`) with rewritten description reflecting the remote-HTTP model.
+- **`docs/MCP.md`** restructured as dual-transport doc with Streamable HTTP as the recommended path and stdio marked legacy.
+- **`lx-0/skills` marketplace entry** rewritten to point at the remote endpoint (commit `178781c` in that repo).
+
+### Deprecated
+
+- **Stdio transport (`mcp/server.ts`)** logs a startup banner on `stderr` pointing operators at the remote endpoint. Keeps working for self-hosters with the repo cloned; planned removal in a future release.
+
+### Fixed
+
+- **Docker build was excluding `mcp/`.** `.dockerignore` listed `mcp` which made the production webpack build fail with `Module not found: Can't resolve '@mcp/registry'` four deploys in a row before the entry was dropped (commit `d34a43d`).
+- **`mcp/tools/info.ts` hardcoded version** was stale at `0.2.1`; bumped to `0.3.0` along with `mcp/server.ts`.
+
+### Notes
+
+- **S05 OAuth path cancelled, not deferred.** Bearer-only auth is production-fine for the closed beta. If OAuth becomes relevant later it gets a new milestone, not a zombie-open slice in a closed one.
+- **Verification:** 24 vitest passing (12 route + 2 transport + 10 stdio server), `pnpm tsc --noEmit` clean, `pnpm build` green. Live deploy verified at the server boundary (`401` + `WWW-Authenticate: Bearer realm="sunoflow"` + Origin allowlist pass); full E2E tools/call against prod DB requires an operator with an API key (run the smoke script).
+
 ## [0.3.0] — 2026-05-21
 
 Closed the beta: registration is now invite-only, and the landing page no longer pretends to be a launched public product. Driven by reality — the app is heavy WIP with a handful of real users, so the fabricated social proof and open signup were misleading.
