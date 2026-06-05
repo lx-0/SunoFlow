@@ -13,7 +13,7 @@ import {
   ListMusic, MessageCircle, Sparkles, type LucideIcon,
 } from "lucide-react-native";
 import { ReactionPicker } from "@/components/ReactionPicker";
-import { RatingStars } from "@/components/RatingStars";
+import { RatingButton } from "@/components/RatingButton";
 import { Waveform } from "@/components/Waveform";
 import { useTimedPopups } from "@/hooks/useTimedPopups";
 import { getFavorite, setFavorite as setFavoriteApi } from "@/api/favorites";
@@ -133,9 +133,16 @@ export default function PlayerScreen() {
           <Text style={styles.time}>{formatDuration(durationSeconds)}</Text>
         </View>
 
+        {/* Rating (context menu) + reactions + shuffle-versions + details — one row */}
         <View style={styles.emojiRow}>
-          {songId ? <RatingStars songId={songId} size={20} /> : null}
+          {songId ? <RatingButton songId={songId} /> : null}
           <ReactionPicker onReact={(e) => void onReact(e)} reactionEmojis={reactions.map((r) => r.emoji)} />
+          <Pressable style={styles.secBtn} hitSlop={8} onPress={toggleShuffleVersions} accessibilityLabel="Shuffle versions">
+            <Boxes color={shuffleVersions ? colors.accent : colors.textFaint} size={20} />
+          </Pressable>
+          <Pressable style={styles.secBtn} hitSlop={8} disabled={!songId} onPress={() => songId && router.push(`/song/${songId}`)} accessibilityLabel="Song details">
+            <Info color={colors.textFaint} size={20} />
+          </Pressable>
         </View>
 
         {/* Main transport */}
@@ -157,15 +164,6 @@ export default function PlayerScreen() {
           </Pressable>
         </View>
 
-        {/* Secondary controls: shuffle-versions + details — icon only */}
-        <View style={styles.secondary}>
-          <Pressable style={styles.secBtn} hitSlop={8} onPress={toggleShuffleVersions} accessibilityLabel="Shuffle versions">
-            <Boxes color={shuffleVersions ? colors.accent : colors.textFaint} size={20} />
-          </Pressable>
-          <Pressable style={styles.secBtn} hitSlop={8} disabled={!songId} onPress={() => songId && router.push(`/song/${songId}`)} accessibilityLabel="Song details">
-            <Info color={colors.textFaint} size={20} />
-          </Pressable>
-        </View>
       </View>
 
       {/* Themed bottom-sheet menu (replaces the iOS action sheet) */}
@@ -204,12 +202,11 @@ function makeStyles(c: ThemeColors) {
     artist: { color: c.textDim, fontSize: 15, marginTop: 4, textAlign: "center" },
     times: { alignSelf: "stretch", flexDirection: "row", justifyContent: "space-between", marginTop: 2 },
     time: { color: c.textDim, fontSize: 12, fontVariant: ["tabular-nums"] },
-    emojiRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 14 },
+    emojiRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 14 },
     row: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 22, marginTop: 24 },
     btnSmall: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
     btn: { width: 56, height: 56, alignItems: "center", justifyContent: "center" },
     btnPlay: { width: 72, height: 72, borderRadius: 36, backgroundColor: c.accentStrong },
-    secondary: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 22 },
     secBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center", backgroundColor: c.surface, borderRadius: 22 },
     // bottom-sheet menu
     backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)" },
