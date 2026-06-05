@@ -11,9 +11,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActionSheetIOS,
 } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { Sparkles, AlertCircle, CheckCircle2, Wand2, Star } from "lucide-react-native";
+import { Sparkles, AlertCircle, CheckCircle2, Wand2, Star, ChevronDown } from "lucide-react-native";
 import {
   GENERATION_PROMPT_MAX_LENGTH,
   GENERATION_TITLE_MAX_LENGTH,
@@ -112,6 +113,16 @@ export default function GenerateScreen() {
   function applyStyleTemplate(t: StyleTemplate) {
     setStyle(t.tags);
   }
+
+  function openStyleTemplatePicker() {
+    const names = styleTemplates.map((t) => t.name);
+    ActionSheetIOS.showActionSheetWithOptions(
+      { title: "Style template", options: [...names, "Cancel"], cancelButtonIndex: names.length },
+      (i) => { if (i < names.length) applyStyleTemplate(styleTemplates[i]); },
+    );
+  }
+
+  const selectedStyleTemplate = styleTemplates.find((t) => t.tags === style) ?? null;
 
   function applySuggestion(s: PromptSuggestion) {
     setStyle(s.stylePrompt);
@@ -415,32 +426,25 @@ export default function GenerateScreen() {
             </Pressable>
           </View>
 
-          {/* Style templates fill the Style field — placed right under it (matches
-              the web). Always shown, with loading / empty / error(+retry) states. */}
-          <Text style={styles.label}>Style templates</Text>
-          {stStatus === "loading" ? (
-            <Text style={styles.dim}>Loading…</Text>
-          ) : stStatus === "error" ? (
+          {/* Style-template dropdown attached to the Style field (mirrors the web
+              <select>): tap → ActionSheet of saved templates → fills the field. */}
+          {stStatus === "error" ? (
             <Pressable onPress={loadStyleTemplates}>
               <Text style={styles.retry}>Couldn&apos;t load style templates — tap to retry</Text>
             </Pressable>
-          ) : styleTemplates.length === 0 ? (
-            <Text style={styles.dim}>
-              No style templates yet. Save one from a song&apos;s menu on the web, then pick it here.
-            </Text>
-          ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetRow}>
-              {styleTemplates.map((t) => (
-                <Pressable
-                  key={t.id}
-                  style={[styles.presetChip, style === t.tags && styles.chipActive]}
-                  onPress={() => applyStyleTemplate(t)}
-                >
-                  <Text style={[styles.presetText, style === t.tags && styles.chipActiveText]} numberOfLines={1}>{t.name}</Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          )}
+          ) : styleTemplates.length > 0 ? (
+            <Pressable style={styles.dropdown} onPress={openStyleTemplatePicker}>
+              <Text
+                style={[styles.dropdownText, !selectedStyleTemplate && styles.dropdownPlaceholder]}
+                numberOfLines={1}
+              >
+                {selectedStyleTemplate ? selectedStyleTemplate.name : "Choose a style template…"}
+              </Text>
+              <ChevronDown color={colors.textDim} size={18} />
+            </Pressable>
+          ) : stStatus === "ready" ? (
+            <Text style={styles.dim}>No style templates yet — save one from a song&apos;s menu on the web.</Text>
+          ) : null}
 
           <View style={styles.switchRow}>
             <View style={styles.flex}>
@@ -560,6 +564,9 @@ function makeStyles(c: ThemeColors) {
     statusTitle: { color: c.text, fontSize: 18, fontWeight: "700", marginTop: 6 },
     dim: { color: c.textDim, fontSize: 13 },
     retry: { color: c.accent, fontSize: 13, fontWeight: "600" },
+    dropdown: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, backgroundColor: c.surfaceAlt, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 },
+    dropdownText: { color: c.text, fontSize: 15, flex: 1 },
+    dropdownPlaceholder: { color: c.textFaint },
     inlineError: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.surfaceAlt, borderRadius: 10, padding: 12, marginTop: 16 },
     inlineErrorText: { flex: 1, color: c.danger, fontSize: 13 },
   });
