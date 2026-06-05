@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
-import { View, Text, Image, Pressable, StyleSheet, ActionSheetIOS } from "react-native";
-import { router } from "expo-router";
+import { View, Text, Image, Pressable, Modal, StyleSheet } from "react-native";
+import { router, type Href } from "expo-router";
 import { formatDuration } from "@sunoflow/core";
 import { usePlayback } from "@/playback/usePlayback";
-import { togglePlay, skipToNext, skipToPrevious, seekTo, toggleShuffle, toggleRepeat } from "@/playback/audio";
+import {
+  togglePlay, skipToNext, skipToPrevious, seekTo, toggleShuffle, toggleRepeat,
+  toggleShuffleVersions, toggleMute,
+} from "@/playback/audio";
 import { PlayIcon, PauseIcon, SkipNextIcon, SkipPrevIcon, ShuffleIcon, HeartIcon, RepeatIcon, MoreIcon } from "@/components/Icons";
-import { ChevronDown, Disc3 } from "lucide-react-native";
+import {
+  ChevronDown, Disc3, Boxes, Volume2, VolumeX, Info, FileText, GitBranch, ListPlus,
+  ListMusic, MessageCircle, Sparkles, type LucideIcon,
+} from "lucide-react-native";
 import { ReactionPicker } from "@/components/ReactionPicker";
 import { RatingStars } from "@/components/RatingStars";
 import { Waveform } from "@/components/Waveform";
@@ -15,18 +21,17 @@ import { fetchReactions, addReaction, type Reaction } from "@/api/reactions";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
-// Now-Playing screen — mirrors the web ExpandedPlayer: cover, title, a seek bar
-// with timecoded emoji-reaction markers, a quick-react row, transport controls,
-// and an overflow (kebab) menu for the secondary actions.
+// Now-Playing screen — cover, seek bar with timecoded reactions, rating/reactions,
+// transport (incl. shuffle-versions + mute), and a themed bottom-sheet menu.
 export default function PlayerScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { current, playing, positionSeconds, durationSeconds, shuffle, repeat, index, queueLength } = usePlayback();
+  const { current, playing, positionSeconds, durationSeconds, shuffle, repeat, shuffleVersions, muted, index, queueLength } = usePlayback();
   const [favorite, setFavorite] = useState(false);
   const [reactions, setReactions] = useState<Reaction[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
   const songId = current?.id;
 
-  // Transient emoji popups that float up as playback crosses each reaction's time.
   const { activePopups } = useTimedPopups({
     items: reactions,
     currentTime: positionSeconds,
@@ -36,7 +41,6 @@ export default function PlayerScreen() {
     makePopup: (r, key, leftPct) => ({ key, emoji: r.emoji, leftPct }),
   });
 
-  // Favorite + reaction state load whenever the song changes.
   useEffect(() => {
     setFavorite(false);
     setReactions([]);
@@ -44,61 +48,48 @@ export default function PlayerScreen() {
     let cancelled = false;
     getFavorite(songId).then((f) => !cancelled && setFavorite(f)).catch(() => {});
     fetchReactions(songId).then((r) => !cancelled && setReactions(r)).catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [songId]);
 
   async function onToggleFavorite() {
     if (!songId) return;
     const next = !favorite;
     setFavorite(next);
-    try {
-      await setFavoriteApi(songId, next);
-    } catch {
-      setFavorite(!next);
-    }
+    try { await setFavoriteApi(songId, next); } catch { setFavorite(!next); }
   }
 
   async function onReact(emoji: string) {
     if (!songId) return;
     const at = positionSeconds;
-    // optimistic marker; reconcile with the server id on success
     const optimistic: Reaction = { id: `tmp:${emoji}:${at}`, emoji, timestamp: at };
     setReactions((prev) => [...prev, optimistic]);
     try {
       const created = await addReaction(songId, emoji, at);
-      if (created) {
-        setReactions((prev) => prev.map((r) => (r.id === optimistic.id ? created : r)));
-      }
+      if (created) setReactions((prev) => prev.map((r) => (r.id === optimistic.id ? created : r)));
     } catch (e) {
       setReactions((prev) => prev.filter((r) => r.id !== optimistic.id));
       console.error("[player] react failed", e);
     }
   }
 
-  function openMenu() {
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        options: ["Lyrics", "Add to Playlist", "Up Next", "Comments", "Related", "Song Details", "Extend", "Cancel"],
-        cancelButtonIndex: 7,
-        userInterfaceStyle: "dark",
-      },
-      (i) => {
-        if (i === 0) router.push("/lyrics");
-        else if (i === 1) router.push("/add-to-playlist");
-        else if (i === 2) router.push("/queue");
-        else if (i === 3 && songId) router.push(`/comments/${songId}`);
-        else if (i === 4 && songId) router.push(`/related/${songId}`);
-        else if (i === 5 && songId) router.push(`/song/${songId}`);
-        else if (i === 6 && songId) router.push(`/generate?parentSongId=${songId}`);
-      },
-    );
+  const menu: { label: string; Icon: LucideIcon; go: () => void }[] = [
+    { label: "Lyrics", Icon: FileText, go: () => router.push("/lyrics") },
+    { label: "Versions", Icon: GitBranch, go: () => songId && router.push(`/song-versions/${songId}` as Href) },
+    { label: "Add to playlist", Icon: ListPlus, go: () => router.push("/add-to-playlist") },
+    { label: "Up next (queue)", Icon: ListMusic, go: () => router.push("/queue") },
+    { label: "Comments", Icon: MessageCircle, go: () => songId && router.push(`/comments/${songId}`) },
+    { label: "Related songs", Icon: Disc3, go: () => songId && router.push(`/related/${songId}`) },
+    { label: "Song details", Icon: Info, go: () => songId && router.push(`/song/${songId}`) },
+    { label: "Extend this song", Icon: Sparkles, go: () => songId && router.push(`/generate?parentSongId=${songId}`) },
+  ];
+
+  function runMenu(go: () => void) {
+    setMenuOpen(false);
+    go();
   }
 
   return (
     <View style={styles.container}>
-      {/* Header: close (down) on the left, favorite + overflow on the right */}
       <View style={styles.header}>
         <Pressable hitSlop={10} style={styles.headerBtn} onPress={() => router.back()}>
           <ChevronDown color={colors.text} size={26} />
@@ -107,24 +98,18 @@ export default function PlayerScreen() {
           <Pressable hitSlop={10} style={styles.headerBtn} onPress={onToggleFavorite}>
             <HeartIcon color={favorite ? colors.danger : colors.textDim} filled={favorite} size={24} />
           </Pressable>
-          <Pressable hitSlop={10} style={styles.headerBtn} onPress={openMenu}>
+          <Pressable hitSlop={10} style={styles.headerBtn} onPress={() => setMenuOpen(true)}>
             <MoreIcon color={colors.textDim} size={24} />
           </Pressable>
         </View>
       </View>
 
       <View style={styles.body}>
-        <Pressable
-          style={styles.artWrap}
-          disabled={!songId}
-          onPress={() => songId && router.push(`/song/${songId}`)}
-        >
+        <Pressable style={styles.artWrap} disabled={!songId} onPress={() => songId && router.push(`/song/${songId}`)}>
           {current?.artworkUrl ? (
             <Image source={{ uri: current.artworkUrl }} style={styles.art} />
           ) : (
-            <View style={[styles.art, styles.artPlaceholder]}>
-              <Disc3 color={colors.textFaint} size={72} />
-            </View>
+            <View style={[styles.art, styles.artPlaceholder]}><Disc3 color={colors.textFaint} size={72} /></View>
           )}
         </Pressable>
 
@@ -135,7 +120,6 @@ export default function PlayerScreen() {
           </Text>
         </Pressable>
 
-        {/* Real waveform + timecoded reaction popups */}
         <Waveform
           songId={songId}
           streamUrl={current?.streamUrl}
@@ -149,7 +133,6 @@ export default function PlayerScreen() {
           <Text style={styles.time}>{formatDuration(durationSeconds)}</Text>
         </View>
 
-        {/* Rating stars + emoji reaction popover share one row to save space */}
         <View style={styles.emojiRow}>
           {songId ? <RatingStars songId={songId} size={20} /> : null}
           <ReactionPicker onReact={(e) => void onReact(e)} reactionEmojis={reactions.map((r) => r.emoji)} />
@@ -173,7 +156,41 @@ export default function PlayerScreen() {
             <RepeatIcon color={repeat !== "off" ? colors.accent : colors.textFaint} one={repeat === "one"} size={22} />
           </Pressable>
         </View>
+
+        {/* Secondary toggles: shuffle-versions, mute, + a discreet details link */}
+        <View style={styles.secondary}>
+          <Pressable style={styles.secBtn} onPress={toggleShuffleVersions}>
+            <Boxes color={shuffleVersions ? colors.accent : colors.textFaint} size={18} />
+            <Text style={[styles.secLabel, shuffleVersions && styles.secLabelOn]}>Shuffle versions</Text>
+          </Pressable>
+          <Pressable style={styles.secBtn} onPress={toggleMute}>
+            {muted ? <VolumeX color={colors.danger} size={18} /> : <Volume2 color={colors.textFaint} size={18} />}
+            <Text style={[styles.secLabel, muted && styles.secLabelMuted]}>{muted ? "Muted" : "Mute"}</Text>
+          </Pressable>
+          <Pressable style={styles.secBtn} disabled={!songId} onPress={() => songId && router.push(`/song/${songId}`)}>
+            <Info color={colors.textFaint} size={18} />
+            <Text style={styles.secLabel}>Details</Text>
+          </Pressable>
+        </View>
       </View>
+
+      {/* Themed bottom-sheet menu (replaces the iOS action sheet) */}
+      <Modal visible={menuOpen} transparent animationType="slide" onRequestClose={() => setMenuOpen(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setMenuOpen(false)} />
+        <View style={styles.sheet}>
+          <View style={styles.grabber} />
+          {current?.title ? <Text style={styles.sheetTitle} numberOfLines={1}>{current.title}</Text> : null}
+          {menu.map((m) => (
+            <Pressable key={m.label} style={styles.menuRow} onPress={() => runMenu(m.go)}>
+              <m.Icon color={colors.accent} size={20} />
+              <Text style={styles.menuLabel}>{m.label}</Text>
+            </Pressable>
+          ))}
+          <Pressable style={styles.cancelRow} onPress={() => setMenuOpen(false)}>
+            <Text style={styles.cancelText}>Close</Text>
+          </Pressable>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -198,5 +215,19 @@ function makeStyles(c: ThemeColors) {
     btnSmall: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
     btn: { width: 56, height: 56, alignItems: "center", justifyContent: "center" },
     btnPlay: { width: 72, height: 72, borderRadius: 36, backgroundColor: c.accentStrong },
+    secondary: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 22 },
+    secBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: c.surface, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
+    secLabel: { color: c.textDim, fontSize: 12, fontWeight: "600" },
+    secLabelOn: { color: c.accent },
+    secLabelMuted: { color: c.danger },
+    // bottom-sheet menu
+    backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)" },
+    sheet: { backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 8, paddingTop: 8, paddingBottom: 34 },
+    grabber: { alignSelf: "center", width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, marginBottom: 8 },
+    sheetTitle: { color: c.textDim, fontSize: 13, fontWeight: "600", paddingHorizontal: 14, paddingBottom: 8 },
+    menuRow: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12 },
+    menuLabel: { color: c.text, fontSize: 16 },
+    cancelRow: { alignItems: "center", paddingVertical: 14, marginTop: 4 },
+    cancelText: { color: c.textDim, fontSize: 16, fontWeight: "600" },
   });
 }

@@ -9,4 +9,6 @@ export {
   jumpTo,
   toggleShuffle,
   toggleRepeat,
+  toggleShuffleVersions,
+  toggleMute,
 } from "./audio";

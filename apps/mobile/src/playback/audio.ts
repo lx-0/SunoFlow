@@ -2,13 +2,15 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-aud
 import * as SecureStore from "expo-secure-store";
 import type { Song } from "@/types";
 import { recordPlay } from "@/api/history";
+import { fetchSongVersions } from "@/api/song-versions";
 import { enableRemoteControls, onRemoteNext, onRemotePrevious } from "../../modules/remote-controls";
 
 export type RepeatMode = "off" | "all" | "one";
 
-// Persist the user's shuffle/repeat preference across app launches.
+// Persist the user's shuffle/repeat/shuffle-versions preference across launches.
 const SHUFFLE_KEY = "sunoflow.playback.shuffle";
 const REPEAT_KEY = "sunoflow.playback.repeat";
+const SHUFFLE_VERSIONS_KEY = "sunoflow.playback.shuffleVersions";
 
 // Queue controller around expo-audio. ONE long-lived AudioPlayer (it owns the
 // lock-screen / Control Center widget — AudioPlaylist has no lock-screen support).
@@ -28,6 +30,8 @@ export interface PlaybackSnapshot {
   queue: Song[];
   shuffle: boolean;
   repeat: RepeatMode;
+  shuffleVersions: boolean;
+  muted: boolean;
 }
 
 let player: AudioPlayer | null = null;
@@ -35,6 +39,8 @@ let queue: Song[] = []; // active (possibly shuffled) order
 let originalQueue: Song[] = []; // canonical order, to restore when shuffle is off
 let shuffle = false;
 let repeat: RepeatMode = "off";
+let shuffleVersions = false;
+let muted = false;
 let index = 0;
 let advancing = false; // guard: one auto-advance per track end
 let pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -51,6 +57,8 @@ let snapshot: PlaybackSnapshot = {
   queue: [],
   shuffle: false,
   repeat: "off",
+  shuffleVersions: false,
+  muted: false,
 };
 const listeners = new Set<() => void>();
 
@@ -75,13 +83,15 @@ export function getSnapshot(): PlaybackSnapshot {
 // playing yet. Fire-and-forget; defaults stand if storage is empty/unavailable.
 void (async () => {
   try {
-    const [s, r] = await Promise.all([
+    const [s, r, sv] = await Promise.all([
       SecureStore.getItemAsync(SHUFFLE_KEY),
       SecureStore.getItemAsync(REPEAT_KEY),
+      SecureStore.getItemAsync(SHUFFLE_VERSIONS_KEY),
     ]);
     if (s === "1") shuffle = true;
     if (r === "all" || r === "one") repeat = r;
-    if (shuffle || repeat !== "off") patch({ shuffle, repeat });
+    if (sv === "1") shuffleVersions = true;
+    if (shuffle || repeat !== "off" || shuffleVersions) patch({ shuffle, repeat, shuffleVersions });
   } catch {
     // ignore — defaults stand
   }
@@ -171,6 +181,7 @@ async function loadCurrent(): Promise<void> {
   // Re-assert next/prev: expo-audio reconfigures the command center per track and
   // may disable them, so enable again after updateLockScreenMetadata.
   enableRemoteControls();
+  p.muted = muted; // carry the mute state across track changes
   patch({ current: song, playing: true, positionSeconds: 0, durationSeconds: song.durationSeconds ?? 0, index, queueLength: queue.length, queue });
   p.play();
 
@@ -187,10 +198,29 @@ function shuffleInPlace<T>(arr: T[]): void {
   }
 }
 
+/** If shuffle-versions is on, swap a song for a random alternate playable version. */
+async function maybeRandomVersion(song: Song | undefined): Promise<Song | undefined> {
+  if (!shuffleVersions || !song) return song;
+  try {
+    const versions = (await fetchSongVersions(song.id)).filter((v) => v.streamUrl);
+    if (versions.length <= 1) return song;
+    return versions[Math.floor(Math.random() * versions.length)];
+  } catch {
+    return song; // never block playback on a versions lookup
+  }
+}
+
 /** Replace the queue with `songs` and start playing at `startIndex`. */
 export async function playQueue(songs: Song[], startIndex = 0): Promise<void> {
   originalQueue = [...songs];
   const start = Math.max(0, Math.min(startIndex, songs.length - 1));
+  // Shuffle-versions: swap the track the user starts on for a random version.
+  // Applied only here (user-initiated), never in the background auto-advance path.
+  const startReplacement = await maybeRandomVersion(songs[start]);
+  if (startReplacement && startReplacement.id !== songs[start]?.id) {
+    songs = songs.map((s, i) => (i === start ? startReplacement : s));
+    originalQueue = [...songs];
+  }
   if (shuffle) {
     // Keep the chosen track first, shuffle the rest behind it.
     const startSong = songs[start];
@@ -276,6 +306,20 @@ export function toggleRepeat(): void {
   repeat = repeat === "off" ? "all" : repeat === "all" ? "one" : "off";
   patch({ repeat });
   SecureStore.setItemAsync(REPEAT_KEY, repeat).catch(() => {});
+}
+
+/** Toggle "shuffle versions" — play a random alternate version when a song starts. */
+export function toggleShuffleVersions(): void {
+  shuffleVersions = !shuffleVersions;
+  patch({ shuffleVersions });
+  SecureStore.setItemAsync(SHUFFLE_VERSIONS_KEY, shuffleVersions ? "1" : "0").catch(() => {});
+}
+
+/** Mute / unmute the player. */
+export function toggleMute(): void {
+  muted = !muted;
+  if (player) player.muted = muted;
+  patch({ muted });
 }
 
 export function seekTo(seconds: number): void {
