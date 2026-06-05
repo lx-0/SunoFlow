@@ -9,10 +9,11 @@ import {
   StyleSheet,
 } from "react-native";
 import { Stack, router } from "expo-router";
-import { Search as SearchIcon, ListMusic } from "lucide-react-native";
+import { Search as SearchIcon, ListMusic, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { search, type SearchResults } from "@/api/search";
 import { playQueue } from "@/playback/controls";
+import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
@@ -80,15 +81,21 @@ export default function SearchScreen() {
       </View>
 
       {status === "idle" ? (
-        <View style={styles.centered}>
-          <Text style={styles.dim}>Search your songs and playlists.</Text>
-        </View>
+        <EmptyState
+          Icon={SearchIcon}
+          title="Search your songs"
+          subtitle="Find songs and playlists in your library."
+        />
       ) : status === "loading" ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : status === "error" ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error ?? "Search failed"} />
       ) : !hasResults ? (
-        <View style={styles.centered}><Text style={styles.dim}>No results.</Text></View>
+        <EmptyState
+          Icon={SearchIcon}
+          title="No results"
+          subtitle="Try a different search term."
+        />
       ) : (
         <FlatList
           data={songs}

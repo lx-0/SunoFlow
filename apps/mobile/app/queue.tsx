@@ -1,8 +1,10 @@
 import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
 import { Stack } from "expo-router";
+import { ListMusic } from "lucide-react-native";
 import { usePlayback } from "@/playback/usePlayback";
 import { jumpTo } from "@/playback/audio";
 import { PlayIcon } from "@/components/Icons";
+import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -17,9 +19,11 @@ export default function QueueScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Up Next" }} />
       {queue.length === 0 ? (
-        <View style={styles.centered}>
-          <Text style={styles.dim}>Queue is empty.</Text>
-        </View>
+        <EmptyState
+          Icon={ListMusic}
+          title="Queue is empty"
+          subtitle="Play something to build a queue."
+        />
       ) : (
         <FlatList
           data={queue}
@@ -55,7 +59,6 @@ export default function QueueScreen() {
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
-    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
     row: {
       flexDirection: "row",
       alignItems: "center",

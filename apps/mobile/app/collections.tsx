@@ -1,9 +1,10 @@
 import { useCallback, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
-import { Library, ChevronRight } from "lucide-react-native";
+import { Library, ChevronRight, LayoutGrid, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchCollections, type CollectionSummary } from "@/api/collections";
+import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -31,11 +32,15 @@ export default function CollectionsScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Collections" }} />
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !collections ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : collections.length === 0 ? (
-        <View style={styles.centered}><Text style={styles.dim}>No collections yet.</Text></View>
+        <EmptyState
+          Icon={LayoutGrid}
+          title="No collections yet"
+          subtitle="Curated collections will show up here."
+        />
       ) : (
         <FlatList
           data={collections}

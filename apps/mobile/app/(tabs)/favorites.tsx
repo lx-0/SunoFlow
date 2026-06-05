@@ -1,11 +1,13 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, ActivityIndicator, StyleSheet } from "react-native";
+import { View, FlatList, ActivityIndicator, StyleSheet } from "react-native";
 import { router, useFocusEffect } from "expo-router";
+import { Heart, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchFavorites } from "@/api/favorites";
 import { playQueue } from "@/playback/controls";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { SongRow } from "@/components/SongRow";
+import { EmptyState } from "@/components/EmptyState";
 import type { Song } from "@/types";
 
 // Favorites: the user's liked songs. Reloads on focus so toggles made elsewhere
@@ -30,11 +32,17 @@ export default function FavoritesScreen() {
   return (
     <View style={styles.container}>
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !songs ? (
         <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
       ) : songs.length === 0 ? (
-        <View style={styles.centered}><Text style={styles.dim}>No favorites yet. Tap the heart on a song.</Text></View>
+        <EmptyState
+          Icon={Heart}
+          title="No favorites yet"
+          subtitle="Tap the heart on a song to keep it here."
+          ctaLabel="Browse library"
+          onCta={() => router.push("/")}
+        />
       ) : (
         <FlatList
           data={songs}
@@ -64,5 +72,4 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
   row: { paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: "#1c1c22", borderBottomWidth: StyleSheet.hairlineWidth },
   title: { color: "#fff", fontSize: 16 },
-  dim: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
 });

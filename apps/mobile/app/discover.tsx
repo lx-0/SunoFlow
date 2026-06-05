@@ -9,10 +9,12 @@ import {
   StyleSheet,
 } from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
+import { Globe, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { DISCOVER_MOODS, fetchDiscover } from "@/api/discover";
 import { playQueue } from "@/playback/controls";
 import { SongRow } from "@/components/SongRow";
+import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
@@ -131,19 +133,17 @@ export default function DiscoverScreen() {
       </View>
 
       {error ? (
-        <View style={styles.centered}>
-          <Text style={styles.dim}>{error}</Text>
-        </View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !songs ? (
         <View style={styles.centered}>
           <ActivityIndicator color={colors.text} />
         </View>
       ) : songs.length === 0 ? (
-        <View style={styles.centered}>
-          <Text style={styles.dim}>
-            {mood ? "No songs for this mood." : "Nothing to discover yet."}
-          </Text>
-        </View>
+        <EmptyState
+          Icon={Globe}
+          title={mood ? "No songs for this mood" : "Nothing to discover yet"}
+          subtitle={mood ? "Try another mood." : "Check back soon for trending and new songs."}
+        />
       ) : (
         <FlatList
           data={songs}
@@ -197,6 +197,5 @@ function makeStyles(c: ThemeColors) {
     chipTextActive: { color: c.onAccent },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
     footer: { paddingVertical: 16 },
-    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
   });
 }

@@ -10,11 +10,12 @@ import {
   StyleSheet,
 } from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
-import { Radio, ChevronDown } from "lucide-react-native";
+import { Radio, ChevronDown, AlertCircle } from "lucide-react-native";
 import { formatDuration } from "@sunoflow/core";
 import { HttpError } from "@/api/client";
 import { fetchRadio, RADIO_MOODS, RADIO_GENRES } from "@/api/radio";
 import { playQueue } from "@/playback/controls";
+import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
@@ -138,7 +139,7 @@ export default function RadioScreen() {
       {error ? (
         <>
           {header}
-          <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+          <EmptyState tone="error" Icon={AlertCircle} title={error} />
         </>
       ) : !songs ? (
         <>
@@ -148,9 +149,11 @@ export default function RadioScreen() {
       ) : songs.length === 0 ? (
         <>
           {header}
-          <View style={styles.centered}>
-            <Text style={styles.dim}>No station available right now. Try another mood or genre, or generate and like some songs first.</Text>
-          </View>
+          <EmptyState
+            Icon={Radio}
+            title="No station available"
+            subtitle="Try another mood or genre, or generate and like some songs first."
+          />
         </>
       ) : (
         <FlatList

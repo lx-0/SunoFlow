@@ -1,10 +1,11 @@
 import { useCallback, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
-import { Sparkles } from "lucide-react-native";
+import { Sparkles, Wand2, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchSmartPlaylists } from "@/api/smart-playlists";
 import type { PlaylistSummary } from "@/api/playlists";
+import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -35,11 +36,15 @@ export default function SmartPlaylistsScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Smart Playlists" }} />
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !playlists ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : playlists.length === 0 ? (
-        <View style={styles.centered}><Text style={styles.dim}>No smart playlists yet.</Text></View>
+        <EmptyState
+          Icon={Wand2}
+          title="No smart playlists yet"
+          subtitle="Auto-curated playlists will appear here as you listen."
+        />
       ) : (
         <FlatList
           data={playlists}

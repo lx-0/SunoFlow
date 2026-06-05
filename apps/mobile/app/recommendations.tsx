@@ -1,10 +1,12 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, ActivityIndicator, StyleSheet } from "react-native";
+import { View, FlatList, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
+import { Sparkles, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchRecommendations } from "@/api/recommendations";
 import { playQueue } from "@/playback/controls";
 import { SongRow } from "@/components/SongRow";
+import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
@@ -34,11 +36,15 @@ export default function RecommendationsScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "For You" }} />
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !songs ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : songs.length === 0 ? (
-        <View style={styles.centered}><Text style={styles.dim}>No recommendations yet. Listen to a few songs to get started.</Text></View>
+        <EmptyState
+          Icon={Sparkles}
+          title="No recommendations yet"
+          subtitle="Listen to a few songs to get started."
+        />
       ) : (
         <FlatList
           data={songs}
@@ -66,8 +72,5 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-    row: { paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: c.border, borderBottomWidth: StyleSheet.hairlineWidth },
-    title: { color: c.text, fontSize: 16 },
-    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
   });
 }

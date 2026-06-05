@@ -1,9 +1,10 @@
 import { useCallback, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
-import { Tag as TagIcon } from "lucide-react-native";
+import { Tag as TagIcon, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchTags, type Tag } from "@/api/tags";
+import { EmptyState } from "@/components/EmptyState";
 
 // Tags: browse the user's tags. Reloads on focus. Tap a tag to see its songs.
 export default function TagsScreen() {
@@ -27,11 +28,15 @@ export default function TagsScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Tags" }} />
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !tags ? (
         <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
       ) : tags.length === 0 ? (
-        <View style={styles.centered}><Text style={styles.dim}>No tags yet. Tag songs in the web app.</Text></View>
+        <EmptyState
+          Icon={TagIcon}
+          title="No tags yet"
+          subtitle="Tag songs in the web app to organize them here."
+        />
       ) : (
         <FlatList
           data={tags}
@@ -73,5 +78,4 @@ const styles = StyleSheet.create({
   meta: { flex: 1 },
   title: { color: "#fff", fontSize: 16 },
   count: { color: "#6a6a72", fontSize: 13, fontVariant: ["tabular-nums"] },
-  dim: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
 });

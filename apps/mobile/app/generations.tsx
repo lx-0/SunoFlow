@@ -1,9 +1,11 @@
 import { useCallback, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
+import { Sparkles, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchGenerations, type Generation } from "@/api/generations";
 import { playQueue } from "@/playback/controls";
+import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
@@ -62,11 +64,17 @@ export default function GenerationsScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Generations" }} />
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !items ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : items.length === 0 ? (
-        <View style={styles.centered}><Text style={styles.dim}>No generations yet.</Text></View>
+        <EmptyState
+          Icon={Sparkles}
+          title="No generations yet"
+          subtitle="Create your first song to see it here."
+          ctaLabel="Generate a song"
+          onCta={() => router.push("/generate")}
+        />
       ) : (
         <FlatList
           data={items}
@@ -128,6 +136,5 @@ function makeStyles(c: ThemeColors) {
     badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginRight: 8 },
     badgeText: { fontSize: 11, fontWeight: "600" },
     date: { color: c.textDim, fontSize: 13 },
-    dim: { color: c.textDim, fontSize: 13 },
   });
 }

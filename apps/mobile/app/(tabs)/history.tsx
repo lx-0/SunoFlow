@@ -1,11 +1,13 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, ActivityIndicator, StyleSheet } from "react-native";
+import { View, FlatList, ActivityIndicator, StyleSheet } from "react-native";
 import { router, useFocusEffect } from "expo-router";
+import { Clock, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchHistory } from "@/api/history";
 import { playQueue } from "@/playback/controls";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { SongRow } from "@/components/SongRow";
+import { EmptyState } from "@/components/EmptyState";
 import type { Song } from "@/types";
 
 // History: recently played, newest first. Reloads on focus. The same song can
@@ -30,11 +32,15 @@ export default function HistoryScreen() {
   return (
     <View style={styles.container}>
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !songs ? (
         <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
       ) : songs.length === 0 ? (
-        <View style={styles.centered}><Text style={styles.dim}>Nothing played yet.</Text></View>
+        <EmptyState
+          Icon={Clock}
+          title="Nothing played yet"
+          subtitle="Songs you play will show up here."
+        />
       ) : (
         <FlatList
           data={songs}
@@ -64,5 +70,4 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
   row: { paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: "#1c1c22", borderBottomWidth: StyleSheet.hairlineWidth },
   title: { color: "#fff", fontSize: 16 },
-  dim: { color: "#9a9aa2", fontSize: 13, marginTop: 2 },
 });

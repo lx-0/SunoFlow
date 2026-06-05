@@ -1,11 +1,12 @@
 import { useCallback, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert } from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
-import { Plus } from "lucide-react-native";
+import { Plus, ListMusic, AlertCircle } from "lucide-react-native";
 import { fetchPlaylists, type PlaylistSummary } from "@/api/playlists";
 import { createPlaylist } from "@/api/playlist-actions";
 import { HttpError } from "@/api/client";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
+import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -64,9 +65,27 @@ export default function PlaylistsScreen() {
     />
   );
 
-  if (error) return <C>{header}<Text style={st.dim}>{error}</Text></C>;
+  if (error)
+    return (
+      <View style={st.list}>
+        {header}
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
+      </View>
+    );
   if (!items) return <C>{header}<ActivityIndicator color={colors.text} /></C>;
-  if (items.length === 0) return <C>{header}<Text style={st.dim}>No playlists yet.</Text></C>;
+  if (items.length === 0)
+    return (
+      <View style={st.list}>
+        {header}
+        <EmptyState
+          Icon={ListMusic}
+          title="No playlists yet"
+          subtitle="Group your favorite songs into a playlist."
+          ctaLabel="New playlist"
+          onCta={promptCreate}
+        />
+      </View>
+    );
 
   return (
     <View style={st.list}>

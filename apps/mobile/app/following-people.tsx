@@ -3,10 +3,11 @@ import {
   View, Text, Image, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS,
 } from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
-import { Users, MoreHorizontal } from "lucide-react-native";
+import { Users, MoreHorizontal, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchFollowing, type FollowedUser } from "@/api/follows";
 import { unfollowUser } from "@/api/users";
+import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -78,13 +79,15 @@ export default function FollowingPeopleScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Following" }} />
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !users ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : users.length === 0 ? (
-        <View style={styles.centered}>
-          <Text style={styles.dim}>You aren&apos;t following anyone yet. Follow creators to see them here.</Text>
-        </View>
+        <EmptyState
+          Icon={Users}
+          title="Not following anyone yet"
+          subtitle="Follow creators to see them here."
+        />
       ) : (
         <FlatList
           data={users}
