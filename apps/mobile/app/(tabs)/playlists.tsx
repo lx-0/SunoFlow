@@ -1,9 +1,10 @@
 import { useCallback, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert } from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
-import { Plus, ListMusic, AlertCircle } from "lucide-react-native";
-import { fetchPlaylists, type PlaylistSummary } from "@/api/playlists";
+import { Plus, ListMusic, AlertCircle, Play, Shuffle } from "lucide-react-native";
+import { fetchPlaylists, fetchPlaylistSongs, type PlaylistSummary } from "@/api/playlists";
 import { createPlaylist } from "@/api/playlist-actions";
+import { playQueue } from "@/playback/controls";
 import { HttpError } from "@/api/client";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { EmptyState } from "@/components/EmptyState";
@@ -53,6 +54,20 @@ export default function PlaylistsScreen() {
     );
   }, [load]);
 
+  async function playPlaylist(p: PlaylistSummary, shuffled: boolean) {
+    if (p.songCount === 0) return;
+    try {
+      const songs = await fetchPlaylistSongs(p.id);
+      if (songs.length === 0) { Alert.alert("Nothing to play", "This playlist has no playable tracks."); return; }
+      const list = shuffled ? [...songs].sort(() => Math.random() - 0.5) : songs;
+      await playQueue(list, 0);
+      router.push("/player");
+    } catch (e) {
+      Alert.alert("Couldn't play", "Please try again.");
+      console.error("[playlists] play failed", e);
+    }
+  }
+
   const header = (
     <Stack.Screen
       options={{
@@ -95,15 +110,27 @@ export default function PlaylistsScreen() {
         keyExtractor={(p) => p.id}
         contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
         renderItem={({ item }) => (
-          <Pressable style={st.row} onPress={() => router.push(`/playlist/${item.id}`)}>
-            <View style={st.thumb}>
-              <ListMusic color={colors.textFaint} size={24} />
-            </View>
-            <View style={st.meta}>
-              <Text style={st.title} numberOfLines={1}>{item.name}</Text>
-              <Text style={st.dim}>{item.songCount} {item.songCount === 1 ? "song" : "songs"}</Text>
-            </View>
-          </Pressable>
+          <View style={st.row}>
+            <Pressable style={st.rowMain} onPress={() => router.push(`/playlist/${item.id}`)}>
+              <View style={st.thumb}>
+                <ListMusic color={colors.textFaint} size={24} />
+              </View>
+              <View style={st.meta}>
+                <Text style={st.title} numberOfLines={1}>{item.name}</Text>
+                <Text style={st.dim}>{item.songCount} {item.songCount === 1 ? "song" : "songs"}</Text>
+              </View>
+            </Pressable>
+            {item.songCount > 0 ? (
+              <View style={st.actions}>
+                <Pressable style={st.actBtn} hitSlop={6} onPress={() => void playPlaylist(item, false)}>
+                  <Play color={colors.accent} fill={colors.accent} size={18} />
+                </Pressable>
+                <Pressable style={st.actBtn} hitSlop={6} onPress={() => void playPlaylist(item, true)}>
+                  <Shuffle color={colors.accent} size={18} />
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
         )}
       />
     </View>
@@ -123,12 +150,14 @@ function makeStyles(c: ThemeColors) {
     row: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 12,
       paddingHorizontal: 16,
       paddingVertical: 12,
       borderBottomColor: c.border,
       borderBottomWidth: StyleSheet.hairlineWidth,
     },
+    rowMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12, minWidth: 0 },
+    actions: { flexDirection: "row", alignItems: "center", gap: 4, marginLeft: 8 },
+    actBtn: { width: 38, height: 38, alignItems: "center", justifyContent: "center", backgroundColor: c.surface, borderRadius: 19 },
     thumb: {
       width: 52,
       height: 52,
