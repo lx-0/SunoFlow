@@ -112,7 +112,12 @@ async function ensurePlayer(): Promise<AudioPlayer> {
     console.error("[audio] setAudioModeAsync failed — background/lock playback may not work", e);
   }
 
-  const p = createAudioPlayer(null);
+  // keepAudioSessionActive: by default expo-audio DEACTIVATES the iOS audio
+  // session when a track finishes. In the background that kills the session right
+  // when auto-advance does replace()+play() for the next track, so the next track
+  // is selected but never starts (lock screen shows Play, not Pause). Keeping the
+  // session active across track-end lets background auto-advance actually play.
+  const p = createAudioPlayer(null, { keepAudioSessionActive: true });
   // showSeek* off → iOS shows next/prev track buttons instead of ±seconds, which
   // our native RemoteControls module enables + forwards to the queue below.
   p.setActiveForLockScreen(true, {}, { showSeekForward: false, showSeekBackward: false });
