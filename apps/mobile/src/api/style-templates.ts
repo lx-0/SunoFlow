@@ -1,4 +1,8 @@
-import { apiGet } from "./client";
+import { apiGet, apiPost, apiPatch, apiDelete } from "./client";
+
+// Validation bounds (mirror the server's createTemplateSchema).
+export const STYLE_TEMPLATE_NAME_MAX = 100;
+export const STYLE_TEMPLATE_TAGS_MAX = 500;
 
 // Style templates talk to the existing web endpoint (authDataRoute → resolveUser
 // accepts the bearer sk- key). GET /api/style-templates returns the user's saved
@@ -41,4 +45,22 @@ export async function fetchStyleTemplates(): Promise<StyleTemplate[]> {
   return (Array.isArray(res?.templates) ? res.templates : [])
     .map(mapTemplate)
     .filter((t): t is StyleTemplate => t !== null);
+}
+
+/** Create a style template (manual — name + tags, no source song needed). */
+export async function createStyleTemplate(name: string, tags: string): Promise<void> {
+  await apiPost("/api/style-templates", { name: name.trim(), tags: tags.trim() });
+}
+
+/** Rename / re-tag an existing style template. */
+export async function updateStyleTemplate(
+  id: string,
+  patch: { name?: string; tags?: string },
+): Promise<void> {
+  await apiPatch(`/api/style-templates/${id}`, patch);
+}
+
+/** Delete a style template. */
+export async function deleteStyleTemplate(id: string): Promise<void> {
+  await apiDelete(`/api/style-templates/${id}`);
 }
