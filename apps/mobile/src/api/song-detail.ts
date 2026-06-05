@@ -20,6 +20,8 @@ export interface SongDetail {
   favoriteCount: number;
   publicSlug: string | null;
   isPublic: boolean;
+  /** generationStatus (ready | pending | failed | …) — gates Retry. */
+  generationStatus: string;
   /** Canonical comma-separated style string (for "save style template"). */
   tagsString: string;
   /** Suno generation task id — needed to clone a voice persona; null if absent. */
@@ -60,6 +62,7 @@ export async function fetchSongDetail(id: string): Promise<SongDetail> {
     favoriteCount: typeof s.favoriteCount === "number" ? s.favoriteCount : 0,
     publicSlug: typeof s.publicSlug === "string" ? s.publicSlug : null,
     isPublic: s.isPublic === true,
+    generationStatus: typeof s.generationStatus === "string" ? s.generationStatus : "ready",
     tagsString: typeof s.tags === "string" ? s.tags : toStringTags(s.tags).join(", "),
     sunoJobId: typeof s.sunoJobId === "string" ? s.sunoJobId : null,
   };

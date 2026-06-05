@@ -2,11 +2,13 @@ import { useCallback, useState } from "react";
 import { View, Text, Image, Pressable, ScrollView, ActivityIndicator, StyleSheet, ActionSheetIOS, Alert } from "react-native";
 import { Stack, useFocusEffect, useLocalSearchParams, router, type Href } from "expo-router";
 import { formatDuration } from "@sunoflow/core";
-import { Play, Disc3, Share2, Sparkles, BarChart2, Layers, MoreHorizontal, Tag as TagIcon, type LucideIcon } from "lucide-react-native";
+import { Play, Disc3, Share2, Sparkles, BarChart2, Layers, MoreHorizontal, Tag as TagIcon, Download, GitBranch, type LucideIcon } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { createStyleTemplate } from "@/api/style-templates";
 import { createPersonaFromSong } from "@/api/personas";
 import { setFeaturedSong } from "@/api/profile";
+import { downloadSong, exportMidi, exportMusicVideo } from "@/api/song-files";
+import { archiveSong, retrySong } from "@/api/song-ops";
 import { fetchSongDetail, detailToSong, renameSong, setSongVisibility, type SongDetail } from "@/api/song-detail";
 import { setFavorite as setFavoriteApi } from "@/api/favorites";
 import { fetchLyrics, type LyricLine } from "@/api/lyrics";
@@ -146,19 +148,56 @@ export default function SongDetailScreen() {
     catch (e) { Alert.alert("Couldn't feature", "Please try again."); console.error("[song-detail] feature failed", e); }
   }
 
-  function moreActions(s: SongDetail) {
-    const visibilityLabel = s.isPublic ? "Make private" : "Make public";
-    const options = ["Rename", visibilityLabel, "Edit tags", "Set as featured", "Save style template", "Create voice persona", "Cancel"];
+  function downloadExport(s: SongDetail) {
     ActionSheetIOS.showActionSheetWithOptions(
-      { title: s.title, options, cancelButtonIndex: 6 },
-      (i) => {
-        if (i === 0) rename(s);
-        else if (i === 1) toggleVisibility(s);
-        else if (i === 2) router.push(`/song-tags/${s.id}` as Href);
-        else if (i === 3) void featureSong(s);
-        else if (i === 4) saveStyleTemplate(s);
-        else if (i === 5) createPersona(s);
+      { title: "Download / Export", options: ["Download MP3", "Download WAV", "Download FLAC", "Export MIDI", "Export music video", "Cancel"], cancelButtonIndex: 5 },
+      async (i) => {
+        try {
+          if (i === 0) await downloadSong(s.id, s.title, "mp3");
+          else if (i === 1) await downloadSong(s.id, s.title, "wav");
+          else if (i === 2) await downloadSong(s.id, s.title, "flac");
+          else if (i === 3) { await exportMidi(s.id); Alert.alert("MIDI export started", "It'll be ready on the web shortly."); }
+          else if (i === 4) { await exportMusicVideo(s.id); Alert.alert("Video export started", "It'll be ready on the web shortly."); }
+        } catch (e) {
+          Alert.alert("Couldn't complete", e instanceof HttpError && e.message ? e.message : "Please try again.");
+          console.error("[song-detail] download/export failed", e);
+        }
       },
+    );
+  }
+
+  function archive(s: SongDetail) {
+    Alert.alert("Archive song?", "It'll be hidden from your library. You can restore it on the web.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Archive", style: "destructive",
+        onPress: async () => {
+          try { await archiveSong(s.id); Alert.alert("Archived", `"${s.title}" was archived.`); router.back(); }
+          catch (e) { Alert.alert("Couldn't archive", "Please try again."); console.error("[song-detail] archive failed", e); }
+        },
+      },
+    ]);
+  }
+
+  async function retry(s: SongDetail) {
+    try { await retrySong(s.id); Alert.alert("Retrying", "Generation restarted."); }
+    catch (e) { Alert.alert("Couldn't retry", e instanceof HttpError && e.message ? e.message : "Please try again."); console.error("[song-detail] retry failed", e); }
+  }
+
+  function moreActions(s: SongDetail) {
+    const acts: { label: string; fn: () => void }[] = [
+      { label: "Rename", fn: () => rename(s) },
+      { label: s.isPublic ? "Make private" : "Make public", fn: () => toggleVisibility(s) },
+      { label: "Set as featured", fn: () => void featureSong(s) },
+      { label: "Save style template", fn: () => saveStyleTemplate(s) },
+      { label: "Create voice persona", fn: () => createPersona(s) },
+    ];
+    if (s.generationStatus === "failed") acts.push({ label: "Retry generation", fn: () => void retry(s) });
+    acts.push({ label: "Archive", fn: () => archive(s) });
+    const archiveIdx = acts.length - 1;
+    ActionSheetIOS.showActionSheetWithOptions(
+      { title: s.title, options: [...acts.map((a) => a.label), "Cancel"], destructiveButtonIndex: archiveIdx, cancelButtonIndex: acts.length },
+      (i) => { if (i >= 0 && i < acts.length) acts[i].fn(); },
     );
   }
 
@@ -198,8 +237,10 @@ export default function SongDetailScreen() {
   const favCount = song.favoriteCount + (favorite && !song.isFavorite ? 1 : 0);
   const secondary: { key: string; label: string; Icon: LucideIcon; onPress: () => void }[] = [
     { key: "extend", label: "Extend", Icon: Sparkles, onPress: () => router.push(`/generate?parentSongId=${song.id}`) },
-    { key: "related", label: "Related", Icon: Disc3, onPress: () => router.push(`/related/${song.id}`) },
+    { key: "versions", label: "Versions", Icon: GitBranch, onPress: () => router.push(`/song-versions/${song.id}` as Href) },
     { key: "stems", label: "Stems", Icon: Layers, onPress: () => router.push(`/stems/${song.id}` as Href) },
+    { key: "download", label: "Download", Icon: Download, onPress: () => downloadExport(song) },
+    { key: "related", label: "Related", Icon: Disc3, onPress: () => router.push(`/related/${song.id}`) },
     { key: "analytics", label: "Analytics", Icon: BarChart2, onPress: () => router.push(`/song-analytics/${song.id}` as Href) },
     { key: "tags", label: "Edit tags", Icon: TagIcon, onPress: () => router.push(`/song-tags/${song.id}` as Href) },
     { key: "more", label: "More", Icon: MoreHorizontal, onPress: () => moreActions(song) },
