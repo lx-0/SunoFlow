@@ -7,6 +7,7 @@ import { HttpError } from "@/api/client";
 import { createStyleTemplate } from "@/api/style-templates";
 import { createPersonaFromSong } from "@/api/personas";
 import { setFeaturedSong } from "@/api/profile";
+import { VideoCover } from "@/components/VideoCover";
 import { downloadSong, exportMidi, exportMusicVideo } from "@/api/song-files";
 import { archiveSong, retrySong } from "@/api/song-ops";
 import { separateVocals, addInstrumental, addVocals, setCoverArt } from "@/api/song-studio";
@@ -311,9 +312,11 @@ export default function SongDetailScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: song.title }} />
 
-      {/* Hero */}
+      {/* Hero — music video plays in place of the cover when one exists */}
       <View style={styles.hero}>
-        {song.artworkUrl ? (
+        {song.videoUrl ? (
+          <VideoCover uri={song.videoUrl} style={styles.art} />
+        ) : song.artworkUrl ? (
           <Image source={{ uri: song.artworkUrl }} style={styles.art} />
         ) : (
           <View style={[styles.art, styles.artPlaceholder]}>

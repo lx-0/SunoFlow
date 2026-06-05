@@ -25,7 +25,8 @@
         {
           "enableBackgroundPlayback": true
         }
-      ]
+      ],
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true

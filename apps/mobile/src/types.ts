@@ -11,6 +11,8 @@ export interface Song {
   streamUrl: string;
   /** cover art URL for now-playing metadata */
   artworkUrl?: string;
+  /** generated music-video URL — shown in place of the cover when present */
+  videoUrl?: string | null;
   durationSeconds?: number;
   /** enriched library fields (present when the API returns them) */
   isFavorite?: boolean;

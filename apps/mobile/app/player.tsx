@@ -14,6 +14,7 @@ import {
 } from "lucide-react-native";
 import { ReactionPicker } from "@/components/ReactionPicker";
 import { RatingButton } from "@/components/RatingButton";
+import { VideoCover } from "@/components/VideoCover";
 import { Waveform } from "@/components/Waveform";
 import { useTimedPopups } from "@/hooks/useTimedPopups";
 import { getFavorite, setFavorite as setFavoriteApi } from "@/api/favorites";
@@ -110,7 +111,9 @@ export default function PlayerScreen() {
 
       <View style={styles.body}>
         <Pressable style={styles.artWrap} disabled={!songId} onPress={() => songId && router.push(`/song/${songId}`)}>
-          {current?.artworkUrl ? (
+          {current?.videoUrl ? (
+            <VideoCover uri={current.videoUrl} style={styles.art} />
+          ) : current?.artworkUrl ? (
             <Image source={{ uri: current.artworkUrl }} style={styles.art} />
           ) : (
             <View style={[styles.art, styles.artPlaceholder]}><Disc3 color={colors.textFaint} size={72} /></View>

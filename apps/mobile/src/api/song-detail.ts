@@ -10,6 +10,7 @@ export interface SongDetail {
   title: string;
   streamUrl?: string;
   artworkUrl?: string;
+  videoUrl?: string | null;
   durationSeconds?: number;
   tags: string[];
   model?: string;
@@ -52,6 +53,7 @@ export async function fetchSongDetail(id: string): Promise<SongDetail> {
     title: typeof s.title === "string" ? s.title : "Untitled",
     streamUrl: typeof s.audioUrl === "string" ? s.audioUrl : undefined,
     artworkUrl: typeof s.imageUrl === "string" ? s.imageUrl : undefined,
+    videoUrl: typeof s.videoUrl === "string" ? s.videoUrl : null,
     durationSeconds: typeof s.duration === "number" ? s.duration : undefined,
     tags: toStringTags(s.tags),
     model: typeof s.model === "string" ? s.model : undefined,
@@ -86,6 +88,7 @@ export function detailToSong(d: SongDetail): Song | null {
     title: d.title,
     streamUrl: d.streamUrl,
     artworkUrl: d.artworkUrl,
+    videoUrl: d.videoUrl,
     durationSeconds: d.durationSeconds,
   };
 }

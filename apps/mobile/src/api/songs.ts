@@ -25,6 +25,7 @@ export function mapApiSong(raw: unknown): Song | null {
     title: typeof src.title === "string" ? src.title : "Untitled",
     streamUrl: audioUrl,
     artworkUrl: typeof src.imageUrl === "string" ? src.imageUrl : undefined,
+    videoUrl: typeof src.videoUrl === "string" ? src.videoUrl : null,
     durationSeconds: typeof src.duration === "number" ? src.duration : undefined,
     isFavorite: src.isFavorite === true,
     rating: typeof src.rating === "number" ? src.rating : null,
