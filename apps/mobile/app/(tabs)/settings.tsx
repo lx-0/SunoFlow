@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { View, Text, Pressable, StyleSheet, Alert, Share, ActivityIndicator } from "react-native";
-import { router, type Href } from "expo-router";
+import { router, useFocusEffect, type Href } from "expo-router";
 import * as FileSystem from "expo-file-system/legacy";
 import { getApiKeyId, clearSession } from "@/auth/session";
 import { apiDelete } from "@/api/client";
 import { exportUserData } from "@/api/account";
+import { fetchCredits, type Credits } from "@/api/credits";
 import { useTheme } from "@/theme/ThemeContext";
 import { THEMES, THEME_LABELS, type ThemeMode, type ThemeName } from "@/theme/theme";
 
@@ -19,6 +20,13 @@ const THEME_NAMES = Object.keys(THEMES) as ThemeName[];
 export default function SettingsScreen() {
   const { colors, scheme, mode, setMode, themeName, setThemeName } = useTheme();
   const [exporting, setExporting] = useState(false);
+  const [credits, setCredits] = useState<Credits | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchCredits().then(setCredits).catch((e) => console.error("[settings] credits load failed", e));
+    }, []),
+  );
 
   async function onExport() {
     if (exporting) return;
@@ -87,6 +95,14 @@ export default function SettingsScreen() {
         })}
       </View>
 
+      <Text style={[styles.sectionTitle, { color: colors.textFaint }]}>Credits</Text>
+      <View style={[styles.row, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.rowText, { color: colors.text }]}>
+          {credits ? `${credits.remaining} of ${credits.budget} left` : "…"}
+        </Text>
+        {credits ? <Text style={[styles.rowSub, { color: colors.textDim }]}>{credits.generationsThisMonth} this month</Text> : null}
+      </View>
+
       <Text style={[styles.sectionTitle, { color: colors.textFaint }]}>Account</Text>
       <Pressable style={[styles.row, { backgroundColor: colors.surface }]} onPress={() => router.push("/change-password" as Href)}>
         <Text style={[styles.rowText, { color: colors.text }]}>Change password</Text>
@@ -94,6 +110,9 @@ export default function SettingsScreen() {
       <Pressable style={[styles.row, { backgroundColor: colors.surface }]} onPress={onExport} disabled={exporting}>
         <Text style={[styles.rowText, { color: colors.text }]}>Export my data</Text>
         {exporting ? <ActivityIndicator color={colors.textDim} /> : null}
+      </Pressable>
+      <Pressable style={[styles.row, { backgroundColor: colors.surface }]} onPress={() => router.push("/delete-account" as Href)}>
+        <Text style={[styles.rowText, { color: colors.danger }]}>Delete account</Text>
       </Pressable>
 
       <Pressable style={[styles.signOut, { backgroundColor: colors.surfaceAlt }]} onPress={signOut}>
@@ -115,6 +134,7 @@ const styles = StyleSheet.create({
   themeText: { fontSize: 14, fontWeight: "600" },
   row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12 },
   rowText: { fontSize: 15 },
+  rowSub: { fontSize: 13 },
   signOut: { marginTop: "auto", alignItems: "center", paddingVertical: 14, borderRadius: 12 },
   signOutText: { fontSize: 15, fontWeight: "600" },
 });

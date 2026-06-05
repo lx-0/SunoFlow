@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { ChevronUp, ChevronDown, Pencil, Trash2 } from "lucide-react-native";
+import { ChevronUp, ChevronDown, Pencil, Trash2, Share2 } from "lucide-react-native";
 import { fetchPlaylistSongs } from "@/api/playlists";
 import { reorderPlaylistSongs, renamePlaylist, deletePlaylist } from "@/api/playlist-actions";
+import { sharePlaylist } from "@/lib/share";
 import { playQueue } from "@/playback/controls";
 import type { Song } from "@/types";
 import { useTheme } from "@/theme/ThemeContext";
@@ -103,6 +104,9 @@ export default function PlaylistDetailScreen() {
                   <Text style={st.editBtn}>{editing ? "Done" : "Edit"}</Text>
                 </Pressable>
               ) : null}
+              <Pressable onPress={() => void sharePlaylist({ id })} hitSlop={8}>
+                <Share2 color={colors.accent} size={20} />
+              </Pressable>
               <Pressable onPress={promptRename} hitSlop={8}>
                 <Pencil color={colors.accent} size={20} />
               </Pressable>
