@@ -88,6 +88,18 @@ export default function PlayerScreen() {
     go();
   }
 
+  // Combined shuffle control: cycles off → shuffle → shuffle+versions → off.
+  function cycleShuffle() {
+    if (shuffleVersions) {
+      if (shuffle) toggleShuffle();
+      toggleShuffleVersions();
+    } else if (shuffle) {
+      toggleShuffleVersions();
+    } else {
+      toggleShuffle();
+    }
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -149,11 +161,17 @@ export default function PlayerScreen() {
 
         {/* Main transport */}
         <View style={styles.row}>
-          <Pressable hitSlop={8} style={styles.btnSmall} onPress={toggleShuffle} accessibilityLabel="Shuffle">
-            <ShuffleIcon color={shuffle ? colors.accent : colors.textFaint} size={22} />
-          </Pressable>
-          <Pressable hitSlop={8} style={styles.btnSmall} onPress={toggleShuffleVersions} accessibilityLabel="Shuffle versions">
-            <Boxes color={shuffleVersions ? colors.accent : colors.textFaint} size={22} />
+          {/* One combined shuffle button: off → shuffle → shuffle + versions → off.
+              In versions mode the shuffle icon gets a tiny Boxes badge. */}
+          <Pressable hitSlop={10} style={styles.btnSmall} onPress={cycleShuffle} accessibilityLabel="Shuffle mode">
+            <View>
+              <ShuffleIcon color={shuffle ? colors.accent : colors.textFaint} size={22} />
+              {shuffleVersions ? (
+                <View style={styles.shuffleBadge}>
+                  <Boxes color={colors.onAccent} size={9} />
+                </View>
+              ) : null}
+            </View>
           </Pressable>
           <Pressable hitSlop={12} style={styles.btn} onPress={() => skipToPrevious()}>
             <SkipPrevIcon color={colors.text} size={28} />
@@ -211,8 +229,9 @@ function makeStyles(c: ThemeColors) {
     times: { alignSelf: "stretch", flexDirection: "row", justifyContent: "space-between", marginTop: 2 },
     time: { color: c.textDim, fontSize: 12, fontVariant: ["tabular-nums"] },
     emojiRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 14 },
-    row: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 24 },
+    row: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 22, marginTop: 24 },
     btnSmall: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+    shuffleBadge: { position: "absolute", right: -7, bottom: -5, backgroundColor: c.accent, borderRadius: 999, padding: 2 },
     btn: { width: 56, height: 56, alignItems: "center", justifyContent: "center" },
     btnPlay: { width: 72, height: 72, borderRadius: 36, backgroundColor: c.accentStrong },
     secBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center", backgroundColor: c.surface, borderRadius: 22 },
