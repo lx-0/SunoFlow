@@ -60,6 +60,7 @@ export default function GenerateScreen() {
   const [personaId, setPersonaId] = useState<string | undefined>(() => paramStr(params.personaId) || undefined);
   const [presets, setPresets] = useState<Preset[]>([]);
   const [styleTemplates, setStyleTemplates] = useState<StyleTemplate[]>([]);
+  const [stStatus, setStStatus] = useState<"loading" | "ready" | "error">("loading");
   const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
   const [personas, setPersonas] = useState<Persona[]>([]);
 
@@ -81,12 +82,19 @@ export default function GenerateScreen() {
     };
   }, []);
 
+  const loadStyleTemplates = useCallback(() => {
+    setStStatus("loading");
+    fetchStyleTemplates()
+      .then((t) => { setStyleTemplates(t); setStStatus("ready"); })
+      .catch((e) => { setStStatus("error"); console.error("[generate] style templates load failed", e); });
+  }, []);
+
   useEffect(() => {
     fetchPresets().then(setPresets).catch((e) => console.error("[generate] presets load failed", e));
-    fetchStyleTemplates().then(setStyleTemplates).catch((e) => console.error("[generate] style templates load failed", e));
+    loadStyleTemplates();
     fetchPromptTemplates().then(setPromptTemplates).catch((e) => console.error("[generate] prompt templates load failed", e));
     fetchPersonas().then(setPersonas).catch((e) => console.error("[generate] personas load failed", e));
-  }, []);
+  }, [loadStyleTemplates]);
 
   function applyPreset(p: Preset) {
     setTitle(p.title ?? "");
@@ -296,18 +304,32 @@ export default function GenerateScreen() {
             </>
           ) : null}
 
-          {styleTemplates.length > 0 ? (
-            <>
-              <Text style={styles.label}>Style templates</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetRow}>
-                {styleTemplates.map((t) => (
-                  <Pressable key={t.id} style={styles.presetChip} onPress={() => applyStyleTemplate(t)}>
-                    <Text style={styles.presetText} numberOfLines={1}>{t.name}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </>
-          ) : null}
+          {/* Style templates — ALWAYS shown (matches the PWA), with explicit
+              loading / empty / error states so it can't silently vanish. */}
+          <Text style={styles.label}>Style templates</Text>
+          {stStatus === "loading" ? (
+            <Text style={styles.dim}>Loading…</Text>
+          ) : stStatus === "error" ? (
+            <Pressable onPress={loadStyleTemplates}>
+              <Text style={styles.retry}>Couldn&apos;t load style templates — tap to retry</Text>
+            </Pressable>
+          ) : styleTemplates.length === 0 ? (
+            <Text style={styles.dim}>
+              No style templates yet. Save one from a song&apos;s menu on the web, then pick it here.
+            </Text>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetRow}>
+              {styleTemplates.map((t) => (
+                <Pressable
+                  key={t.id}
+                  style={[styles.presetChip, style === t.tags && styles.chipActive]}
+                  onPress={() => applyStyleTemplate(t)}
+                >
+                  <Text style={styles.presetText} numberOfLines={1}>{t.name}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
 
           {promptTemplates.length > 0 ? (
             <>
@@ -485,6 +507,7 @@ function makeStyles(c: ThemeColors) {
     secondaryBtnText: { color: c.accent, fontSize: 15, fontWeight: "600" },
     statusTitle: { color: c.text, fontSize: 18, fontWeight: "700", marginTop: 6 },
     dim: { color: c.textDim, fontSize: 13 },
+    retry: { color: c.accent, fontSize: 13, fontWeight: "600" },
     inlineError: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.surfaceAlt, borderRadius: 10, padding: 12, marginTop: 16 },
     inlineErrorText: { flex: 1, color: c.danger, fontSize: 13 },
   });
