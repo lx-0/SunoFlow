@@ -316,43 +316,6 @@ export default function GenerateScreen() {
             </Text>
           </View>
 
-          {suggestions.length > 0 ? (
-            <>
-              <Text style={styles.label}>Suggested for you</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetRow}>
-                {suggestions.map((s) => (
-                  <Pressable
-                    key={s.id}
-                    style={[styles.presetChip, style === s.stylePrompt && styles.chipActive]}
-                    onPress={() => applySuggestion(s)}
-                  >
-                    {s.source === "personal" ? <Star color={colors.star} size={12} fill={colors.star} /> : null}
-                    <Text style={styles.presetText} numberOfLines={1}>{s.label}</Text>
-                    {s.isInstrumental ? <Text style={styles.badge}>Instr</Text> : null}
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </>
-          ) : null}
-
-          {trending.length > 0 ? (
-            <>
-              <Text style={styles.label}>Trending combos</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetRow}>
-                {trending.map((c) => (
-                  <Pressable
-                    key={c.id}
-                    style={[styles.presetChip, style === c.stylePrompt && styles.chipActive]}
-                    onPress={() => applyTrending(c)}
-                  >
-                    <Text style={styles.presetText} numberOfLines={1}>{c.label}</Text>
-                    {c.displayScore ? <Text style={styles.badge}>{c.displayScore}</Text> : null}
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </>
-          ) : null}
-
           {presets.length > 0 ? (
             <>
               <Text style={styles.label}>Presets</Text>
@@ -444,6 +407,44 @@ export default function GenerateScreen() {
             </Pressable>
           ) : stStatus === "ready" ? (
             <Text style={styles.dim}>No style templates yet — save one from a song&apos;s menu on the web.</Text>
+          ) : null}
+
+          {/* Style-setting quick pickers live WITH the Style field (they all fill it). */}
+          {suggestions.length > 0 ? (
+            <>
+              <Text style={styles.label}>Suggested for you</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetRow}>
+                {suggestions.map((s) => (
+                  <Pressable
+                    key={s.id}
+                    style={[styles.presetChip, style === s.stylePrompt && styles.chipActive]}
+                    onPress={() => applySuggestion(s)}
+                  >
+                    {s.source === "personal" ? <Star color={colors.star} size={12} fill={colors.star} /> : null}
+                    <Text style={[styles.presetText, style === s.stylePrompt && styles.chipActiveText]} numberOfLines={1}>{s.label}</Text>
+                    {s.isInstrumental ? <Text style={styles.badge}>Instr</Text> : null}
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </>
+          ) : null}
+
+          {trending.length > 0 ? (
+            <>
+              <Text style={styles.label}>Trending combos</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetRow}>
+                {trending.map((c) => (
+                  <Pressable
+                    key={c.id}
+                    style={[styles.presetChip, style === c.stylePrompt && styles.chipActive]}
+                    onPress={() => applyTrending(c)}
+                  >
+                    <Text style={[styles.presetText, style === c.stylePrompt && styles.chipActiveText]} numberOfLines={1}>{c.label}</Text>
+                    {c.displayScore ? <Text style={styles.badge}>{c.displayScore}</Text> : null}
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </>
           ) : null}
 
           <View style={styles.switchRow}>
