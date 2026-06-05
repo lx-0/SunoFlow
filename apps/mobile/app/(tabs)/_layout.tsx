@@ -1,11 +1,13 @@
 import { View } from "react-native";
 import { Stack } from "expo-router";
-import { MiniPlayer } from "@/components/MiniPlayer";
+import { MiniPlayer, TAB_BAR_HEIGHT } from "@/components/MiniPlayer";
 import { SidebarToggle } from "@/components/Sidebar";
+import { BottomTabBar } from "@/components/BottomTabBar";
 import { useTheme } from "@/theme/ThemeContext";
 
-// Primary screens shell. Navigation is the slide-in Sidebar (hamburger in the
-// header) instead of a bottom tab bar. A MiniPlayer floats at the bottom.
+// Primary screens shell. A custom bottom tab bar covers the core views (Library /
+// Playlists / Favorites / History / Settings); the slide-in Sidebar (hamburger in
+// the header) still reaches everything else. A MiniPlayer floats above the tab bar.
 export default function PrimaryLayout() {
   const { colors } = useTheme();
   return (
@@ -24,7 +26,8 @@ export default function PrimaryLayout() {
         <Stack.Screen name="history" options={{ title: "History" }} />
         <Stack.Screen name="settings" options={{ title: "Settings" }} />
       </Stack>
-      <MiniPlayer />
+      <MiniPlayer tabBarHeight={TAB_BAR_HEIGHT} />
+      <BottomTabBar />
     </View>
   );
 }

@@ -10,13 +10,17 @@ import { useTheme } from "@/theme/ThemeContext";
 // Persistent now-playing bar near the bottom of every primary screen, so playback
 // stays controllable while the user browses. Driven by the expo-audio controller's
 // store. Tap opens the full Now-Playing screen. Hidden when idle.
-const BOTTOM_GAP = 10; // sits just above the home indicator (no tab bar anymore)
+const BOTTOM_GAP = 10; // gap above the tab bar / home indicator
+
+// Standard bottom tab bar content height (excl. safe-area). The (tabs) layout
+// passes this so the MiniPlayer floats just above the tab bar.
+export const TAB_BAR_HEIGHT = 49;
 
 // Bottom padding screens with lists should add so the floating MiniPlayer doesn't
 // cover the last items. ~bar height (56) + gap + a comfortable margin.
 export const MINIPLAYER_CLEARANCE = 96;
 
-export function MiniPlayer() {
+export function MiniPlayer({ tabBarHeight = 0 }: { tabBarHeight?: number }) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { current, playing, positionSeconds, durationSeconds } = usePlayback();
@@ -28,7 +32,7 @@ export function MiniPlayer() {
 
   return (
     <Pressable
-      style={[styles.bar, { backgroundColor: colors.surfaceAlt, bottom: insets.bottom + BOTTOM_GAP }]}
+      style={[styles.bar, { backgroundColor: colors.surfaceAlt, bottom: insets.bottom + tabBarHeight + BOTTOM_GAP }]}
       onPress={() => router.push("/player")}
     >
       {current.artworkUrl ? (
