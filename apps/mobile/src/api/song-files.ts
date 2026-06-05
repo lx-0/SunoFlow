@@ -1,6 +1,6 @@
 import * as FileSystem from "expo-file-system/legacy";
 import { Share } from "react-native";
-import { API_BASE_URL, apiPost } from "./client";
+import { API_BASE_URL, apiGet, apiPost } from "./client";
 import { getApiKey } from "@/auth/session";
 
 // Song download + export. Mirrors the web song-detail Export panel:
@@ -101,4 +101,23 @@ export function exportMusicVideo(songId: string): Promise<TransformStarted> {
     `/api/songs/${encodeURIComponent(songId)}/music-video`,
     {},
   );
+}
+
+export interface VideoStatus {
+  /** Suno status: SUCCESS | *_FAILED | CALLBACK_EXCEPTION | (pending) */
+  status: string;
+  videoUrl: string | null;
+  error: string | null;
+}
+
+/** Poll a music-video generation task. GET /music-video/status?taskId=. */
+export async function fetchMusicVideoStatus(songId: string, taskId: string): Promise<VideoStatus> {
+  const r = await apiGet<{ status?: string; videoUrl?: string; errorMessage?: string; error?: string }>(
+    `/api/songs/${encodeURIComponent(songId)}/music-video/status?taskId=${encodeURIComponent(taskId)}`,
+  );
+  return {
+    status: typeof r?.status === "string" ? r.status : "",
+    videoUrl: typeof r?.videoUrl === "string" ? r.videoUrl : null,
+    error: (typeof r?.errorMessage === "string" ? r.errorMessage : null) ?? (typeof r?.error === "string" ? r.error : null),
+  };
 }

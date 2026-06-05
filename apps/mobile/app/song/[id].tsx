@@ -1,14 +1,14 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { View, Text, Image, Pressable, ScrollView, ActivityIndicator, StyleSheet, ActionSheetIOS, Alert } from "react-native";
 import { Stack, useFocusEffect, useLocalSearchParams, router, type Href } from "expo-router";
 import { formatDuration } from "@sunoflow/core";
-import { Play, Disc3, Share2, Sparkles, BarChart2, Layers, MoreHorizontal, Tag as TagIcon, Download, GitBranch, Wand2, type LucideIcon } from "lucide-react-native";
+import { Play, Disc3, Share2, Sparkles, BarChart2, Layers, MoreHorizontal, Tag as TagIcon, Download, GitBranch, Wand2, Film, type LucideIcon } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { createStyleTemplate } from "@/api/style-templates";
 import { createPersonaFromSong } from "@/api/personas";
 import { setFeaturedSong } from "@/api/profile";
 import { VideoCover } from "@/components/VideoCover";
-import { downloadSong, exportMidi, exportMusicVideo } from "@/api/song-files";
+import { downloadSong, exportMidi, exportMusicVideo, fetchMusicVideoStatus } from "@/api/song-files";
 import { archiveSong, retrySong } from "@/api/song-ops";
 import { separateVocals, addInstrumental, addVocals, setCoverArt } from "@/api/song-studio";
 import { fetchSongDetail, detailToSong, renameSong, setSongVisibility, type SongDetail } from "@/api/song-detail";
@@ -35,6 +35,9 @@ export default function SongDetailScreen() {
   const [favorite, setFavorite] = useState(false);
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
   const [related, setRelated] = useState<Song[]>([]);
+  const [videoBusy, setVideoBusy] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
+  const videoPoll = useRef(0); // bumped to cancel an in-flight poll loop
 
   useFocusEffect(
     useCallback(() => {
@@ -148,6 +151,39 @@ export default function SongDetailScreen() {
   async function featureSong(s: SongDetail) {
     try { await setFeaturedSong(s.id); Alert.alert("Featured", `"${s.title}" is now featured on your profile.`); }
     catch (e) { Alert.alert("Couldn't feature", "Please try again."); console.error("[song-detail] feature failed", e); }
+  }
+
+  // Generate a music video, then poll until it's ready (the hero swaps to the video).
+  async function generateVideo(s: SongDetail) {
+    if (videoBusy) return;
+    setVideoBusy(true);
+    setVideoError(null);
+    const token = ++videoPoll.current;
+    try {
+      const { taskId } = await exportMusicVideo(s.id);
+      for (let i = 0; i < 36; i++) {
+        await new Promise((r) => setTimeout(r, 5000));
+        if (videoPoll.current !== token) return; // superseded / left screen
+        const st = await fetchMusicVideoStatus(s.id, taskId).catch(() => null);
+        if (!st) continue;
+        if (st.status === "SUCCESS" && st.videoUrl) {
+          setSong((prev) => (prev ? { ...prev, videoUrl: st.videoUrl } : prev));
+          setVideoBusy(false);
+          return;
+        }
+        if (st.status.endsWith("FAILED") || st.status === "CALLBACK_EXCEPTION") {
+          setVideoError(st.error ?? "Video generation failed.");
+          setVideoBusy(false);
+          return;
+        }
+      }
+      setVideoError("Still generating — check back in a bit.");
+      setVideoBusy(false);
+    } catch (e) {
+      setVideoError(e instanceof HttpError && e.message ? e.message : "Couldn't start video generation.");
+      setVideoBusy(false);
+      console.error("[song-detail] video gen failed", e);
+    }
   }
 
   function downloadExport(s: SongDetail) {
@@ -367,6 +403,28 @@ export default function SongDetailScreen() {
         ))}
       </View>
 
+      {/* Music video — generate / regenerate (the hero swaps to the video when ready) */}
+      <View style={styles.card}>
+        <View style={styles.cardHead}>
+          <Text style={styles.cardTitle}>Music video</Text>
+          {song.videoUrl && !videoBusy ? <Text style={styles.cardEmpty}>Ready</Text> : null}
+        </View>
+        {videoBusy ? (
+          <View style={styles.videoBusy}>
+            <ActivityIndicator color={colors.accent} />
+            <Text style={styles.body}>Generating your music video… this can take a minute.</Text>
+          </View>
+        ) : (
+          <>
+            {videoError ? <Text style={styles.videoError}>{videoError}</Text> : null}
+            <Pressable style={styles.videoBtn} onPress={() => void generateVideo(song)}>
+              <Film color={colors.onAccent} size={18} />
+              <Text style={styles.videoBtnText}>{song.videoUrl ? "Regenerate video" : "Generate music video"}</Text>
+            </Pressable>
+          </>
+        )}
+      </View>
+
       {/* Tags (tap to edit) */}
       <Pressable style={styles.card} onPress={() => router.push(`/song-tags/${song.id}` as Href)}>
         <View style={styles.cardHead}>
@@ -469,6 +527,10 @@ function makeStyles(c: ThemeColors) {
     cardTitle: { color: c.text, fontSize: 15, fontWeight: "700" },
     cardEmpty: { color: c.textFaint, fontSize: 13 },
     editLink: { color: c.accent, fontSize: 13, fontWeight: "600" },
+    videoBusy: { flexDirection: "row", alignItems: "center", gap: 12 },
+    videoError: { color: c.danger, fontSize: 13, marginBottom: 10 },
+    videoBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 12 },
+    videoBtnText: { color: c.onAccent, fontSize: 15, fontWeight: "700" },
 
     section: { marginTop: 24 },
     sectionTitle: { color: c.textDim, fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6 },
