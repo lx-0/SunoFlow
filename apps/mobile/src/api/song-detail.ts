@@ -19,6 +19,10 @@ export interface SongDetail {
   isFavorite: boolean;
   favoriteCount: number;
   publicSlug: string | null;
+  /** Canonical comma-separated style string (for "save style template"). */
+  tagsString: string;
+  /** Suno generation task id — needed to clone a voice persona; null if absent. */
+  sunoJobId: string | null;
 }
 
 function toStringTags(v: unknown): string[] {
@@ -54,6 +58,8 @@ export async function fetchSongDetail(id: string): Promise<SongDetail> {
     isFavorite: s.isFavorite === true,
     favoriteCount: typeof s.favoriteCount === "number" ? s.favoriteCount : 0,
     publicSlug: typeof s.publicSlug === "string" ? s.publicSlug : null,
+    tagsString: typeof s.tags === "string" ? s.tags : toStringTags(s.tags).join(", "),
+    sunoJobId: typeof s.sunoJobId === "string" ? s.sunoJobId : null,
   };
 }
 

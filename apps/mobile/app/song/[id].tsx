@@ -1,9 +1,11 @@
 import { useCallback, useState } from "react";
-import { View, Text, Image, Pressable, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, Image, Pressable, ScrollView, ActivityIndicator, StyleSheet, ActionSheetIOS, Alert } from "react-native";
 import { Stack, useFocusEffect, useLocalSearchParams, router, type Href } from "expo-router";
 import { formatDuration } from "@sunoflow/core";
-import { Play, Disc3, Share2, Sparkles, BarChart2, Layers } from "lucide-react-native";
+import { Play, Disc3, Share2, Sparkles, BarChart2, Layers, MoreHorizontal } from "lucide-react-native";
 import { HttpError } from "@/api/client";
+import { createStyleTemplate } from "@/api/style-templates";
+import { createPersonaFromSong } from "@/api/personas";
 import { fetchSongDetail, detailToSong, type SongDetail } from "@/api/song-detail";
 import { getFavorite, setFavorite as setFavoriteApi } from "@/api/favorites";
 import { fetchLyrics, type LyricLine } from "@/api/lyrics";
@@ -65,6 +67,51 @@ export default function SongDetailScreen() {
       setFavorite(!next);
       console.error("[song-detail] favorite toggle failed", e);
     }
+  }
+
+  function saveStyleTemplate(s: SongDetail) {
+    const tags = s.tagsString.trim();
+    if (!tags) { Alert.alert("No style to save", "This song has no style tags."); return; }
+    Alert.prompt?.(
+      "Save style template",
+      "Name this style",
+      async (value) => {
+        const name = value?.trim();
+        if (!name) return;
+        try { await createStyleTemplate(name, tags, s.id); Alert.alert("Saved", `Style template "${name}" saved.`); }
+        catch (e) { Alert.alert("Couldn't save", "Please try again."); console.error("[song-detail] save style template failed", e); }
+      },
+      "plain-text",
+      s.title,
+    );
+  }
+
+  function createPersona(s: SongDetail) {
+    if (!s.sunoJobId) { Alert.alert("Not available", "A voice persona can only be cloned from a finished generated song."); return; }
+    Alert.prompt?.(
+      "Create voice persona",
+      "Name this persona (clones this song's voice)",
+      async (value) => {
+        const name = value?.trim();
+        if (!name) return;
+        try {
+          await createPersonaFromSong({ taskId: s.sunoJobId as string, name, songId: s.id, style: s.tagsString.trim() || undefined });
+          Alert.alert("Persona created", `"${name}" is ready to use in Generate.`);
+        } catch (e) {
+          Alert.alert("Couldn't create persona", e instanceof HttpError && e.message ? e.message : "Please try again.");
+          console.error("[song-detail] create persona failed", e);
+        }
+      },
+      "plain-text",
+      `${s.title} voice`,
+    );
+  }
+
+  function moreActions(s: SongDetail) {
+    ActionSheetIOS.showActionSheetWithOptions(
+      { title: s.title, options: ["Save style template", "Create voice persona", "Cancel"], cancelButtonIndex: 2 },
+      (i) => { if (i === 0) saveStyleTemplate(s); else if (i === 1) createPersona(s); },
+    );
   }
 
   if (error) {
@@ -138,6 +185,9 @@ export default function SongDetailScreen() {
         </Pressable>
         <Pressable style={styles.iconBtn} onPress={() => router.push(`/stems/${song.id}` as Href)}>
           <Layers color={colors.text} size={18} />
+        </Pressable>
+        <Pressable style={styles.iconBtn} onPress={() => moreActions(song)}>
+          <MoreHorizontal color={colors.text} size={18} />
         </Pressable>
         <Pressable style={styles.iconBtn} onPress={() => void shareSong({ id: song.id, title: song.title, publicSlug: song.publicSlug })}>
           <Share2 color={colors.text} size={18} />

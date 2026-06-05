@@ -47,9 +47,13 @@ export async function fetchStyleTemplates(): Promise<StyleTemplate[]> {
     .filter((t): t is StyleTemplate => t !== null);
 }
 
-/** Create a style template (manual — name + tags, no source song needed). */
-export async function createStyleTemplate(name: string, tags: string): Promise<void> {
-  await apiPost("/api/style-templates", { name: name.trim(), tags: tags.trim() });
+/** Create a style template. Pass sourceSongId when saving from a song's style. */
+export async function createStyleTemplate(name: string, tags: string, sourceSongId?: string): Promise<void> {
+  await apiPost("/api/style-templates", {
+    name: name.trim(),
+    tags: tags.trim(),
+    ...(sourceSongId ? { sourceSongId } : {}),
+  });
 }
 
 /** Rename / re-tag an existing style template. */
