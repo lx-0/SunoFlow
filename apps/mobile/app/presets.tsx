@@ -3,9 +3,10 @@ import {
   View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS,
 } from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
-import { SlidersHorizontal } from "lucide-react-native";
+import { AlertCircle, SlidersHorizontal } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchPresets, deletePreset, type Preset } from "@/api/presets";
+import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -75,13 +76,15 @@ export default function PresetsScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Presets" }} />
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !presets ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : presets.length === 0 ? (
-        <View style={styles.centered}>
-          <Text style={styles.dim}>No presets yet. Save one from the web app to reuse it here.</Text>
-        </View>
+        <EmptyState
+          Icon={SlidersHorizontal}
+          title="No presets yet"
+          subtitle="Save one from the web app to reuse it here."
+        />
       ) : (
         <FlatList
           data={presets}

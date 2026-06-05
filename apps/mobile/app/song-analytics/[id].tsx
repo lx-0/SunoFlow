@@ -1,8 +1,11 @@
 import { useCallback, useState } from "react";
 import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { TriangleAlert } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchSongAnalytics, type SongAnalytics } from "@/api/song-analytics";
+import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -44,7 +47,7 @@ export default function SongAnalyticsScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Song Analytics" }} />
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState Icon={TriangleAlert} title={error} tone="error" />
       ) : !data ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : (
@@ -130,7 +133,7 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-    scroll: { padding: 16, gap: 16 },
+    scroll: { padding: 16, gap: 16, paddingBottom: MINIPLAYER_CLEARANCE },
     header: { flexDirection: "row", alignItems: "center", gap: 12 },
     title: { flex: 1, color: c.text, fontSize: 22, fontWeight: "800" },
     badge: {

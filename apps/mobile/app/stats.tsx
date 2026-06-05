@@ -1,8 +1,10 @@
 import { useCallback, useState } from "react";
 import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, useFocusEffect } from "expo-router";
-import { Flame, Trophy } from "lucide-react-native";
+import { Flame, Trophy, TriangleAlert } from "lucide-react-native";
 import { HttpError } from "@/api/client";
+import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import {
   fetchStreaks,
   fetchMilestones,
@@ -48,7 +50,7 @@ export default function StatsScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Your Stats" }} />
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState Icon={TriangleAlert} title={error} tone="error" />
       ) : !data ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : (
@@ -137,7 +139,7 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-    scroll: { padding: 16, gap: 16 },
+    scroll: { padding: 16, gap: 16, paddingBottom: MINIPLAYER_CLEARANCE },
     card: {
       backgroundColor: c.surface,
       borderRadius: 14,
@@ -167,8 +169,8 @@ function makeStyles(c: ThemeColors) {
     milestoneLabel: { color: c.text, fontSize: 15, fontWeight: "600" },
     lockedText: { color: c.textDim },
     badge: { fontSize: 11, fontWeight: "700", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, overflow: "hidden" },
-    badgeOn: { color: c.accent, backgroundColor: "rgba(139,124,255,0.15)" },
-    badgeOff: { color: c.textFaint, backgroundColor: "rgba(154,154,162,0.1)" },
+    badgeOn: { color: c.successFg, backgroundColor: c.successBg },
+    badgeOff: { color: c.textFaint, backgroundColor: c.surfaceAlt },
     dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
   });
 }

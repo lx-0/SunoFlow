@@ -1,10 +1,11 @@
 import { useCallback, useState } from "react";
 import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, useFocusEffect } from "expo-router";
-import { BarChart3 } from "lucide-react-native";
+import { BarChart3, TriangleAlert } from "lucide-react-native";
 import type { InsightsResult, TagStat, ComboStat, WeeklyDataPoint } from "@sunoflow/core";
 import { HttpError } from "@/api/client";
 import { fetchInsights } from "@/api/insights";
+import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
@@ -43,16 +44,15 @@ export default function InsightsScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Insights" }} />
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState Icon={TriangleAlert} title={error} tone="error" />
       ) : !data ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : isEmpty ? (
-        <View style={styles.centered}>
-          <BarChart3 color={colors.textFaint} size={40} />
-          <Text style={styles.emptyText}>
-            No feedback yet. Rate songs 👍/👎 to see what styles land.
-          </Text>
-        </View>
+        <EmptyState
+          Icon={BarChart3}
+          title="No feedback yet"
+          subtitle="Rate songs 👍/👎 to see what styles land."
+        />
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
           <SummaryCard data={data} styles={styles} />
@@ -155,7 +155,6 @@ function makeStyles(c: ThemeColors) {
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 14 },
     scroll: { padding: 16, gap: 16, paddingBottom: MINIPLAYER_CLEARANCE },
-    emptyText: { color: c.textDim, fontSize: 14, lineHeight: 20, textAlign: "center" },
     dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
     summaryRow: { flexDirection: "row", gap: 12 },
     tile: {

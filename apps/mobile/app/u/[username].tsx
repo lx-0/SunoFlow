@@ -1,8 +1,10 @@
 import { useCallback, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { User } from "lucide-react-native";
+import { User, Music, Heart, ListMusic, TriangleAlert } from "lucide-react-native";
 import { HttpError } from "@/api/client";
+import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import {
   fetchUserProfile,
   fetchUserSongs,
@@ -103,7 +105,11 @@ export default function UserProfileScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title }} />
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState
+          Icon={TriangleAlert}
+          title={error}
+          tone={error === "User not found" ? "empty" : "error"}
+        />
       ) : !profile || !songs || !liked || !playlists ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : (
@@ -196,8 +202,9 @@ function ProfileContent({
         data={playlists}
         keyExtractor={(p) => p.id}
         ListHeaderComponent={header}
+        contentContainerStyle={styles.listContent}
         ListEmptyComponent={
-          <View style={styles.centered}><Text style={styles.dim}>No public playlists yet.</Text></View>
+          <EmptyState Icon={ListMusic} title="No public playlists yet" />
         }
         renderItem={({ item }) => (
           <Pressable style={styles.row} onPress={() => router.push(`/playlist/${item.id}`)}>
@@ -212,15 +219,15 @@ function ProfileContent({
   }
 
   const list = tab === "liked" ? liked : songs;
-  const emptyText = tab === "liked" ? "No liked songs yet." : "No public songs yet.";
+  const emptyText = tab === "liked" ? "No liked songs yet" : "No public songs yet";
+  const EmptyIcon = tab === "liked" ? Heart : Music;
   return (
     <FlatList
       data={list}
       keyExtractor={(s) => s.id}
       ListHeaderComponent={header}
-      ListEmptyComponent={
-        <View style={styles.centered}><Text style={styles.dim}>{emptyText}</Text></View>
-      }
+      contentContainerStyle={styles.listContent}
+      ListEmptyComponent={<EmptyState Icon={EmptyIcon} title={emptyText} />}
       renderItem={({ item, index }) => (
         <Pressable
           style={styles.row}
@@ -255,6 +262,7 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    listContent: { paddingBottom: MINIPLAYER_CLEARANCE },
     header: {
       paddingHorizontal: 20,
       paddingTop: 16,
@@ -267,9 +275,17 @@ function makeStyles(c: ThemeColors) {
     name: { color: c.text, fontSize: 22, fontWeight: "700" },
     handle: { color: c.textDim, fontSize: 13, marginTop: 2 },
     bio: { color: c.text, fontSize: 14, marginTop: 12, lineHeight: 20 },
-    stats: { flexDirection: "row", marginTop: 16 },
-    stat: { marginRight: 24, alignItems: "flex-start" },
-    statValue: { color: c.text, fontSize: 16, fontWeight: "700", fontVariant: ["tabular-nums"] },
+    stats: {
+      flexDirection: "row",
+      marginTop: 16,
+      backgroundColor: c.surface,
+      borderRadius: 14,
+      borderColor: c.border,
+      borderWidth: StyleSheet.hairlineWidth,
+      paddingVertical: 14,
+    },
+    stat: { flex: 1, alignItems: "center" },
+    statValue: { color: c.text, fontSize: 22, fontWeight: "700", fontVariant: ["tabular-nums"] },
     statLabel: { color: c.textDim, fontSize: 12, marginTop: 2 },
     followBtn: {
       marginTop: 16,

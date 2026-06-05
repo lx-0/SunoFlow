@@ -3,12 +3,13 @@ import {
   View, Text, TextInput, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS, Switch,
 } from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
-import { Plus, X } from "lucide-react-native";
+import { AlertCircle, FileText, Plus, X } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import {
   fetchPromptTemplates, createPromptTemplate, updatePromptTemplate, deletePromptTemplate,
   PROMPT_TEMPLATE_NAME_MAX, type PromptTemplate,
 } from "@/api/prompt-templates";
+import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -202,7 +203,8 @@ export default function PromptTemplatesScreen() {
             <Switch
               value={isInstrumental}
               onValueChange={setIsInstrumental}
-              trackColor={{ false: colors.border, true: colors.accentStrong }}
+              trackColor={{ false: colors.surfaceAlt, true: colors.accentStrong }}
+              thumbColor={colors.onAccent}
             />
           </View>
           <Pressable
@@ -216,13 +218,15 @@ export default function PromptTemplatesScreen() {
       ) : null}
 
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !templates ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : templates.length === 0 ? (
-        <View style={styles.centered}>
-          <Text style={styles.dim}>No prompt templates yet. Tap + to create one.</Text>
-        </View>
+        <EmptyState
+          Icon={FileText}
+          title="No prompt templates yet"
+          subtitle="Tap + to create one."
+        />
       ) : (
         <FlatList
           data={templates}

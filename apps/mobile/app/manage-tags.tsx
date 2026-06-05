@@ -3,9 +3,10 @@ import {
   View, Text, TextInput, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS,
 } from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
-import { Plus, X } from "lucide-react-native";
+import { AlertCircle, Plus, Tag as TagIcon, X } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchTags, createTag, renameTag, deleteTag, type Tag } from "@/api/tags";
+import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -131,13 +132,15 @@ export default function ManageTagsScreen() {
       ) : null}
 
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !tags ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : tags.length === 0 ? (
-        <View style={styles.centered}>
-          <Text style={styles.dim}>No tags yet. Tap + to create one.</Text>
-        </View>
+        <EmptyState
+          Icon={TagIcon}
+          title="No tags yet"
+          subtitle="Tap + to create one."
+        />
       ) : (
         <FlatList
           data={tags}
@@ -174,6 +177,5 @@ function makeStyles(c: ThemeColors) {
     meta: { flex: 1, marginRight: 12 },
     title: { color: c.text, fontSize: 16 },
     count: { color: c.textFaint, fontSize: 13, fontVariant: ["tabular-nums"] },
-    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
   });
 }

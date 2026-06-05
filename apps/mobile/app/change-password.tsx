@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet, Alert } from "react-native";
+import {
+  Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform,
+  ActivityIndicator, StyleSheet, Alert,
+} from "react-native";
 import { Stack, router } from "expo-router";
 import { HttpError } from "@/api/client";
 import { changePassword } from "@/api/account";
@@ -42,29 +45,32 @@ export default function ChangePasswordScreen() {
   const canSubmit = currentPassword.length > 0 && newPassword.length >= 8 && confirmPassword.length > 0 && !busy;
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Stack.Screen options={{ title: "Change Password" }} />
-      <Text style={styles.label}>Current password</Text>
-      <TextInput style={styles.input} value={currentPassword} onChangeText={setCurrent} secureTextEntry autoCapitalize="none" placeholderTextColor={colors.textFaint} />
-      <Text style={styles.label}>New password</Text>
-      <TextInput style={styles.input} value={newPassword} onChangeText={setNew} secureTextEntry autoCapitalize="none" placeholder="At least 8 characters" placeholderTextColor={colors.textFaint} />
-      <Text style={styles.label}>Confirm new password</Text>
-      <TextInput style={styles.input} value={confirmPassword} onChangeText={setConfirm} secureTextEntry autoCapitalize="none" placeholderTextColor={colors.textFaint} />
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <Text style={styles.label}>Current password</Text>
+        <TextInput style={styles.input} value={currentPassword} onChangeText={setCurrent} secureTextEntry autoCapitalize="none" placeholderTextColor={colors.textFaint} />
+        <Text style={styles.label}>New password</Text>
+        <TextInput style={styles.input} value={newPassword} onChangeText={setNew} secureTextEntry autoCapitalize="none" placeholder="At least 8 characters" placeholderTextColor={colors.textFaint} />
+        <Text style={styles.label}>Confirm new password</Text>
+        <TextInput style={styles.input} value={confirmPassword} onChangeText={setConfirm} secureTextEntry autoCapitalize="none" placeholderTextColor={colors.textFaint} />
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Pressable style={[styles.btn, !canSubmit && styles.btnDisabled]} disabled={!canSubmit} onPress={submit}>
-        {busy ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.btnText}>Update password</Text>}
-      </Pressable>
-    </View>
+        <Pressable style={[styles.btn, !canSubmit && styles.btnDisabled]} disabled={!canSubmit} onPress={submit}>
+          {busy ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.btnText}>Update password</Text>}
+        </Pressable>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: c.bg, padding: 20 },
-    label: { color: c.textDim, fontSize: 13, marginTop: 14, marginBottom: 6 },
-    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: 1, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
+    container: { flex: 1, backgroundColor: c.bg },
+    content: { padding: 20, paddingBottom: 40 },
+    label: { color: c.textDim, fontSize: 13, marginTop: 12, marginBottom: 6 },
+    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
     error: { color: c.danger, fontSize: 13, marginTop: 14 },
     btn: { backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 24 },
     btnDisabled: { opacity: 0.45 },

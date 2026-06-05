@@ -1,8 +1,11 @@
 import { useCallback, useState } from "react";
 import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, useFocusEffect } from "expo-router";
+import { Gauge, TriangleAlert } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchRateLimits, type RateLimit } from "@/api/rate-limit";
+import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -40,11 +43,11 @@ export default function RateLimitsScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Rate Limits" }} />
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState Icon={TriangleAlert} title={error} tone="error" />
       ) : !limits ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : limits.length === 0 ? (
-        <View style={styles.centered}><Text style={styles.dim}>No rate limits to show.</Text></View>
+        <EmptyState Icon={Gauge} title="No rate limits to show" />
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
           {limits.map((rl) => (
@@ -88,7 +91,7 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-    scroll: { padding: 16, gap: 12 },
+    scroll: { padding: 16, gap: 12, paddingBottom: MINIPLAYER_CLEARANCE },
     card: {
       backgroundColor: c.surface,
       borderRadius: 14,
@@ -108,6 +111,5 @@ function makeStyles(c: ThemeColors) {
     },
     fill: { height: "100%", borderRadius: 3, backgroundColor: c.accent },
     reset: { color: c.textDim, fontSize: 13 },
-    dim: { color: c.textDim, fontSize: 13 },
   });
 }

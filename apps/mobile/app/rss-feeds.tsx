@@ -3,9 +3,10 @@ import {
   View, Text, TextInput, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS,
 } from "react-native";
 import { Stack, useFocusEffect } from "expo-router";
-import { Plus, X } from "lucide-react-native";
+import { AlertCircle, Plus, Rss, X } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchRssFeeds, addRssFeed, deleteRssFeed, type RssFeed } from "@/api/rss";
+import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -115,13 +116,15 @@ export default function RssFeedsScreen() {
       ) : null}
 
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !feeds ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : feeds.length === 0 ? (
-        <View style={styles.centered}>
-          <Text style={styles.dim}>No feeds yet. Tap + to add one.</Text>
-        </View>
+        <EmptyState
+          Icon={Rss}
+          title="No feeds yet"
+          subtitle="Tap + to add one."
+        />
       ) : (
         <FlatList
           data={feeds}

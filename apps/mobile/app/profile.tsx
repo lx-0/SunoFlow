@@ -486,7 +486,7 @@ function makeStyles(c: ThemeColors) {
     input: {
       backgroundColor: c.surfaceAlt,
       borderColor: c.border,
-      borderWidth: 1,
+      borderWidth: StyleSheet.hairlineWidth,
       borderRadius: 10,
       color: c.text,
       fontSize: 15,
@@ -497,7 +497,7 @@ function makeStyles(c: ThemeColors) {
     picker: {
       backgroundColor: c.surfaceAlt,
       borderColor: c.border,
-      borderWidth: 1,
+      borderWidth: StyleSheet.hairlineWidth,
       borderRadius: 10,
       paddingHorizontal: 14,
       paddingVertical: 12,

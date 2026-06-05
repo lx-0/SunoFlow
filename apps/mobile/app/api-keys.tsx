@@ -3,13 +3,14 @@ import {
   View, Text, TextInput, FlatList, Pressable, Switch, ActivityIndicator, StyleSheet, Alert,
 } from "react-native";
 import { Stack, useFocusEffect } from "expo-router";
-import { Plus, X } from "lucide-react-native";
+import { AlertCircle, Plus, X } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import {
   fetchSunoKey, setUsePersonalKey, setSunoApiKey,
   fetchPersonalKeys, createPersonalKey, deletePersonalKey,
   type SunoKeyState, type PersonalKey,
 } from "@/api/api-keys";
+import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -131,7 +132,7 @@ export default function ApiKeysScreen() {
       <Stack.Screen options={{ title: "API Keys" }} />
 
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !suno || !keys ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : (
