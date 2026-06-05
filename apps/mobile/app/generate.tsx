@@ -355,33 +355,6 @@ export default function GenerateScreen() {
             </>
           ) : null}
 
-          {/* Style templates — ALWAYS shown (matches the PWA), with explicit
-              loading / empty / error states so it can't silently vanish. */}
-          <Text style={styles.label}>Style templates</Text>
-          {stStatus === "loading" ? (
-            <Text style={styles.dim}>Loading…</Text>
-          ) : stStatus === "error" ? (
-            <Pressable onPress={loadStyleTemplates}>
-              <Text style={styles.retry}>Couldn&apos;t load style templates — tap to retry</Text>
-            </Pressable>
-          ) : styleTemplates.length === 0 ? (
-            <Text style={styles.dim}>
-              No style templates yet. Save one from a song&apos;s menu on the web, then pick it here.
-            </Text>
-          ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetRow}>
-              {styleTemplates.map((t) => (
-                <Pressable
-                  key={t.id}
-                  style={[styles.presetChip, style === t.tags && styles.chipActive]}
-                  onPress={() => applyStyleTemplate(t)}
-                >
-                  <Text style={styles.presetText} numberOfLines={1}>{t.name}</Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          )}
-
           {promptTemplates.length > 0 ? (
             <>
               <Text style={styles.label}>Prompt templates</Text>
@@ -441,6 +414,33 @@ export default function GenerateScreen() {
               <Text style={styles.miniText}>{autoFilling ? "Filling…" : "Auto-fill"}</Text>
             </Pressable>
           </View>
+
+          {/* Style templates fill the Style field — placed right under it (matches
+              the web). Always shown, with loading / empty / error(+retry) states. */}
+          <Text style={styles.label}>Style templates</Text>
+          {stStatus === "loading" ? (
+            <Text style={styles.dim}>Loading…</Text>
+          ) : stStatus === "error" ? (
+            <Pressable onPress={loadStyleTemplates}>
+              <Text style={styles.retry}>Couldn&apos;t load style templates — tap to retry</Text>
+            </Pressable>
+          ) : styleTemplates.length === 0 ? (
+            <Text style={styles.dim}>
+              No style templates yet. Save one from a song&apos;s menu on the web, then pick it here.
+            </Text>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetRow}>
+              {styleTemplates.map((t) => (
+                <Pressable
+                  key={t.id}
+                  style={[styles.presetChip, style === t.tags && styles.chipActive]}
+                  onPress={() => applyStyleTemplate(t)}
+                >
+                  <Text style={[styles.presetText, style === t.tags && styles.chipActiveText]} numberOfLines={1}>{t.name}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
 
           <View style={styles.switchRow}>
             <View style={styles.flex}>
