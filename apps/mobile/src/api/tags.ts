@@ -1,4 +1,4 @@
-import { apiGet } from "./client";
+import { apiDelete, apiGet, apiPost } from "./client";
 import { mapApiSong } from "./songs";
 import type { Song } from "@/types";
 
@@ -60,4 +60,57 @@ export async function fetchSongsByTag(tagId: string): Promise<Song[]> {
   return (Array.isArray(res.songs) ? res.songs : [])
     .map(mapApiSong)
     .filter((s): s is Song => s !== null);
+}
+
+// --- Per-song tag editing (owner-only on the web; bearer key resolves the user) ---
+//
+// GET    /api/songs/:id/tags          → { tags: Tag[] }  (full tag rows)
+// POST   /api/songs/:id/tags  { name } → creates/assigns the tag to the song
+// DELETE /api/songs/:id/tags/:tagId    → unassigns the tag from the song
+
+/** A song's tag, trimmed to the fields the editor needs. */
+export interface SongTag {
+  id: string;
+  name: string;
+}
+
+interface SongTagsResponse {
+  tags: unknown[];
+}
+
+/** Defensive map of one raw API song-tag → SongTag. Returns null if unusable. */
+function mapApiSongTag(raw: unknown): SongTag | null {
+  if (!raw || typeof raw !== "object") return null;
+  const t = raw as Record<string, unknown>;
+  const { id, name } = t;
+  if (typeof id !== "string" || !id) return null;
+  if (typeof name !== "string" || !name) return null;
+  return { id, name };
+}
+
+/** The tags currently assigned to a song (alphabetical, per the web endpoint). */
+export async function fetchSongTags(songId: string): Promise<SongTag[]> {
+  const res = await apiGet<SongTagsResponse>(
+    `/api/songs/${encodeURIComponent(songId)}/tags`,
+  );
+  return (Array.isArray(res.tags) ? res.tags : [])
+    .map(mapApiSongTag)
+    .filter((t): t is SongTag => t !== null);
+}
+
+/** Add (create-or-assign) a tag to a song by name. */
+export async function addSongTag(songId: string, name: string): Promise<void> {
+  await apiPost(`/api/songs/${encodeURIComponent(songId)}/tags`, {
+    name: name.trim(),
+  });
+}
+
+/** Remove a tag from a song by tag id. */
+export async function removeSongTag(
+  songId: string,
+  tagId: string,
+): Promise<void> {
+  await apiDelete(
+    `/api/songs/${encodeURIComponent(songId)}/tags/${encodeURIComponent(tagId)}`,
+  );
 }

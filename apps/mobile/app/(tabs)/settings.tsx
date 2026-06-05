@@ -111,6 +111,9 @@ export default function SettingsScreen() {
       <Pressable style={[styles.row, { backgroundColor: colors.surface }]} onPress={() => router.push("/notification-settings" as Href)}>
         <Text style={[styles.rowText, { color: colors.text }]}>Notifications</Text>
       </Pressable>
+      <Pressable style={[styles.row, { backgroundColor: colors.surface }]} onPress={() => router.push("/feedback" as Href)}>
+        <Text style={[styles.rowText, { color: colors.text }]}>Send feedback</Text>
+      </Pressable>
 
       <Text style={[styles.sectionTitle, { color: colors.textFaint }]}>Account</Text>
       <Pressable style={[styles.row, { backgroundColor: colors.surface }]} onPress={() => router.push("/change-password" as Href)}>

@@ -1,9 +1,16 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert } from "react-native";
+import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS } from "react-native";
 import { Stack, router, useLocalSearchParams, useFocusEffect, type Href } from "expo-router";
-import { ChevronUp, ChevronDown, Pencil, Trash2, Share2, Users } from "lucide-react-native";
+import { ChevronUp, ChevronDown, Pencil, Trash2, Share2, Users, MoreHorizontal } from "lucide-react-native";
 import { fetchPlaylistSongs } from "@/api/playlists";
-import { reorderPlaylistSongs, renamePlaylist, deletePlaylist } from "@/api/playlist-actions";
+import {
+  reorderPlaylistSongs,
+  renamePlaylist,
+  deletePlaylist,
+  copyPlaylist,
+  setPlaylistPublished,
+  fetchPlaylistPublished,
+} from "@/api/playlist-actions";
 import { sharePlaylist } from "@/lib/share";
 import { playQueue } from "@/playback/controls";
 import type { Song } from "@/types";
@@ -17,6 +24,7 @@ export default function PlaylistDetailScreen() {
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
 
   const load = useCallback(() => {
     if (!id) return;
@@ -25,6 +33,12 @@ export default function PlaylistDetailScreen() {
       .catch((e) => {
         setError("Failed to load playlist");
         console.error("[playlist] load failed", e);
+      });
+    // Published state drives the overflow menu label; non-fatal if it fails.
+    fetchPlaylistPublished(id)
+      .then(setIsPublic)
+      .catch((e) => {
+        console.error("[playlist] published-state load failed", e);
       });
   }, [id]);
 
@@ -91,6 +105,59 @@ export default function PlaylistDetailScreen() {
     ]);
   }
 
+  async function duplicate() {
+    if (!id) return;
+    try {
+      const newId = await copyPlaylist(id);
+      router.push(`/playlist/${newId}` as Href);
+      Alert.alert("Duplicated", "A copy was added to your playlists.");
+    } catch (e) {
+      console.error("[playlist] duplicate failed", e);
+      Alert.alert("Couldn't duplicate playlist", "Please try again.");
+    }
+  }
+
+  function togglePublish() {
+    if (!id) return;
+    const next = !isPublic;
+    Alert.alert(
+      next ? "Make public" : "Make private",
+      next
+        ? "This playlist will be published and discoverable."
+        : "This playlist will no longer be published.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: next ? "Make public" : "Make private",
+          onPress: async () => {
+            try {
+              await setPlaylistPublished(id, next);
+              setIsPublic(next);
+            } catch (e) {
+              console.error("[playlist] publish toggle failed", e);
+              Alert.alert("Couldn't update visibility", "Please try again.");
+            }
+          },
+        },
+      ],
+    );
+  }
+
+  function openOverflow() {
+    if (!id) return;
+    const publishLabel = isPublic ? "Make private" : "Make public";
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: ["Duplicate playlist", publishLabel, "Cancel"],
+        cancelButtonIndex: 2,
+      },
+      (index) => {
+        if (index === 0) void duplicate();
+        else if (index === 1) togglePublish();
+      },
+    );
+  }
+
   if (error) return <C colors={colors}><Text style={st.dim}>{error}</Text></C>;
   if (!songs) return <C colors={colors}><ActivityIndicator color={colors.text} /></C>;
 
@@ -117,6 +184,9 @@ export default function PlaylistDetailScreen() {
               </Pressable>
               <Pressable onPress={confirmDelete} hitSlop={8}>
                 <Trash2 color={colors.danger} size={20} />
+              </Pressable>
+              <Pressable onPress={openOverflow} hitSlop={8}>
+                <MoreHorizontal color={colors.accent} size={20} />
               </Pressable>
             </View>
           ),

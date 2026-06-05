@@ -78,8 +78,14 @@ export async function updateProfile(input: {
   name?: string;
   bio?: string | null;
   username?: string | null;
+  featuredSongId?: string | null;
 }): Promise<void> {
   await apiPatch<unknown>("/api/profile", input);
+}
+
+/** Set (or clear) the song featured on your public profile. */
+export async function setFeaturedSong(songId: string | null): Promise<void> {
+  await apiPatch<unknown>("/api/profile", { featuredSongId: songId });
 }
 
 // GET/PATCH /api/profile/preferences return the data object directly (no

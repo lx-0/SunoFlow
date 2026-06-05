@@ -6,6 +6,7 @@ import { Play, Disc3, Share2, Sparkles, BarChart2, Layers, MoreHorizontal } from
 import { HttpError } from "@/api/client";
 import { createStyleTemplate } from "@/api/style-templates";
 import { createPersonaFromSong } from "@/api/personas";
+import { setFeaturedSong } from "@/api/profile";
 import { fetchSongDetail, detailToSong, renameSong, setSongVisibility, type SongDetail } from "@/api/song-detail";
 import { getFavorite, setFavorite as setFavoriteApi } from "@/api/favorites";
 import { fetchLyrics, type LyricLine } from "@/api/lyrics";
@@ -140,16 +141,23 @@ export default function SongDetailScreen() {
     );
   }
 
+  async function featureSong(s: SongDetail) {
+    try { await setFeaturedSong(s.id); Alert.alert("Featured", `"${s.title}" is now featured on your profile.`); }
+    catch (e) { Alert.alert("Couldn't feature", "Please try again."); console.error("[song-detail] feature failed", e); }
+  }
+
   function moreActions(s: SongDetail) {
     const visibilityLabel = s.isPublic ? "Make private" : "Make public";
-    const options = ["Rename", visibilityLabel, "Save style template", "Create voice persona", "Cancel"];
+    const options = ["Rename", visibilityLabel, "Edit tags", "Set as featured", "Save style template", "Create voice persona", "Cancel"];
     ActionSheetIOS.showActionSheetWithOptions(
-      { title: s.title, options, cancelButtonIndex: 4 },
+      { title: s.title, options, cancelButtonIndex: 6 },
       (i) => {
         if (i === 0) rename(s);
         else if (i === 1) toggleVisibility(s);
-        else if (i === 2) saveStyleTemplate(s);
-        else if (i === 3) createPersona(s);
+        else if (i === 2) router.push(`/song-tags/${s.id}` as Href);
+        else if (i === 3) void featureSong(s);
+        else if (i === 4) saveStyleTemplate(s);
+        else if (i === 5) createPersona(s);
       },
     );
   }
