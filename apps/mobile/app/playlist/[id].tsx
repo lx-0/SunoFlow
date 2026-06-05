@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert } from "react-native";
-import { Stack, router, useLocalSearchParams } from "expo-router";
-import { ChevronUp, ChevronDown, Pencil, Trash2, Share2 } from "lucide-react-native";
+import { Stack, router, useLocalSearchParams, type Href } from "expo-router";
+import { ChevronUp, ChevronDown, Pencil, Trash2, Share2, Users } from "lucide-react-native";
 import { fetchPlaylistSongs } from "@/api/playlists";
 import { reorderPlaylistSongs, renamePlaylist, deletePlaylist } from "@/api/playlist-actions";
 import { sharePlaylist } from "@/lib/share";
@@ -104,6 +104,9 @@ export default function PlaylistDetailScreen() {
                   <Text style={st.editBtn}>{editing ? "Done" : "Edit"}</Text>
                 </Pressable>
               ) : null}
+              <Pressable onPress={() => router.push(`/collaborators/${id}` as Href)} hitSlop={8}>
+                <Users color={colors.accent} size={20} />
+              </Pressable>
               <Pressable onPress={() => void sharePlaylist({ id })} hitSlop={8}>
                 <Share2 color={colors.accent} size={20} />
               </Pressable>
