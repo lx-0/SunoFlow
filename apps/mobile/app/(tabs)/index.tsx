@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, Image, Pressable, FlatList, ActivityIndicator, TextInput, ActionSheetIOS, StyleSheet } from "react-native";
 import { router } from "expo-router";
-import { ArrowUpDown, LayoutGrid, List, SlidersHorizontal } from "lucide-react-native";
+import { ArrowUpDown, LayoutGrid, List, SlidersHorizontal, Disc3, Heart } from "lucide-react-native";
+import { formatDuration } from "@sunoflow/core";
 import { HttpError } from "@/api/client";
 import {
   fetchSongsPage,
@@ -230,12 +231,26 @@ export default function LibraryScreen() {
           renderItem={({ item, index }) =>
             view === "grid" ? (
               <Pressable style={styles.gridItem} onPress={() => play(songs, index)}>
-                {item.artworkUrl ? (
-                  <Image source={{ uri: item.artworkUrl }} style={styles.gridArt} />
-                ) : (
-                  <View style={[styles.gridArt, styles.gridPlaceholder]} />
-                )}
+                <View style={styles.gridArtWrap}>
+                  {item.artworkUrl ? (
+                    <Image source={{ uri: item.artworkUrl }} style={styles.gridArt} />
+                  ) : (
+                    <View style={[styles.gridArt, styles.gridPlaceholder]}>
+                      <Disc3 color={colors.textFaint} size={40} />
+                    </View>
+                  )}
+                  {item.isFavorite ? (
+                    <View style={styles.gridFav}>
+                      <Heart color={colors.danger} fill={colors.danger} size={14} />
+                    </View>
+                  ) : null}
+                </View>
                 <Text style={styles.gridTitle} numberOfLines={1}>{item.title}</Text>
+                {(item.artist || item.durationSeconds) ? (
+                  <Text style={styles.gridSub} numberOfLines={1}>
+                    {[item.artist, item.durationSeconds ? formatDuration(item.durationSeconds) : null].filter(Boolean).join("  ·  ")}
+                  </Text>
+                ) : null}
               </Pressable>
             ) : (
               <SongRow song={item} onPress={() => play(songs, index)} />
@@ -268,9 +283,12 @@ function makeStyles(c: ThemeColors) {
     dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
     footer: { paddingVertical: 18 },
     gridRow: { paddingHorizontal: 12, gap: 12 },
-    gridItem: { flex: 1, marginBottom: 16, maxWidth: "50%" },
-    gridArt: { width: "100%", aspectRatio: 1, borderRadius: 10, backgroundColor: c.surfaceAlt },
-    gridPlaceholder: { backgroundColor: c.surfaceAlt },
-    gridTitle: { color: c.text, fontSize: 14, marginTop: 6 },
+    gridItem: { flex: 1, marginBottom: 18, maxWidth: "50%" },
+    gridArtWrap: { borderRadius: 14, shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
+    gridArt: { width: "100%", aspectRatio: 1, borderRadius: 14, backgroundColor: c.surfaceAlt },
+    gridPlaceholder: { alignItems: "center", justifyContent: "center" },
+    gridFav: { position: "absolute", top: 8, right: 8, backgroundColor: c.bg, opacity: 0.92, borderRadius: 999, padding: 5 },
+    gridTitle: { color: c.text, fontSize: 14, fontWeight: "600", marginTop: 8 },
+    gridSub: { color: c.textDim, fontSize: 12, marginTop: 2 },
   });
 }
