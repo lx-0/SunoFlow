@@ -1,4 +1,4 @@
-import { apiGet } from "@/api/client";
+import { apiGet, apiPatch } from "@/api/client";
 import type { Song } from "@/types";
 
 // Full song detail (mirrors the web SongDetailView). GET /api/songs/[id] returns
@@ -19,6 +19,7 @@ export interface SongDetail {
   isFavorite: boolean;
   favoriteCount: number;
   publicSlug: string | null;
+  isPublic: boolean;
   /** Canonical comma-separated style string (for "save style template"). */
   tagsString: string;
   /** Suno generation task id — needed to clone a voice persona; null if absent. */
@@ -58,9 +59,20 @@ export async function fetchSongDetail(id: string): Promise<SongDetail> {
     isFavorite: s.isFavorite === true,
     favoriteCount: typeof s.favoriteCount === "number" ? s.favoriteCount : 0,
     publicSlug: typeof s.publicSlug === "string" ? s.publicSlug : null,
+    isPublic: s.isPublic === true,
     tagsString: typeof s.tags === "string" ? s.tags : toStringTags(s.tags).join(", "),
     sunoJobId: typeof s.sunoJobId === "string" ? s.sunoJobId : null,
   };
+}
+
+/** Rename a song (PATCH /api/songs/[id] { title }). */
+export async function renameSong(id: string, title: string): Promise<void> {
+  await apiPatch(`/api/songs/${id}`, { title: title.trim() });
+}
+
+/** Toggle a song between public and private (server maps visibility → isPublic). */
+export async function setSongVisibility(id: string, visibility: "public" | "private"): Promise<void> {
+  await apiPatch(`/api/songs/${id}`, { visibility });
 }
 
 /** Build a playable Song from a detail (null if not playable). */

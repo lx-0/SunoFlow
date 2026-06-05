@@ -6,7 +6,7 @@ import { Play, Disc3, Share2, Sparkles, BarChart2, Layers, MoreHorizontal } from
 import { HttpError } from "@/api/client";
 import { createStyleTemplate } from "@/api/style-templates";
 import { createPersonaFromSong } from "@/api/personas";
-import { fetchSongDetail, detailToSong, type SongDetail } from "@/api/song-detail";
+import { fetchSongDetail, detailToSong, renameSong, setSongVisibility, type SongDetail } from "@/api/song-detail";
 import { getFavorite, setFavorite as setFavoriteApi } from "@/api/favorites";
 import { fetchLyrics, type LyricLine } from "@/api/lyrics";
 import { fetchRelated } from "@/api/related";
@@ -107,10 +107,50 @@ export default function SongDetailScreen() {
     );
   }
 
+  function rename(s: SongDetail) {
+    Alert.prompt?.(
+      "Rename song",
+      undefined,
+      async (value) => {
+        const title = value?.trim();
+        if (!title || title === s.title) return;
+        try { await renameSong(s.id, title); setSong((prev) => (prev ? { ...prev, title } : prev)); }
+        catch (e) { Alert.alert("Couldn't rename", "Please try again."); console.error("[song-detail] rename failed", e); }
+      },
+      "plain-text",
+      s.title,
+    );
+  }
+
+  function toggleVisibility(s: SongDetail) {
+    const next = s.isPublic ? "private" : "public";
+    Alert.alert(
+      next === "public" ? "Make public?" : "Make private?",
+      next === "public" ? "Anyone with the link can listen." : "Only you can see this song.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: next === "public" ? "Make public" : "Make private",
+          onPress: async () => {
+            try { await setSongVisibility(s.id, next); setSong((prev) => (prev ? { ...prev, isPublic: next === "public" } : prev)); }
+            catch (e) { Alert.alert("Couldn't update", "Please try again."); console.error("[song-detail] visibility failed", e); }
+          },
+        },
+      ],
+    );
+  }
+
   function moreActions(s: SongDetail) {
+    const visibilityLabel = s.isPublic ? "Make private" : "Make public";
+    const options = ["Rename", visibilityLabel, "Save style template", "Create voice persona", "Cancel"];
     ActionSheetIOS.showActionSheetWithOptions(
-      { title: s.title, options: ["Save style template", "Create voice persona", "Cancel"], cancelButtonIndex: 2 },
-      (i) => { if (i === 0) saveStyleTemplate(s); else if (i === 1) createPersona(s); },
+      { title: s.title, options, cancelButtonIndex: 4 },
+      (i) => {
+        if (i === 0) rename(s);
+        else if (i === 1) toggleVisibility(s);
+        else if (i === 2) saveStyleTemplate(s);
+        else if (i === 3) createPersona(s);
+      },
     );
   }
 
