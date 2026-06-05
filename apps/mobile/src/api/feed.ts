@@ -62,11 +62,50 @@ function mapPublicSong(raw: unknown): Song | null {
   };
 }
 
-export async function fetchFeed(): Promise<Song[]> {
+/** A playable feed song plus the activity context (who did what, when). */
+export interface FeedEntry {
+  song: Song;
+  actor: string | null;
+  verb: string;
+  createdAt: string | null;
+}
+
+const VERBS: Record<string, string> = {
+  song_created: "created",
+  song_favorited: "favorited",
+  song_added_to_playlist: "added to a playlist",
+  song_removed_from_playlist: "removed from a playlist",
+  playlist_created: "created a playlist",
+};
+
+/** First activity context per song id (actor name, verb, time). */
+function feedContexts(items: unknown[]): Map<string, { actor: string | null; verb: string; createdAt: string | null }> {
+  const ctx = new Map<string, { actor: string | null; verb: string; createdAt: string | null }>();
+  for (const raw of items) {
+    if (!raw || typeof raw !== "object") continue;
+    const item = raw as Record<string, unknown>;
+    const song = item.song;
+    if (!song || typeof song !== "object") continue;
+    const id = (song as Record<string, unknown>).id;
+    if (typeof id !== "string" || !id || ctx.has(id)) continue;
+    const user = item.user && typeof item.user === "object" ? (item.user as Record<string, unknown>) : null;
+    const type = typeof item.type === "string" ? item.type : "";
+    ctx.set(id, {
+      actor: user && typeof user.name === "string" ? user.name : null,
+      verb: VERBS[type] ?? "shared",
+      createdAt: typeof item.createdAt === "string" ? item.createdAt : null,
+    });
+  }
+  return ctx;
+}
+
+/** Playable feed entries with activity context, in feed order. */
+export async function fetchFeedEntries(): Promise<FeedEntry[]> {
   const feed = await apiGet<FeedResponse>("/api/feed");
   const items = Array.isArray(feed?.items) ? feed.items : [];
   const ids = feedSongIds(items);
   if (ids.length === 0) return [];
+  const ctx = feedContexts(items);
 
   // Resolve playable URLs from the public catalog (audioUrl-bearing rows).
   const pub = await apiGet<PublicSongsResponse>("/api/songs/public?limit=100&sort=newest");
@@ -79,6 +118,15 @@ export async function fetchFeed(): Promise<Song[]> {
 
   // Preserve feed order; drop feed songs we couldn't resolve to a stream.
   return ids
-    .map((id) => byId.get(id))
-    .filter((s): s is Song => s !== undefined);
+    .map((id) => {
+      const song = byId.get(id);
+      if (!song) return null;
+      const c = ctx.get(id);
+      return { song, actor: c?.actor ?? null, verb: c?.verb ?? "shared", createdAt: c?.createdAt ?? null };
+    })
+    .filter((e): e is FeedEntry => e !== null);
+}
+
+export async function fetchFeed(): Promise<Song[]> {
+  return (await fetchFeedEntries()).map((e) => e.song);
 }
