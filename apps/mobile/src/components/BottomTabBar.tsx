@@ -1,7 +1,7 @@
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { router, usePathname, type Href } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BookOpen, ListMusic, Heart, Clock, Settings as SettingsIcon, type LucideIcon } from "lucide-react-native";
+import { BookOpen, ListMusic, Heart, Clock, User, type LucideIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -16,7 +16,7 @@ const TABS: Tab[] = [
   { label: "Playlists", route: "/playlists", Icon: ListMusic },
   { label: "Favorites", route: "/favorites", Icon: Heart },
   { label: "History", route: "/history", Icon: Clock },
-  { label: "Settings", route: "/settings", Icon: SettingsIcon },
+  { label: "Profile", route: "/profile", Icon: User },
 ];
 
 export function BottomTabBar() {

@@ -259,6 +259,39 @@ export default function ProfileScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          {/* Stats — top of profile */}
+          {stats ? (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Stats</Text>
+              <View style={styles.grid}>
+                <StatItem label="Songs" value={String(stats.totalSongs)} styles={styles} />
+                <StatItem label="Favorites" value={String(stats.totalFavorites)} styles={styles} />
+                <StatItem label="Playlists" value={String(stats.totalPlaylists)} styles={styles} />
+                <StatItem label="Followers" value={String(stats.followersCount)} styles={styles} />
+                <StatItem label="Following" value={String(stats.followingCount)} styles={styles} />
+              </View>
+              <Text style={styles.memberSince}>
+                Member since {stats.memberSince ? new Date(stats.memberSince).toLocaleDateString() : "–"}
+              </Text>
+            </View>
+          ) : null}
+
+          {/* Streak */}
+          {streak ? (
+            <View style={styles.card}>
+              <View style={styles.streakRow}>
+                <Flame color={colors.warnFg ?? colors.accent} size={16} />
+                <Text style={styles.streakText}>
+                  {streak.currentStreak} day streak · longest {streak.longestStreak}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
+          {secondaryError ? (
+            <Text style={styles.secondaryError}>Couldn&apos;t load some stats. Pull back later to retry.</Text>
+          ) : null}
+
           {/* Editable identity */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Profile</Text>
@@ -397,39 +430,6 @@ export default function ProfileScreen() {
                 </Pressable>
                 {prefsSaved && !prefsBusy ? <Text style={styles.savedText}>Saved</Text> : null}
               </View>
-            </View>
-          ) : null}
-
-          {secondaryError ? (
-            <Text style={styles.secondaryError}>Couldn&apos;t load some stats. Pull back later to retry.</Text>
-          ) : null}
-
-          {/* Streak */}
-          {streak ? (
-            <View style={styles.card}>
-              <View style={styles.streakRow}>
-                <Flame color={colors.warnFg ?? colors.accent} size={16} />
-                <Text style={styles.streakText}>
-                  {streak.currentStreak} day streak · longest {streak.longestStreak}
-                </Text>
-              </View>
-            </View>
-          ) : null}
-
-          {/* Stats */}
-          {stats ? (
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Stats</Text>
-              <View style={styles.grid}>
-                <StatItem label="Songs" value={String(stats.totalSongs)} styles={styles} />
-                <StatItem label="Favorites" value={String(stats.totalFavorites)} styles={styles} />
-                <StatItem label="Playlists" value={String(stats.totalPlaylists)} styles={styles} />
-                <StatItem label="Followers" value={String(stats.followersCount)} styles={styles} />
-                <StatItem label="Following" value={String(stats.followingCount)} styles={styles} />
-              </View>
-              <Text style={styles.memberSince}>
-                Member since {stats.memberSince ? new Date(stats.memberSince).toLocaleDateString() : "–"}
-              </Text>
             </View>
           ) : null}
 
