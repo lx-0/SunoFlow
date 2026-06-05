@@ -1,9 +1,10 @@
 import { View, Text, Image, Pressable, StyleSheet, type GestureResponderEvent } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Disc3 } from "lucide-react-native";
 import { usePlayback } from "@/playback/usePlayback";
-import { togglePlay } from "@/playback/audio";
-import { PlayIcon, PauseIcon } from "@/components/Icons";
+import { togglePlay, skipToNext } from "@/playback/audio";
+import { PlayIcon, PauseIcon, SkipNextIcon } from "@/components/Icons";
 import { useTheme } from "@/theme/ThemeContext";
 
 // Persistent now-playing bar near the bottom of every primary screen, so playback
@@ -12,15 +13,18 @@ import { useTheme } from "@/theme/ThemeContext";
 const BOTTOM_GAP = 10; // sits just above the home indicator (no tab bar anymore)
 
 // Bottom padding screens with lists should add so the floating MiniPlayer doesn't
-// cover the last items. ~bar height (52) + gap + a comfortable margin.
+// cover the last items. ~bar height (56) + gap + a comfortable margin.
 export const MINIPLAYER_CLEARANCE = 96;
 
 export function MiniPlayer() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const { current, playing } = usePlayback();
+  const { current, playing, positionSeconds, durationSeconds } = usePlayback();
 
   if (!current) return null;
+
+  const progress = durationSeconds > 0 ? Math.min(1, Math.max(0, positionSeconds / durationSeconds)) : 0;
+  const subtitle = current.artist ?? "";
 
   return (
     <Pressable
@@ -30,20 +34,35 @@ export function MiniPlayer() {
       {current.artworkUrl ? (
         <Image source={{ uri: current.artworkUrl }} style={styles.thumb} />
       ) : (
-        <View style={[styles.thumb, { backgroundColor: colors.border }]} />
+        <View style={[styles.thumb, styles.thumbPlaceholder, { backgroundColor: colors.border }]}>
+          <Disc3 color={colors.textFaint} size={18} />
+        </View>
       )}
-      <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-        {current.title}
-      </Text>
+
+      <View style={styles.meta}>
+        <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>{current.title}</Text>
+        {subtitle ? <Text style={[styles.artist, { color: colors.textDim }]} numberOfLines={1}>{subtitle}</Text> : null}
+      </View>
+
       <Pressable
-        hitSlop={12}
-        onPress={(e: GestureResponderEvent) => {
-          e.stopPropagation();
-          togglePlay();
-        }}
+        hitSlop={10}
+        style={styles.ctrl}
+        onPress={(e: GestureResponderEvent) => { e.stopPropagation(); togglePlay(); }}
       >
-        {playing ? <PauseIcon color={colors.text} size={16} /> : <PlayIcon color={colors.text} size={16} />}
+        {playing ? <PauseIcon color={colors.text} size={18} /> : <PlayIcon color={colors.text} size={18} />}
       </Pressable>
+      <Pressable
+        hitSlop={10}
+        style={styles.ctrl}
+        onPress={(e: GestureResponderEvent) => { e.stopPropagation(); void skipToNext(); }}
+      >
+        <SkipNextIcon color={colors.text} size={20} />
+      </Pressable>
+
+      {/* progress (clipped to the bar's rounded corners via overflow:hidden) */}
+      <View style={[styles.track, { backgroundColor: colors.border }]}>
+        <View style={[styles.fill, { backgroundColor: colors.accent, width: `${progress * 100}%` }]} />
+      </View>
     </Pressable>
   );
 }
@@ -53,13 +72,23 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 8,
     right: 8,
-    height: 52,
-    borderRadius: 12,
+    height: 56,
+    borderRadius: 14,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
+    gap: 10,
+    overflow: "hidden",
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
   },
-  thumb: { width: 36, height: 36, borderRadius: 6, marginRight: 10 },
-  title: { fontSize: 14, flex: 1, marginRight: 12 },
+  thumb: { width: 40, height: 40, borderRadius: 8 },
+  thumbPlaceholder: { alignItems: "center", justifyContent: "center" },
+  meta: { flex: 1, minWidth: 0 },
+  title: { fontSize: 14, fontWeight: "600" },
+  artist: { fontSize: 12, marginTop: 1 },
+  ctrl: { width: 36, height: 44, alignItems: "center", justifyContent: "center" },
+  track: { position: "absolute", left: 0, right: 0, bottom: 0, height: 2.5 },
+  fill: { height: 2.5 },
 });
