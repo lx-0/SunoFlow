@@ -15,6 +15,9 @@ export interface Profile {
   name: string | null;
   bio: string | null;
   username: string | null;
+  avatarUrl: string | null;
+  bannerUrl: string | null;
+  featuredSongId: string | null;
   preferredGenres: string[];
 }
 
@@ -70,6 +73,9 @@ export async function fetchProfile(): Promise<Profile> {
     name: toStrOrNull(raw.name),
     bio: toStrOrNull(raw.bio),
     username: toStrOrNull(raw.username),
+    avatarUrl: toStrOrNull(raw.avatarUrl),
+    bannerUrl: toStrOrNull(raw.bannerUrl),
+    featuredSongId: toStrOrNull(raw.featuredSongId),
     preferredGenres: toStrArray(raw.preferredGenres),
   };
 }
@@ -78,6 +84,8 @@ export async function updateProfile(input: {
   name?: string;
   bio?: string | null;
   username?: string | null;
+  avatarUrl?: string | null;
+  bannerUrl?: string | null;
   featuredSongId?: string | null;
 }): Promise<void> {
   await apiPatch<unknown>("/api/profile", input);

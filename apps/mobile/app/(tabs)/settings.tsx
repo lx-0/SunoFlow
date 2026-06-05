@@ -115,6 +115,17 @@ export default function SettingsScreen() {
         <Text style={[styles.rowText, { color: colors.text }]}>Send feedback</Text>
       </Pressable>
 
+      <Text style={[styles.sectionTitle, { color: colors.textFaint }]}>Studio</Text>
+      <Pressable style={[styles.row, { backgroundColor: colors.surface }]} onPress={() => router.push("/api-keys" as Href)}>
+        <Text style={[styles.rowText, { color: colors.text }]}>API keys</Text>
+      </Pressable>
+      <Pressable style={[styles.row, { backgroundColor: colors.surface }]} onPress={() => router.push("/manage-tags" as Href)}>
+        <Text style={[styles.rowText, { color: colors.text }]}>Manage tags</Text>
+      </Pressable>
+      <Pressable style={[styles.row, { backgroundColor: colors.surface }]} onPress={() => router.push("/rate-limits" as Href)}>
+        <Text style={[styles.rowText, { color: colors.text }]}>Rate limits</Text>
+      </Pressable>
+
       <Text style={[styles.sectionTitle, { color: colors.textFaint }]}>Account</Text>
       <Pressable style={[styles.row, { backgroundColor: colors.surface }]} onPress={() => router.push("/change-password" as Href)}>
         <Text style={[styles.rowText, { color: colors.text }]}>Change password</Text>

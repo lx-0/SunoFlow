@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPost } from "./client";
+import { apiDelete, apiGet, apiPatch, apiPost } from "./client";
 import { mapApiSong } from "./songs";
 import type { Song } from "@/types";
 
@@ -50,6 +50,27 @@ export async function fetchTags(): Promise<Tag[]> {
   return (Array.isArray(res.tags) ? res.tags : [])
     .map(mapApiTag)
     .filter((t): t is Tag => t !== null);
+}
+
+// --- Global tag management (mirrors the web Settings → Tag Management section) ---
+//
+// POST   /api/tags        { name } → create a tag (CreateTagBody).
+// PATCH  /api/tags/:id     { name } → rename a tag (UpdateTagBody).
+// DELETE /api/tags/:id              → delete the tag (removes it from all songs).
+
+/** Create a new tag by name. */
+export async function createTag(name: string): Promise<void> {
+  await apiPost(`/api/tags`, { name: name.trim() });
+}
+
+/** Rename a tag by id. */
+export async function renameTag(id: string, name: string): Promise<void> {
+  await apiPatch(`/api/tags/${encodeURIComponent(id)}`, { name: name.trim() });
+}
+
+/** Delete a tag by id (removes it from every song it was on). */
+export async function deleteTag(id: string): Promise<void> {
+  await apiDelete(`/api/tags/${encodeURIComponent(id)}`);
 }
 
 /** Songs assigned to a tag, by tag id (server-side filter via ?tagId=). */
