@@ -103,6 +103,15 @@ export default function SettingsScreen() {
         {credits ? <Text style={[styles.rowSub, { color: colors.textDim }]}>{credits.generationsThisMonth} this month</Text> : null}
       </View>
 
+      <Text style={[styles.sectionTitle, { color: colors.textFaint }]}>Content</Text>
+      <Pressable style={[styles.row, { backgroundColor: colors.surface }]} onPress={() => router.push("/rss-feeds" as Href)}>
+        <Text style={[styles.rowText, { color: colors.text }]}>RSS feeds</Text>
+        <Text style={[styles.rowSub, { color: colors.textDim }]}>Sources for Inspire</Text>
+      </Pressable>
+      <Pressable style={[styles.row, { backgroundColor: colors.surface }]} onPress={() => router.push("/notification-settings" as Href)}>
+        <Text style={[styles.rowText, { color: colors.text }]}>Notifications</Text>
+      </Pressable>
+
       <Text style={[styles.sectionTitle, { color: colors.textFaint }]}>Account</Text>
       <Pressable style={[styles.row, { backgroundColor: colors.surface }]} onPress={() => router.push("/change-password" as Href)}>
         <Text style={[styles.rowText, { color: colors.text }]}>Change password</Text>

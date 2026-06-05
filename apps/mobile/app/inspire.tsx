@@ -42,11 +42,11 @@ export default function InspireScreen() {
     try {
       const digest = await generateTodaysPicks();
       setPicks(digest);
-      if (!digest) setError("Couldn't generate picks. Make sure you've added RSS feeds on the web app.");
+      if (!digest) setError("Couldn’t generate picks. Add RSS feeds first (Manage RSS feeds below).");
     } catch (e) {
       setError(
         e instanceof HttpError && (e.status === 422 || e.status === 400)
-          ? "No RSS feeds configured. Add feeds on the web app to generate picks."
+          ? "No RSS feeds configured. Tap “Manage RSS feeds” below to add one."
           : "Couldn't generate today's picks. Please try again.",
       );
       console.error("[inspire] generate failed", e);
@@ -88,6 +88,9 @@ export default function InspireScreen() {
             ) : (
               <Text style={styles.ctaText}>Generate Today&apos;s Picks</Text>
             )}
+          </Pressable>
+          <Pressable onPress={() => router.push("/rss-feeds" as Href)}>
+            <Text style={styles.manageLink}>Manage RSS feeds</Text>
           </Pressable>
         </View>
       ) : (
@@ -140,6 +143,7 @@ function makeStyles(c: ThemeColors) {
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 14 },
     emptyText: { color: c.textDim, fontSize: 14, lineHeight: 20, textAlign: "center" },
     error: { color: c.danger, fontSize: 13, textAlign: "center" },
+    manageLink: { color: c.accent, fontSize: 14, fontWeight: "600" },
     cta: { backgroundColor: c.accentStrong, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 12 },
     ctaDisabled: { opacity: 0.5 },
     ctaText: { color: c.onAccent, fontSize: 15, fontWeight: "700" },

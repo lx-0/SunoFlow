@@ -18,6 +18,11 @@ export interface Profile {
   preferredGenres: string[];
 }
 
+export interface ProfilePreferences {
+  defaultStyle: string | null;
+  preferredGenres: string[];
+}
+
 export interface ProfileStats {
   totalSongs: number;
   totalFavorites: number;
@@ -75,6 +80,24 @@ export async function updateProfile(input: {
   username?: string | null;
 }): Promise<void> {
   await apiPatch<unknown>("/api/profile", input);
+}
+
+// GET/PATCH /api/profile/preferences return the data object directly (no
+// envelope): { defaultStyle, preferredGenres }. defaultStyle drives the style
+// auto-applied on the Generate screen.
+export async function fetchPreferences(): Promise<ProfilePreferences> {
+  const raw = asRecord(await apiGet<unknown>("/api/profile/preferences"));
+  return {
+    defaultStyle: toStrOrNull(raw.defaultStyle),
+    preferredGenres: toStrArray(raw.preferredGenres),
+  };
+}
+
+export async function updatePreferences(patch: {
+  defaultStyle?: string | null;
+  preferredGenres?: string[];
+}): Promise<void> {
+  await apiPatch<unknown>("/api/profile/preferences", patch);
 }
 
 export async function fetchProfileStats(): Promise<ProfileStats> {

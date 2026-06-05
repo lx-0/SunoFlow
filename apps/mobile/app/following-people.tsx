@@ -1,9 +1,12 @@
 import { useCallback, useState } from "react";
-import { View, Text, Image, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import {
+  View, Text, Image, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS,
+} from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
-import { Users } from "lucide-react-native";
+import { Users, MoreHorizontal } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchFollowing, type FollowedUser } from "@/api/follows";
+import { unfollowUser } from "@/api/users";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -29,6 +32,48 @@ export default function FollowingPeopleScreen() {
     }, []),
   );
 
+  // Optimistically drop the row; reinsert it (in its original position) on failure.
+  function unfollow(u: FollowedUser) {
+    setUsers((prev) => {
+      if (!prev) return prev;
+      const index = prev.findIndex((x) => x.id === u.id);
+      const next = prev.filter((x) => x.id !== u.id);
+      unfollowUser(u.id).catch((e: unknown) => {
+        setUsers((cur) => {
+          if (!cur || cur.some((x) => x.id === u.id)) return cur;
+          const restored = [...cur];
+          restored.splice(index >= 0 ? index : restored.length, 0, u);
+          return restored;
+        });
+        Alert.alert("Couldn't unfollow", "Please try again.");
+        console.error("[following-people] unfollow failed", e);
+      });
+      return next;
+    });
+  }
+
+  function confirmUnfollow(u: FollowedUser) {
+    Alert.alert("Unfollow?", `Unfollow @${u.username}?`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Unfollow", style: "destructive", onPress: () => unfollow(u) },
+    ]);
+  }
+
+  function rowActions(u: FollowedUser) {
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        title: u.displayName,
+        options: ["View profile", "Unfollow", "Cancel"],
+        destructiveButtonIndex: 1,
+        cancelButtonIndex: 2,
+      },
+      (i) => {
+        if (i === 0) router.push(`/u/${u.username}`);
+        else if (i === 1) confirmUnfollow(u);
+      },
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Following" }} />
@@ -45,7 +90,11 @@ export default function FollowingPeopleScreen() {
           data={users}
           keyExtractor={(u) => u.id}
           renderItem={({ item }) => (
-            <Pressable style={styles.row} onPress={() => router.push(`/u/${item.username}`)}>
+            <Pressable
+              style={styles.row}
+              onPress={() => router.push(`/u/${item.username}`)}
+              onLongPress={() => rowActions(item)}
+            >
               {item.image ? (
                 <Image source={{ uri: item.image }} style={styles.avatar} />
               ) : (
@@ -57,6 +106,9 @@ export default function FollowingPeopleScreen() {
                 <Text style={styles.name} numberOfLines={1}>{item.displayName}</Text>
                 <Text style={styles.dim} numberOfLines={1}>@{item.username}</Text>
               </View>
+              <Pressable onPress={() => rowActions(item)} hitSlop={12} style={styles.moreBtn}>
+                <MoreHorizontal color={colors.textDim} size={22} />
+              </Pressable>
             </Pressable>
           )}
         />
@@ -80,6 +132,7 @@ function makeStyles(c: ThemeColors) {
     avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: c.surfaceAlt },
     avatarPlaceholder: { alignItems: "center", justifyContent: "center" },
     meta: { flex: 1, marginLeft: 12 },
+    moreBtn: { paddingLeft: 12, paddingVertical: 4 },
     name: { color: c.text, fontSize: 16 },
     dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
   });
