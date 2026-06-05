@@ -97,9 +97,14 @@ describe("applySongsGalleryFilters", () => {
   });
 
   it("supports dateFilter=0 as today", () => {
+    // "today" is the LOCAL start-of-day (impl uses Date#setHours), so build the
+    // fixtures relative to that boundary — otherwise UTC-fixed timestamps land on
+    // the wrong side of midnight in a non-UTC runtime.
+    const startOfDay = new Date(NOW);
+    startOfDay.setHours(0, 0, 0, 0);
     const songs = [
-      makeSong({ id: "today", createdAt: new Date("2026-05-24T00:01:00.000Z") }),
-      makeSong({ id: "yesterday", createdAt: new Date("2026-05-23T23:59:59.000Z") }),
+      makeSong({ id: "today", createdAt: new Date(startOfDay.getTime() + 60_000) }),
+      makeSong({ id: "yesterday", createdAt: new Date(startOfDay.getTime() - 1_000) }),
     ];
 
     const filtered = applySongsGalleryFilters(songs, {

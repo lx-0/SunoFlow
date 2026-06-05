@@ -36,6 +36,11 @@ describe("buildPlayHistoryWhere", () => {
 
   it("applies dateFrom/dateTo when provided", async () => {
     const { buildPlayHistoryWhere } = await loadHistoryModule();
+    // `lte` is the dateTo pushed to end-of-day via Date#setHours, which is LOCAL —
+    // build the expectation the same way so this is timezone-independent (the old
+    // hardcoded "...Z" only matched in a UTC runtime).
+    const expectedTo = new Date("2026-05-03");
+    expectedTo.setHours(23, 59, 59, 999);
     expect(
       buildPlayHistoryWhere(
         "user-1",
@@ -49,7 +54,7 @@ describe("buildPlayHistoryWhere", () => {
       userId: "user-1",
       playedAt: {
         gte: new Date("2026-05-01"),
-        lte: new Date("2026-05-03T23:59:59.999Z"),
+        lte: expectedTo,
       },
     });
   });
