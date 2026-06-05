@@ -6,6 +6,7 @@ import { HttpError } from "@/api/client";
 import { fetchGenerations, type Generation } from "@/api/generations";
 import { playQueue } from "@/playback/controls";
 import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
@@ -79,6 +80,7 @@ export default function GenerationsScreen() {
         <FlatList
           data={items}
           keyExtractor={(g) => g.id}
+          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
           renderItem={({ item }) => {
             const badge = statusBadge(item.status, colors);
             const label = item.title ?? item.prompt ?? "Untitled";

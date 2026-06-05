@@ -12,7 +12,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { Plus, X } from "lucide-react-native";
+import { Plus, X, Tag, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import {
   fetchSongTags,
@@ -20,6 +20,7 @@ import {
   removeSongTag,
   type SongTag,
 } from "@/api/tags";
+import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -132,17 +133,17 @@ export default function SongTagsScreen() {
       </View>
 
       {error ? (
-        <View style={styles.centered}>
-          <Text style={styles.dim}>{error}</Text>
-        </View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !tags ? (
         <View style={styles.centered}>
           <ActivityIndicator color={colors.text} />
         </View>
       ) : tags.length === 0 ? (
-        <View style={styles.centered}>
-          <Text style={styles.dim}>No tags yet. Add one above.</Text>
-        </View>
+        <EmptyState
+          Icon={Tag}
+          title="No tags yet"
+          subtitle="Add one with the field above."
+        />
       ) : (
         <ScrollView contentContainerStyle={styles.chips}>
           {tags.map((tag) => (
@@ -215,6 +216,5 @@ function makeStyles(c: ThemeColors) {
     },
     chipText: { color: c.text, fontSize: 14, flexShrink: 1 },
     chipRemove: { alignItems: "center", justifyContent: "center" },
-    dim: { color: c.textDim, fontSize: 13 },
   });
 }

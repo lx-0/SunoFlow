@@ -2,8 +2,10 @@ import { useCallback, useState } from "react";
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import type { Href } from "expo-router";
+import { Mail } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchInviteInfo, acceptInvite, type InviteInfo } from "@/api/playlist-invite";
+import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -54,7 +56,7 @@ export default function PlaylistInviteScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Playlist Invite" }} />
       {loadError ? (
-        <View style={styles.centered}><Text style={styles.dim}>{loadError}</Text></View>
+        <EmptyState tone="error" Icon={Mail} title={loadError} />
       ) : !invite ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : (
@@ -103,6 +105,5 @@ function makeStyles(c: ThemeColors) {
     btn: { backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 24 },
     btnDisabled: { opacity: 0.45 },
     btnText: { color: c.onAccent, fontSize: 16, fontWeight: "700" },
-    dim: { color: c.textDim, fontSize: 13 },
   });
 }

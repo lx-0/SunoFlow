@@ -6,6 +6,7 @@ import { HttpError } from "@/api/client";
 import { fetchSmartPlaylists } from "@/api/smart-playlists";
 import type { PlaylistSummary } from "@/api/playlists";
 import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -49,6 +50,7 @@ export default function SmartPlaylistsScreen() {
         <FlatList
           data={playlists}
           keyExtractor={(p) => p.id}
+          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
           renderItem={({ item }) => (
             <Pressable style={styles.row} onPress={() => router.push(`/playlist/${item.id}`)}>
               <View style={styles.icon}>

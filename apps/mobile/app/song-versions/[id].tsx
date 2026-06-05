@@ -1,10 +1,12 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, ActivityIndicator, StyleSheet } from "react-native";
+import { View, FlatList, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { GitBranch } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchSongVersions } from "@/api/song-versions";
 import { playQueue } from "@/playback/controls";
 import { SongRow } from "@/components/SongRow";
+import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
@@ -42,16 +44,16 @@ export default function SongVersionsScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Versions" }} />
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState Icon={GitBranch} title={error} tone="error" />
       ) : !versions ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : versions.length === 0 ? (
-        <View style={styles.centered}><Text style={styles.dim}>No alternate versions.</Text></View>
+        <EmptyState Icon={GitBranch} title="No alternate versions." subtitle="Extend or remix this song to create new versions." />
       ) : (
         <FlatList
           data={versions}
           keyExtractor={(s) => s.id}
-          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+          contentContainerStyle={styles.list}
           renderItem={({ item, index }) => (
             <SongRow
               song={item}
@@ -75,6 +77,6 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
+    list: { paddingTop: 8, paddingBottom: MINIPLAYER_CLEARANCE },
   });
 }

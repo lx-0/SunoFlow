@@ -5,6 +5,7 @@ import { Library, ChevronRight, LayoutGrid, AlertCircle } from "lucide-react-nat
 import { HttpError } from "@/api/client";
 import { fetchCollections, type CollectionSummary } from "@/api/collections";
 import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -45,6 +46,7 @@ export default function CollectionsScreen() {
         <FlatList
           data={collections}
           keyExtractor={(c) => c.id}
+          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
           renderItem={({ item }) => (
             <Pressable
               style={styles.row}

@@ -15,7 +15,9 @@ import { formatDuration } from "@sunoflow/core";
 import { HttpError } from "@/api/client";
 import { fetchRadio, RADIO_MOODS, RADIO_GENRES } from "@/api/radio";
 import { playQueue } from "@/playback/controls";
+import { SongRow } from "@/components/SongRow";
 import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
@@ -160,16 +162,17 @@ export default function RadioScreen() {
           data={songs}
           keyExtractor={(s, i) => `${s.id}:${i}`}
           ListHeaderComponent={header}
+          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
           renderItem={({ item, index }) => (
-            <Pressable style={styles.row} onPress={() => void play(songs, index)}>
-              <View style={styles.meta}>
-                <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
-                {item.artist ? <Text style={styles.dim} numberOfLines={1}>{item.artist}</Text> : null}
-              </View>
-              {typeof item.durationSeconds === "number" ? (
-                <Text style={styles.duration}>{formatDuration(item.durationSeconds)}</Text>
-              ) : null}
-            </Pressable>
+            <SongRow
+              song={item}
+              onPress={() => void play(songs, index)}
+              right={
+                typeof item.durationSeconds === "number" ? (
+                  <Text style={styles.duration}>{formatDuration(item.durationSeconds)}</Text>
+                ) : undefined
+              }
+            />
           )}
         />
       )}
@@ -219,7 +222,7 @@ function makeStyles(c: ThemeColors) {
       alignItems: "center",
       justifyContent: "center",
       gap: 10,
-      backgroundColor: c.accent,
+      backgroundColor: c.accentStrong,
       marginHorizontal: 16,
       marginTop: 12,
       marginBottom: 8,
@@ -227,17 +230,6 @@ function makeStyles(c: ThemeColors) {
       borderRadius: 12,
     },
     playButtonText: { color: c.onAccent, fontSize: 16, fontWeight: "700" },
-    row: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: 20,
-      paddingVertical: 14,
-      borderBottomColor: c.border,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-    },
-    meta: { flex: 1 },
-    title: { color: c.text, fontSize: 16 },
-    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
-    duration: { color: c.textFaint, fontSize: 13, marginLeft: 12, fontVariant: ["tabular-nums"] },
+    duration: { color: c.textFaint, fontSize: 13, fontVariant: ["tabular-nums"] },
   });
 }

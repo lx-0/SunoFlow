@@ -7,6 +7,7 @@ import { fetchRecommendations } from "@/api/recommendations";
 import { playQueue } from "@/playback/controls";
 import { SongRow } from "@/components/SongRow";
 import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
@@ -49,6 +50,7 @@ export default function RecommendationsScreen() {
         <FlatList
           data={songs}
           keyExtractor={(s) => s.id}
+          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
           renderItem={({ item, index }) => (
             <SongRow
               song={item}

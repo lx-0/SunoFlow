@@ -4,13 +4,15 @@ import {
   ActivityIndicator, StyleSheet, Alert,
 } from "react-native";
 import { Stack, useLocalSearchParams, useFocusEffect } from "expo-router";
-import { Users, X, Link2 } from "lucide-react-native";
+import { Users, X, Link2, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import {
   fetchPlaylistCollabMeta, fetchCollaborators, toggleCollaborative,
   inviteCollaborator, createInviteLink, removeCollaborator,
   type Collaborator,
 } from "@/api/collaborators";
+import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -131,7 +133,7 @@ export default function CollaboratorsScreen() {
     return (
       <View style={styles.container}>
         <Stack.Screen options={{ title: "Collaborators" }} />
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
       </View>
     );
   }
@@ -142,6 +144,7 @@ export default function CollaboratorsScreen() {
       <FlatList
         data={list ?? []}
         keyExtractor={(c) => c.id}
+        contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View style={styles.header}>
             <View style={styles.toggleRow}>
@@ -212,7 +215,7 @@ export default function CollaboratorsScreen() {
         ListEmptyComponent={
           list === null
             ? <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
-            : <View style={styles.centered}><Text style={styles.dim}>No collaborators yet.</Text></View>
+            : <EmptyState Icon={Users} title="No collaborators yet" />
         }
         renderItem={({ item }) => (
           <View style={styles.row}>
@@ -248,6 +251,7 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { padding: 24, alignItems: "center", justifyContent: "center" },
+    listContent: { paddingBottom: MINIPLAYER_CLEARANCE },
     dim: { color: c.textDim, fontSize: 13 },
     header: { padding: 16, gap: 14 },
     toggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: c.surface, borderRadius: 12, padding: 14 },

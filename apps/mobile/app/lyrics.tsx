@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { View, Text, ScrollView, ActivityIndicator, StyleSheet, type LayoutChangeEvent } from "react-native";
 import { Stack } from "expo-router";
+import { FileText } from "lucide-react-native";
 import { usePlayback } from "@/playback/usePlayback";
 import { fetchLyrics, type LyricLine } from "@/api/lyrics";
+import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -62,28 +65,30 @@ export default function LyricsScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: current?.title ?? "Lyrics" }} />
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState Icon={FileText} title={error} tone="error" />
       ) : !lines ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : lines.length === 0 ? (
-        <View style={styles.centered}><Text style={styles.dim}>No lyrics for this song.</Text></View>
+        <EmptyState Icon={FileText} title="No lyrics for this song." />
       ) : (
         <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
-          {lines.map((line, i) => (
-            <Text
-              key={i}
-              onLayout={(e: LayoutChangeEvent) => {
-                offsets.current[i] = e.nativeEvent.layout.y;
-              }}
-              style={[
-                styles.line,
-                line.text.trim() === "" && styles.blank,
-                hasTimestamps && (i === activeLine ? styles.active : styles.inactive),
-              ]}
-            >
-              {line.text || " "}
-            </Text>
-          ))}
+          <View style={styles.card}>
+            {lines.map((line, i) => (
+              <Text
+                key={i}
+                onLayout={(e: LayoutChangeEvent) => {
+                  offsets.current[i] = e.nativeEvent.layout.y;
+                }}
+                style={[
+                  styles.line,
+                  line.text.trim() === "" && styles.blank,
+                  hasTimestamps && (i === activeLine ? styles.active : styles.inactive),
+                ]}
+              >
+                {line.text || " "}
+              </Text>
+            ))}
+          </View>
         </ScrollView>
       )}
     </View>
@@ -94,11 +99,11 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-    content: { paddingHorizontal: 24, paddingVertical: 28, paddingBottom: 120 },
-    line: { color: c.text, fontSize: 19, lineHeight: 30, marginVertical: 3 },
+    content: { paddingHorizontal: 16, paddingVertical: 16, paddingBottom: MINIPLAYER_CLEARANCE },
+    card: { backgroundColor: c.surface, borderRadius: 14, padding: 16 },
+    line: { color: c.text, fontSize: 18, lineHeight: 28, marginVertical: 2 },
     blank: { height: 14 },
     active: { color: c.text, fontWeight: "700" },
     inactive: { color: c.textFaint },
-    dim: { color: c.textDim, fontSize: 14 },
   });
 }

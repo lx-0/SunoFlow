@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, useFocusEffect, router, type Href } from "expo-router";
+import { Bell, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import {
   fetchNotifications,
@@ -9,6 +10,8 @@ import {
   notificationTarget,
   type AppNotification,
 } from "@/api/notifications";
+import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -76,21 +79,22 @@ export default function NotificationsScreen() {
         }}
       />
       {error ? (
-        <View style={styles.centered}>
-          <Text style={styles.dim}>{error}</Text>
-        </View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !items ? (
         <View style={styles.centered}>
           <ActivityIndicator color={colors.text} />
         </View>
       ) : items.length === 0 ? (
-        <View style={styles.centered}>
-          <Text style={styles.dim}>You&apos;re all caught up. No notifications yet.</Text>
-        </View>
+        <EmptyState
+          Icon={Bell}
+          title="You're all caught up"
+          subtitle="No notifications yet."
+        />
       ) : (
         <FlatList
           data={items}
           keyExtractor={(n) => n.id}
+          contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
             <Pressable style={styles.row} onPress={() => onRowPress(item)}>
               <View style={styles.dotCol}>
@@ -142,7 +146,7 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-    dim: { color: c.textDim, fontSize: 13, textAlign: "center" },
+    listContent: { paddingBottom: MINIPLAYER_CLEARANCE },
     headerAction: { color: c.accent, fontSize: 14, marginRight: 4 },
     row: {
       flexDirection: "row",
@@ -154,9 +158,9 @@ function makeStyles(c: ThemeColors) {
     dotCol: { width: 18, paddingTop: 6, alignItems: "flex-start" },
     dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: c.accent },
     meta: { flex: 1 },
-    title: { color: c.text, fontSize: 16, fontWeight: "600" },
+    title: { color: c.text, fontSize: 15, fontWeight: "600" },
     titleRead: { color: c.textDim, fontWeight: "500" },
-    message: { color: c.textDim, fontSize: 14, marginTop: 2, lineHeight: 19 },
+    message: { color: c.textDim, fontSize: 13, marginTop: 2, lineHeight: 18 },
     time: { color: c.textFaint, fontSize: 12, marginTop: 6 },
   });
 }

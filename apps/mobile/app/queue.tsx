@@ -5,6 +5,7 @@ import { usePlayback } from "@/playback/usePlayback";
 import { jumpTo } from "@/playback/audio";
 import { PlayIcon } from "@/components/Icons";
 import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -28,6 +29,7 @@ export default function QueueScreen() {
         <FlatList
           data={queue}
           keyExtractor={(s, i) => `${s.id}:${i}`}
+          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
           renderItem={({ item, index: i }) => {
             const isCurrent = i === index;
             return (

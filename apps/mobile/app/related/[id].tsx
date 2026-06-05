@@ -1,9 +1,13 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { View, FlatList, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { Sparkles, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchRelated } from "@/api/related";
 import { playQueue } from "@/playback/controls";
+import { SongRow } from "@/components/SongRow";
+import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import type { Song } from "@/types";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
@@ -38,18 +42,23 @@ export default function RelatedScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Related" }} />
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !songs ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : songs.length === 0 ? (
-        <View style={styles.centered}><Text style={styles.dim}>No related songs found.</Text></View>
+        <EmptyState
+          Icon={Sparkles}
+          title="No related songs found"
+          subtitle="We couldn't find anything similar yet."
+        />
       ) : (
         <FlatList
           data={songs}
           keyExtractor={(s) => s.id}
+          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
           renderItem={({ item, index }) => (
-            <Pressable
-              style={styles.row}
+            <SongRow
+              song={item}
               onPress={async () => {
                 try {
                   await playQueue(songs, index);
@@ -58,10 +67,7 @@ export default function RelatedScreen() {
                   console.error("[related] play failed", e);
                 }
               }}
-            >
-              <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
-              {item.artist ? <Text style={styles.dim} numberOfLines={1}>{item.artist}</Text> : null}
-            </Pressable>
+            />
           )}
         />
       )}
@@ -73,8 +79,5 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-    row: { paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: c.border, borderBottomWidth: StyleSheet.hairlineWidth },
-    title: { color: c.text, fontSize: 16 },
-    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
   });
 }

@@ -1,10 +1,12 @@
 import { useCallback, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, useFocusEffect } from "expo-router";
-import { Check } from "lucide-react-native";
+import { Check, ListPlus } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchPlaylists, addSongToPlaylist, type PlaylistSummary } from "@/api/playlists";
 import { usePlayback } from "@/playback/usePlayback";
+import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -58,31 +60,36 @@ export default function AddToPlaylistScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Add to Playlist", presentation: "modal" }} />
       {!songId ? (
-        <View style={styles.centered}><Text style={styles.dim}>Nothing playing.</Text></View>
+        <EmptyState Icon={ListPlus} title="Nothing playing." subtitle="Start a song, then add it to a playlist." />
       ) : error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState Icon={ListPlus} title={error} tone="error" />
       ) : !playlists ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : playlists.length === 0 ? (
-        <View style={styles.centered}><Text style={styles.dim}>No playlists yet.</Text></View>
+        <EmptyState Icon={ListPlus} title="No playlists yet." subtitle="Create a playlist to start collecting songs." />
       ) : (
         <FlatList
           data={playlists}
           keyExtractor={(p) => p.id}
+          contentContainerStyle={styles.list}
           ListHeaderComponent={
             <Text style={styles.header} numberOfLines={1}>Add “{current?.title}” to…</Text>
           }
-          renderItem={({ item }) => (
-            <Pressable style={styles.row} onPress={() => void add(item.id)}>
-              <View style={styles.meta}>
-                <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
-                <Text style={styles.dim}>
-                  {failed.has(item.id) ? "Failed — tap to retry" : `${item.songCount} songs`}
-                </Text>
-              </View>
-              {added.has(item.id) ? <Check color={colors.accent} size={22} /> : null}
-            </Pressable>
-          )}
+          renderItem={({ item }) => {
+            const isAdded = added.has(item.id);
+            const isFailed = failed.has(item.id);
+            return (
+              <Pressable style={styles.row} onPress={() => void add(item.id)}>
+                <View style={styles.meta}>
+                  <Text style={[styles.title, isAdded && styles.titleActive]} numberOfLines={1}>{item.name}</Text>
+                  <Text style={[styles.sub, isFailed && styles.subFailed]}>
+                    {isFailed ? "Failed — tap to retry" : isAdded ? "Added" : `${item.songCount} songs`}
+                  </Text>
+                </View>
+                {isAdded ? <Check color={colors.accent} size={22} /> : null}
+              </Pressable>
+            );
+          }}
         />
       )}
     </View>
@@ -93,17 +100,23 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-    header: { color: c.textDim, fontSize: 14, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+    list: { paddingBottom: MINIPLAYER_CLEARANCE },
+    header: {
+      color: c.textFaint, fontSize: 13, fontWeight: "700", textTransform: "uppercase",
+      letterSpacing: 0.6, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10,
+    },
     row: {
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: 20,
+      paddingHorizontal: 16,
       paddingVertical: 14,
       borderBottomColor: c.border,
       borderBottomWidth: StyleSheet.hairlineWidth,
     },
     meta: { flex: 1, marginRight: 12 },
-    title: { color: c.text, fontSize: 16 },
-    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
+    title: { color: c.text, fontSize: 15 },
+    titleActive: { color: c.accent },
+    sub: { color: c.textDim, fontSize: 13, marginTop: 2 },
+    subFailed: { color: c.danger },
   });
 }

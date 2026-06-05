@@ -11,9 +11,10 @@ import {
   StyleSheet,
 } from "react-native";
 import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { SendIcon } from "lucide-react-native";
+import { SendIcon, MessageCircle, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchComments, addComment, type Comment } from "@/api/comments";
+import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -81,15 +82,20 @@ export default function CommentsScreen() {
     >
       <Stack.Screen options={{ title: "Comments" }} />
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !comments ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : comments.length === 0 ? (
-        <View style={styles.centered}><Text style={styles.dim}>No comments yet. Be the first.</Text></View>
+        <EmptyState
+          Icon={MessageCircle}
+          title="No comments yet"
+          subtitle="Be the first to leave one."
+        />
       ) : (
         <FlatList
           data={comments}
           keyExtractor={(c) => c.id}
+          contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
             <View style={styles.row}>
               <View style={styles.head}>
@@ -144,15 +150,16 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    listContent: { paddingVertical: 4 },
     row: { paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: c.border, borderBottomWidth: StyleSheet.hairlineWidth },
     head: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
     author: { color: c.text, fontSize: 15, fontWeight: "600", flex: 1, marginRight: 12 },
     time: { color: c.textFaint, fontSize: 12 },
-    body: { color: c.textDim, fontSize: 15, marginTop: 4, lineHeight: 20 },
+    body: { color: c.textDim, fontSize: 13, marginTop: 4, lineHeight: 19 },
     composer: {
       flexDirection: "row",
       alignItems: "flex-end",
-      paddingHorizontal: 12,
+      paddingHorizontal: 16,
       paddingVertical: 10,
       borderTopColor: c.border,
       borderTopWidth: StyleSheet.hairlineWidth,
@@ -163,21 +170,22 @@ function makeStyles(c: ThemeColors) {
       color: c.text,
       fontSize: 15,
       maxHeight: 120,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
       backgroundColor: c.surface,
-      borderRadius: 18,
+      borderColor: c.border,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderRadius: 10,
     },
     send: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: 44,
+      height: 44,
+      borderRadius: 10,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: c.accent,
+      backgroundColor: c.accentStrong,
     },
     sendDisabled: { opacity: 0.4 },
     postError: { color: c.danger, fontSize: 13, paddingHorizontal: 16, paddingBottom: 6 },
-    dim: { color: c.textDim, fontSize: 13 },
   });
 }

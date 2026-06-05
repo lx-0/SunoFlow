@@ -1,10 +1,12 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, ActivityIndicator, StyleSheet } from "react-native";
+import { View, FlatList, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { AudioLines } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchStems } from "@/api/stems";
 import { playQueue } from "@/playback/controls";
 import { SongRow } from "@/components/SongRow";
+import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
@@ -40,16 +42,16 @@ export default function StemsScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Stems" }} />
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <EmptyState Icon={AudioLines} title={error} tone="error" />
       ) : !stems ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : stems.length === 0 ? (
-        <View style={styles.centered}><Text style={styles.dim}>No stems for this song.</Text></View>
+        <EmptyState Icon={AudioLines} title="No stems for this song." subtitle="Separate vocals or instrumentals in Studio to create stems." />
       ) : (
         <FlatList
           data={stems}
           keyExtractor={(s) => s.id}
-          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+          contentContainerStyle={styles.list}
           renderItem={({ item, index }) => (
             <SongRow
               song={item}
@@ -73,6 +75,6 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
+    list: { paddingTop: 8, paddingBottom: MINIPLAYER_CLEARANCE },
   });
 }
