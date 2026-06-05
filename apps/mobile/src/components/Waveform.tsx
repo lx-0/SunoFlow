@@ -135,7 +135,7 @@ export function Waveform({
 
 const styles = StyleSheet.create({
   wrap: { alignSelf: "stretch", marginTop: 24 },
-  popupLayer: { position: "absolute", left: 0, right: 0, bottom: 40, height: 1 },
+  popupLayer: { position: "absolute", left: 0, right: 0, bottom: 40, height: 1, zIndex: 20, elevation: 20 },
   popup: { position: "absolute", width: 28, marginLeft: -14, alignItems: "center" },
   popupEmoji: { fontSize: 22 },
   bars: { flexDirection: "row", alignItems: "center", height: 48 },
