@@ -2,13 +2,14 @@ import { useCallback, useState } from "react";
 import { View, Text, Image, Pressable, ScrollView, ActivityIndicator, StyleSheet, ActionSheetIOS, Alert } from "react-native";
 import { Stack, useFocusEffect, useLocalSearchParams, router, type Href } from "expo-router";
 import { formatDuration } from "@sunoflow/core";
-import { Play, Disc3, Share2, Sparkles, BarChart2, Layers, MoreHorizontal, Tag as TagIcon, Download, GitBranch, type LucideIcon } from "lucide-react-native";
+import { Play, Disc3, Share2, Sparkles, BarChart2, Layers, MoreHorizontal, Tag as TagIcon, Download, GitBranch, Wand2, type LucideIcon } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { createStyleTemplate } from "@/api/style-templates";
 import { createPersonaFromSong } from "@/api/personas";
 import { setFeaturedSong } from "@/api/profile";
 import { downloadSong, exportMidi, exportMusicVideo } from "@/api/song-files";
 import { archiveSong, retrySong } from "@/api/song-ops";
+import { separateVocals, addInstrumental, addVocals, setCoverArt } from "@/api/song-studio";
 import { fetchSongDetail, detailToSong, renameSong, setSongVisibility, type SongDetail } from "@/api/song-detail";
 import { setFavorite as setFavoriteApi } from "@/api/favorites";
 import { fetchLyrics, type LyricLine } from "@/api/lyrics";
@@ -184,6 +185,65 @@ export default function SongDetailScreen() {
     catch (e) { Alert.alert("Couldn't retry", e instanceof HttpError && e.message ? e.message : "Please try again."); console.error("[song-detail] retry failed", e); }
   }
 
+  const started = (what: string) => Alert.alert(`${what} started`, "The new version will appear under Versions when it's ready.");
+
+  function studioActions(s: SongDetail) {
+    const acts: { label: string; fn: () => void | Promise<void> }[] = [
+      {
+        label: "Separate vocals",
+        fn: async () => {
+          try { await separateVocals(s.id); started("Vocal separation"); }
+          catch (e) { Alert.alert("Couldn't separate", e instanceof HttpError && e.message ? e.message : "Please try again."); console.error("[song-detail] separate vocals failed", e); }
+        },
+      },
+      {
+        label: "Add instrumental",
+        fn: async () => {
+          try { await addInstrumental(s.id); started("Instrumental"); }
+          catch (e) { Alert.alert("Couldn't add instrumental", e instanceof HttpError && e.message ? e.message : "Please try again."); console.error("[song-detail] add instrumental failed", e); }
+        },
+      },
+      {
+        label: "Add vocals",
+        fn: () => {
+          Alert.prompt?.(
+            "Add vocals",
+            "Lyrics / what the vocals should sing",
+            async (value) => {
+              const prompt = value?.trim();
+              if (!prompt) return;
+              try { await addVocals(s.id, prompt); started("Vocals"); }
+              catch (e) { Alert.alert("Couldn't add vocals", e instanceof HttpError && e.message ? e.message : "Please try again."); console.error("[song-detail] add vocals failed", e); }
+            },
+            "plain-text",
+          );
+        },
+      },
+      { label: "Replace a section", fn: () => router.push(`/replace-section/${s.id}` as Href) },
+      {
+        label: "Set cover art (URL)",
+        fn: () => {
+          Alert.prompt?.(
+            "Set cover art",
+            "Paste an image URL",
+            async (value) => {
+              const url = value?.trim();
+              if (!url) return;
+              try { await setCoverArt(s.id, url); setSong((prev) => (prev ? { ...prev, artworkUrl: url } : prev)); }
+              catch (e) { Alert.alert("Couldn't set cover", e instanceof HttpError && e.message ? e.message : "Please try again."); console.error("[song-detail] cover art failed", e); }
+            },
+            "plain-text",
+            s.artworkUrl ?? "",
+          );
+        },
+      },
+    ];
+    ActionSheetIOS.showActionSheetWithOptions(
+      { title: "Studio", options: [...acts.map((a) => a.label), "Cancel"], cancelButtonIndex: acts.length },
+      (i) => { if (i >= 0 && i < acts.length) void acts[i].fn(); },
+    );
+  }
+
   function moreActions(s: SongDetail) {
     const acts: { label: string; fn: () => void }[] = [
       { label: "Rename", fn: () => rename(s) },
@@ -240,6 +300,7 @@ export default function SongDetailScreen() {
     { key: "versions", label: "Versions", Icon: GitBranch, onPress: () => router.push(`/song-versions/${song.id}` as Href) },
     { key: "stems", label: "Stems", Icon: Layers, onPress: () => router.push(`/stems/${song.id}` as Href) },
     { key: "download", label: "Download", Icon: Download, onPress: () => downloadExport(song) },
+    { key: "studio", label: "Studio", Icon: Wand2, onPress: () => studioActions(song) },
     { key: "related", label: "Related", Icon: Disc3, onPress: () => router.push(`/related/${song.id}`) },
     { key: "analytics", label: "Analytics", Icon: BarChart2, onPress: () => router.push(`/song-analytics/${song.id}` as Href) },
     { key: "tags", label: "Edit tags", Icon: TagIcon, onPress: () => router.push(`/song-tags/${song.id}` as Href) },
