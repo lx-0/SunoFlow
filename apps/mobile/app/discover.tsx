@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import {
   View,
   Text,
+  Image,
   FlatList,
   ScrollView,
   Pressable,
@@ -9,11 +10,11 @@ import {
   StyleSheet,
 } from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
-import { Globe, AlertCircle } from "lucide-react-native";
+import { Globe, AlertCircle, Disc3, Heart } from "lucide-react-native";
+import { formatDuration } from "@sunoflow/core";
 import { HttpError } from "@/api/client";
 import { DISCOVER_MOODS, fetchDiscover } from "@/api/discover";
 import { playQueue } from "@/playback/controls";
-import { SongRow } from "@/components/SongRow";
 import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
@@ -21,7 +22,8 @@ import type { Song } from "@/types";
 
 // Discover: a public feed of songs (trending / new / recommended). v1 flattens
 // the server's single ranked `feed` list — sections aren't surfaced separately.
-// Tap to play the whole list from that index.
+// Songs render as a 2-column card grid (matching the library grid view); tap to
+// play the whole list from that index.
 //
 // A horizontal mood-chip row filters the feed: "All" plus the taxonomy moods.
 // Selecting a mood refetches discover with `?mood=…` and replaces the list.
@@ -146,10 +148,14 @@ export default function DiscoverScreen() {
         />
       ) : (
         <FlatList
+          key="grid"
           data={songs}
-          keyExtractor={(s) => s.id}
+          numColumns={2}
+          columnWrapperStyle={styles.gridRow}
+          keyExtractor={(s, i) => `${s.id}:${i}`}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
+          contentContainerStyle={styles.gridContent}
           ListFooterComponent={
             loadingMore ? (
               <View style={styles.footer}>
@@ -158,8 +164,8 @@ export default function DiscoverScreen() {
             ) : null
           }
           renderItem={({ item, index }) => (
-            <SongRow
-              song={item}
+            <Pressable
+              style={styles.gridItem}
               onPress={async () => {
                 try {
                   await playQueue(songs, index);
@@ -168,7 +174,28 @@ export default function DiscoverScreen() {
                   console.error("[discover] play failed", e);
                 }
               }}
-            />
+            >
+              <View style={styles.gridArtWrap}>
+                {item.artworkUrl ? (
+                  <Image source={{ uri: item.artworkUrl }} style={styles.gridArt} />
+                ) : (
+                  <View style={[styles.gridArt, styles.gridPlaceholder]}>
+                    <Disc3 color={colors.textFaint} size={40} />
+                  </View>
+                )}
+                {item.isFavorite ? (
+                  <View style={styles.gridFav}>
+                    <Heart color={colors.danger} fill={colors.danger} size={14} />
+                  </View>
+                ) : null}
+              </View>
+              <Text style={styles.gridTitle} numberOfLines={1}>{item.title}</Text>
+              {(item.artist || item.durationSeconds) ? (
+                <Text style={styles.gridSub} numberOfLines={1}>
+                  {[item.artist, item.durationSeconds ? formatDuration(item.durationSeconds) : null].filter(Boolean).join("  ·  ")}
+                </Text>
+              ) : null}
+            </Pressable>
           )}
         />
       )}
@@ -197,5 +224,14 @@ function makeStyles(c: ThemeColors) {
     chipTextActive: { color: c.onAccent },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
     footer: { paddingVertical: 16 },
+    gridContent: { paddingTop: 12 },
+    gridRow: { paddingHorizontal: 12, gap: 12 },
+    gridItem: { flex: 1, marginBottom: 18, maxWidth: "50%" },
+    gridArtWrap: { borderRadius: 14, shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
+    gridArt: { width: "100%", aspectRatio: 1, borderRadius: 14, backgroundColor: c.surfaceAlt },
+    gridPlaceholder: { alignItems: "center", justifyContent: "center" },
+    gridFav: { position: "absolute", top: 8, right: 8, backgroundColor: c.bg, opacity: 0.92, borderRadius: 999, padding: 5 },
+    gridTitle: { color: c.text, fontSize: 14, fontWeight: "600", marginTop: 8 },
+    gridSub: { color: c.textDim, fontSize: 12, marginTop: 2 },
   });
 }

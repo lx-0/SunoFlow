@@ -1,9 +1,9 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
   TextInput,
-  FlatList,
+  SectionList,
   Pressable,
   ActivityIndicator,
   StyleSheet,
@@ -11,7 +11,8 @@ import {
 import { Stack, router } from "expo-router";
 import { Search as SearchIcon, ListMusic, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
-import { search, type SearchResults } from "@/api/search";
+import { search, type PlaylistHit, type SearchResults } from "@/api/search";
+import { SongRow } from "@/components/SongRow";
 import { playQueue } from "@/playback/controls";
 import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
@@ -20,10 +21,21 @@ import type { Song } from "@/types";
 
 type Status = "idle" | "loading" | "error" | "results";
 
-// Global search: type a query, submit to search the user's library. Songs
-// resolve to playable streams (tap → play from that index); playlists deep-link
-// to their detail screen. Four states: idle (before first search), loading,
-// error (HttpError-aware), and results (which itself renders an empty hint).
+// A search result is either a song row (plays on tap) or a playlist row
+// (deep-links). Discriminated so a single SectionList can render both with the
+// right behaviour while keeping each section's data homogeneous.
+type SearchItem =
+  | { kind: "song"; song: Song; index: number }
+  | { kind: "playlist"; playlist: PlaylistHit };
+
+type SearchSection = { title: string; data: SearchItem[] };
+
+// Global search: type a query, submit to search the user's library. The
+// /api/search endpoint returns exactly two categories — songs and playlists —
+// so results are grouped under "Songs" / "Playlists" section headers. Songs
+// resolve to playable streams (tap → play from that index via SongRow);
+// playlists deep-link to their detail screen. Four states: idle (before first
+// search), loading, error (HttpError-aware), and results (empty → EmptyState).
 export default function SearchScreen() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -61,6 +73,25 @@ export default function SearchScreen() {
   const { songs, playlists } = results;
   const hasResults = songs.length > 0 || playlists.length > 0;
 
+  // Only categories with hits become sections; songs keep their library index
+  // so tapping plays the queue from that position.
+  const sections = useMemo<SearchSection[]>(() => {
+    const out: SearchSection[] = [];
+    if (songs.length > 0) {
+      out.push({
+        title: "Songs",
+        data: songs.map((song, index) => ({ kind: "song", song, index })),
+      });
+    }
+    if (playlists.length > 0) {
+      out.push({
+        title: "Playlists",
+        data: playlists.map((playlist) => ({ kind: "playlist", playlist })),
+      });
+    }
+    return out;
+  }, [songs, playlists]);
+
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Search" }} />
@@ -97,54 +128,47 @@ export default function SearchScreen() {
           subtitle="Try a different search term."
         />
       ) : (
-        <FlatList
-          data={songs}
-          keyExtractor={(s) => s.id}
-          ListHeaderComponent={
-            playlists.length > 0 ? (
-              <View>
-                <Text style={styles.sectionHeader}>Playlists</Text>
-                {playlists.map((p) => (
-                  <Pressable
-                    key={p.id}
-                    style={styles.row}
-                    onPress={() => router.push(`/playlist/${p.id}`)}
-                  >
-                    <ListMusic color={colors.textDim} size={18} style={styles.rowIcon} />
-                    <View style={styles.meta}>
-                      <Text style={styles.title} numberOfLines={1}>{p.name}</Text>
-                      {typeof p.songCount === "number" ? (
-                        <Text style={styles.dim} numberOfLines={1}>
-                          {p.songCount} {p.songCount === 1 ? "song" : "songs"}
-                        </Text>
-                      ) : null}
-                    </View>
-                  </Pressable>
-                ))}
-                {songs.length > 0 ? <Text style={styles.sectionHeader}>Songs</Text> : null}
-              </View>
-            ) : songs.length > 0 ? (
-              <Text style={styles.sectionHeader}>Songs</Text>
-            ) : null
+        <SectionList
+          sections={sections}
+          keyExtractor={(item) =>
+            item.kind === "song" ? `song:${item.song.id}` : `playlist:${item.playlist.id}`
           }
-          renderItem={({ item, index }: { item: Song; index: number }) => (
-            <Pressable
-              style={styles.row}
-              onPress={async () => {
-                try {
-                  await playQueue(songs, index);
-                  router.push("/player");
-                } catch (e) {
-                  console.error("[search] play failed", e);
-                }
-              }}
-            >
-              <View style={styles.meta}>
-                <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
-                {item.artist ? <Text style={styles.dim} numberOfLines={1}>{item.artist}</Text> : null}
-              </View>
-            </Pressable>
+          stickySectionHeadersEnabled={false}
+          renderSectionHeader={({ section }) => (
+            <Text style={styles.sectionHeader}>{section.title}</Text>
           )}
+          renderItem={({ item }) =>
+            item.kind === "song" ? (
+              <SongRow
+                song={item.song}
+                onPress={async () => {
+                  try {
+                    await playQueue(songs, item.index);
+                    router.push("/player");
+                  } catch (e) {
+                    console.error("[search] play failed", e);
+                  }
+                }}
+              />
+            ) : (
+              <Pressable
+                style={styles.row}
+                onPress={() => router.push(`/playlist/${item.playlist.id}`)}
+              >
+                <View style={styles.thumbPlaceholder}>
+                  <ListMusic color={colors.textFaint} size={22} />
+                </View>
+                <View style={styles.meta}>
+                  <Text style={styles.title} numberOfLines={1}>{item.playlist.name}</Text>
+                  {typeof item.playlist.songCount === "number" ? (
+                    <Text style={styles.dim} numberOfLines={1}>
+                      {item.playlist.songCount} {item.playlist.songCount === 1 ? "song" : "songs"}
+                    </Text>
+                  ) : null}
+                </View>
+              </Pressable>
+            )
+          }
         />
       )}
     </View>
@@ -171,25 +195,34 @@ function makeStyles(c: ThemeColors) {
     },
     input: { flex: 1, color: c.text, fontSize: 16, padding: 0 },
     sectionHeader: {
-      color: c.textDim,
-      fontSize: 12,
+      color: c.textFaint,
+      fontSize: 13,
       fontWeight: "700",
       textTransform: "uppercase",
-      letterSpacing: 0.5,
-      paddingHorizontal: 20,
-      paddingTop: 16,
-      paddingBottom: 6,
+      letterSpacing: 0.6,
+      backgroundColor: c.bg,
+      paddingHorizontal: 16,
+      paddingTop: 18,
+      paddingBottom: 8,
     },
     row: {
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: 20,
-      paddingVertical: 14,
+      gap: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
       borderBottomColor: c.border,
       borderBottomWidth: StyleSheet.hairlineWidth,
     },
-    rowIcon: { marginRight: 12 },
-    meta: { flex: 1 },
+    thumbPlaceholder: {
+      width: 52,
+      height: 52,
+      borderRadius: 8,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: c.surfaceAlt,
+    },
+    meta: { flex: 1, minWidth: 0 },
     title: { color: c.text, fontSize: 16 },
     dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
   });

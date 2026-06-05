@@ -96,8 +96,13 @@ export default function PlaylistsScreen() {
         contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
         renderItem={({ item }) => (
           <Pressable style={st.row} onPress={() => router.push(`/playlist/${item.id}`)}>
-            <Text style={st.title} numberOfLines={1}>{item.name}</Text>
-            <Text style={st.dim}>{item.songCount} {item.songCount === 1 ? "track" : "tracks"}</Text>
+            <View style={st.thumb}>
+              <ListMusic color={colors.textFaint} size={24} />
+            </View>
+            <View style={st.meta}>
+              <Text style={st.title} numberOfLines={1}>{item.name}</Text>
+              <Text style={st.dim}>{item.songCount} {item.songCount === 1 ? "song" : "songs"}</Text>
+            </View>
           </Pressable>
         )}
       />
@@ -115,7 +120,24 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     list: { flex: 1, backgroundColor: c.bg },
     c: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg, padding: 24 },
-    row: { paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: c.border, borderBottomWidth: StyleSheet.hairlineWidth },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomColor: c.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    thumb: {
+      width: 52,
+      height: 52,
+      borderRadius: 8,
+      backgroundColor: c.surfaceAlt,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    meta: { flex: 1, minWidth: 0 },
     title: { color: c.text, fontSize: 16 },
     dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
   });
