@@ -94,14 +94,6 @@ export default function PlayerScreen() {
         <Pressable hitSlop={10} style={styles.headerBtn} onPress={() => router.back()}>
           <ChevronDown color={colors.text} size={26} />
         </Pressable>
-        <View style={styles.headerRight}>
-          <Pressable hitSlop={10} style={styles.headerBtn} onPress={onToggleFavorite}>
-            <HeartIcon color={favorite ? colors.danger : colors.textDim} filled={favorite} size={24} />
-          </Pressable>
-          <Pressable hitSlop={10} style={styles.headerBtn} onPress={() => setMenuOpen(true)}>
-            <MoreIcon color={colors.textDim} size={24} />
-          </Pressable>
-        </View>
       </View>
 
       <View style={styles.body}>
@@ -113,19 +105,24 @@ export default function PlayerScreen() {
           )}
         </Pressable>
 
-        <Pressable disabled={!songId} onPress={() => songId && router.push(`/song/${songId}`)} style={styles.titleWrap}>
+        <View style={styles.titleWrap}>
           <View style={styles.titleRow}>
-            <Text style={styles.title} numberOfLines={1}>{current?.title ?? "Nothing playing"}</Text>
+            <Pressable style={styles.titleTap} disabled={!songId} onPress={() => songId && router.push(`/song/${songId}`)}>
+              <Text style={styles.title} numberOfLines={1}>{current?.title ?? "Nothing playing"}</Text>
+            </Pressable>
             {currentIsAlternate ? (
               <View style={styles.altBadge} accessibilityLabel="Alternate version">
                 <GitBranch color={colors.accent} size={14} />
               </View>
             ) : null}
+            <Pressable hitSlop={10} style={styles.titleMore} onPress={() => setMenuOpen(true)} accessibilityLabel="More options">
+              <MoreIcon color={colors.textDim} size={22} />
+            </Pressable>
           </View>
           <Text style={styles.artist} numberOfLines={1}>
             {[current?.artist, queueLength > 1 ? `${index + 1} of ${queueLength}` : null].filter(Boolean).join("  ·  ")}
           </Text>
-        </Pressable>
+        </View>
 
         <Waveform
           songId={songId}
@@ -142,6 +139,9 @@ export default function PlayerScreen() {
 
         {/* Rating (context menu) + reactions + shuffle-versions + details — one row */}
         <View style={styles.emojiRow}>
+          <Pressable style={styles.secBtn} hitSlop={8} onPress={onToggleFavorite} accessibilityLabel={favorite ? "Unfavorite" : "Favorite"}>
+            <HeartIcon color={favorite ? colors.danger : colors.textDim} filled={favorite} size={20} />
+          </Pressable>
           {songId ? <RatingButton songId={songId} /> : null}
           <ReactionPicker onReact={(e) => void onReact(e)} reactionEmojis={reactions.map((r) => r.emoji)} />
           <Pressable style={styles.secBtn} hitSlop={8} onPress={toggleShuffleVersions} accessibilityLabel="Shuffle versions">
@@ -194,8 +194,7 @@ export default function PlayerScreen() {
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
-    header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 12, paddingTop: 8 },
-    headerRight: { flexDirection: "row", alignItems: "center", gap: 8 },
+    header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingTop: 8 },
     headerBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
     body: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 28 },
     artWrap: { marginBottom: 28, borderRadius: 20, shadowOpacity: 0.4, shadowRadius: 24, shadowOffset: { width: 0, height: 12 } },
@@ -203,7 +202,9 @@ function makeStyles(c: ThemeColors) {
     artPlaceholder: { backgroundColor: c.surfaceAlt, alignItems: "center", justifyContent: "center" },
     titleWrap: { alignSelf: "stretch" },
     titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
-    title: { color: c.text, fontSize: 23, fontWeight: "800", textAlign: "center", flexShrink: 1 },
+    titleTap: { flexShrink: 1 },
+    title: { color: c.text, fontSize: 23, fontWeight: "800", textAlign: "center" },
+    titleMore: { padding: 2 },
     altBadge: { backgroundColor: c.surfaceAlt, borderRadius: 999, padding: 5 },
     artist: { color: c.textDim, fontSize: 15, marginTop: 4, textAlign: "center" },
     times: { alignSelf: "stretch", flexDirection: "row", justifyContent: "space-between", marginTop: 2 },
