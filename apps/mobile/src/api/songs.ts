@@ -49,13 +49,39 @@ export type SongSortBy =
   | "recently_modified"
   | "title_az";
 
-export async function fetchSongsPage(
-  opts: { query?: string; cursor?: string | null; sortBy?: SongSortBy } = {},
-): Promise<SongPage> {
+/**
+ * Generation-status filter. Mirrors the server's `status` query param, which is
+ * only honored for these exact values (mapped to `Song.generationStatus`).
+ * "ready" → Ready, "pending" → Processing, "failed" → Failed.
+ */
+export type SongStatus = "ready" | "pending" | "failed";
+
+/**
+ * Server-supported smart filters (the `smartFilter` query param). Favorites-only
+ * is `"favorites"` — the schema has NO standalone favorite/favoritesOnly param.
+ */
+export type SongSmartFilter = "this_week" | "unrated" | "most_played" | "favorites";
+
+export interface FetchSongsOptions {
+  query?: string;
+  cursor?: string | null;
+  sortBy?: SongSortBy;
+  /** Filter by generation status (server `status` param). */
+  status?: SongStatus;
+  /** Server `smartFilter` param, e.g. "favorites" for favorites-only. */
+  smartFilter?: SongSmartFilter;
+  /** Show the archive view instead of the active library (server `archived` bool). */
+  archived?: boolean;
+}
+
+export async function fetchSongsPage(opts: FetchSongsOptions = {}): Promise<SongPage> {
   const params = new URLSearchParams();
   if (opts.query) params.set("q", opts.query);
   if (opts.cursor) params.set("cursor", opts.cursor);
   if (opts.sortBy && opts.sortBy !== "newest") params.set("sortBy", opts.sortBy);
+  if (opts.status) params.set("status", opts.status);
+  if (opts.smartFilter) params.set("smartFilter", opts.smartFilter);
+  if (opts.archived) params.set("archived", "true");
   const qs = params.toString();
   const res = await apiGet<LibraryResponse>(`/api/songs${qs ? `?${qs}` : ""}`);
   const songs = (Array.isArray(res.songs) ? res.songs : [])

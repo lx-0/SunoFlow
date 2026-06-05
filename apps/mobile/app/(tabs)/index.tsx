@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, Image, Pressable, FlatList, ActivityIndicator, TextInput, ActionSheetIOS, StyleSheet } from "react-native";
 import { router } from "expo-router";
-import { ArrowUpDown, LayoutGrid, List } from "lucide-react-native";
+import { ArrowUpDown, LayoutGrid, List, SlidersHorizontal } from "lucide-react-native";
 import { HttpError } from "@/api/client";
-import { fetchSongsPage, type SongSortBy } from "@/api/songs";
+import {
+  fetchSongsPage,
+  type FetchSongsOptions,
+  type SongSmartFilter,
+  type SongSortBy,
+  type SongStatus,
+} from "@/api/songs";
 import { playQueue } from "@/playback/controls";
 import { SongRow } from "@/components/SongRow";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
@@ -21,6 +27,31 @@ const SORTS: { key: SongSortBy; label: string }[] = [
   { key: "title_az", label: "Title A–Z" },
 ];
 
+// Active filters threaded into fetchSongsPage. Only fields the server's
+// songsQuerySchema actually supports: status, smartFilter (favorites), archived.
+interface LibraryFilters {
+  status?: SongStatus;
+  favoritesOnly: boolean;
+  archived: boolean;
+}
+
+const NO_FILTERS: LibraryFilters = { status: undefined, favoritesOnly: false, archived: false };
+
+const STATUS_OPTIONS: { key?: SongStatus; label: string }[] = [
+  { key: undefined, label: "All statuses" },
+  { key: "ready", label: "Ready" },
+  { key: "pending", label: "Processing" },
+  { key: "failed", label: "Failed" },
+];
+
+function filtersActive(f: LibraryFilters): boolean {
+  return f.status !== undefined || f.favoritesOnly || f.archived;
+}
+
+function smartFilterFor(f: LibraryFilters): SongSmartFilter | undefined {
+  return f.favoritesOnly ? "favorites" : undefined;
+}
+
 export default function LibraryScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
@@ -28,20 +59,27 @@ export default function LibraryScreen() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState<SongSortBy>("newest");
+  const [filters, setFilters] = useState<LibraryFilters>(NO_FILTERS);
   const [view, setView] = useState<"list" | "grid">("list");
   const [loadingMore, setLoadingMore] = useState(false);
 
   const cursorRef = useRef<string | null>(null);
   const hasMoreRef = useRef(true);
-  const reqRef = useRef(0); // guards against stale pages after a new query/sort
+  const reqRef = useRef(0); // guards against stale pages after a new query/sort/filter
 
-  const load = useCallback((q: string, sort: SongSortBy) => {
+  const load = useCallback((q: string, sort: SongSortBy, filt: LibraryFilters) => {
     const req = ++reqRef.current;
     cursorRef.current = null;
     hasMoreRef.current = true;
     setSongs(null);
     setError(null);
-    fetchSongsPage({ query: q || undefined, sortBy: sort })
+    fetchSongsPage({
+      query: q || undefined,
+      sortBy: sort,
+      status: filt.status,
+      smartFilter: smartFilterFor(filt),
+      archived: filt.archived,
+    })
       .then((page) => {
         if (reqRef.current !== req) return;
         cursorRef.current = page.nextCursor;
@@ -56,16 +94,24 @@ export default function LibraryScreen() {
   }, []);
 
   useEffect(() => {
-    load(query.trim(), sortBy);
-    // re-run only when sort changes (search is submit-driven)
+    load(query.trim(), sortBy, filters);
+    // re-run when sort or filters change (search is submit-driven)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortBy]);
+  }, [sortBy, filters]);
 
   const loadMore = useCallback(() => {
     if (loadingMore || !hasMoreRef.current || !cursorRef.current) return;
     const req = reqRef.current;
     setLoadingMore(true);
-    fetchSongsPage({ query: query.trim() || undefined, sortBy, cursor: cursorRef.current })
+    const opts: FetchSongsOptions = {
+      query: query.trim() || undefined,
+      sortBy,
+      cursor: cursorRef.current,
+      status: filters.status,
+      smartFilter: smartFilterFor(filters),
+      archived: filters.archived,
+    };
+    fetchSongsPage(opts)
       .then((page) => {
         if (reqRef.current !== req) return;
         cursorRef.current = page.nextCursor;
@@ -77,7 +123,7 @@ export default function LibraryScreen() {
         hasMoreRef.current = false;
       })
       .finally(() => setLoadingMore(false));
-  }, [loadingMore, query, sortBy]);
+  }, [loadingMore, query, sortBy, filters]);
 
   function openSort() {
     const labels = SORTS.map((s) => s.label);
@@ -89,7 +135,40 @@ export default function LibraryScreen() {
     );
   }
 
+  function openFilters() {
+    // Build a flat option list: status choices, then toggles, then reset/cancel.
+    const statusLabels = STATUS_OPTIONS.map((o) =>
+      o.key === filters.status ? `${o.label} ✓` : o.label,
+    );
+    const favLabel = filters.favoritesOnly ? "Favorites only ✓" : "Favorites only";
+    const archivedLabel = filters.archived ? "Archived ✓" : "Archived";
+    const options = [...statusLabels, favLabel, archivedLabel, "Reset filters", "Cancel"];
+    const favIndex = STATUS_OPTIONS.length;
+    const archivedIndex = favIndex + 1;
+    const resetIndex = archivedIndex + 1;
+    const cancelIndex = resetIndex + 1;
+    ActionSheetIOS.showActionSheetWithOptions(
+      { options, cancelButtonIndex: cancelIndex, userInterfaceStyle: "dark" },
+      (i) => {
+        if (i < STATUS_OPTIONS.length) {
+          setFilters((f) => ({ ...f, status: STATUS_OPTIONS[i].key }));
+        } else if (i === favIndex) {
+          setFilters((f) => ({ ...f, favoritesOnly: !f.favoritesOnly }));
+        } else if (i === archivedIndex) {
+          setFilters((f) => ({ ...f, archived: !f.archived }));
+        } else if (i === resetIndex) {
+          setFilters(NO_FILTERS);
+        }
+      },
+    );
+  }
+
   const sortLabel = SORTS.find((s) => s.key === sortBy)?.label ?? "Newest";
+  const hasFilters = filtersActive(filters);
+  const filterCount =
+    (filters.status !== undefined ? 1 : 0) +
+    (filters.favoritesOnly ? 1 : 0) +
+    (filters.archived ? 1 : 0);
 
   function play(list: Song[], index: number) {
     playQueue(list, index)
@@ -107,14 +186,25 @@ export default function LibraryScreen() {
         returnKeyType="search"
         value={query}
         onChangeText={setQuery}
-        onSubmitEditing={() => load(query.trim(), sortBy)}
+        onSubmitEditing={() => load(query.trim(), sortBy, filters)}
       />
 
       <View style={styles.controls}>
-        <Pressable style={styles.sortBtn} onPress={openSort}>
-          <ArrowUpDown color={colors.textDim} size={16} />
-          <Text style={styles.sortText}>{sortLabel}</Text>
-        </Pressable>
+        <View style={styles.controlsLeft}>
+          <Pressable style={styles.sortBtn} onPress={openSort}>
+            <ArrowUpDown color={colors.textDim} size={16} />
+            <Text style={styles.sortText}>{sortLabel}</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.sortBtn, hasFilters && styles.filterBtnActive]}
+            onPress={openFilters}
+          >
+            <SlidersHorizontal color={hasFilters ? colors.accent : colors.textDim} size={16} />
+            <Text style={[styles.sortText, hasFilters && styles.filterTextActive]}>
+              {hasFilters ? `Filters · ${filterCount}` : "Filter"}
+            </Text>
+          </Pressable>
+        </View>
         <Pressable style={styles.viewBtn} onPress={() => setView((v) => (v === "list" ? "grid" : "list"))}>
           {view === "list" ? <LayoutGrid color={colors.textDim} size={18} /> : <List color={colors.textDim} size={18} />}
         </Pressable>
@@ -125,7 +215,7 @@ export default function LibraryScreen() {
       ) : !songs ? (
         <Centered><ActivityIndicator color={colors.text} /></Centered>
       ) : songs.length === 0 ? (
-        <Centered><Text style={styles.dim}>{query ? "No matches." : "No songs yet. Generate some on the web."}</Text></Centered>
+        <Centered><Text style={styles.dim}>{query || hasFilters ? "No matches." : "No songs yet. Generate some on the web."}</Text></Centered>
       ) : (
         <FlatList
           key={view} // numColumns change requires a fresh list
@@ -168,8 +258,11 @@ function makeStyles(c: ThemeColors) {
     container: { flex: 1, backgroundColor: c.bg },
     search: { backgroundColor: c.surface, color: c.text, margin: 12, marginBottom: 8, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15 },
     controls: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14, paddingBottom: 8 },
+    controlsLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
     sortBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: c.surface, borderRadius: 8 },
     sortText: { color: c.textDim, fontSize: 13 },
+    filterBtnActive: { backgroundColor: c.surfaceAlt, borderWidth: 1, borderColor: c.accent },
+    filterTextActive: { color: c.accent },
     viewBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center", backgroundColor: c.surface, borderRadius: 8 },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
     dim: { color: c.textDim, fontSize: 13, marginTop: 2 },

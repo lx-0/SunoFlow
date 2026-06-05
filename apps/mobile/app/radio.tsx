@@ -1,36 +1,57 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  Pressable,
+  ScrollView,
+  ActivityIndicator,
+  ActionSheetIOS,
+  StyleSheet,
+} from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
-import { Radio } from "lucide-react-native";
+import { Radio, ChevronDown } from "lucide-react-native";
 import { formatDuration } from "@sunoflow/core";
 import { HttpError } from "@/api/client";
-import { fetchRadio } from "@/api/radio";
+import { fetchRadio, RADIO_MOODS, RADIO_GENRES } from "@/api/radio";
 import { playQueue } from "@/playback/controls";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
-// Radio: a generated continuous station. Loads the curated queue on focus, shows
-// the upcoming songs, and offers a prominent "Play Radio" button that plays the
-// whole list from the top. Tapping a row plays from that index. Every async
-// branch ends in visible feedback (success → player, failure → console + UI).
+// Radio: a generated continuous station. A controls header lets the listener pick
+// a mood (horizontal chip scroll) and a genre (ActionSheetIOS picker), then start
+// the station; the curated queue replaces the list. Tapping a row plays from that
+// index. Every async branch ends in visible feedback (success → player, failure →
+// console + UI). Mirrors the web Mood Radio (src/components/MoodRadioView.tsx).
+
+function capitalize(s: string): string {
+  return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
+}
+
 export default function RadioScreen() {
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [mood, setMood] = useState<string | null>(null);
+  const [genre, setGenre] = useState<string | null>(null);
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
+  const load = useCallback((nextMood: string | null, nextGenre: string | null) => {
+    setSongs(null);
+    setError(null);
+    fetchRadio({ mood: nextMood ?? undefined, genre: nextGenre ?? undefined })
+      .then(setSongs)
+      .catch((e: unknown) => {
+        setError(e instanceof HttpError ? `Failed to load radio (HTTP ${e.status})` : "Network error");
+        console.error("[radio] load failed", e);
+      });
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
-      setSongs(null);
-      setError(null);
-      fetchRadio()
-        .then(setSongs)
-        .catch((e: unknown) => {
-          setError(e instanceof HttpError ? `Failed to load radio (HTTP ${e.status})` : "Network error");
-          console.error("[radio] load failed", e);
-        });
-    }, []),
+      load(mood, genre);
+    }, [load, mood, genre]),
   );
 
   const play = useCallback(async (list: Song[], index: number) => {
@@ -42,25 +63,100 @@ export default function RadioScreen() {
     }
   }, []);
 
+  const toggleMood = useCallback((m: string) => {
+    setMood((prev) => (prev === m ? null : m));
+  }, []);
+
+  const pickGenre = useCallback(() => {
+    const labels = ["Any genre", ...RADIO_GENRES, "Cancel"];
+    const cancelButtonIndex = labels.length - 1;
+    ActionSheetIOS.showActionSheetWithOptions(
+      { title: "Genre", options: labels, cancelButtonIndex },
+      (i) => {
+        if (i === cancelButtonIndex) return;
+        if (i === 0) {
+          setGenre(null);
+          return;
+        }
+        setGenre(RADIO_GENRES[i - 1] ?? null);
+      },
+    );
+  }, []);
+
+  const startStation = useCallback(() => {
+    load(mood, genre);
+  }, [load, mood, genre]);
+
+  const header = (
+    <View>
+      <View style={styles.controls}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRow}
+        >
+          <Pressable
+            style={[styles.chip, mood === null && styles.chipActive]}
+            onPress={() => setMood(null)}
+          >
+            <Text style={[styles.chipText, mood === null && styles.chipTextActive]}>Any mood</Text>
+          </Pressable>
+          {RADIO_MOODS.map((m) => {
+            const active = mood === m;
+            return (
+              <Pressable
+                key={m}
+                style={[styles.chip, active && styles.chipActive]}
+                onPress={() => toggleMood(m)}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                  {capitalize(m)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
+        <Pressable style={styles.genreButton} onPress={pickGenre}>
+          <Text style={styles.genreButtonText} numberOfLines={1}>
+            {genre ?? "Any genre"}
+          </Text>
+          <ChevronDown color={colors.textDim} size={16} />
+        </Pressable>
+
+        <Pressable style={styles.playButton} onPress={startStation}>
+          <Radio color={colors.onAccent} size={20} />
+          <Text style={styles.playButtonText}>Start station</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Radio" }} />
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <>
+          {header}
+          <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        </>
       ) : !songs ? (
-        <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
+        <>
+          {header}
+          <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
+        </>
       ) : songs.length === 0 ? (
-        <View style={styles.centered}><Text style={styles.dim}>No station available right now. Generate or like some songs first.</Text></View>
+        <>
+          {header}
+          <View style={styles.centered}>
+            <Text style={styles.dim}>No station available right now. Try another mood or genre, or generate and like some songs first.</Text>
+          </View>
+        </>
       ) : (
         <FlatList
           data={songs}
           keyExtractor={(s, i) => `${s.id}:${i}`}
-          ListHeaderComponent={
-            <Pressable style={styles.playButton} onPress={() => void play(songs, 0)}>
-              <Radio color={colors.onAccent} size={20} />
-              <Text style={styles.playButtonText}>Play Radio</Text>
-            </Pressable>
-          }
+          ListHeaderComponent={header}
           renderItem={({ item, index }) => (
             <Pressable style={styles.row} onPress={() => void play(songs, index)}>
               <View style={styles.meta}>
@@ -82,13 +178,48 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    controls: {
+      paddingTop: 12,
+      paddingBottom: 4,
+      borderBottomColor: c.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    chipRow: { paddingHorizontal: 16, gap: 8 },
+    chip: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 999,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: c.border,
+      backgroundColor: c.surface,
+    },
+    chipActive: { borderColor: c.accent, backgroundColor: c.surfaceAlt },
+    chipText: { color: c.textDim, fontSize: 14 },
+    chipTextActive: { color: c.accent, fontWeight: "700" },
+    genreButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+      marginHorizontal: 16,
+      marginTop: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderRadius: 12,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: c.border,
+      backgroundColor: c.surface,
+    },
+    genreButtonText: { color: c.text, fontSize: 15, flex: 1 },
     playButton: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       gap: 10,
       backgroundColor: c.accent,
-      margin: 16,
+      marginHorizontal: 16,
+      marginTop: 12,
+      marginBottom: 8,
       paddingVertical: 14,
       borderRadius: 12,
     },
