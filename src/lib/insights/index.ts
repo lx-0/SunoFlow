@@ -1,36 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { mondayOfWeeksAgo } from "@/lib/date-series";
 import { tallyFeedback, normalizeTags, comboKey } from "@/lib/feedback-tally";
+import type { TagStat, ComboStat, WeeklyDataPoint, InsightsResult } from "@sunoflow/core";
 
-export interface TagStat {
-  tag: string;
-  likes: number;
-  dislikes: number;
-  total: number;
-  likeRatio: number;
-}
-
-export interface ComboStat {
-  combo: string;
-  likes: number;
-  dislikes: number;
-  total: number;
-  likeRatio: number;
-}
-
-export interface WeeklyDataPoint {
-  week: string;
-  likes: number;
-  dislikes: number;
-}
-
-export interface InsightsResult {
-  totalLikes: number;
-  totalDislikes: number;
-  tagBreakdown: TagStat[];
-  topCombos: ComboStat[];
-  weeklyTrend: WeeklyDataPoint[];
-}
+// Insights ("feedback analytics") contract is shared via @sunoflow/core
+// (single source for web + mobile). Re-exported for existing importers.
+export type { TagStat, ComboStat, WeeklyDataPoint, InsightsResult };
 
 interface FeedbackRow {
   rating: string;

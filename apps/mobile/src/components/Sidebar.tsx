@@ -5,7 +5,7 @@ import { router, type Href } from "expo-router";
 import { useTheme } from "@/theme/ThemeContext";
 import {
   Menu, Search, Plus, BookOpen, ListMusic, Heart, Clock, Layers, Globe, Sparkles, UserPlus, Wand2,
-  LayoutGrid, Tag, Radio, Users, BarChart3, Bell, Settings, Lightbulb,
+  LayoutGrid, Tag, Radio, Users, BarChart3, Bell, Settings, Lightbulb, TrendingUp, User,
   Drama, FileText, Palette, SlidersHorizontal, Combine, Upload, type LucideIcon,
 } from "lucide-react-native";
 
@@ -74,6 +74,7 @@ const SECTIONS: Section[] = [
     items: [
       { label: "Discover", route: "/discover", Icon: Globe },
       { label: "Inspire", route: "/inspire" as Href, Icon: Lightbulb },
+      { label: "Insights", route: "/insights" as Href, Icon: TrendingUp },
       { label: "For You", route: "/recommendations", Icon: Sparkles },
       { label: "Radio", route: "/radio", Icon: Radio },
       { label: "Following", route: "/feed", Icon: UserPlus },
@@ -85,6 +86,7 @@ const SECTIONS: Section[] = [
   {
     title: "You",
     items: [
+      { label: "My Profile", route: "/profile" as Href, Icon: User },
       { label: "People You Follow", route: "/following-people", Icon: Users },
       { label: "Your Stats", route: "/stats", Icon: BarChart3 },
       { label: "Notifications", route: "/notifications", Icon: Bell },
