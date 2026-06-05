@@ -2,13 +2,13 @@ import { useCallback, useState } from "react";
 import { View, Text, Image, Pressable, ScrollView, ActivityIndicator, StyleSheet, ActionSheetIOS, Alert } from "react-native";
 import { Stack, useFocusEffect, useLocalSearchParams, router, type Href } from "expo-router";
 import { formatDuration } from "@sunoflow/core";
-import { Play, Disc3, Share2, Sparkles, BarChart2, Layers, MoreHorizontal } from "lucide-react-native";
+import { Play, Disc3, Share2, Sparkles, BarChart2, Layers, MoreHorizontal, Tag as TagIcon, type LucideIcon } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { createStyleTemplate } from "@/api/style-templates";
 import { createPersonaFromSong } from "@/api/personas";
 import { setFeaturedSong } from "@/api/profile";
 import { fetchSongDetail, detailToSong, renameSong, setSongVisibility, type SongDetail } from "@/api/song-detail";
-import { getFavorite, setFavorite as setFavoriteApi } from "@/api/favorites";
+import { setFavorite as setFavoriteApi } from "@/api/favorites";
 import { fetchLyrics, type LyricLine } from "@/api/lyrics";
 import { fetchRelated } from "@/api/related";
 import { playQueue } from "@/playback/controls";
@@ -195,77 +195,101 @@ export default function SongDetailScreen() {
     }
   }
 
+  const favCount = song.favoriteCount + (favorite && !song.isFavorite ? 1 : 0);
+  const secondary: { key: string; label: string; Icon: LucideIcon; onPress: () => void }[] = [
+    { key: "extend", label: "Extend", Icon: Sparkles, onPress: () => router.push(`/generate?parentSongId=${song.id}`) },
+    { key: "related", label: "Related", Icon: Disc3, onPress: () => router.push(`/related/${song.id}`) },
+    { key: "stems", label: "Stems", Icon: Layers, onPress: () => router.push(`/stems/${song.id}` as Href) },
+    { key: "analytics", label: "Analytics", Icon: BarChart2, onPress: () => router.push(`/song-analytics/${song.id}` as Href) },
+    { key: "tags", label: "Edit tags", Icon: TagIcon, onPress: () => router.push(`/song-tags/${song.id}` as Href) },
+    { key: "more", label: "More", Icon: MoreHorizontal, onPress: () => moreActions(song) },
+  ];
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: song.title }} />
 
-      {song.artworkUrl ? (
-        <Image source={{ uri: song.artworkUrl }} style={styles.art} />
-      ) : (
-        <View style={[styles.art, styles.artPlaceholder]} />
-      )}
-
-      <Text style={styles.title}>{song.title}</Text>
-      {meta ? <Text style={styles.meta}>{meta}</Text> : null}
-
-      {/* Favorite + rating */}
-      <View style={styles.favRow}>
-        <Pressable hitSlop={8} style={styles.favBtn} onPress={onToggleFavorite}>
-          <HeartIcon color={favorite ? colors.danger : colors.textDim} filled={favorite} size={22} />
-          <Text style={styles.favCount}>{song.favoriteCount + (favorite && !song.isFavorite ? 1 : 0)}</Text>
-        </Pressable>
-        <RatingStars songId={song.id} size={22} />
+      {/* Hero */}
+      <View style={styles.hero}>
+        {song.artworkUrl ? (
+          <Image source={{ uri: song.artworkUrl }} style={styles.art} />
+        ) : (
+          <View style={[styles.art, styles.artPlaceholder]}>
+            <Disc3 color={colors.textFaint} size={56} />
+          </View>
+        )}
+        <Text style={styles.title}>{song.title}</Text>
+        {meta ? <Text style={styles.meta}>{meta}</Text> : null}
+        <View style={[styles.badge, song.isPublic ? styles.badgePublic : styles.badgePrivate]}>
+          <Text style={[styles.badgeText, song.isPublic ? styles.badgeTextPublic : styles.badgeTextPrivate]}>
+            {song.isPublic ? "Public" : "Private"}
+          </Text>
+        </View>
       </View>
 
-      <View style={styles.actions}>
+      {/* Primary actions */}
+      <View style={styles.primaryRow}>
         <Pressable style={styles.playBtn} onPress={play}>
-          <Play color={colors.onAccent} fill={colors.onAccent} size={18} />
+          <Play color={colors.onAccent} fill={colors.onAccent} size={20} />
           <Text style={styles.playText}>Play</Text>
         </Pressable>
-        <Pressable style={styles.iconBtn} onPress={() => router.push(`/related/${song.id}`)}>
-          <Disc3 color={colors.text} size={18} />
+        <Pressable style={styles.circleBtn} onPress={onToggleFavorite} hitSlop={6}>
+          <HeartIcon color={favorite ? colors.danger : colors.text} filled={favorite} size={22} />
+          {favCount > 0 ? <Text style={styles.circleCount}>{favCount}</Text> : null}
         </Pressable>
-        <Pressable style={styles.iconBtn} onPress={() => router.push(`/generate?parentSongId=${song.id}`)}>
-          <Sparkles color={colors.text} size={18} />
-        </Pressable>
-        <Pressable style={styles.iconBtn} onPress={() => router.push(`/song-analytics/${song.id}` as Href)}>
-          <BarChart2 color={colors.text} size={18} />
-        </Pressable>
-        <Pressable style={styles.iconBtn} onPress={() => router.push(`/stems/${song.id}` as Href)}>
-          <Layers color={colors.text} size={18} />
-        </Pressable>
-        <Pressable style={styles.iconBtn} onPress={() => moreActions(song)}>
-          <MoreHorizontal color={colors.text} size={18} />
-        </Pressable>
-        <Pressable style={styles.iconBtn} onPress={() => void shareSong({ id: song.id, title: song.title, publicSlug: song.publicSlug })}>
-          <Share2 color={colors.text} size={18} />
+        <Pressable
+          style={styles.circleBtn}
+          hitSlop={6}
+          onPress={() => void shareSong({ id: song.id, title: song.title, publicSlug: song.publicSlug })}
+        >
+          <Share2 color={colors.text} size={20} />
         </Pressable>
       </View>
 
-      {song.tags.length > 0 ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tags</Text>
+      {/* Rating */}
+      <View style={styles.ratingRow}>
+        <Text style={styles.ratingLabel}>Your rating</Text>
+        <RatingStars songId={song.id} size={24} />
+      </View>
+
+      {/* Secondary actions — labeled, not bare icons */}
+      <View style={styles.grid}>
+        {secondary.map((a) => (
+          <Pressable key={a.key} style={styles.gridItem} onPress={a.onPress}>
+            <a.Icon color={colors.accent} size={20} />
+            <Text style={styles.gridLabel}>{a.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {/* Tags (tap to edit) */}
+      <Pressable style={styles.card} onPress={() => router.push(`/song-tags/${song.id}` as Href)}>
+        <View style={styles.cardHead}>
+          <Text style={styles.cardTitle}>Tags</Text>
+          <Text style={styles.editLink}>Edit</Text>
+        </View>
+        {song.tags.length > 0 ? (
           <View style={styles.tags}>
             {song.tags.map((t) => (
-              <View key={t} style={styles.tag}>
-                <Text style={styles.tagText}>{t}</Text>
-              </View>
+              <View key={t} style={styles.tag}><Text style={styles.tagText}>{t}</Text></View>
             ))}
           </View>
-        </View>
-      ) : null}
+        ) : (
+          <Text style={styles.cardEmpty}>No tags — tap to add.</Text>
+        )}
+      </Pressable>
 
       {song.prompt ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Prompt</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Prompt</Text>
           <Text style={styles.body}>{song.prompt}</Text>
         </View>
       ) : null}
 
       {lyricsText ? (
-        <View style={styles.section}>
-          <View style={styles.sectionHead}>
-            <Text style={styles.sectionTitle}>Lyrics</Text>
+        <View style={styles.card}>
+          <View style={styles.cardHead}>
+            <Text style={styles.cardTitle}>Lyrics</Text>
             <Pressable onPress={() => router.push(`/lyrics-edit/${song.id}` as Href)} hitSlop={8}>
               <Text style={styles.editLink}>Edit</Text>
             </Pressable>
@@ -307,23 +331,42 @@ function fmtDate(iso?: string): string | null {
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
-    content: { paddingVertical: 24, paddingBottom: 120 },
+    content: { paddingTop: 16, paddingBottom: 140, paddingHorizontal: 16 },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg, padding: 24 },
-    art: { width: 240, height: 240, borderRadius: 16, marginBottom: 20, alignSelf: "center" },
-    artPlaceholder: { backgroundColor: c.surfaceAlt },
-    title: { color: c.text, fontSize: 22, fontWeight: "700", textAlign: "center", paddingHorizontal: 24 },
-    meta: { color: c.textDim, fontSize: 13, marginTop: 6, textAlign: "center", paddingHorizontal: 24 },
-    favRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 20, marginTop: 16 },
-    favBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
-    favCount: { color: c.textDim, fontSize: 14 },
-    actions: { flexDirection: "row", gap: 12, marginTop: 20, paddingHorizontal: 24 },
-    playBtn: { flex: 1, flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center", backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 12 },
-    playText: { color: c.onAccent, fontSize: 15, fontWeight: "600" },
-    iconBtn: { width: 48, alignItems: "center", justifyContent: "center", backgroundColor: c.surfaceAlt, borderRadius: 12, paddingVertical: 12 },
-    section: { marginTop: 24, paddingHorizontal: 24 },
-    sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
+
+    hero: { alignItems: "center", marginBottom: 20 },
+    art: { width: 220, height: 220, borderRadius: 18, marginBottom: 16, shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } },
+    artPlaceholder: { backgroundColor: c.surfaceAlt, alignItems: "center", justifyContent: "center" },
+    title: { color: c.text, fontSize: 22, fontWeight: "800", textAlign: "center", lineHeight: 28 },
+    meta: { color: c.textDim, fontSize: 13, marginTop: 6, textAlign: "center" },
+    badge: { marginTop: 12, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999 },
+    badgePublic: { backgroundColor: c.successBg },
+    badgePrivate: { backgroundColor: c.surfaceAlt },
+    badgeText: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6 },
+    badgeTextPublic: { color: c.successFg },
+    badgeTextPrivate: { color: c.textDim },
+
+    primaryRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+    playBtn: { flex: 1, flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center", backgroundColor: c.accentStrong, borderRadius: 14, paddingVertical: 15 },
+    playText: { color: c.onAccent, fontSize: 16, fontWeight: "700" },
+    circleBtn: { minWidth: 54, height: 54, paddingHorizontal: 10, flexDirection: "row", gap: 5, alignItems: "center", justifyContent: "center", backgroundColor: c.surface, borderRadius: 14 },
+    circleCount: { color: c.textDim, fontSize: 13, fontWeight: "600" },
+
+    ratingRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 18, backgroundColor: c.surface, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12 },
+    ratingLabel: { color: c.textDim, fontSize: 14, fontWeight: "600" },
+
+    grid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 16 },
+    gridItem: { flexBasis: "31%", flexGrow: 1, alignItems: "center", gap: 6, backgroundColor: c.surface, borderRadius: 14, paddingVertical: 14 },
+    gridLabel: { color: c.text, fontSize: 12, fontWeight: "600" },
+
+    card: { backgroundColor: c.surface, borderRadius: 14, padding: 16, marginTop: 16 },
+    cardHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
+    cardTitle: { color: c.text, fontSize: 15, fontWeight: "700" },
+    cardEmpty: { color: c.textFaint, fontSize: 13 },
     editLink: { color: c.accent, fontSize: 13, fontWeight: "600" },
-    sectionTitle: { color: c.textDim, fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 },
+
+    section: { marginTop: 24 },
+    sectionTitle: { color: c.textDim, fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6 },
     tags: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
     tag: { backgroundColor: c.surfaceAlt, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 },
     tagText: { color: c.textDim, fontSize: 13 },
