@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, router } from "expo-router";
 import { Upload, AlertCircle } from "lucide-react-native";
@@ -27,6 +27,13 @@ export default function UploadScreen() {
 
   const aliveRef = useRef(true);
 
+  // Stop the poll loop from touching state / navigating after unmount (the user
+  // can leave mid-poll). Matches generate.tsx / mashup.tsx.
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => { aliveRef.current = false; };
+  }, []);
+
   const pickFile = useCallback(async () => {
     try {
       const res = await DocumentPicker.getDocumentAsync({ type: "audio/*", copyToCacheDirectory: true });
@@ -44,7 +51,6 @@ export default function UploadScreen() {
 
   async function onSubmit() {
     if (!base64 && !fileUrl.trim()) return;
-    aliveRef.current = true;
     setError(null);
     setPhase("submitting");
     try {

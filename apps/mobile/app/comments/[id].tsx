@@ -26,6 +26,9 @@ export default function CommentsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [comments, setComments] = useState<Comment[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Post failures are separate from load failures — a failed post must NOT replace
+  // the whole loaded thread with an error screen.
+  const [postError, setPostError] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
 
@@ -47,6 +50,7 @@ export default function CommentsScreen() {
     const trimmed = text.trim();
     if (!id || !trimmed || sending) return;
     setSending(true);
+    setPostError(null);
     const optimistic: Comment = {
       id: `optimistic:${Date.now()}`,
       body: trimmed,
@@ -63,7 +67,7 @@ export default function CommentsScreen() {
     } catch (e) {
       setComments((prev) => (prev ?? []).filter((c) => c.id !== optimistic.id));
       setText(trimmed);
-      setError(e instanceof HttpError ? `Failed to post (HTTP ${e.status})` : "Failed to post comment");
+      setPostError(e instanceof HttpError ? `Failed to post (HTTP ${e.status})` : "Failed to post comment");
       console.error("[comments] post failed", e);
     } finally {
       setSending(false);
@@ -97,6 +101,7 @@ export default function CommentsScreen() {
           )}
         />
       )}
+      {postError ? <Text style={styles.postError}>{postError}</Text> : null}
       <View style={styles.composer}>
         <TextInput
           style={styles.input}
@@ -172,6 +177,7 @@ function makeStyles(c: ThemeColors) {
       backgroundColor: c.accent,
     },
     sendDisabled: { opacity: 0.4 },
+    postError: { color: c.danger, fontSize: 13, paddingHorizontal: 16, paddingBottom: 6 },
     dim: { color: c.textDim, fontSize: 13 },
   });
 }

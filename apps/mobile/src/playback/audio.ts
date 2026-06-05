@@ -79,9 +79,13 @@ function startPolling() {
     patch({ playing, positionSeconds: pos, durationSeconds: dur });
 
     const justStopped = lastPlaying && !playing;
-    // Track ended if: position reached the end, OR playback just stopped while it
-    // was near the end (covers the player resetting currentTime to 0 on finish).
-    const ended = dur > 0 && (pos >= dur - 0.6 || (justStopped && lastPos >= dur - 2));
+    // Track ended if: position reached the end, OR playback just stopped AND the
+    // player reset currentTime to ~0 after finishing (lastPos near the end, pos
+    // now ~0). The `pos < 1` clause is critical: a user pause within the last 2s
+    // leaves pos near `dur` (not 0), so it must NOT be treated as a track end —
+    // otherwise pausing near the end auto-skips (incl. from the lock screen).
+    const ended =
+      dur > 0 && (pos >= dur - 0.6 || (justStopped && lastPos >= dur - 2 && pos < 1));
     lastPlaying = playing;
     lastPos = pos;
 
@@ -95,11 +99,18 @@ function startPolling() {
 async function ensurePlayer(): Promise<AudioPlayer> {
   if (player) return player;
 
-  await setAudioModeAsync({
-    playsInSilentMode: true,
-    shouldPlayInBackground: true,
-    interruptionMode: "doNotMix",
-  });
+  // This call (shouldPlayInBackground) is what keeps audio alive on lock — the
+  // milestone's whole point. If it fails, log it and still create the player so
+  // foreground playback works, rather than throwing and killing playback entirely.
+  try {
+    await setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      interruptionMode: "doNotMix",
+    });
+  } catch (e) {
+    console.error("[audio] setAudioModeAsync failed — background/lock playback may not work", e);
+  }
 
   const p = createAudioPlayer(null);
   // showSeek* off → iOS shows next/prev track buttons instead of ±seconds, which
@@ -239,6 +250,13 @@ export function toggleRepeat(): void {
 }
 
 export function seekTo(seconds: number): void {
-  player?.seekTo(seconds);
-  patch({ positionSeconds: seconds });
+  // Clamp: waveform onSeek can yield NaN (duration 0 → divide-by-zero) or a value
+  // past the end / negative. seekTo returns a Promise — catch it (unhandled
+  // rejection otherwise).
+  const d = snapshot.durationSeconds;
+  const t = Number.isFinite(seconds)
+    ? Math.max(0, d > 0 ? Math.min(seconds, d) : seconds)
+    : 0;
+  player?.seekTo(t).catch((e) => console.error("[audio] seek failed", e));
+  patch({ positionSeconds: t });
 }
