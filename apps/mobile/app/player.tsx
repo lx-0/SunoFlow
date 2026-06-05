@@ -131,6 +131,7 @@ export default function PlayerScreen() {
           durationSeconds={durationSeconds}
           onSeek={seekTo}
           popups={activePopups}
+          reactionTimes={reactions.map((r) => r.timestamp)}
         />
         <View style={styles.times}>
           <Text style={styles.time}>{formatDuration(positionSeconds)}</Text>

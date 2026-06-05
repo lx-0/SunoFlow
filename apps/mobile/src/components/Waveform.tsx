@@ -39,6 +39,7 @@ export function Waveform({
   durationSeconds,
   onSeek,
   popups,
+  reactionTimes = [],
 }: {
   songId: string | undefined;
   streamUrl: string | undefined;
@@ -46,6 +47,8 @@ export function Waveform({
   durationSeconds: number;
   onSeek: (seconds: number) => void;
   popups: WaveformPopup[];
+  /** All reaction timestamps (seconds) — drawn as persistent pips on the bar. */
+  reactionTimes?: number[];
 }) {
   const { colors } = useTheme();
   const { extractWaveformData, onCurrentExtractedWaveformData } = useAudioPlayer();
@@ -114,6 +117,18 @@ export function Waveform({
           />
         ))}
       </Pressable>
+
+      {/* Persistent reaction pips — one per reaction, at its position on the bar */}
+      {durationSeconds > 0 && reactionTimes.length > 0 ? (
+        <View pointerEvents="none" style={styles.markerLayer}>
+          {reactionTimes.map((t, i) => (
+            <View
+              key={i}
+              style={[styles.marker, { left: `${Math.max(0, Math.min(100, (t / durationSeconds) * 100))}%`, backgroundColor: colors.star }]}
+            />
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -124,4 +139,6 @@ const styles = StyleSheet.create({
   popup: { position: "absolute", width: 28, marginLeft: -14, alignItems: "center" },
   popupEmoji: { fontSize: 22 },
   bars: { flexDirection: "row", alignItems: "center", height: 48 },
+  markerLayer: { position: "absolute", left: 0, right: 0, bottom: -2, height: 5 },
+  marker: { position: "absolute", bottom: 0, width: 5, height: 5, borderRadius: 2.5, marginLeft: -2.5 },
 });
