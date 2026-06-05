@@ -1,18 +1,20 @@
 import { useCallback, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
-import { Stack, useFocusEffect } from "expo-router";
+import { Stack, useFocusEffect, router, type Href } from "expo-router";
 import { HttpError } from "@/api/client";
 import {
   fetchNotifications,
   markNotificationRead,
   markAllNotificationsRead,
+  notificationTarget,
   type AppNotification,
 } from "@/api/notifications";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
 // Notifications feed. Reloads on focus. Unread rows are brighter and carry an
-// accent dot; tapping an unread row marks it read. A header action clears all.
+// accent dot; tapping a row marks it read (if unread) and navigates to its target
+// (song/playlist/profile/etc. via notificationTarget). A header action clears all.
 export default function NotificationsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
@@ -41,12 +43,15 @@ export default function NotificationsScreen() {
   useFocusEffect(useCallback(() => load(), [load]));
 
   const onRowPress = useCallback((n: AppNotification) => {
-    if (n.read) return;
-    setItems((prev) => prev?.map((x) => (x.id === n.id ? { ...x, read: true } : x)) ?? prev);
-    setUnread((u) => Math.max(0, u - 1));
-    markNotificationRead(n.id).catch((e: unknown) =>
-      console.error("[notifications] mark read failed", e),
-    );
+    if (!n.read) {
+      setItems((prev) => prev?.map((x) => (x.id === n.id ? { ...x, read: true } : x)) ?? prev);
+      setUnread((u) => Math.max(0, u - 1));
+      markNotificationRead(n.id).catch((e: unknown) =>
+        console.error("[notifications] mark read failed", e),
+      );
+    }
+    const target = notificationTarget(n);
+    if (target) router.push(target as Href);
   }, []);
 
   const onMarkAll = useCallback(() => {

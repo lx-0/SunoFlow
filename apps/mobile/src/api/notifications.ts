@@ -42,6 +42,24 @@ function mapNotification(raw: unknown): AppNotification | null {
   };
 }
 
+// Map a notification's web href (+ songId) to the equivalent in-app route, so a
+// tapped notification navigates instead of dead-ending. Web paths differ from the
+// mobile route tree (e.g. /songs/<id> → /song/<id>), so translate explicitly.
+// Returns null when there's no sensible native target.
+export function notificationTarget(n: AppNotification): string | null {
+  const href = n.href ?? "";
+  let m: RegExpMatchArray | null;
+  if ((m = href.match(/^\/playlists\/invite\/([^/?#]+)/))) return `/playlist-invite/${m[1]}`;
+  if ((m = href.match(/^\/playlists?\/([^/?#]+)/))) return `/playlist/${m[1]}`;
+  if ((m = href.match(/^\/songs?\/([^/?#]+)/))) return `/song/${m[1]}`;
+  if (n.songId) return `/song/${n.songId}`;
+  if ((m = href.match(/^\/u\/([^/?#]+)/))) return `/u/${m[1]}`;
+  if (href === "/profile") return "/profile";
+  if (href === "/analytics") return "/insights";
+  if (href === "/feed") return "/feed";
+  return null;
+}
+
 export async function fetchNotifications(): Promise<NotificationsResult> {
   const res = await apiGet<unknown>("/api/notifications");
   const obj = res && typeof res === "object" ? (res as Record<string, unknown>) : {};
