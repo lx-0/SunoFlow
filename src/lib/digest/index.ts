@@ -1,15 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { fetchFeed } from "@/lib/rss";
+import type { DigestItem } from "@sunoflow/core";
 
-export interface DigestItem {
-  source: "rss";
-  title: string;
-  link?: string;
-  mood: string;
-  topics: string[];
-  suggestedPrompt: string;
-  feedTitle?: string;
-}
+// DigestItem contract is shared via @sunoflow/core (single source for web + mobile).
+export type { DigestItem };
 
 const MAX_DIGESTS_PER_USER = 10;
 const MAX_FEEDS = 5;
