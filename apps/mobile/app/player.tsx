@@ -5,6 +5,7 @@ import { formatDuration } from "@sunoflow/core";
 import { usePlayback } from "@/playback/usePlayback";
 import { togglePlay, skipToNext, skipToPrevious, seekTo, toggleShuffle, toggleRepeat } from "@/playback/audio";
 import { PlayIcon, PauseIcon, SkipNextIcon, SkipPrevIcon, ShuffleIcon, HeartIcon, RepeatIcon, MoreIcon } from "@/components/Icons";
+import { ChevronDown, Disc3 } from "lucide-react-native";
 import { ReactionPicker } from "@/components/ReactionPicker";
 import { RatingStars } from "@/components/RatingStars";
 import { Waveform } from "@/components/Waveform";
@@ -20,7 +21,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function PlayerScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { current, playing, positionSeconds, durationSeconds, shuffle, repeat } = usePlayback();
+  const { current, playing, positionSeconds, durationSeconds, shuffle, repeat, index, queueLength } = usePlayback();
   const [favorite, setFavorite] = useState(false);
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const songId = current?.id;
@@ -97,25 +98,42 @@ export default function PlayerScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header actions (right-aligned), like the web overflow menu placement */}
+      {/* Header: close (down) on the left, favorite + overflow on the right */}
       <View style={styles.header}>
-        <Pressable hitSlop={10} style={styles.headerBtn} onPress={onToggleFavorite}>
-          <HeartIcon color={favorite ? colors.danger : colors.textDim} filled={favorite} size={24} />
+        <Pressable hitSlop={10} style={styles.headerBtn} onPress={() => router.back()}>
+          <ChevronDown color={colors.text} size={26} />
         </Pressable>
-        <Pressable hitSlop={10} style={styles.headerBtn} onPress={openMenu}>
-          <MoreIcon color={colors.textDim} size={24} />
-        </Pressable>
+        <View style={styles.headerRight}>
+          <Pressable hitSlop={10} style={styles.headerBtn} onPress={onToggleFavorite}>
+            <HeartIcon color={favorite ? colors.danger : colors.textDim} filled={favorite} size={24} />
+          </Pressable>
+          <Pressable hitSlop={10} style={styles.headerBtn} onPress={openMenu}>
+            <MoreIcon color={colors.textDim} size={24} />
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.body}>
-        {current?.artworkUrl ? (
-          <Image source={{ uri: current.artworkUrl }} style={styles.art} />
-        ) : (
-          <View style={[styles.art, styles.artPlaceholder]} />
-        )}
+        <Pressable
+          style={styles.artWrap}
+          disabled={!songId}
+          onPress={() => songId && router.push(`/song/${songId}`)}
+        >
+          {current?.artworkUrl ? (
+            <Image source={{ uri: current.artworkUrl }} style={styles.art} />
+          ) : (
+            <View style={[styles.art, styles.artPlaceholder]}>
+              <Disc3 color={colors.textFaint} size={72} />
+            </View>
+          )}
+        </Pressable>
 
-        <Text style={styles.title} numberOfLines={1}>{current?.title ?? "Nothing playing"}</Text>
-        <Text style={styles.artist} numberOfLines={1}>{current?.artist ?? ""}</Text>
+        <Pressable disabled={!songId} onPress={() => songId && router.push(`/song/${songId}`)} style={styles.titleWrap}>
+          <Text style={styles.title} numberOfLines={1}>{current?.title ?? "Nothing playing"}</Text>
+          <Text style={styles.artist} numberOfLines={1}>
+            {[current?.artist, queueLength > 1 ? `${index + 1} of ${queueLength}` : null].filter(Boolean).join("  ·  ")}
+          </Text>
+        </Pressable>
 
         {/* Real waveform + timecoded reaction popups */}
         <Waveform
@@ -163,13 +181,16 @@ export default function PlayerScreen() {
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
-    header: { flexDirection: "row", justifyContent: "flex-end", alignItems: "center", paddingHorizontal: 16, paddingTop: 8, gap: 8 },
+    header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 12, paddingTop: 8 },
+    headerRight: { flexDirection: "row", alignItems: "center", gap: 8 },
     headerBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
     body: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 28 },
-    art: { width: 280, height: 280, borderRadius: 16, marginBottom: 28 },
-    artPlaceholder: { backgroundColor: c.surfaceAlt },
-    title: { color: c.text, fontSize: 22, fontWeight: "700", textAlign: "center", alignSelf: "stretch" },
-    artist: { color: c.textDim, fontSize: 16, marginTop: 4, textAlign: "center" },
+    artWrap: { marginBottom: 28, borderRadius: 20, shadowOpacity: 0.4, shadowRadius: 24, shadowOffset: { width: 0, height: 12 } },
+    art: { width: 300, height: 300, borderRadius: 20 },
+    artPlaceholder: { backgroundColor: c.surfaceAlt, alignItems: "center", justifyContent: "center" },
+    titleWrap: { alignSelf: "stretch" },
+    title: { color: c.text, fontSize: 23, fontWeight: "800", textAlign: "center" },
+    artist: { color: c.textDim, fontSize: 15, marginTop: 4, textAlign: "center" },
     times: { alignSelf: "stretch", flexDirection: "row", justifyContent: "space-between", marginTop: 2 },
     time: { color: c.textDim, fontSize: 12, fontVariant: ["tabular-nums"] },
     emojiRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 14 },

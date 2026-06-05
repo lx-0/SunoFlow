@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { View, Text, Image, Pressable, StyleSheet } from "react-native";
 import { formatDuration } from "@sunoflow/core";
+import { Disc3 } from "lucide-react-native";
 import { HeartIcon } from "@/components/Icons";
 import { useTheme } from "@/theme/ThemeContext";
 import type { Song } from "@/types";
@@ -26,7 +27,9 @@ export function SongRow({
       {song.artworkUrl ? (
         <Image source={{ uri: song.artworkUrl }} style={[styles.thumb, { backgroundColor: colors.surfaceAlt }]} />
       ) : (
-        <View style={[styles.thumb, { backgroundColor: colors.surfaceAlt }]} />
+        <View style={[styles.thumb, styles.thumbPlaceholder, { backgroundColor: colors.surfaceAlt }]}>
+          <Disc3 color={colors.textFaint} size={22} />
+        </View>
       )}
       <View style={styles.meta}>
         <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>{song.title}</Text>
@@ -47,6 +50,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   thumb: { width: 52, height: 52, borderRadius: 8 },
+  thumbPlaceholder: { alignItems: "center", justifyContent: "center" },
   meta: { flex: 1, minWidth: 0 },
   title: { fontSize: 16 },
   sub: { fontSize: 13, marginTop: 2 },
