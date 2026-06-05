@@ -5,11 +5,11 @@ import { formatDuration } from "@sunoflow/core";
 import { usePlayback } from "@/playback/usePlayback";
 import {
   togglePlay, skipToNext, skipToPrevious, seekTo, toggleShuffle, toggleRepeat,
-  toggleShuffleVersions, toggleMute,
+  toggleShuffleVersions,
 } from "@/playback/audio";
 import { PlayIcon, PauseIcon, SkipNextIcon, SkipPrevIcon, ShuffleIcon, HeartIcon, RepeatIcon, MoreIcon } from "@/components/Icons";
 import {
-  ChevronDown, Disc3, Boxes, Volume2, VolumeX, Info, FileText, GitBranch, ListPlus,
+  ChevronDown, Disc3, Boxes, Info, FileText, GitBranch, ListPlus,
   ListMusic, MessageCircle, Sparkles, type LucideIcon,
 } from "lucide-react-native";
 import { ReactionPicker } from "@/components/ReactionPicker";
@@ -26,7 +26,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function PlayerScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { current, playing, positionSeconds, durationSeconds, shuffle, repeat, shuffleVersions, muted, index, queueLength } = usePlayback();
+  const { current, playing, positionSeconds, durationSeconds, shuffle, repeat, shuffleVersions, index, queueLength } = usePlayback();
   const [favorite, setFavorite] = useState(false);
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -157,13 +157,10 @@ export default function PlayerScreen() {
           </Pressable>
         </View>
 
-        {/* Secondary toggles: shuffle-versions, mute, details — icon only */}
+        {/* Secondary controls: shuffle-versions + details — icon only */}
         <View style={styles.secondary}>
           <Pressable style={styles.secBtn} hitSlop={8} onPress={toggleShuffleVersions} accessibilityLabel="Shuffle versions">
             <Boxes color={shuffleVersions ? colors.accent : colors.textFaint} size={20} />
-          </Pressable>
-          <Pressable style={styles.secBtn} hitSlop={8} onPress={toggleMute} accessibilityLabel={muted ? "Unmute" : "Mute"}>
-            {muted ? <VolumeX color={colors.danger} size={20} /> : <Volume2 color={colors.textFaint} size={20} />}
           </Pressable>
           <Pressable style={styles.secBtn} hitSlop={8} disabled={!songId} onPress={() => songId && router.push(`/song/${songId}`)} accessibilityLabel="Song details">
             <Info color={colors.textFaint} size={20} />

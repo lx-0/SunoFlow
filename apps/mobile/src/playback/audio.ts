@@ -31,7 +31,6 @@ export interface PlaybackSnapshot {
   shuffle: boolean;
   repeat: RepeatMode;
   shuffleVersions: boolean;
-  muted: boolean;
 }
 
 let player: AudioPlayer | null = null;
@@ -40,7 +39,6 @@ let originalQueue: Song[] = []; // canonical order, to restore when shuffle is o
 let shuffle = false;
 let repeat: RepeatMode = "off";
 let shuffleVersions = false;
-let muted = false;
 let index = 0;
 let advancing = false; // guard: one auto-advance per track end
 let pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -58,7 +56,6 @@ let snapshot: PlaybackSnapshot = {
   shuffle: false,
   repeat: "off",
   shuffleVersions: false,
-  muted: false,
 };
 const listeners = new Set<() => void>();
 
@@ -181,7 +178,6 @@ async function loadCurrent(): Promise<void> {
   // Re-assert next/prev: expo-audio reconfigures the command center per track and
   // may disable them, so enable again after updateLockScreenMetadata.
   enableRemoteControls();
-  p.muted = muted; // carry the mute state across track changes
   patch({ current: song, playing: true, positionSeconds: 0, durationSeconds: song.durationSeconds ?? 0, index, queueLength: queue.length, queue });
   p.play();
 
@@ -315,12 +311,6 @@ export function toggleShuffleVersions(): void {
   SecureStore.setItemAsync(SHUFFLE_VERSIONS_KEY, shuffleVersions ? "1" : "0").catch(() => {});
 }
 
-/** Mute / unmute the player. */
-export function toggleMute(): void {
-  muted = !muted;
-  if (player) player.muted = muted;
-  patch({ muted });
-}
 
 export function seekTo(seconds: number): void {
   // Clamp: waveform onSeek can yield NaN (duration 0 → divide-by-zero) or a value

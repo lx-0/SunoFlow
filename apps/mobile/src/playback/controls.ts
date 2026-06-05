@@ -10,5 +10,4 @@ export {
   toggleShuffle,
   toggleRepeat,
   toggleShuffleVersions,
-  toggleMute,
 } from "./audio";
