@@ -26,7 +26,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function PlayerScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { current, playing, positionSeconds, durationSeconds, shuffle, repeat, shuffleVersions, index, queueLength } = usePlayback();
+  const { current, playing, positionSeconds, durationSeconds, shuffle, repeat, shuffleVersions, currentIsAlternate, index, queueLength } = usePlayback();
   const [favorite, setFavorite] = useState(false);
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -114,7 +114,14 @@ export default function PlayerScreen() {
         </Pressable>
 
         <Pressable disabled={!songId} onPress={() => songId && router.push(`/song/${songId}`)} style={styles.titleWrap}>
-          <Text style={styles.title} numberOfLines={1}>{current?.title ?? "Nothing playing"}</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.title} numberOfLines={1}>{current?.title ?? "Nothing playing"}</Text>
+            {currentIsAlternate ? (
+              <View style={styles.altBadge} accessibilityLabel="Alternate version">
+                <GitBranch color={colors.accent} size={14} />
+              </View>
+            ) : null}
+          </View>
           <Text style={styles.artist} numberOfLines={1}>
             {[current?.artist, queueLength > 1 ? `${index + 1} of ${queueLength}` : null].filter(Boolean).join("  ·  ")}
           </Text>
@@ -139,9 +146,6 @@ export default function PlayerScreen() {
           <ReactionPicker onReact={(e) => void onReact(e)} reactionEmojis={reactions.map((r) => r.emoji)} />
           <Pressable style={styles.secBtn} hitSlop={8} onPress={toggleShuffleVersions} accessibilityLabel="Shuffle versions">
             <Boxes color={shuffleVersions ? colors.accent : colors.textFaint} size={20} />
-          </Pressable>
-          <Pressable style={styles.secBtn} hitSlop={8} disabled={!songId} onPress={() => songId && router.push(`/song/${songId}`)} accessibilityLabel="Song details">
-            <Info color={colors.textFaint} size={20} />
           </Pressable>
         </View>
 
@@ -198,7 +202,9 @@ function makeStyles(c: ThemeColors) {
     art: { width: 300, height: 300, borderRadius: 20 },
     artPlaceholder: { backgroundColor: c.surfaceAlt, alignItems: "center", justifyContent: "center" },
     titleWrap: { alignSelf: "stretch" },
-    title: { color: c.text, fontSize: 23, fontWeight: "800", textAlign: "center" },
+    titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+    title: { color: c.text, fontSize: 23, fontWeight: "800", textAlign: "center", flexShrink: 1 },
+    altBadge: { backgroundColor: c.surfaceAlt, borderRadius: 999, padding: 5 },
     artist: { color: c.textDim, fontSize: 15, marginTop: 4, textAlign: "center" },
     times: { alignSelf: "stretch", flexDirection: "row", justifyContent: "space-between", marginTop: 2 },
     time: { color: c.textDim, fontSize: 12, fontVariant: ["tabular-nums"] },

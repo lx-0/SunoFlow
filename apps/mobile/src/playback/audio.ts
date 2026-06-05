@@ -31,6 +31,8 @@ export interface PlaybackSnapshot {
   shuffle: boolean;
   repeat: RepeatMode;
   shuffleVersions: boolean;
+  /** True when the playing track is a shuffle-versions alternate (not the original). */
+  currentIsAlternate: boolean;
 }
 
 let player: AudioPlayer | null = null;
@@ -39,6 +41,7 @@ let originalQueue: Song[] = []; // canonical order, to restore when shuffle is o
 let shuffle = false;
 let repeat: RepeatMode = "off";
 let shuffleVersions = false;
+let alternateSongId: string | null = null; // the shuffle-versions-swapped track id
 let index = 0;
 let advancing = false; // guard: one auto-advance per track end
 let pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -56,6 +59,7 @@ let snapshot: PlaybackSnapshot = {
   shuffle: false,
   repeat: "off",
   shuffleVersions: false,
+  currentIsAlternate: false,
 };
 const listeners = new Set<() => void>();
 
@@ -178,7 +182,7 @@ async function loadCurrent(): Promise<void> {
   // Re-assert next/prev: expo-audio reconfigures the command center per track and
   // may disable them, so enable again after updateLockScreenMetadata.
   enableRemoteControls();
-  patch({ current: song, playing: true, positionSeconds: 0, durationSeconds: song.durationSeconds ?? 0, index, queueLength: queue.length, queue });
+  patch({ current: song, playing: true, positionSeconds: 0, durationSeconds: song.durationSeconds ?? 0, index, queueLength: queue.length, queue, currentIsAlternate: song.id === alternateSongId });
   p.play();
 
   // Record the play (server-side history + active-user metric). Fire-and-forget:
@@ -216,6 +220,9 @@ export async function playQueue(songs: Song[], startIndex = 0): Promise<void> {
   if (startReplacement && startReplacement.id !== songs[start]?.id) {
     songs = songs.map((s, i) => (i === start ? startReplacement : s));
     originalQueue = [...songs];
+    alternateSongId = startReplacement.id;
+  } else {
+    alternateSongId = null;
   }
   if (shuffle) {
     // Keep the chosen track first, shuffle the rest behind it.
