@@ -13,7 +13,7 @@ import {
   Alert,
 } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { Sparkles, AlertCircle, CheckCircle2, Wand2 } from "lucide-react-native";
+import { Sparkles, AlertCircle, CheckCircle2, Wand2, Star } from "lucide-react-native";
 import {
   GENERATION_PROMPT_MAX_LENGTH,
   GENERATION_TITLE_MAX_LENGTH,
@@ -28,6 +28,7 @@ import { generateLyrics } from "@/api/lyrics-generate";
 import { fetchPresets, type Preset } from "@/api/presets";
 import { fetchStyleTemplates, type StyleTemplate } from "@/api/style-templates";
 import { fetchPromptTemplates, type PromptTemplate } from "@/api/prompt-templates";
+import { fetchPromptSuggestions, fetchTrendingCombos, type PromptSuggestion, type TrendingCombo } from "@/api/suggestions";
 import { fetchPersonas, type Persona } from "@/api/personas";
 import { HttpError } from "@/api/client";
 import { useTheme } from "@/theme/ThemeContext";
@@ -61,6 +62,8 @@ export default function GenerateScreen() {
   const [presets, setPresets] = useState<Preset[]>([]);
   const [styleTemplates, setStyleTemplates] = useState<StyleTemplate[]>([]);
   const [stStatus, setStStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [suggestions, setSuggestions] = useState<PromptSuggestion[]>([]);
+  const [trending, setTrending] = useState<TrendingCombo[]>([]);
   const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
   const [personas, setPersonas] = useState<Persona[]>([]);
 
@@ -94,6 +97,8 @@ export default function GenerateScreen() {
     loadStyleTemplates();
     fetchPromptTemplates().then(setPromptTemplates).catch((e) => console.error("[generate] prompt templates load failed", e));
     fetchPersonas().then(setPersonas).catch((e) => console.error("[generate] personas load failed", e));
+    fetchPromptSuggestions().then(setSuggestions).catch((e) => console.error("[generate] suggestions load failed", e));
+    fetchTrendingCombos().then(setTrending).catch((e) => console.error("[generate] trending load failed", e));
   }, [loadStyleTemplates]);
 
   function applyPreset(p: Preset) {
@@ -106,6 +111,15 @@ export default function GenerateScreen() {
 
   function applyStyleTemplate(t: StyleTemplate) {
     setStyle(t.tags);
+  }
+
+  function applySuggestion(s: PromptSuggestion) {
+    setStyle(s.stylePrompt);
+    setInstrumental(s.isInstrumental);
+  }
+
+  function applyTrending(c: TrendingCombo) {
+    setStyle(c.stylePrompt);
   }
 
   function applyPromptTemplate(t: PromptTemplate) {
@@ -290,6 +304,43 @@ export default function GenerateScreen() {
                 : "Set a style/genre. Turn on Custom lyrics to write or generate the words."}
             </Text>
           </View>
+
+          {suggestions.length > 0 ? (
+            <>
+              <Text style={styles.label}>Suggested for you</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetRow}>
+                {suggestions.map((s) => (
+                  <Pressable
+                    key={s.id}
+                    style={[styles.presetChip, style === s.stylePrompt && styles.chipActive]}
+                    onPress={() => applySuggestion(s)}
+                  >
+                    {s.source === "personal" ? <Star color={colors.star} size={12} fill={colors.star} /> : null}
+                    <Text style={styles.presetText} numberOfLines={1}>{s.label}</Text>
+                    {s.isInstrumental ? <Text style={styles.badge}>Instr</Text> : null}
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </>
+          ) : null}
+
+          {trending.length > 0 ? (
+            <>
+              <Text style={styles.label}>Trending combos</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetRow}>
+                {trending.map((c) => (
+                  <Pressable
+                    key={c.id}
+                    style={[styles.presetChip, style === c.stylePrompt && styles.chipActive]}
+                    onPress={() => applyTrending(c)}
+                  >
+                    <Text style={styles.presetText} numberOfLines={1}>{c.label}</Text>
+                    {c.displayScore ? <Text style={styles.badge}>{c.displayScore}</Text> : null}
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </>
+          ) : null}
 
           {presets.length > 0 ? (
             <>
@@ -484,7 +535,8 @@ function makeStyles(c: ThemeColors) {
     hero: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 4 },
     heroText: { flex: 1, color: c.textDim, fontSize: 13, lineHeight: 18 },
     presetRow: { gap: 8, paddingVertical: 8 },
-    presetChip: { backgroundColor: c.surfaceAlt, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8, maxWidth: 180 },
+    presetChip: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: c.surfaceAlt, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8, maxWidth: 200 },
+    badge: { color: c.onAccent, backgroundColor: c.accent, fontSize: 10, fontWeight: "700", paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, overflow: "hidden" },
     presetText: { color: c.textDim, fontSize: 13 },
     chipActive: { backgroundColor: c.accentStrong },
     chipActiveText: { color: c.onAccent },
