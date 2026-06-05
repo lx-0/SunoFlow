@@ -1,9 +1,14 @@
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
+import * as SecureStore from "expo-secure-store";
 import type { Song } from "@/types";
 import { recordPlay } from "@/api/history";
 import { enableRemoteControls, onRemoteNext, onRemotePrevious } from "../../modules/remote-controls";
 
 export type RepeatMode = "off" | "all" | "one";
+
+// Persist the user's shuffle/repeat preference across app launches.
+const SHUFFLE_KEY = "sunoflow.playback.shuffle";
+const REPEAT_KEY = "sunoflow.playback.repeat";
 
 // Queue controller around expo-audio. ONE long-lived AudioPlayer (it owns the
 // lock-screen / Control Center widget — AudioPlaylist has no lock-screen support).
@@ -64,6 +69,23 @@ export function subscribe(cb: () => void): () => void {
 export function getSnapshot(): PlaybackSnapshot {
   return snapshot;
 }
+
+// Restore the persisted shuffle/repeat preference at startup. playQueue() reads
+// `shuffle` when it builds a queue, so hydrating the flag is enough — no track is
+// playing yet. Fire-and-forget; defaults stand if storage is empty/unavailable.
+void (async () => {
+  try {
+    const [s, r] = await Promise.all([
+      SecureStore.getItemAsync(SHUFFLE_KEY),
+      SecureStore.getItemAsync(REPEAT_KEY),
+    ]);
+    if (s === "1") shuffle = true;
+    if (r === "all" || r === "one") repeat = r;
+    if (shuffle || repeat !== "off") patch({ shuffle, repeat });
+  } catch {
+    // ignore — defaults stand
+  }
+})();
 
 function startPolling() {
   if (pollTimer) return;
@@ -197,6 +219,7 @@ export function toggleShuffle(): void {
     index = Math.max(0, queue.findIndex((s) => s.id === currentSong?.id));
   }
   patch({ index, queueLength: queue.length, queue, shuffle });
+  SecureStore.setItemAsync(SHUFFLE_KEY, shuffle ? "1" : "0").catch(() => {});
 }
 
 export function togglePlay(): void {
@@ -252,6 +275,7 @@ export async function jumpTo(target: number): Promise<void> {
 export function toggleRepeat(): void {
   repeat = repeat === "off" ? "all" : repeat === "all" ? "one" : "off";
   patch({ repeat });
+  SecureStore.setItemAsync(REPEAT_KEY, repeat).catch(() => {});
 }
 
 export function seekTo(seconds: number): void {
