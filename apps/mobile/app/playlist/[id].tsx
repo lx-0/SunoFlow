@@ -1,8 +1,9 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS } from "react-native";
+import { View, Text, Image, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS } from "react-native";
 import { Stack, router, useLocalSearchParams, useFocusEffect, type Href } from "expo-router";
-import { ChevronUp, ChevronDown, Pencil, Trash2, Share2, Users, MoreHorizontal } from "lucide-react-native";
+import { ChevronUp, ChevronDown, Pencil, Trash2, Share2, Users, MoreHorizontal, Play, Shuffle, ListMusic } from "lucide-react-native";
 import { fetchPlaylistSongs } from "@/api/playlists";
+import { fetchPlaylistCollabMeta } from "@/api/collaborators";
 import {
   reorderPlaylistSongs,
   renamePlaylist,
@@ -12,6 +13,7 @@ import {
   fetchPlaylistPublished,
 } from "@/api/playlist-actions";
 import { sharePlaylist } from "@/lib/share";
+import { SongRow } from "@/components/SongRow";
 import { playQueue } from "@/playback/controls";
 import type { Song } from "@/types";
 import { useTheme } from "@/theme/ThemeContext";
@@ -25,6 +27,7 @@ export default function PlaylistDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
+  const [name, setName] = useState("Playlist");
 
   const load = useCallback(() => {
     if (!id) return;
@@ -34,13 +37,23 @@ export default function PlaylistDetailScreen() {
         setError("Failed to load playlist");
         console.error("[playlist] load failed", e);
       });
-    // Published state drives the overflow menu label; non-fatal if it fails.
+    // Name + published state drive the hero/title + overflow label; non-fatal.
+    fetchPlaylistCollabMeta(id)
+      .then((m) => setName(m.name))
+      .catch((e) => console.error("[playlist] meta load failed", e));
     fetchPlaylistPublished(id)
       .then(setIsPublic)
-      .catch((e) => {
-        console.error("[playlist] published-state load failed", e);
-      });
+      .catch((e) => console.error("[playlist] published-state load failed", e));
   }, [id]);
+
+  function playAll(shuffled: boolean) {
+    if (!songs || songs.length === 0) return;
+    const list = shuffled ? [...songs].sort(() => Math.random() - 0.5) : songs;
+    void (async () => {
+      try { await playQueue(list, 0); router.push("/player"); }
+      catch (e) { console.error("[playlist] play all failed", e); }
+    })();
+  }
 
   // Reload on focus so returning after add-to-playlist / collaborator changes
   // doesn't show stale songs.
@@ -165,7 +178,7 @@ export default function PlaylistDetailScreen() {
     <View style={st.list}>
       <Stack.Screen
         options={{
-          title: "Playlist",
+          title: name,
           headerRight: () => (
             <View style={st.headerActions}>
               {songs.length > 0 ? (
@@ -192,52 +205,62 @@ export default function PlaylistDetailScreen() {
           ),
         }}
       />
-      {songs.length === 0 ? (
-        <C colors={colors}><Text style={st.dim}>No playable tracks in this playlist.</Text></C>
-      ) : (
-        <FlatList
-          data={songs}
-          keyExtractor={(s) => s.id}
-          renderItem={({ item, index }) => (
-            <View style={st.row}>
-              <Pressable
-                style={st.titleWrap}
-                disabled={editing}
-                onPress={async () => {
-                  try {
-                    await playQueue(songs, index);
-                    router.push("/player");
-                  } catch (e) {
-                    console.error("[playlist] play failed", e);
-                  }
-                }}
-              >
-                <Text style={st.title} numberOfLines={1}>{item.title}</Text>
-              </Pressable>
-              {editing ? (
+      <FlatList
+        data={songs}
+        keyExtractor={(s) => s.id}
+        ListHeaderComponent={
+          <View style={st.hero}>
+            {songs[0]?.artworkUrl ? (
+              <Image source={{ uri: songs[0].artworkUrl }} style={st.cover} />
+            ) : (
+              <View style={[st.cover, st.coverPlaceholder]}>
+                <ListMusic color={colors.textFaint} size={48} />
+              </View>
+            )}
+            <Text style={st.heroName} numberOfLines={2}>{name}</Text>
+            <Text style={st.heroMeta}>{songs.length} {songs.length === 1 ? "song" : "songs"}{isPublic ? " · Public" : ""}</Text>
+            {songs.length > 0 ? (
+              <View style={st.heroBtns}>
+                <Pressable style={st.playAll} onPress={() => playAll(false)}>
+                  <Play color={colors.onAccent} fill={colors.onAccent} size={18} />
+                  <Text style={st.playAllText}>Play all</Text>
+                </Pressable>
+                <Pressable style={st.shuffleBtn} onPress={() => playAll(true)}>
+                  <Shuffle color={colors.accent} size={18} />
+                  <Text style={st.shuffleText}>Shuffle</Text>
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
+        }
+        ListEmptyComponent={<View style={st.empty}><Text style={st.dim}>No playable tracks in this playlist.</Text></View>}
+        renderItem={({ item, index }) => (
+          <SongRow
+            song={item}
+            onPress={async () => {
+              if (editing) return;
+              try {
+                await playQueue(songs, index);
+                router.push("/player");
+              } catch (e) {
+                console.error("[playlist] play failed", e);
+              }
+            }}
+            right={
+              editing ? (
                 <View style={st.arrows}>
-                  <Pressable
-                    style={st.arrowBtn}
-                    hitSlop={6}
-                    disabled={index === 0}
-                    onPress={() => void move(index, index - 1)}
-                  >
+                  <Pressable style={st.arrowBtn} hitSlop={6} disabled={index === 0} onPress={() => void move(index, index - 1)}>
                     <ChevronUp color={index === 0 ? colors.textFaint : colors.accent} size={20} />
                   </Pressable>
-                  <Pressable
-                    style={st.arrowBtn}
-                    hitSlop={6}
-                    disabled={index === songs.length - 1}
-                    onPress={() => void move(index, index + 1)}
-                  >
+                  <Pressable style={st.arrowBtn} hitSlop={6} disabled={index === songs.length - 1} onPress={() => void move(index, index + 1)}>
                     <ChevronDown color={index === songs.length - 1 ? colors.textFaint : colors.accent} size={20} />
                   </Pressable>
                 </View>
-              ) : null}
-            </View>
-          )}
-        />
-      )}
+              ) : null
+            }
+          />
+        )}
+      />
     </View>
   );
 }
@@ -251,20 +274,21 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     list: { flex: 1, backgroundColor: c.bg },
     c: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg, padding: 24 },
-    row: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: 20,
-      paddingVertical: 14,
-      borderBottomColor: c.border,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-    },
-    titleWrap: { flex: 1 },
-    title: { color: c.text, fontSize: 16 },
+    empty: { padding: 32, alignItems: "center" },
     dim: { color: c.textDim, fontSize: 13 },
     editBtn: { color: c.accent, fontSize: 16 },
     headerActions: { flexDirection: "row", alignItems: "center", gap: 16 },
-    arrows: { flexDirection: "row", alignItems: "center", marginLeft: 12 },
+    arrows: { flexDirection: "row", alignItems: "center" },
     arrowBtn: { paddingHorizontal: 6, paddingVertical: 2 },
+    hero: { alignItems: "center", paddingTop: 16, paddingBottom: 12, paddingHorizontal: 20 },
+    cover: { width: 160, height: 160, borderRadius: 16, marginBottom: 14, shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 8 } },
+    coverPlaceholder: { backgroundColor: c.surfaceAlt, alignItems: "center", justifyContent: "center" },
+    heroName: { color: c.text, fontSize: 20, fontWeight: "800", textAlign: "center" },
+    heroMeta: { color: c.textDim, fontSize: 13, marginTop: 4 },
+    heroBtns: { flexDirection: "row", gap: 12, marginTop: 16 },
+    playAll: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.accentStrong, borderRadius: 999, paddingHorizontal: 22, paddingVertical: 11 },
+    playAllText: { color: c.onAccent, fontSize: 15, fontWeight: "700" },
+    shuffleBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.surface, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 11 },
+    shuffleText: { color: c.accent, fontSize: 15, fontWeight: "600" },
   });
 }
