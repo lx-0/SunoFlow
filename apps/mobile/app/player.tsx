@@ -157,19 +157,16 @@ export default function PlayerScreen() {
           </Pressable>
         </View>
 
-        {/* Secondary toggles: shuffle-versions, mute, + a discreet details link */}
+        {/* Secondary toggles: shuffle-versions, mute, details — icon only */}
         <View style={styles.secondary}>
-          <Pressable style={styles.secBtn} onPress={toggleShuffleVersions}>
-            <Boxes color={shuffleVersions ? colors.accent : colors.textFaint} size={18} />
-            <Text style={[styles.secLabel, shuffleVersions && styles.secLabelOn]}>Shuffle versions</Text>
+          <Pressable style={styles.secBtn} hitSlop={8} onPress={toggleShuffleVersions} accessibilityLabel="Shuffle versions">
+            <Boxes color={shuffleVersions ? colors.accent : colors.textFaint} size={20} />
           </Pressable>
-          <Pressable style={styles.secBtn} onPress={toggleMute}>
-            {muted ? <VolumeX color={colors.danger} size={18} /> : <Volume2 color={colors.textFaint} size={18} />}
-            <Text style={[styles.secLabel, muted && styles.secLabelMuted]}>{muted ? "Muted" : "Mute"}</Text>
+          <Pressable style={styles.secBtn} hitSlop={8} onPress={toggleMute} accessibilityLabel={muted ? "Unmute" : "Mute"}>
+            {muted ? <VolumeX color={colors.danger} size={20} /> : <Volume2 color={colors.textFaint} size={20} />}
           </Pressable>
-          <Pressable style={styles.secBtn} disabled={!songId} onPress={() => songId && router.push(`/song/${songId}`)}>
-            <Info color={colors.textFaint} size={18} />
-            <Text style={styles.secLabel}>Details</Text>
+          <Pressable style={styles.secBtn} hitSlop={8} disabled={!songId} onPress={() => songId && router.push(`/song/${songId}`)} accessibilityLabel="Song details">
+            <Info color={colors.textFaint} size={20} />
           </Pressable>
         </View>
       </View>
@@ -215,11 +212,8 @@ function makeStyles(c: ThemeColors) {
     btnSmall: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
     btn: { width: 56, height: 56, alignItems: "center", justifyContent: "center" },
     btnPlay: { width: 72, height: 72, borderRadius: 36, backgroundColor: c.accentStrong },
-    secondary: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 22 },
-    secBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: c.surface, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
-    secLabel: { color: c.textDim, fontSize: 12, fontWeight: "600" },
-    secLabelOn: { color: c.accent },
-    secLabelMuted: { color: c.danger },
+    secondary: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 22 },
+    secBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center", backgroundColor: c.surface, borderRadius: 22 },
     // bottom-sheet menu
     backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)" },
     sheet: { backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 8, paddingTop: 8, paddingBottom: 34 },
