@@ -164,20 +164,20 @@ const styles = StyleSheet.create({
   toggle: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginLeft: 4 },
   edge: { position: "absolute", left: 0, bottom: 0, width: 22 },
   backdrop: { backgroundColor: "#000" },
+  // Color props (bg/border/text) are applied inline from the theme at each usage
+  // site; these style objects intentionally carry no hardcoded colors.
   panel: {
     position: "absolute",
     left: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: "#121217",
-    borderRightColor: "#1c1c22",
     borderRightWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 12,
   },
-  brand: { color: "#fff", fontSize: 20, fontWeight: "800", paddingHorizontal: 12, marginBottom: 12 },
+  brand: { fontSize: 20, fontWeight: "800", paddingHorizontal: 12, marginBottom: 12 },
   scroll: { flex: 1 },
   section: { marginBottom: 18 },
-  sectionTitle: { color: "#6a6a72", fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, paddingHorizontal: 12, marginBottom: 6 },
+  sectionTitle: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, paddingHorizontal: 12, marginBottom: 6 },
   row: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 12, paddingVertical: 12, borderRadius: 10 },
-  label: { color: "#fff", fontSize: 16 },
+  label: { fontSize: 16 },
 });

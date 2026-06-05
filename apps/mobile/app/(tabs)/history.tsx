@@ -8,11 +8,15 @@ import { playQueue } from "@/playback/controls";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { SongRow } from "@/components/SongRow";
 import { EmptyState } from "@/components/EmptyState";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
 // History: recently played, newest first. Reloads on focus. The same song can
 // appear multiple times, so rows are keyed by position. Tap to play from there.
 export default function HistoryScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,7 +38,7 @@ export default function HistoryScreen() {
       {error ? (
         <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !songs ? (
-        <View style={styles.centered}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : songs.length === 0 ? (
         <EmptyState
           Icon={Clock}
@@ -65,9 +69,9 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0f" },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  row: { paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: "#1c1c22", borderBottomWidth: StyleSheet.hairlineWidth },
-  title: { color: "#fff", fontSize: 16 },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+  });
+}
