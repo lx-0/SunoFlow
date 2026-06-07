@@ -304,6 +304,54 @@ export async function jumpTo(target: number): Promise<void> {
   await loadCurrent();
 }
 
+/**
+ * Move a queued track from one position to another (Up-Next reorder). Pure list
+ * mutation — it never touches the player, so the current track keeps playing
+ * uninterrupted; `index` is re-pointed at wherever the playing track lands.
+ */
+export function reorderQueue(from: number, to: number): void {
+  if (from === to) return;
+  if (from < 0 || from >= queue.length || to < 0 || to >= queue.length) return;
+  const current = queue[index];
+  const next = [...queue];
+  const [moved] = next.splice(from, 1);
+  next.splice(to, 0, moved);
+  queue = next;
+  if (!shuffle) originalQueue = [...queue];
+  const found = current ? queue.indexOf(current) : -1;
+  index = found >= 0 ? found : index;
+  patch({ index, queueLength: queue.length, queue });
+}
+
+/**
+ * Remove a track from the queue. Removing the currently-playing track advances to
+ * whatever shifts into its slot (or stops if the queue empties); removing a track
+ * before the current one keeps `index` pointed at the same playing track.
+ */
+export async function removeFromQueue(target: number): Promise<void> {
+  if (target < 0 || target >= queue.length) return;
+  const removingCurrent = target === index;
+  const removed = queue[target];
+  const next = [...queue];
+  next.splice(target, 1);
+  queue = next;
+  if (!shuffle && removed) originalQueue = originalQueue.filter((s) => s !== removed);
+
+  if (queue.length === 0) {
+    index = 0;
+    player?.pause();
+    patch({ current: null, playing: false, index: 0, queueLength: 0, queue, positionSeconds: 0, durationSeconds: 0 });
+    return;
+  }
+  if (removingCurrent) {
+    if (index >= queue.length) index = queue.length - 1;
+    await loadCurrent(); // play whatever shifted into this slot
+    return;
+  }
+  if (target < index) index -= 1;
+  patch({ index, queueLength: queue.length, queue });
+}
+
 /** Cycle repeat mode: off → all → one → off. */
 export function toggleRepeat(): void {
   repeat = repeat === "off" ? "all" : repeat === "all" ? "one" : "off";

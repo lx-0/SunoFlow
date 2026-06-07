@@ -7,6 +7,8 @@ export {
   skipToPrevious,
   seekTo,
   jumpTo,
+  reorderQueue,
+  removeFromQueue,
   toggleShuffle,
   toggleRepeat,
   toggleShuffleVersions,
