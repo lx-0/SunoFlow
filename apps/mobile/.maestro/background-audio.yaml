@@ -1,0 +1,46 @@
+# SunoFlow native — background-audio SMOKE (shallow proxy, NOT the M004 gate).
+#
+# ⚠️ Maestro cannot lock the screen or reliably wait 10+ minutes. This flow only
+# checks the app survives a brief background→foreground with the track intact —
+# it catches "audio/UI dies the instant you background the app" regressions.
+#
+# The REAL milestone gate — background audio surviving a 10+ minute SCREEN LOCK —
+# stays MANUAL (see README "The lock-audio gate is manual"). Do not treat a green
+# run here as proof of that gate.
+appId: app.sunoflow.mobile
+env:
+  EMAIL: ""
+  PASSWORD: ""
+  SONG_QUERY: ""
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Sign in"
+    commands:
+      - tapOn: "Email"
+      - inputText: ${EMAIL}
+      - tapOn: "Password"
+      - inputText: ${PASSWORD}
+      - tapOn: "Sign in"
+
+- extendedWaitUntil:
+    visible: "Search library"
+    timeout: 20000
+- tapOn: "Search library"
+- inputText: ${SONG_QUERY}
+- pressKey: Enter
+- tapOn: ${SONG_QUERY}
+- extendedWaitUntil:
+    visible: "Now Playing"
+    timeout: 15000
+
+# Background the app, then bring it back to the foreground.
+# NOTE: `launchApp` here re-foregrounds the already-running app (no clearState =
+# no reinstall/kill). If your Maestro/iOS-sim version cold-restarts instead, the
+# modal may reset — that is a tooling caveat, not an app bug.
+- pressKey: Home
+- launchApp
+
+# The track should still be the active one (mini-player / player reflects it).
+- assertVisible: ${SONG_QUERY}

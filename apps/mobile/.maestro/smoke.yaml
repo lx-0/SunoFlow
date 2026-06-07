@@ -1,0 +1,55 @@
+# SunoFlow native — core UX smoke flow: login → library → search → play.
+#
+# Drives the REAL app build against the REAL backend (Maestro has no network
+# mocking). Use a dedicated TEST ACCOUNT. This flow only reads + plays existing
+# songs — it never touches the generate/paywall path, so it costs no Suno credits.
+#
+# Selectors: the app has NO testIDs, so everything below targets visible text,
+# TextInput placeholders, or accessibilityLabels (all verified in source).
+#
+# Run:
+#   maestro test \
+#     -e EMAIL=you@example.com -e PASSWORD='***' -e SONG_QUERY='Neon' \
+#     apps/mobile/.maestro/smoke.yaml
+appId: app.sunoflow.mobile
+env:
+  EMAIL: ""
+  PASSWORD: ""
+  SONG_QUERY: ""   # a substring of a song title that EXISTS in the test account
+---
+- launchApp:
+    clearState: true        # start logged-out to exercise login; drop this to reuse a session
+
+# --- Login (runs only when the login screen is actually shown) ---
+- runFlow:
+    when:
+      visible: "Sign in"
+    commands:
+      - tapOn: "Email"          # TextInput placeholder
+      - inputText: ${EMAIL}
+      - tapOn: "Password"       # TextInput placeholder (secureTextEntry)
+      - inputText: ${PASSWORD}
+      - tapOn: "Sign in"
+
+# --- Landed in the app (Library tab) ---
+- extendedWaitUntil:
+    visible: "Search library"   # library search placeholder
+    timeout: 20000
+- assertVisible: "Library"      # bottom-tab label confirms the shell rendered
+
+# --- Search the library (server-side; executes on keyboard return) ---
+- tapOn: "Search library"
+- inputText: ${SONG_QUERY}
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: ${SONG_QUERY}      # the matching SongRow (title text)
+    timeout: 15000
+
+# --- Play the first matching song → opens the player modal ---
+- tapOn: ${SONG_QUERY}
+- extendedWaitUntil:
+    visible: "Now Playing"      # player modal title
+    timeout: 15000
+- assertVisible: ${SONG_QUERY}  # title shown in the player
+- assertVisible: "Shuffle mode" # player control (accessibilityLabel)
+- assertVisible: "More options" # player control (accessibilityLabel)
