@@ -2,7 +2,8 @@ import { useCallback, useState } from "react";
 import {
   View, Text, TextInput, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS,
 } from "react-native";
-import { Stack, router, useFocusEffect } from "expo-router";
+import { Stack, useFocusEffect } from "expo-router";
+import { goToSection } from "@/navigation";
 import { Plus, X } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import {
@@ -107,7 +108,7 @@ export default function StyleTemplatesScreen() {
         cancelButtonIndex: 4,
       },
       (i) => {
-        if (i === 0) router.push({ pathname: "/generate", params: { style: t.tags } });
+        if (i === 0) goToSection({ pathname: "/generate", params: { style: t.tags } });
         else if (i === 1) rename(t);
         else if (i === 2) editTags(t);
         else if (i === 3) confirmDelete(t);

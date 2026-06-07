@@ -2,7 +2,8 @@ import { useCallback, useState } from "react";
 import {
   View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS,
 } from "react-native";
-import { Stack, router, useFocusEffect } from "expo-router";
+import { Stack, useFocusEffect } from "expo-router";
+import { goToSection } from "@/navigation";
 import { AlertCircle, SlidersHorizontal } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchPresets, deletePreset, type Preset } from "@/api/presets";
@@ -41,7 +42,7 @@ export default function PresetsScreen() {
     if (preset.stylePrompt) params.style = preset.stylePrompt;
     if (preset.title) params.title = preset.title;
     if (preset.isInstrumental) params.instrumental = "1";
-    router.push({ pathname: "/generate", params });
+    goToSection({ pathname: "/generate", params });
   }, []);
 
   const confirmDelete = useCallback((preset: Preset) => {

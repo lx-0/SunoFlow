@@ -2,7 +2,8 @@ import { useCallback, useState } from "react";
 import {
   View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS,
 } from "react-native";
-import { Stack, router, useFocusEffect } from "expo-router";
+import { Stack, useFocusEffect } from "expo-router";
+import { goToSection } from "@/navigation";
 import { AlertCircle, ChevronRight, UserSquare2 } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchPersonas, deletePersona, type Persona } from "@/api/personas";
@@ -39,7 +40,7 @@ export default function PersonasScreen() {
     // Generate's persona picker matches on the Suno-side personaId (p.personaId),
     // not the DB row id, so we hand it the same identifier it compares against.
     const pid = p.personaId ?? undefined;
-    router.push({
+    goToSection({
       pathname: "/generate",
       params: {
         ...(pid ? { personaId: pid } : {}),

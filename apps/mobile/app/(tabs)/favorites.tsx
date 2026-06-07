@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { View, FlatList, ActivityIndicator, StyleSheet } from "react-native";
 import { router, useFocusEffect } from "expo-router";
+import { goToSection } from "@/navigation";
 import { Heart, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchFavorites } from "@/api/favorites";
@@ -45,7 +46,7 @@ export default function FavoritesScreen() {
           title="No favorites yet"
           subtitle="Tap the heart on a song to keep it here."
           ctaLabel="Browse library"
-          onCta={() => router.push("/")}
+          onCta={() => goToSection("/")}
         />
       ) : (
         <FlatList

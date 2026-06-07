@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, Text, Image, Pressable, Modal, StyleSheet } from "react-native";
 import { router, type Href } from "expo-router";
+import { goToSection } from "@/navigation";
 import { formatDuration } from "@sunoflow/core";
 import { usePlayback } from "@/playback/usePlayback";
 import {
@@ -81,7 +82,7 @@ export default function PlayerScreen() {
     { label: "Comments", Icon: MessageCircle, go: () => songId && router.push(`/comments/${songId}`) },
     { label: "Related songs", Icon: Disc3, go: () => songId && router.push(`/related/${songId}`) },
     { label: "Song details", Icon: Info, go: () => songId && router.push(`/song/${songId}`) },
-    { label: "Extend this song", Icon: Sparkles, go: () => songId && router.push(`/generate?parentSongId=${songId}`) },
+    { label: "Extend this song", Icon: Sparkles, go: () => songId && goToSection(`/generate?parentSongId=${songId}`) },
   ];
 
   function runMenu(go: () => void) {

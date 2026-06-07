@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
+import { goToSection } from "@/navigation";
 import { Sparkles, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchGenerations, type Generation } from "@/api/generations";
@@ -74,7 +75,7 @@ export default function GenerationsScreen() {
           title="No generations yet"
           subtitle="Create your first song to see it here."
           ctaLabel="Generate a song"
-          onCta={() => router.push("/generate")}
+          onCta={() => goToSection("/generate")}
         />
       ) : (
         <FlatList

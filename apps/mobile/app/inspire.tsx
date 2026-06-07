@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
-import { Stack, router, useFocusEffect, type Href } from "expo-router";
+import { Stack, useFocusEffect, type Href } from "expo-router";
+import { goToSection } from "@/navigation";
 import { Sparkles, RefreshCw } from "lucide-react-native";
 import type { DigestItem, InspirationDigest } from "@sunoflow/core";
 import { HttpError } from "@/api/client";
@@ -56,7 +57,7 @@ export default function InspireScreen() {
   }
 
   function generateFrom(item: DigestItem) {
-    router.push({ pathname: "/generate", params: { prompt: item.suggestedPrompt } } as Href);
+    goToSection({ pathname: "/generate", params: { prompt: item.suggestedPrompt } } as Href);
   }
 
   return (
@@ -89,7 +90,7 @@ export default function InspireScreen() {
               <Text style={styles.ctaText}>Generate Today&apos;s Picks</Text>
             )}
           </Pressable>
-          <Pressable onPress={() => router.push("/rss-feeds" as Href)}>
+          <Pressable onPress={() => goToSection("/rss-feeds" as Href)}>
             <Text style={styles.manageLink}>Manage RSS feeds</Text>
           </Pressable>
         </View>

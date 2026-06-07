@@ -28,10 +28,13 @@ Now-Playing surface**. SunoFlow maps to exactly three navigation intents:
 
 | Intent | Trigger | Primitive | Back behavior |
 | --- | --- | --- | --- |
-| **Switch section** | Bottom nav, Sidebar, "go to X" shortcuts | `switchTo(route, pathname)` | Returns to the home tab (Library), not the previous section |
+| **Switch section** | Bottom nav, Sidebar | `switchTo(route, pathname)` | Returns to the home tab (Library), not the previous section |
+| **Go to section** | In-view action that jumps to a section ("Use in Generate", "Browse library", "Manage RSS feeds") | `goToSection(href)` | Returns to the home tab |
 | **Drill down** | Opening a song / playlist / detail from a list | `router.push(...)` | Returns to the originating list |
 | **Open player** | Mini-player tap, "play" actions | `openPlayer()` | Dismisses the modal back to where you were |
 
+`switchTo` and `goToSection` share one collapse-then-navigate engine (dismissAll →
+navigate); `switchTo` only adds a no-op guard for tapping the already-active tab.
 Everything else is a consequence of keeping every call site mapped to one of these.
 
 ## The tree
@@ -62,10 +65,12 @@ Root Stack
 
 ## Rules
 
-1. **Switchers never stack.** `switchTo` calls `router.dismissAll()` (popToTop of
-   the closest stack) when `router.canDismiss()`, then `router.navigate(route)`.
-   Net effect: the back stack is at most `[home base] → [one section]`. Back from
-   any section returns to the home tab.
+1. **Section navigation never stacks.** Both `switchTo` (nav bars) and
+   `goToSection` (in-view jumps) call `router.dismissAll()` (popToTop of the
+   closest stack) when `router.canDismiss()`, then `router.navigate(href)`. Net
+   effect: the back stack is at most `[home base] → [one section]`. Back from any
+   section returns to the home tab. Params on an object href are preserved (e.g.
+   "Use in Generate" carries `style`/`prompt`/`personaId`).
 2. **The player is a singleton.** `openPlayer()` uses `router.navigate("/player")`,
    never `push`. `navigate` pops to an existing `/player` instead of stacking a
    duplicate. **Never** call `router.push("/player")`.
@@ -78,7 +83,7 @@ Root Stack
 
 ## Implementation map
 
-- `src/navigation.ts` — `switchTo()`, `openPlayer()` (+ rationale in comments).
+- `src/navigation.ts` — `switchTo()`, `goToSection()`, `openPlayer()` (+ rationale).
 - `app/_layout.tsx` — `GlobalChrome` (mini-player + bottom tab bar), hidden on
   `login` / `player`, rendered before `Sidebar`.
 - `app/(tabs)/_layout.tsx` — home base Stack only; chrome removed (now global).
@@ -86,6 +91,33 @@ Root Stack
   `switchTo(route, usePathname())`.
 - `src/components/MiniPlayer.tsx` + 20 play-action sites — `openPlayer()` /
   `router.navigate("/player")` instead of `push`.
+
+## Call-site audit
+
+Every navigation in the app goes through the `router` singleton (no `<Link>` /
+`useRouter`). All call sites were classified:
+
+**Converted to `goToSection` (in-view jumps to a section — previously stacked):**
+`style-templates` → Generate · `presets` → Generate · `prompt-templates` →
+Generate · `personas` → Generate · `inspire` → Generate / Manage RSS · `generations`
+→ Generate (empty CTA) · `favorites` → Library (empty CTA) · player "…" → Extend.
+
+**Kept as `router.push` (correct drill-downs — Back returns to the parent):**
+- Item details: `/song/[id]`, `/playlist/[id]`, `/u/[username]`, `/tag/[id]`,
+  `/collection/[id]`, `/stems/[id]`, `/song-versions/[id]`, `/song-analytics/[id]`,
+  `/song-tags/[id]`, `/related/[id]`, `/lyrics-edit/[id]`, `/comments/[id]`,
+  `/collaborators/[id]`, `/replace-section/[id]`.
+- Settings → its sub-pages (`api-keys`, `rss-feeds`, `notification-settings`,
+  `manage-tags`, `rate-limits`, `feedback`, `change-password`, `delete-account`):
+  drill-downs **within** the Settings section; Back → Settings is intended.
+- Player "…" peeks (Lyrics, Versions, Add-to-playlist, Queue, Comments, Related,
+  Song details): contextual to the now-playing song; layer over the modal and
+  Back returns to the player (the now-playing-peek pattern).
+- Notification row → its target (a specific song/user/playlist = a detail).
+
+**Kept as `router.replace` (correct — must not be in the back stack):**
+`generate` / `upload` / `mashup` → the created song; `generate` → Library;
+`playlist-invite` → the joined playlist; root auth gate → `login`.
 
 ## Verification (on-device — REQUIRED)
 

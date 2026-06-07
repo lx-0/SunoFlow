@@ -2,7 +2,8 @@ import { useCallback, useState } from "react";
 import {
   View, Text, TextInput, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS, Switch,
 } from "react-native";
-import { Stack, router, useFocusEffect } from "expo-router";
+import { Stack, useFocusEffect } from "expo-router";
+import { goToSection } from "@/navigation";
 import { AlertCircle, FileText, Plus, X } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import {
@@ -126,7 +127,7 @@ export default function PromptTemplatesScreen() {
   }
 
   function openInGenerate(t: PromptTemplate) {
-    router.push({
+    goToSection({
       pathname: "/generate",
       params: { prompt: t.prompt, ...(t.style ? { style: t.style } : {}) },
     });

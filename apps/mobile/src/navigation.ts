@@ -30,17 +30,16 @@ export function openPlayer() {
 }
 
 /**
- * Switch the top-level section.
+ * Go to a top-level section, collapsing the current stack to the home base first
+ * (popToTop of the closest stack) so sections never stack on top of each other
+ * and Back stays shallow. Params on an object Href are preserved.
  *
- * Dismisses any drill-down / open modal back to the home base (popToTop of the
- * closest stack) and then navigates, keeping the back stack shallow and Back
- * predictable. No-op when already on the target route.
- *
- * @param route       destination top-level route
- * @param currentPath result of usePathname() from the calling component
+ * Use this for any in-view action that jumps to a SECTION (e.g. "Use in
+ * Generate", "Browse library", "Manage RSS feeds") — not for drill-downs into a
+ * song / playlist / detail, which should keep router.push so Back returns to the
+ * originating list.
  */
-export function switchTo(route: Href, currentPath: string) {
-  if (route === currentPath) return;
+export function goToSection(href: Href) {
   if (router.canDismiss()) {
     try {
       router.dismissAll();
@@ -48,5 +47,19 @@ export function switchTo(route: Href, currentPath: string) {
       console.warn("[nav] dismissAll failed", e);
     }
   }
-  router.navigate(route);
+  router.navigate(href);
+}
+
+/**
+ * Switch the top-level section from a persistent nav surface (bottom tab bar,
+ * sidebar). Same collapse-then-navigate as goToSection, but a no-op when already
+ * on the target route (avoids a needless re-navigate when tapping the active
+ * tab).
+ *
+ * @param route       destination top-level route
+ * @param currentPath result of usePathname() from the calling component
+ */
+export function switchTo(route: Href, currentPath: string) {
+  if (route === currentPath) return;
+  goToSection(route);
 }
