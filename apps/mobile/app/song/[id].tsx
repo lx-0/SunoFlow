@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { View, Text, Image, Pressable, ScrollView, ActivityIndicator, StyleSheet, ActionSheetIOS, Alert } from "react-native";
 import { Stack, useFocusEffect, useLocalSearchParams, router, type Href } from "expo-router";
 import { formatDuration } from "@sunoflow/core";
-import { Play, Disc3, Share2, Sparkles, BarChart2, Layers, MoreHorizontal, Tag as TagIcon, Download, GitBranch, Wand2, Film, type LucideIcon } from "lucide-react-native";
+import { Play, Disc3, Share2, Sparkles, BarChart2, Layers, MoreHorizontal, Tag as TagIcon, Download, GitBranch, Wand2, Film, ListPlus, ThumbsUp, ThumbsDown, type LucideIcon } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { createStyleTemplate } from "@/api/style-templates";
 import { createPersonaFromSong } from "@/api/personas";
@@ -15,6 +15,8 @@ import { fetchSongDetail, detailToSong, renameSong, setSongVisibility, type Song
 import { setFavorite as setFavoriteApi } from "@/api/favorites";
 import { fetchLyrics, type LyricLine } from "@/api/lyrics";
 import { fetchRelated } from "@/api/related";
+import { fetchSongTags, type SongTag } from "@/api/tags";
+import { fetchFeedback, setFeedback, type ThumbsRating } from "@/api/song-feedback";
 import { playQueue } from "@/playback/controls";
 import { shareSong } from "@/lib/share";
 import { RatingStars } from "@/components/RatingStars";
@@ -35,6 +37,8 @@ export default function SongDetailScreen() {
   const [favorite, setFavorite] = useState(false);
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
   const [related, setRelated] = useState<Song[]>([]);
+  const [customTags, setCustomTags] = useState<SongTag[]>([]);
+  const [thumbs, setThumbs] = useState<ThumbsRating | null>(null);
   const [videoBusy, setVideoBusy] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
   const videoPoll = useRef(0); // bumped to cancel an in-flight poll loop
@@ -45,6 +49,8 @@ export default function SongDetailScreen() {
       setError(null);
       setLyrics([]);
       setRelated([]);
+      setCustomTags([]);
+      setThumbs(null);
       if (!id) return;
       let cancelled = false;
       fetchSongDetail(id)
@@ -59,6 +65,8 @@ export default function SongDetailScreen() {
         });
       fetchLyrics(id).then((l) => !cancelled && setLyrics(l)).catch(() => {});
       fetchRelated(id).then((r) => !cancelled && setRelated(r)).catch(() => {});
+      fetchSongTags(id).then((t) => !cancelled && setCustomTags(t)).catch(() => {});
+      fetchFeedback(id).then((f) => !cancelled && setThumbs(f)).catch(() => {});
       return () => {
         cancelled = true;
       };
@@ -74,6 +82,18 @@ export default function SongDetailScreen() {
     } catch (e) {
       setFavorite(!next);
       console.error("[song-detail] favorite toggle failed", e);
+    }
+  }
+
+  async function onThumbs(rating: ThumbsRating) {
+    if (!id) return;
+    const prev = thumbs;
+    setThumbs(rating); // optimistic; the API has no "clear", so a tap always sets
+    try {
+      await setFeedback(id, rating);
+    } catch (e) {
+      setThumbs(prev);
+      console.error("[song-detail] feedback failed", e);
     }
   }
 
@@ -315,9 +335,17 @@ export default function SongDetailScreen() {
     );
   }
 
-  const meta = [song.model, song.durationSeconds ? formatDuration(song.durationSeconds) : null, fmtDate(song.createdAt)]
-    .filter(Boolean)
-    .join("  ·  ");
+  // Labeled metadata — mirrors the web SongMetadataCard (Style is the Suno
+  // "style" prompt = tagsString; it was previously not shown at all).
+  const createdLabel = fmtDate(song.createdAt);
+  const metaFields: { label: string; value: string }[] = [
+    song.tagsString.trim() ? { label: "Style", value: song.tagsString.trim() } : null,
+    song.model ? { label: "Model", value: song.model } : null,
+    song.durationSeconds ? { label: "Duration", value: formatDuration(song.durationSeconds) } : null,
+    createdLabel ? { label: "Created", value: createdLabel } : null,
+    song.isInstrumental ? { label: "Type", value: "Instrumental" } : null,
+    song.sunoJobId ? { label: "Suno ID", value: song.sunoJobId } : null,
+  ].filter((f): f is { label: string; value: string } => f !== null);
   const lyricsText = lyrics.map((l) => l.text).join("\n").trim();
 
   async function play() {
@@ -334,6 +362,7 @@ export default function SongDetailScreen() {
   const favCount = song.favoriteCount + (favorite && !song.isFavorite ? 1 : 0);
   const secondary: { key: string; label: string; Icon: LucideIcon; onPress: () => void }[] = [
     { key: "extend", label: "Extend", Icon: Sparkles, onPress: () => router.push(`/generate?parentSongId=${song.id}`) },
+    { key: "playlist", label: "Add to playlist", Icon: ListPlus, onPress: () => router.push(`/add-to-playlist?songId=${song.id}&title=${encodeURIComponent(song.title)}` as Href) },
     { key: "versions", label: "Versions", Icon: GitBranch, onPress: () => router.push(`/song-versions/${song.id}` as Href) },
     { key: "stems", label: "Stems", Icon: Layers, onPress: () => router.push(`/stems/${song.id}` as Href) },
     { key: "download", label: "Download", Icon: Download, onPress: () => downloadExport(song) },
@@ -360,7 +389,6 @@ export default function SongDetailScreen() {
           </View>
         )}
         <Text style={styles.title}>{song.title}</Text>
-        {meta ? <Text style={styles.meta}>{meta}</Text> : null}
         <View style={[styles.badge, song.isPublic ? styles.badgePublic : styles.badgePrivate]}>
           <Text style={[styles.badgeText, song.isPublic ? styles.badgeTextPublic : styles.badgeTextPrivate]}>
             {song.isPublic ? "Public" : "Private"}
@@ -387,10 +415,51 @@ export default function SongDetailScreen() {
         </Pressable>
       </View>
 
-      {/* Rating */}
+      {/* Variation of … */}
+      {song.parentSongId ? (
+        <Pressable style={styles.variationLink} onPress={() => router.push(`/song/${song.parentSongId}` as Href)}>
+          <GitBranch color={colors.accent} size={16} />
+          <Text style={styles.variationText}>Variation — view the original</Text>
+        </Pressable>
+      ) : null}
+
+      {/* Metadata (Style / Model / Duration / Created / …) */}
+      {metaFields.length > 0 ? (
+        <View style={[styles.card, styles.metaGrid]}>
+          {metaFields.map((f) => (
+            <View key={f.label} style={f.label === "Suno ID" ? styles.metaItemFull : styles.metaItem}>
+              <Text style={styles.metaLabel}>{f.label}</Text>
+              <Text style={styles.metaValue}>{f.value}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {/* Rating + quick thumbs feedback */}
       <View style={styles.ratingRow}>
         <Text style={styles.ratingLabel}>Your rating</Text>
         <RatingStars songId={song.id} size={24} />
+      </View>
+      <View style={styles.thumbsRow}>
+        <Text style={styles.ratingLabel}>How did this turn out?</Text>
+        <View style={styles.thumbsBtns}>
+          <Pressable
+            style={[styles.thumbBtn, thumbs === "thumbs_up" && styles.thumbActive]}
+            onPress={() => void onThumbs("thumbs_up")}
+            hitSlop={6}
+            accessibilityLabel="Thumbs up"
+          >
+            <ThumbsUp color={thumbs === "thumbs_up" ? colors.onAccent : colors.text} size={18} />
+          </Pressable>
+          <Pressable
+            style={[styles.thumbBtn, thumbs === "thumbs_down" && styles.thumbActiveDown]}
+            onPress={() => void onThumbs("thumbs_down")}
+            hitSlop={6}
+            accessibilityLabel="Thumbs down"
+          >
+            <ThumbsDown color={thumbs === "thumbs_down" ? colors.onAccent : colors.text} size={18} />
+          </Pressable>
+        </View>
       </View>
 
       {/* Secondary actions — labeled, not bare icons */}
@@ -431,10 +500,10 @@ export default function SongDetailScreen() {
           <Text style={styles.cardTitle}>Tags</Text>
           <Text style={styles.editLink}>Edit</Text>
         </View>
-        {song.tags.length > 0 ? (
+        {customTags.length > 0 ? (
           <View style={styles.tags}>
-            {song.tags.map((t) => (
-              <View key={t} style={styles.tag}><Text style={styles.tagText}>{t}</Text></View>
+            {customTags.map((t) => (
+              <View key={t.id} style={styles.tag}><Text style={styles.tagText}>{t.name}</Text></View>
             ))}
           </View>
         ) : (
@@ -501,7 +570,6 @@ function makeStyles(c: ThemeColors) {
     art: { width: 220, height: 220, borderRadius: 18, marginBottom: 16, shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } },
     artPlaceholder: { backgroundColor: c.surfaceAlt, alignItems: "center", justifyContent: "center" },
     title: { color: c.text, fontSize: 22, fontWeight: "800", textAlign: "center", lineHeight: 28 },
-    meta: { color: c.textDim, fontSize: 13, marginTop: 6, textAlign: "center" },
     badge: { marginTop: 12, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999 },
     badgePublic: { backgroundColor: c.successBg },
     badgePrivate: { backgroundColor: c.surfaceAlt },
@@ -517,6 +585,21 @@ function makeStyles(c: ThemeColors) {
 
     ratingRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 18, backgroundColor: c.surface, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12 },
     ratingLabel: { color: c.textDim, fontSize: 14, fontWeight: "600" },
+
+    thumbsRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 10, backgroundColor: c.surface, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12 },
+    thumbsBtns: { flexDirection: "row", gap: 10 },
+    thumbBtn: { width: 44, height: 38, alignItems: "center", justifyContent: "center", backgroundColor: c.surfaceAlt, borderRadius: 10 },
+    thumbActive: { backgroundColor: c.accentStrong },
+    thumbActiveDown: { backgroundColor: c.danger },
+
+    variationLink: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 16, backgroundColor: c.surface, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12 },
+    variationText: { color: c.accent, fontSize: 14, fontWeight: "600" },
+
+    metaGrid: { flexDirection: "row", flexWrap: "wrap" },
+    metaItem: { width: "50%", paddingVertical: 6, paddingRight: 8 },
+    metaItemFull: { width: "100%", paddingVertical: 6 },
+    metaLabel: { color: c.textFaint, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 2 },
+    metaValue: { color: c.text, fontSize: 14 },
 
     grid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 16 },
     gridItem: { flexBasis: "31%", flexGrow: 1, alignItems: "center", gap: 6, backgroundColor: c.surface, borderRadius: 14, paddingVertical: 14 },

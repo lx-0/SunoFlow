@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
-import { Stack, useFocusEffect } from "expo-router";
+import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Check, ListPlus } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchPlaylists, addSongToPlaylist, type PlaylistSummary } from "@/api/playlists";
@@ -10,13 +10,16 @@ import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
-// Add the currently-playing song to a playlist. Lists the user's playlists; tap a
-// row to add. Adds show a check; a failed add reverts and surfaces an error row.
+// Add a song to a playlist. Targets the song passed via the `songId` param (e.g.
+// from the song detail page); falls back to the currently-playing song when no
+// param is given (e.g. opened from the player "…" menu). Lists the user's
+// playlists; tap a row to add. Adds show a check; a failed add reverts.
 export default function AddToPlaylistScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { current } = usePlayback();
-  const songId = current?.id;
+  const params = useLocalSearchParams<{ songId?: string; title?: string }>();
+  const songId = params.songId ?? current?.id;
   const [playlists, setPlaylists] = useState<PlaylistSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState<Set<string>>(new Set());

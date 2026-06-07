@@ -23,10 +23,14 @@ export interface SongDetail {
   isPublic: boolean;
   /** generationStatus (ready | pending | failed | …) — gates Retry. */
   generationStatus: string;
-  /** Canonical comma-separated style string (for "save style template"). */
+  /** Canonical comma-separated style string (the Suno "style" prompt). */
   tagsString: string;
   /** Suno generation task id — needed to clone a voice persona; null if absent. */
   sunoJobId: string | null;
+  /** True for instrumental (no-vocals) generations. */
+  isInstrumental: boolean;
+  /** Parent song id when this is a variation/extension; null for originals. */
+  parentSongId: string | null;
 }
 
 function toStringTags(v: unknown): string[] {
@@ -67,6 +71,8 @@ export async function fetchSongDetail(id: string): Promise<SongDetail> {
     generationStatus: typeof s.generationStatus === "string" ? s.generationStatus : "ready",
     tagsString: typeof s.tags === "string" ? s.tags : toStringTags(s.tags).join(", "),
     sunoJobId: typeof s.sunoJobId === "string" ? s.sunoJobId : null,
+    isInstrumental: s.isInstrumental === true,
+    parentSongId: typeof s.parentSongId === "string" ? s.parentSongId : null,
   };
 }
 
