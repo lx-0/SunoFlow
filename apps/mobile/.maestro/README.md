@@ -63,14 +63,12 @@ maestro studio
   minute *screen lock* — must still be done by hand on-device: play a track,
   lock the phone, wait 10 min, confirm it's still playing + lock-screen controls
   work. A green Maestro run does **not** substitute for this.
-- **No testIDs in the app → some selectors are fragile.** Flows target visible
-  text / placeholders / accessibilityLabels. Two known gaps:
-  - the **play/pause** control has no accessibilityLabel (asserts use other
-    player controls as a proxy);
-  - the **create-playlist "+"** header button is unlabeled (`playlist.yaml` uses
-    the empty-state CTA instead).
-  Adding `testID`s (or accessibilityLabels) to these would make the flows robust
-  in every state — a small, optional follow-up (touches RN source, so ask first).
+- **Mostly text/accessibility selectors.** The app has few testIDs, so flows
+  target visible text / placeholders / accessibilityLabels. Two previously
+  unlabeled controls now carry stable hooks (added alongside these flows):
+  - **play/pause** → `accessibilityLabel` "Play"/"Pause" + `testID: player-play-pause`;
+  - **create-playlist "+"** → `accessibilityLabel` "Create playlist" + `testID: create-playlist`.
+  Other dynamic rows (songs, playlists) are still matched by their text content.
 - **Backgrounding semantics vary** by Maestro / simulator version (see the note
   in `background-audio.yaml`).
 

@@ -1,12 +1,7 @@
 # SunoFlow native — create a playlist (write path on the test account).
 #
-# ⚠️ Selector caveat: the create control is an UNLABELED "+" icon in the header
-# (no testID, no accessibilityLabel), which Maestro cannot target reliably. This
-# flow therefore uses the EMPTY-STATE CTA "New playlist", so run it on an account
-# whose Playlists tab is empty (or delete playlists first). For a non-empty list,
-# add `testID="create-playlist"` (or an accessibilityLabel) to the header Plus in
-# app/(tabs)/playlists.tsx — then this flow can tap it by id in any state.
-#
+# Targets the header create button by `testID: create-playlist` (added to
+# app/(tabs)/playlists.tsx), so this works in ANY state (empty or populated list).
 # The playlist name is entered via a native Alert.prompt ("New Playlist").
 appId: app.sunoflow.mobile
 env:
@@ -25,9 +20,9 @@ env:
       - inputText: ${PASSWORD}
       - tapOn: "Sign in"
 
-- tapOn: "Playlists"            # bottom-tab label
-- assertVisible: "New playlist" # empty-state CTA (see caveat above)
-- tapOn: "New playlist"
+- tapOn: "Playlists"               # bottom-tab label
+- tapOn:
+    id: "create-playlist"          # header "+" (testID)
 
 # Native Alert.prompt: the text field auto-focuses, then confirm with OK.
 - assertVisible: "New Playlist"

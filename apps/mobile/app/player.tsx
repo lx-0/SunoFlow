@@ -180,7 +180,14 @@ export default function PlayerScreen() {
           <Pressable hitSlop={12} style={styles.btn} onPress={() => skipToPrevious()}>
             <SkipPrevIcon color={colors.text} size={28} />
           </Pressable>
-          <Pressable hitSlop={12} style={[styles.btn, styles.btnPlay]} onPress={togglePlay}>
+          <Pressable
+            hitSlop={12}
+            style={[styles.btn, styles.btnPlay]}
+            onPress={togglePlay}
+            accessibilityRole="button"
+            accessibilityLabel={playing ? "Pause" : "Play"}
+            testID="player-play-pause"
+          >
             {playing ? <PauseIcon color={colors.onAccent} size={24} /> : <PlayIcon color={colors.onAccent} size={24} />}
           </Pressable>
           <Pressable hitSlop={12} style={styles.btn} onPress={() => skipToNext()}>

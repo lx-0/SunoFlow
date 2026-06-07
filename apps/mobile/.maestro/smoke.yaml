@@ -51,5 +51,7 @@ env:
     visible: "Now Playing"      # player modal title
     timeout: 15000
 - assertVisible: ${SONG_QUERY}  # title shown in the player
+- assertVisible:
+    id: "player-play-pause"     # play/pause control (testID)
 - assertVisible: "Shuffle mode" # player control (accessibilityLabel)
 - assertVisible: "More options" # player control (accessibilityLabel)

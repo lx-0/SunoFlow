@@ -72,7 +72,13 @@ export default function PlaylistsScreen() {
     <Stack.Screen
       options={{
         headerRight: () => (
-          <Pressable onPress={promptCreate} hitSlop={8}>
+          <Pressable
+            onPress={promptCreate}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Create playlist"
+            testID="create-playlist"
+          >
             <Plus color={colors.accent} size={24} />
           </Pressable>
         ),
