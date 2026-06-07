@@ -33,7 +33,7 @@ export default function LoginScreen() {
       await setSession(json.key, json.id);
       router.replace("/(tabs)");
     } catch (e) {
-      setError("Network error — check your connection.");
+      setError("Network error, check your connection.");
       console.error("[login] failed", e);
     } finally {
       setBusy(false);

@@ -7,6 +7,7 @@ import { fetchLyrics, type LyricLine } from "@/api/lyrics";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Lyrics view. Loads the current song's lyrics (+ optional line timestamps). When
@@ -101,9 +102,9 @@ function makeStyles(c: ThemeColors) {
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
     content: { paddingHorizontal: 16, paddingVertical: 16, paddingBottom: MINIPLAYER_CLEARANCE },
     card: { backgroundColor: c.surface, borderRadius: 14, padding: 16 },
-    line: { color: c.text, fontSize: 18, lineHeight: 28, marginVertical: 2 },
+    line: { color: c.text, fontSize: 18, lineHeight: 28, marginVertical: 2, fontFamily: fonts.mono },
     blank: { height: 14 },
-    active: { color: c.text, fontWeight: "700" },
+    active: { color: c.text, fontFamily: fonts.monoSemibold },
     inactive: { color: c.textFaint },
   });
 }

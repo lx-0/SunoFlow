@@ -20,23 +20,31 @@ export default function HistoryScreen() {
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useFocusEffect(
-    useCallback(() => {
-      setSongs(null);
-      setError(null);
-      fetchHistory()
-        .then(setSongs)
-        .catch((e: unknown) => {
-          setError(e instanceof HttpError ? `Failed to load history (HTTP ${e.status})` : "Network error");
-          console.error("[history] load failed", e);
-        });
-    }, []),
-  );
+  // Stale-while-revalidate: keep the current list visible on refocus and refetch
+  // in the background. The spinner only shows on the very first load (songs null).
+  const load = useCallback(() => {
+    setError(null);
+    fetchHistory()
+      .then(setSongs)
+      .catch((e: unknown) => {
+        setError(e instanceof HttpError ? `Failed to load history (HTTP ${e.status})` : "Network error");
+        console.error("[history] load failed", e);
+      });
+  }, []);
+
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   return (
     <View style={styles.container}>
-      {error ? (
-        <EmptyState tone="error" Icon={AlertCircle} title={error} />
+      {error && !songs ? (
+        <EmptyState
+          tone="error"
+          Icon={AlertCircle}
+          title="Couldn't load history"
+          subtitle="Check your connection and try again."
+          ctaLabel="Retry"
+          onCta={load}
+        />
       ) : !songs ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : songs.length === 0 ? (

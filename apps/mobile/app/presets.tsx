@@ -10,6 +10,7 @@ import { fetchPresets, deletePreset, type Preset } from "@/api/presets";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Presets: the user's saved generation-param bundles. Reloads on focus so
@@ -133,6 +134,6 @@ function makeStyles(c: ThemeColors) {
     icon: { width: 36, alignItems: "flex-start", justifyContent: "center" },
     meta: { flex: 1 },
     title: { color: c.text, fontSize: 16 },
-    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
+    dim: { color: c.textDim, fontSize: 13, fontFamily: fonts.mono, marginTop: 2 },
   });
 }

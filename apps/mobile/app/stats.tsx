@@ -14,7 +14,7 @@ import {
   type UserStats,
 } from "@/api/stats";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { fonts, type ThemeColors } from "@/theme/theme";
 
 type Styles = ReturnType<typeof makeStyles>;
 
@@ -71,15 +71,13 @@ function StreakCard({ streak, styles, colors }: { streak: Streak; styles: Styles
         <Flame color={colors.accent} size={18} />
         <Text style={styles.cardTitle}>Streak</Text>
       </View>
-      <View style={styles.streakRow}>
-        <View style={styles.streakItem}>
-          <Text style={styles.bigNum}>{streak.currentStreak}</Text>
-          <Text style={styles.dim}>Current</Text>
-        </View>
-        <View style={styles.streakItem}>
-          <Text style={styles.bigNum}>{streak.longestStreak}</Text>
-          <Text style={styles.dim}>Longest</Text>
-        </View>
+      <View style={styles.infoRow}>
+        <Text style={styles.infoLabel}>Current</Text>
+        <Text style={styles.infoValue}>{streak.currentStreak}</Text>
+      </View>
+      <View style={styles.infoRow}>
+        <Text style={styles.infoLabel}>Longest</Text>
+        <Text style={styles.infoValue}>{streak.longestStreak}</Text>
       </View>
     </View>
   );
@@ -97,14 +95,12 @@ function HeadlineStats({ stats, styles }: { stats: UserStats; styles: Styles }) 
   return (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>Overview</Text>
-      <View style={styles.grid}>
-        {items.map((it) => (
-          <View key={it.label} style={styles.gridItem}>
-            <Text style={styles.gridNum}>{it.value}</Text>
-            <Text style={styles.dim}>{it.label}</Text>
-          </View>
-        ))}
-      </View>
+      {items.map((it) => (
+        <View key={it.label} style={styles.infoRow}>
+          <Text style={styles.infoLabel}>{it.label}</Text>
+          <Text style={styles.infoValue}>{it.value}</Text>
+        </View>
+      ))}
     </View>
   );
 }
@@ -119,7 +115,6 @@ function Milestones({ milestones, styles, colors }: { milestones: Milestone[]; s
       </View>
       {milestones.map((m) => (
         <View key={m.type} style={[styles.milestone, !m.achieved && styles.locked]}>
-          <Text style={styles.milestoneEmoji}>{m.emoji}</Text>
           <View style={styles.milestoneMeta}>
             <Text style={[styles.milestoneLabel, !m.achieved && styles.lockedText]} numberOfLines={1}>
               {m.label}
@@ -146,15 +141,13 @@ function makeStyles(c: ThemeColors) {
       borderColor: c.border,
       borderWidth: StyleSheet.hairlineWidth,
       padding: 16,
+      gap: 10,
     },
-    cardHead: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
+    cardHead: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 },
     cardTitle: { color: c.text, fontSize: 16, fontWeight: "700" },
-    streakRow: { flexDirection: "row" },
-    streakItem: { flex: 1, alignItems: "center" },
-    bigNum: { color: c.accent, fontSize: 36, fontWeight: "800", fontVariant: ["tabular-nums"] },
-    grid: { flexDirection: "row", flexWrap: "wrap" },
-    gridItem: { width: "33.33%", paddingVertical: 10, alignItems: "center" },
-    gridNum: { color: c.text, fontSize: 22, fontWeight: "700", fontVariant: ["tabular-nums"] },
+    infoRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+    infoLabel: { color: c.textDim, fontSize: 15 },
+    infoValue: { color: c.text, fontSize: 16, fontFamily: fonts.monoMedium, fontVariant: ["tabular-nums"] },
     milestone: {
       flexDirection: "row",
       alignItems: "center",
@@ -164,7 +157,6 @@ function makeStyles(c: ThemeColors) {
       borderTopWidth: StyleSheet.hairlineWidth,
     },
     locked: { opacity: 0.5 },
-    milestoneEmoji: { fontSize: 22 },
     milestoneMeta: { flex: 1 },
     milestoneLabel: { color: c.text, fontSize: 15, fontWeight: "600" },
     lockedText: { color: c.textDim },

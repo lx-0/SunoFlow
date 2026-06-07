@@ -9,6 +9,7 @@ import { playQueue } from "@/playback/controls";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
@@ -28,7 +29,7 @@ function statusBadge(raw: string, c: ThemeColors): Badge {
     return { label: "Failed", bg: c.dangerBg, fg: c.danger };
   }
   if (s === "processing" || s === "running" || s === "generating" || s === "in_progress") {
-    return { label: "Processing", bg: c.surfaceAlt, fg: c.accent };
+    return { label: "Processing", bg: c.warnBg, fg: c.warnFg };
   }
   if (s === "pending" || s === "queued" || s === "waiting" || s === "submitted") {
     return { label: "Pending", bg: c.warnBg, fg: c.warnFg };
@@ -85,11 +86,12 @@ export default function GenerationsScreen() {
           renderItem={({ item }) => {
             const badge = statusBadge(item.status, colors);
             const label = item.title ?? item.prompt ?? "Untitled";
+            const labelIsPrompt = !item.title && !!item.prompt;
             const playable: Song | null = item.song;
             const Row = (
               <View style={styles.row}>
                 <View style={styles.meta}>
-                  <Text style={styles.title} numberOfLines={1}>{label}</Text>
+                  <Text style={[styles.title, labelIsPrompt && styles.titlePrompt]} numberOfLines={1}>{label}</Text>
                   <View style={styles.subRow}>
                     <View style={[styles.badge, { backgroundColor: badge.bg }]}>
                       <Text style={[styles.badgeText, { color: badge.fg }]}>{badge.label}</Text>
@@ -135,8 +137,9 @@ function makeStyles(c: ThemeColors) {
     },
     meta: { flex: 1 },
     title: { color: c.text, fontSize: 16 },
+    titlePrompt: { fontFamily: fonts.mono },
     subRow: { flexDirection: "row", alignItems: "center", marginTop: 6 },
-    badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginRight: 8 },
+    badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, marginRight: 8 },
     badgeText: { fontSize: 11, fontWeight: "600" },
     date: { color: c.textDim, fontSize: 13 },
   });

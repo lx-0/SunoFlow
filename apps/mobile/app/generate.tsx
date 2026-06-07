@@ -34,6 +34,7 @@ import { fetchPersonas, type Persona } from "@/api/personas";
 import { HttpError } from "@/api/client";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Generate — mirrors the web GenerateForm. Style mode: the style/genre IS the
@@ -212,7 +213,7 @@ export default function GenerateScreen() {
       const text = await generateLyrics(theme);
       if (text) setLyrics(text);
     } catch (e) {
-      setError(e instanceof HttpError && e.status === 429 ? "Slow down — too many lyric requests." : "Lyrics generation failed.");
+      setError(e instanceof HttpError && e.status === 429 ? "Slow down: too many lyric requests." : "Lyrics generation failed.");
       console.error("[generate] lyrics gen failed", e);
     } finally {
       setGenningLyrics(false);
@@ -266,7 +267,7 @@ export default function GenerateScreen() {
       };
       try {
         const { count: n } = await startBatch(Array.from({ length: count }, () => config));
-        Alert.alert("Generating", `${n} song${n === 1 ? "" : "s"} are being created — they'll appear in your Library.`);
+        Alert.alert("Generating", `${n} song${n === 1 ? "" : "s"} are being created. They'll appear in your Library.`);
         router.replace("/");
       } catch (e) {
         setError(e instanceof GenerationError ? e.message : "Something went wrong. Please try again.");
@@ -339,7 +340,7 @@ export default function GenerateScreen() {
             <Sparkles color={colors.accent} size={22} />
             <Text style={styles.heroText}>
               {parentSongId
-                ? "Extending an existing song — set the style and (optionally) lyrics."
+                ? "Extending an existing song: set the style and (optionally) lyrics."
                 : "Set a style/genre. Turn on Custom lyrics to write or generate the words."}
             </Text>
           </View>
@@ -421,7 +422,7 @@ export default function GenerateScreen() {
               <select>): tap → ActionSheet of saved templates → fills the field. */}
           {stStatus === "error" ? (
             <Pressable onPress={loadStyleTemplates}>
-              <Text style={styles.retry}>Couldn&apos;t load style templates — tap to retry</Text>
+              <Text style={styles.retry}>Couldn&apos;t load style templates. Tap to retry</Text>
             </Pressable>
           ) : styleTemplates.length > 0 ? (
             <Pressable style={styles.dropdown} onPress={openStyleTemplatePicker}>
@@ -434,7 +435,7 @@ export default function GenerateScreen() {
               <ChevronDown color={colors.textDim} size={18} />
             </Pressable>
           ) : stStatus === "ready" ? (
-            <Text style={styles.dim}>No style templates yet — save one from a song&apos;s menu on the web.</Text>
+            <Text style={styles.dim}>No style templates yet. Save one from a song&apos;s menu on the web.</Text>
           ) : null}
 
           {/* Style-setting quick pickers live WITH the Style field (they all fill it). */}
@@ -496,7 +497,7 @@ export default function GenerateScreen() {
                 style={[styles.input, styles.lyricsInput]}
                 value={lyrics}
                 onChangeText={setLyrics}
-                placeholder="[Verse]\nYour lyrics here…"
+                placeholder={"[Verse]\nYour lyrics here…"}
                 placeholderTextColor={colors.textFaint}
                 multiline
                 maxLength={GENERATION_PROMPT_MAX_LENGTH}
@@ -585,7 +586,7 @@ function makeStyles(c: ThemeColors) {
     countChip: { width: 44, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: c.surfaceAlt },
     countText: { color: c.textDim, fontSize: 15, fontWeight: "600" },
     label: { color: c.textDim, fontSize: 13, marginTop: 12, marginBottom: 6 },
-    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: 1, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
+    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: 1, borderRadius: 10, color: c.text, fontSize: 15, fontFamily: fonts.mono, paddingHorizontal: 14, paddingVertical: 12 },
     lyricsInput: { minHeight: 140, textAlignVertical: "top" },
     lyricsHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12 },
     miniRow: { flexDirection: "row", gap: 10, marginTop: 8 },

@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, FlatList, Pressable, Switch, ActivityIndicator, StyleSheet, Alert,
 } from "react-native";
 import { Stack, useFocusEffect } from "expo-router";
+import * as Clipboard from "expo-clipboard";
 import { AlertCircle, Plus, X } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import {
@@ -14,6 +15,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
+import { fonts } from "@/theme/theme";
 
 const KEY_NAME_MAX = 64;
 
@@ -97,9 +99,26 @@ export default function ApiKeysScreen() {
       setNewKeyName("");
       setCreating(false);
       if (secret) {
+        let copied = false;
+        try {
+          await Clipboard.setStringAsync(secret);
+          copied = true;
+        } catch (e) {
+          console.error("[api-keys] copy failed", e);
+        }
         Alert.alert(
           "API key created",
-          `Copy this key now — it won't be shown again:\n\n${secret}`,
+          `${copied ? "Copied to clipboard. " : ""}Save this key now, it won't be shown again:\n\n${secret}`,
+          [
+            {
+              text: copied ? "Copied" : "Copy key",
+              onPress: async () => {
+                try { await Clipboard.setStringAsync(secret); }
+                catch (e) { console.error("[api-keys] copy failed", e); }
+              },
+            },
+            { text: "Done", style: "cancel" },
+          ],
         );
       } else {
         Alert.alert("API key created", "The key was created but its secret was not returned.");
@@ -151,7 +170,7 @@ export default function ApiKeysScreen() {
                     <Text style={styles.rowTitle}>Use personal Suno API key</Text>
                     <Text style={styles.dim}>
                       {usePersonal
-                        ? "Using your personal key — app rate limits and credits don't apply."
+                        ? "Using your personal key: app rate limits and credits don't apply."
                         : "When on, generation uses your key instead of the shared app key."}
                     </Text>
                   </View>
@@ -167,7 +186,7 @@ export default function ApiKeysScreen() {
                 {usePersonal ? (
                   <View style={styles.keyEntry}>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, styles.keyInput]}
                       value={keyDraft}
                       onChangeText={setKeyDraft}
                       placeholder={suno.sunoApiKey ? `Current: ${suno.sunoApiKey}` : "Paste your Suno API key"}
@@ -253,6 +272,7 @@ function makeStyles(c: ThemeColors) {
     toggleMeta: { flex: 1, marginRight: 12 },
     keyEntry: { gap: 8 },
     input: { backgroundColor: c.bg, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
+    keyInput: { fontFamily: fonts.mono },
     saveBtn: { backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 13, alignItems: "center" },
     saveText: { color: c.onAccent, fontSize: 15, fontWeight: "700" },
     btnDisabled: { opacity: 0.45 },

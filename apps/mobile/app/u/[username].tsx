@@ -18,7 +18,7 @@ import {
 import { playQueue } from "@/playback/controls";
 import type { Song } from "@/types";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { fonts, type ThemeColors } from "@/theme/theme";
 
 type Tab = "songs" | "liked" | "playlists";
 const TABS: { key: Tab; label: string }[] = [
@@ -166,9 +166,9 @@ function ProfileContent({
         </View>
         {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
         <View style={styles.stats}>
-          <Stat colors={colors} value={profile.followersCount} label="Followers" />
-          <Stat colors={colors} value={profile.followingCount} label="Following" />
-          <Stat colors={colors} value={profile.songsCount} label="Songs" />
+          <Stat colors={colors} value={profile.followersCount} label="followers" />
+          <Stat colors={colors} value={profile.followingCount} label="following" />
+          <Stat colors={colors} value={profile.songsCount} label="songs" />
         </View>
         <Pressable
           style={[styles.followBtn, following && styles.followingBtn]}
@@ -273,20 +273,19 @@ function makeStyles(c: ThemeColors) {
     identity: { flexDirection: "row", alignItems: "center" },
     identityText: { marginLeft: 12, flex: 1 },
     name: { color: c.text, fontSize: 22, fontWeight: "700" },
-    handle: { color: c.textDim, fontSize: 13, marginTop: 2 },
+    handle: { color: c.textDim, fontSize: 13, marginTop: 2, fontFamily: fonts.mono },
     bio: { color: c.text, fontSize: 14, marginTop: 12, lineHeight: 20 },
     stats: {
       flexDirection: "row",
+      flexWrap: "wrap",
+      alignItems: "baseline",
+      columnGap: 16,
+      rowGap: 6,
       marginTop: 16,
-      backgroundColor: c.surface,
-      borderRadius: 14,
-      borderColor: c.border,
-      borderWidth: StyleSheet.hairlineWidth,
-      paddingVertical: 14,
     },
-    stat: { flex: 1, alignItems: "center" },
-    statValue: { color: c.text, fontSize: 22, fontWeight: "700", fontVariant: ["tabular-nums"] },
-    statLabel: { color: c.textDim, fontSize: 12, marginTop: 2 },
+    stat: { flexDirection: "row", alignItems: "baseline", gap: 5 },
+    statValue: { color: c.text, fontSize: 16, fontFamily: fonts.monoSemibold, fontVariant: ["tabular-nums"] },
+    statLabel: { color: c.textDim, fontSize: 12 },
     followBtn: {
       marginTop: 16,
       alignSelf: "flex-start",

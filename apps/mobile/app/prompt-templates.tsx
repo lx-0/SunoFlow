@@ -13,6 +13,7 @@ import {
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Prompt Templates management: browse built-in + saved prompts, and create /
@@ -269,6 +270,6 @@ function makeStyles(c: ThemeColors) {
     titleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
     title: { color: c.text, fontSize: 16, flexShrink: 1 },
     tag: { color: c.textDim, fontSize: 11, backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1, overflow: "hidden" },
-    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
+    dim: { color: c.textDim, fontSize: 13, fontFamily: fonts.mono, marginTop: 2 },
   });
 }

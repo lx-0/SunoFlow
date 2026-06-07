@@ -28,7 +28,7 @@ import {
 import { fetchSongsPage } from "@/api/songs";
 import type { Song } from "@/types";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { fonts, type ThemeColors } from "@/theme/theme";
 
 type Styles = ReturnType<typeof makeStyles>;
 
@@ -263,12 +263,12 @@ export default function ProfileScreen() {
           {stats ? (
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Stats</Text>
-              <View style={styles.grid}>
-                <StatItem label="Songs" value={String(stats.totalSongs)} styles={styles} />
-                <StatItem label="Favorites" value={String(stats.totalFavorites)} styles={styles} />
-                <StatItem label="Playlists" value={String(stats.totalPlaylists)} styles={styles} />
-                <StatItem label="Followers" value={String(stats.followersCount)} styles={styles} />
-                <StatItem label="Following" value={String(stats.followingCount)} styles={styles} />
+              <View style={styles.statRow}>
+                <StatItem label="songs" value={String(stats.totalSongs)} styles={styles} />
+                <StatItem label="favorites" value={String(stats.totalFavorites)} styles={styles} />
+                <StatItem label="playlists" value={String(stats.totalPlaylists)} styles={styles} />
+                <StatItem label="followers" value={String(stats.followersCount)} styles={styles} />
+                <StatItem label="following" value={String(stats.followingCount)} styles={styles} />
               </View>
               <Text style={styles.memberSince}>
                 Member since {stats.memberSince ? new Date(stats.memberSince).toLocaleDateString() : "–"}
@@ -441,7 +441,7 @@ export default function ProfileScreen() {
             ) : (
               milestones.map((m) => (
                 <View key={`${m.type}-${m.earnedAt}`} style={styles.milestone}>
-                  <Text style={styles.milestoneEmoji}>{m.emoji}</Text>
+                  <Text style={styles.milestoneTag} numberOfLines={1}>{m.type}</Text>
                   <View style={styles.milestoneMeta}>
                     <Text style={styles.milestoneLabel} numberOfLines={1}>
                       {m.label}
@@ -462,9 +462,9 @@ export default function ProfileScreen() {
 
 function StatItem({ label, value, styles }: { label: string; value: string; styles: Styles }) {
   return (
-    <View style={styles.gridItem}>
-      <Text style={styles.gridNum}>{value}</Text>
-      <Text style={styles.dim}>{label}</Text>
+    <View style={styles.statItem}>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
 }
@@ -516,10 +516,11 @@ function makeStyles(c: ThemeColors) {
     savedText: { color: c.successFg, fontSize: 14, fontWeight: "600" },
     streakRow: { flexDirection: "row", alignItems: "center", gap: 8 },
     streakText: { color: c.text, fontSize: 15, fontWeight: "600" },
-    grid: { flexDirection: "row", flexWrap: "wrap" },
-    gridItem: { width: "33.33%", paddingVertical: 10, alignItems: "center" },
-    gridNum: { color: c.text, fontSize: 22, fontWeight: "700", fontVariant: ["tabular-nums"] },
-    memberSince: { color: c.textDim, fontSize: 13, marginTop: 8 },
+    statRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", columnGap: 16, rowGap: 6, marginTop: 2 },
+    statItem: { flexDirection: "row", alignItems: "baseline", gap: 5 },
+    statValue: { color: c.text, fontSize: 16, fontFamily: fonts.monoSemibold, fontVariant: ["tabular-nums"] },
+    statLabel: { color: c.textDim, fontSize: 12 },
+    memberSince: { color: c.textDim, fontSize: 12, marginTop: 10 },
     milestone: {
       flexDirection: "row",
       alignItems: "center",
@@ -528,7 +529,7 @@ function makeStyles(c: ThemeColors) {
       borderTopColor: c.border,
       borderTopWidth: StyleSheet.hairlineWidth,
     },
-    milestoneEmoji: { fontSize: 22 },
+    milestoneTag: { color: c.textDim, fontSize: 11, fontFamily: fonts.mono, minWidth: 64 },
     milestoneMeta: { flex: 1 },
     milestoneLabel: { color: c.text, fontSize: 15, fontWeight: "600" },
     dim: { color: c.textDim, fontSize: 13, marginTop: 2 },

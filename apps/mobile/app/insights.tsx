@@ -8,7 +8,7 @@ import { fetchInsights } from "@/api/insights";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { fonts, type ThemeColors } from "@/theme/theme";
 
 type Styles = ReturnType<typeof makeStyles>;
 
@@ -51,7 +51,7 @@ export default function InsightsScreen() {
         <EmptyState
           Icon={BarChart3}
           title="No feedback yet"
-          subtitle="Rate songs 👍/👎 to see what styles land."
+          subtitle="Rate songs to see what styles land."
         />
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
@@ -67,14 +67,15 @@ export default function InsightsScreen() {
 
 function SummaryCard({ data, styles }: { data: InsightsResult; styles: Styles }) {
   return (
-    <View style={styles.summaryRow}>
-      <View style={[styles.tile, styles.tileLike]}>
-        <Text style={styles.tileLikeNum}>{data.totalLikes}</Text>
-        <Text style={styles.dim}>Total Likes</Text>
+    <View style={styles.card}>
+      <Text style={styles.cardTitle}>Feedback</Text>
+      <View style={styles.infoRow}>
+        <Text style={styles.infoLabel}>Total likes</Text>
+        <Text style={styles.infoValue}>{data.totalLikes}</Text>
       </View>
-      <View style={[styles.tile, styles.tileDislike]}>
-        <Text style={styles.tileDislikeNum}>{data.totalDislikes}</Text>
-        <Text style={styles.dim}>Total Dislikes</Text>
+      <View style={styles.infoRow}>
+        <Text style={styles.infoLabel}>Total dislikes</Text>
+        <Text style={styles.infoValue}>{data.totalDislikes}</Text>
       </View>
     </View>
   );
@@ -99,8 +100,9 @@ function TagSection({ tags, styles, colors }: { tags: TagStat[]; styles: Styles;
           <View style={styles.statHead}>
             <Text style={styles.statLabel} numberOfLines={1}>{t.tag}</Text>
             <Text style={styles.counts}>
-              <Text style={{ color: colors.successFg }}>{t.likes}↑ </Text>
-              <Text style={{ color: colors.danger }}>{t.dislikes}↓</Text>
+              <Text style={{ color: colors.successFg }}>{t.likes} up</Text>
+              <Text style={styles.dim}>  ·  </Text>
+              <Text style={{ color: colors.danger }}>{t.dislikes} down</Text>
             </Text>
           </View>
           <RatioBar ratio={t.likeRatio} styles={styles} />
@@ -141,8 +143,9 @@ function WeeklySection({ trend, styles }: { trend: WeeklyDataPoint[]; styles: St
         <View key={w.week} style={styles.weekRow}>
           <Text style={styles.weekLabel}>{w.week}</Text>
           <Text style={styles.counts}>
-            <Text style={styles.up}>{w.likes}↑ </Text>
-            <Text style={styles.down}>{w.dislikes}↓</Text>
+            <Text style={styles.up}>{w.likes} up</Text>
+            <Text style={styles.dim}>  ·  </Text>
+            <Text style={styles.down}>{w.dislikes} down</Text>
           </Text>
         </View>
       ))}
@@ -155,19 +158,10 @@ function makeStyles(c: ThemeColors) {
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 14 },
     scroll: { padding: 16, gap: 16, paddingBottom: MINIPLAYER_CLEARANCE },
-    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
-    summaryRow: { flexDirection: "row", gap: 12 },
-    tile: {
-      flex: 1,
-      alignItems: "center",
-      borderRadius: 14,
-      borderWidth: StyleSheet.hairlineWidth,
-      paddingVertical: 18,
-    },
-    tileLike: { backgroundColor: c.successBg, borderColor: c.border },
-    tileDislike: { backgroundColor: c.dangerBg, borderColor: c.border },
-    tileLikeNum: { color: c.successFg, fontSize: 32, fontWeight: "800", fontVariant: ["tabular-nums"] },
-    tileDislikeNum: { color: c.danger, fontSize: 32, fontWeight: "800", fontVariant: ["tabular-nums"] },
+    dim: { color: c.textDim, fontSize: 13 },
+    infoRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+    infoLabel: { color: c.textDim, fontSize: 15 },
+    infoValue: { color: c.text, fontSize: 16, fontFamily: fonts.monoMedium, fontVariant: ["tabular-nums"] },
     card: {
       backgroundColor: c.surface,
       borderRadius: 14,
@@ -180,7 +174,7 @@ function makeStyles(c: ThemeColors) {
     statRow: { gap: 6 },
     statHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
     statLabel: { color: c.text, fontSize: 14, fontWeight: "600", flex: 1 },
-    counts: { fontSize: 12, fontVariant: ["tabular-nums"] },
+    counts: { fontSize: 12, fontFamily: fonts.mono, fontVariant: ["tabular-nums"] },
     barTrack: { height: 6, borderRadius: 999, backgroundColor: c.surfaceAlt, overflow: "hidden" },
     barFill: { height: 6, borderRadius: 999, backgroundColor: c.successFg },
     weekRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },

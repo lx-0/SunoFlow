@@ -20,11 +20,11 @@ interface ThemeCtx {
 }
 
 const ThemeContext = createContext<ThemeCtx>({
-  colors: THEMES.violet.dark,
+  colors: THEMES.magenta.dark,
   scheme: "dark",
   mode: "system",
   setMode: () => {},
-  themeName: "violet",
+  themeName: "magenta",
   setThemeName: () => {},
 });
 
@@ -35,7 +35,7 @@ export function useTheme() {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const system = useColorScheme();
   const [mode, setModeState] = useState<ThemeMode>("system");
-  const [themeName, setThemeNameState] = useState<ThemeName>("violet");
+  const [themeName, setThemeNameState] = useState<ThemeName>("magenta");
 
   useEffect(() => {
     SecureStore.getItemAsync(MODE_KEY)

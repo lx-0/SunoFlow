@@ -1,6 +1,19 @@
 import { useEffect } from "react";
 import { Stack, router, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useFonts } from "expo-font";
+import {
+  Geist_400Regular,
+  Geist_500Medium,
+  Geist_600SemiBold,
+  Geist_700Bold,
+  Geist_800ExtraBold,
+} from "@expo-google-fonts/geist";
+import {
+  GeistMono_400Regular,
+  GeistMono_500Medium,
+  GeistMono_600SemiBold,
+} from "@expo-google-fonts/geist-mono";
 import { getApiKey } from "@/auth/session";
 import { SidebarProvider, Sidebar } from "@/components/Sidebar";
 import { MiniPlayer, TAB_BAR_HEIGHT } from "@/components/MiniPlayer";
@@ -10,6 +23,20 @@ import { ThemeProvider, useTheme } from "@/theme/ThemeContext";
 // Root layout. ThemeProvider supplies colors app-wide (dark/light, persisted).
 // Gates the app on a stored API key — no key → login.
 export default function RootLayout() {
+  // Geist Sans (chrome) + Geist Mono (user content). Gate first paint on load so
+  // text doesn't flash in the system font; proceed anyway on error (system-font
+  // fallback) rather than hanging the app.
+  const [fontsLoaded, fontError] = useFonts({
+    Geist_400Regular,
+    Geist_500Medium,
+    Geist_600SemiBold,
+    Geist_700Bold,
+    Geist_800ExtraBold,
+    GeistMono_400Regular,
+    GeistMono_500Medium,
+    GeistMono_600SemiBold,
+  });
+  if (!fontsLoaded && !fontError) return null;
   return (
     <ThemeProvider>
       <RootNav />

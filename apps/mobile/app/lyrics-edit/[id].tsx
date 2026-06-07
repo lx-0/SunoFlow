@@ -8,6 +8,7 @@ import { HttpError } from "@/api/client";
 import { fetchRawLyrics, updateLyrics } from "@/api/lyrics";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Edit a song's lyric TEXT (the `edited` override). Owner-only — reached from the
@@ -119,14 +120,14 @@ export default function LyricsEditScreen() {
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          {hasOverride ? <Text style={styles.badge}>Edited — differs from the original</Text> : null}
+          {hasOverride ? <Text style={styles.badge}>Edited: differs from the original</Text> : null}
           <TextInput
             style={styles.input}
             value={draft}
             onChangeText={(t) => { setDraft(t); setSaved(false); }}
             multiline
             textAlignVertical="top"
-            placeholder="Write the lyrics…"
+            placeholder="Write the lyrics..."
             placeholderTextColor={colors.textFaint}
             autoCapitalize="sentences"
           />
@@ -163,6 +164,7 @@ function makeStyles(c: ThemeColors) {
     input: {
       backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth,
       borderRadius: 12, color: c.text, fontSize: 15, lineHeight: 22, padding: 14, minHeight: 280,
+      fontFamily: fonts.mono,
     },
     error: { color: c.danger, fontSize: 13 },
     saved: { color: c.successFg, fontSize: 13 },

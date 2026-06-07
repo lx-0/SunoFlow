@@ -24,6 +24,7 @@ import { HeartIcon } from "@/components/Icons";
 import { SongRow } from "@/components/SongRow";
 import type { Song } from "@/types";
 import { useTheme } from "@/theme/ThemeContext";
+import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Song details — mirrors the web SongDetailView: cover, title, metadata, favorite
@@ -197,7 +198,7 @@ export default function SongDetailScreen() {
           return;
         }
       }
-      setVideoError("Still generating — check back in a bit.");
+      setVideoError("Still generating, check back in a bit.");
       setVideoBusy(false);
     } catch (e) {
       setVideoError(e instanceof HttpError && e.message ? e.message : "Couldn't start video generation.");
@@ -419,7 +420,7 @@ export default function SongDetailScreen() {
       {song.parentSongId ? (
         <Pressable style={styles.variationLink} onPress={() => router.push(`/song/${song.parentSongId}` as Href)}>
           <GitBranch color={colors.accent} size={16} />
-          <Text style={styles.variationText}>Variation — view the original</Text>
+          <Text style={styles.variationText}>Variation: view the original</Text>
         </Pressable>
       ) : null}
 
@@ -481,7 +482,7 @@ export default function SongDetailScreen() {
         {videoBusy ? (
           <View style={styles.videoBusy}>
             <ActivityIndicator color={colors.accent} />
-            <Text style={styles.body}>Generating your music video… this can take a minute.</Text>
+            <Text style={styles.body}>Generating your music video... this can take a minute.</Text>
           </View>
         ) : (
           <>
@@ -507,14 +508,14 @@ export default function SongDetailScreen() {
             ))}
           </View>
         ) : (
-          <Text style={styles.cardEmpty}>No tags — tap to add.</Text>
+          <Text style={styles.cardEmpty}>No tags, tap to add.</Text>
         )}
       </Pressable>
 
       {song.prompt ? (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Prompt</Text>
-          <Text style={styles.body}>{song.prompt}</Text>
+          <Text style={styles.contentBody}>{song.prompt}</Text>
         </View>
       ) : null}
 
@@ -526,7 +527,7 @@ export default function SongDetailScreen() {
               <Text style={styles.editLink}>Edit</Text>
             </Pressable>
           </View>
-          <Text style={styles.body}>{lyricsText}</Text>
+          <Text style={styles.contentBody}>{lyricsText}</Text>
         </View>
       ) : null}
 
@@ -567,7 +568,7 @@ function makeStyles(c: ThemeColors) {
     centered: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg, padding: 24 },
 
     hero: { alignItems: "center", marginBottom: 20 },
-    art: { width: 220, height: 220, borderRadius: 18, marginBottom: 16, shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } },
+    art: { width: 220, height: 220, borderRadius: 18, marginBottom: 16 },
     artPlaceholder: { backgroundColor: c.surfaceAlt, alignItems: "center", justifyContent: "center" },
     title: { color: c.text, fontSize: 22, fontWeight: "800", textAlign: "center", lineHeight: 28 },
     badge: { marginTop: 12, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999 },
@@ -599,7 +600,7 @@ function makeStyles(c: ThemeColors) {
     metaItem: { width: "50%", paddingVertical: 6, paddingRight: 8 },
     metaItemFull: { width: "100%", paddingVertical: 6 },
     metaLabel: { color: c.textFaint, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 2 },
-    metaValue: { color: c.text, fontSize: 14 },
+    metaValue: { color: c.text, fontSize: 14, fontFamily: fonts.mono },
 
     grid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 16 },
     gridItem: { flexBasis: "31%", flexGrow: 1, alignItems: "center", gap: 6, backgroundColor: c.surface, borderRadius: 14, paddingVertical: 14 },
@@ -621,6 +622,7 @@ function makeStyles(c: ThemeColors) {
     tag: { backgroundColor: c.surfaceAlt, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 },
     tagText: { color: c.textDim, fontSize: 13 },
     body: { color: c.textDim, fontSize: 14, lineHeight: 21 },
+    contentBody: { color: c.textDim, fontSize: 14, lineHeight: 21, fontFamily: fonts.mono },
     dim: { color: c.textDim, fontSize: 14 },
   });
 }

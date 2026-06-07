@@ -8,6 +8,7 @@ import { HttpError } from "@/api/client";
 import { replaceSection } from "@/api/song-studio";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Replace (infill) a time section of a song with a freshly-generated part. The
@@ -59,7 +60,7 @@ export default function ReplaceSectionScreen() {
           Regenerate part of the song. Give the new part a prompt and the time window (in seconds) to replace.
         </Text>
 
-        <Text style={styles.label}>New part — prompt</Text>
+        <Text style={styles.label}>New part: prompt</Text>
         <TextInput
           style={[styles.input, styles.multiline]}
           value={prompt}
@@ -83,7 +84,7 @@ export default function ReplaceSectionScreen() {
           <Text style={styles.error}>End must be greater than start.</Text>
         ) : null}
 
-        <Text style={styles.label}>Style / tags (optional)</Text>
+        <Text style={styles.label}>Style, tags (optional)</Text>
         <TextInput style={styles.input} value={tags} onChangeText={setTags} placeholder="e.g. guitar solo" placeholderTextColor={colors.textFaint} autoCapitalize="none" />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -102,7 +103,7 @@ function makeStyles(c: ThemeColors) {
     content: { padding: 16, gap: 8, paddingBottom: MINIPLAYER_CLEARANCE },
     help: { color: c.textDim, fontSize: 14, lineHeight: 20, marginBottom: 6 },
     label: { color: c.textDim, fontSize: 13, marginTop: 8 },
-    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
+    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12, fontFamily: fonts.mono },
     multiline: { minHeight: 80, textAlignVertical: "top" },
     row: { flexDirection: "row", gap: 12 },
     half: { flex: 1 },

@@ -227,7 +227,7 @@ function makeStyles(c: ThemeColors) {
     header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingTop: 8 },
     headerBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
     body: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 28 },
-    artWrap: { marginBottom: 28, borderRadius: 20, shadowOpacity: 0.4, shadowRadius: 24, shadowOffset: { width: 0, height: 12 } },
+    artWrap: { marginBottom: 28, borderRadius: 20 },
     art: { width: 300, height: 300, borderRadius: 20 },
     artPlaceholder: { backgroundColor: c.surfaceAlt, alignItems: "center", justifyContent: "center" },
     titleWrap: { alignSelf: "stretch" },

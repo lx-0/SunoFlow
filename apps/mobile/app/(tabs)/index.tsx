@@ -284,7 +284,7 @@ function makeStyles(c: ThemeColors) {
     footer: { paddingVertical: 18 },
     gridRow: { paddingHorizontal: 12, gap: 12 },
     gridItem: { flex: 1, marginBottom: 18, maxWidth: "50%" },
-    gridArtWrap: { borderRadius: 14, shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
+    gridArtWrap: { borderRadius: 14 },
     gridArt: { width: "100%", aspectRatio: 1, borderRadius: 14, backgroundColor: c.surfaceAlt },
     gridPlaceholder: { alignItems: "center", justifyContent: "center" },
     gridFav: { position: "absolute", top: 8, right: 8, backgroundColor: c.bg, opacity: 0.92, borderRadius: 999, padding: 5 },

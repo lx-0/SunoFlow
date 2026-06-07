@@ -7,7 +7,7 @@ import { fetchSongAnalytics, type SongAnalytics } from "@/api/song-analytics";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { fonts, type ThemeColors } from "@/theme/theme";
 
 type Styles = ReturnType<typeof makeStyles>;
 
@@ -53,9 +53,10 @@ export default function SongAnalyticsScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
           <Header data={data} styles={styles} />
-          <View style={styles.tileRow}>
-            <Tile value={data.totalPlays} label="Total Plays" styles={styles} />
-            <Tile value={data.totalViews} label="Total Views" styles={styles} />
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Totals</Text>
+            <StatRow value={data.totalPlays} label="Total plays" styles={styles} />
+            <StatRow value={data.totalViews} label="Total views" styles={styles} />
           </View>
           <ViewsChart views7d={data.views7d} styles={styles} colors={colors} />
         </ScrollView>
@@ -75,11 +76,11 @@ function Header({ data, styles }: { data: SongAnalytics; styles: Styles }) {
   );
 }
 
-function Tile({ value, label, styles }: { value: number; label: string; styles: Styles }) {
+function StatRow({ value, label, styles }: { value: number; label: string; styles: Styles }) {
   return (
-    <View style={styles.tile}>
-      <Text style={styles.tileNum}>{value}</Text>
-      <Text style={styles.dim}>{label}</Text>
+    <View style={styles.infoRow}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value}</Text>
     </View>
   );
 }
@@ -99,7 +100,7 @@ function ViewsChart({
 
   return (
     <View style={styles.card}>
-      <Text style={styles.cardTitle}>Views — last 7 days</Text>
+      <Text style={styles.cardTitle}>Views (last 7 days)</Text>
       <View style={[styles.chart, { height: CHART_HEIGHT }]}>
         {views7d.map((v) => {
           const ratio = max === 0 ? MIN_RATIO : Math.max(MIN_RATIO, v.count / max);
@@ -117,7 +118,7 @@ function ViewsChart({
               <Text style={styles.barCount}>{v.count}</Text>
               <View style={[styles.barTrack, { height: CHART_HEIGHT }]}>
                 <View
-                  style={[styles.barFill, { height: fillHeight, backgroundColor: colors.accent }]}
+                  style={[styles.barFill, { height: fillHeight, backgroundColor: colors.textDim }]}
                 />
               </View>
               <Text style={styles.barLabel}>{weekday}</Text>
@@ -135,7 +136,7 @@ function makeStyles(c: ThemeColors) {
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
     scroll: { padding: 16, gap: 16, paddingBottom: MINIPLAYER_CLEARANCE },
     header: { flexDirection: "row", alignItems: "center", gap: 12 },
-    title: { flex: 1, color: c.text, fontSize: 22, fontWeight: "800" },
+    title: { flex: 1, color: c.text, fontSize: 18, fontWeight: "600" },
     badge: {
       fontSize: 11,
       fontWeight: "700",
@@ -146,28 +147,21 @@ function makeStyles(c: ThemeColors) {
     },
     badgeOn: { color: c.onAccent, backgroundColor: c.accentStrong },
     badgeOff: { color: c.textDim, backgroundColor: c.surfaceAlt },
-    tileRow: { flexDirection: "row", gap: 12 },
-    tile: {
-      flex: 1,
-      backgroundColor: c.surface,
-      borderRadius: 14,
-      borderColor: c.border,
-      borderWidth: StyleSheet.hairlineWidth,
-      padding: 16,
-      alignItems: "center",
-    },
-    tileNum: { color: c.text, fontSize: 36, fontWeight: "800", fontVariant: ["tabular-nums"] },
+    infoRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+    infoLabel: { color: c.textDim, fontSize: 15 },
+    infoValue: { color: c.text, fontSize: 16, fontFamily: fonts.monoMedium, fontVariant: ["tabular-nums"] },
     card: {
       backgroundColor: c.surface,
       borderRadius: 14,
       borderColor: c.border,
       borderWidth: StyleSheet.hairlineWidth,
       padding: 16,
+      gap: 10,
     },
-    cardTitle: { color: c.text, fontSize: 16, fontWeight: "700", marginBottom: 16 },
+    cardTitle: { color: c.text, fontSize: 16, fontWeight: "700" },
     chart: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
     barCol: { flex: 1, alignItems: "center", gap: 6 },
-    barCount: { color: c.textDim, fontSize: 11, fontVariant: ["tabular-nums"] },
+    barCount: { color: c.textDim, fontSize: 11, fontFamily: fonts.mono, fontVariant: ["tabular-nums"] },
     barTrack: {
       width: 14,
       backgroundColor: c.surfaceAlt,
@@ -177,6 +171,5 @@ function makeStyles(c: ThemeColors) {
     },
     barFill: { width: "100%", borderRadius: 7 },
     barLabel: { color: c.textFaint, fontSize: 11, fontWeight: "600" },
-    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
   });
 }

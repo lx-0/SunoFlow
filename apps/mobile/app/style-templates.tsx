@@ -12,6 +12,7 @@ import {
 } from "@/api/style-templates";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Style Templates management: define (create), rename, re-tag, delete, and use
@@ -162,7 +163,10 @@ export default function StyleTemplatesScreen() {
       ) : null}
 
       {error ? (
-        <View style={styles.centered}><Text style={styles.dim}>{error}</Text></View>
+        <Pressable style={styles.centered} onPress={load}>
+          <Text style={styles.dim}>{error}</Text>
+          <Text style={styles.retry}>Tap to retry</Text>
+        </Pressable>
       ) : !templates ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : templates.length === 0 ? (
@@ -203,6 +207,7 @@ function makeStyles(c: ThemeColors) {
     row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: c.border, borderBottomWidth: StyleSheet.hairlineWidth },
     meta: { flex: 1, marginRight: 12 },
     title: { color: c.text, fontSize: 16 },
-    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
+    dim: { color: c.textDim, fontSize: 13, fontFamily: fonts.mono, marginTop: 2 },
+    retry: { color: c.accent, fontSize: 13, fontWeight: "600", marginTop: 8 },
   });
 }

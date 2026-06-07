@@ -8,6 +8,7 @@ import { startMashup } from "@/api/mashup";
 import { pollStatus, GenerationError } from "@/api/generate";
 import { SongRow } from "@/components/SongRow";
 import { useTheme } from "@/theme/ThemeContext";
+import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
@@ -177,7 +178,7 @@ function makeStyles(c: ThemeColors) {
     listContent: { paddingBottom: 96 },
     header: { padding: 16, gap: 10 },
     slot: { color: c.text, fontSize: 15, backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12 },
-    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
+    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, fontFamily: fonts.mono, paddingHorizontal: 14, paddingVertical: 12 },
     switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 4 },
     switchLabel: { color: c.text, fontSize: 15 },
     primaryBtn: { backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 4 },

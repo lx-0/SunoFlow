@@ -43,11 +43,11 @@ export default function InspireScreen() {
     try {
       const digest = await generateTodaysPicks();
       setPicks(digest);
-      if (!digest) setError("Couldn’t generate picks. Add RSS feeds first (Manage RSS feeds below).");
+      if (!digest) setError("Couldn't generate picks. Add RSS feeds first (Manage RSS feeds below).");
     } catch (e) {
       setError(
         e instanceof HttpError && (e.status === 422 || e.status === 400)
-          ? "No RSS feeds configured. Tap “Manage RSS feeds” below to add one."
+          ? "No RSS feeds configured. Tap \"Manage RSS feeds\" below to add one."
           : "Couldn't generate today's picks. Please try again.",
       );
       console.error("[inspire] generate failed", e);
@@ -80,7 +80,7 @@ export default function InspireScreen() {
         <View style={styles.centered}>
           <Sparkles color={colors.textFaint} size={40} />
           <Text style={styles.emptyText}>
-            Auto-curate today&apos;s top inspiration from your RSS feeds — diverse moods and sources.
+            Auto-curate today&apos;s top inspiration from your RSS feeds: diverse moods and sources.
           </Text>
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <Pressable style={[styles.cta, generating && styles.ctaDisabled]} onPress={generate} disabled={generating}>

@@ -281,7 +281,7 @@ function makeStyles(c: ThemeColors) {
     arrows: { flexDirection: "row", alignItems: "center" },
     arrowBtn: { paddingHorizontal: 6, paddingVertical: 2 },
     hero: { alignItems: "center", paddingTop: 16, paddingBottom: 12, paddingHorizontal: 20 },
-    cover: { width: 160, height: 160, borderRadius: 16, marginBottom: 14, shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 8 } },
+    cover: { width: 160, height: 160, borderRadius: 16, marginBottom: 14 },
     coverPlaceholder: { backgroundColor: c.surfaceAlt, alignItems: "center", justifyContent: "center" },
     heroName: { color: c.text, fontSize: 20, fontWeight: "800", textAlign: "center" },
     heroMeta: { color: c.textDim, fontSize: 13, marginTop: 4 },

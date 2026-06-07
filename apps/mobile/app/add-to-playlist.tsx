@@ -86,7 +86,7 @@ export default function AddToPlaylistScreen() {
                 <View style={styles.meta}>
                   <Text style={[styles.title, isAdded && styles.titleActive]} numberOfLines={1}>{item.name}</Text>
                   <Text style={[styles.sub, isFailed && styles.subFailed]}>
-                    {isFailed ? "Failed — tap to retry" : isAdded ? "Added" : `${item.songCount} songs`}
+                    {isFailed ? "Failed, tap to retry" : isAdded ? "Added" : `${item.songCount} songs`}
                   </Text>
                 </View>
                 {isAdded ? <Check color={colors.accent} size={22} /> : null}

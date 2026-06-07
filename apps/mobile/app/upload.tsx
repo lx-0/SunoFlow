@@ -8,6 +8,7 @@ import { startUpload } from "@/api/upload";
 import { pollStatus, GenerationError } from "@/api/generate";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Cover / extend from your own audio — pick a file (base64) or paste a URL.
@@ -171,7 +172,7 @@ function makeStyles(c: ThemeColors) {
     pickText: { color: c.text, fontSize: 15, flex: 1 },
     orLabel: { color: c.textFaint, fontSize: 12, textAlign: "center", marginTop: 6 },
     label: { color: c.textDim, fontSize: 13, marginTop: 12, marginBottom: 6 },
-    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
+    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, fontFamily: fonts.mono, paddingHorizontal: 14, paddingVertical: 12 },
     errorText: { color: c.danger, fontSize: 13, marginTop: 8 },
     primaryBtn: { backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 20 },
     btnDisabled: { opacity: 0.45 },
