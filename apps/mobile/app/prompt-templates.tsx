@@ -12,6 +12,7 @@ import {
 } from "@/api/prompt-templates";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
+import { usePrompt } from "@/components/PromptSheet";
 import { useTheme } from "@/theme/ThemeContext";
 import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
@@ -24,6 +25,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function PromptTemplatesScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const showPrompt = usePrompt();
   const [templates, setTemplates] = useState<PromptTemplate[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,49 +72,28 @@ export default function PromptTemplatesScreen() {
     }
   }
 
-  function rename(t: PromptTemplate) {
-    Alert.prompt?.(
-      "Rename template",
-      undefined,
-      async (value) => {
-        const next = value?.trim();
-        if (!next || next === t.name) return;
-        try { await updatePromptTemplate(t.id, { name: next }); load(); }
-        catch (e) { Alert.alert("Couldn't rename", "Please try again."); console.error("[prompt-templates] rename failed", e); }
-      },
-      "plain-text",
-      t.name,
-    );
+  async function rename(t: PromptTemplate) {
+    const value = await showPrompt({ title: "Rename template", defaultValue: t.name });
+    const next = value?.trim();
+    if (!next || next === t.name) return;
+    try { await updatePromptTemplate(t.id, { name: next }); load(); }
+    catch (e) { Alert.alert("Couldn't rename", "Please try again."); console.error("[prompt-templates] rename failed", e); }
   }
 
-  function editPrompt(t: PromptTemplate) {
-    Alert.prompt?.(
-      "Edit prompt",
-      "The text dropped into the Generate prompt",
-      async (value) => {
-        const next = value?.trim();
-        if (!next || next === t.prompt) return;
-        try { await updatePromptTemplate(t.id, { prompt: next }); load(); }
-        catch (e) { Alert.alert("Couldn't update", "Please try again."); console.error("[prompt-templates] edit prompt failed", e); }
-      },
-      "plain-text",
-      t.prompt,
-    );
+  async function editPrompt(t: PromptTemplate) {
+    const value = await showPrompt({ title: "Edit prompt", message: "The text dropped into the Generate prompt", defaultValue: t.prompt });
+    const next = value?.trim();
+    if (!next || next === t.prompt) return;
+    try { await updatePromptTemplate(t.id, { prompt: next }); load(); }
+    catch (e) { Alert.alert("Couldn't update", "Please try again."); console.error("[prompt-templates] edit prompt failed", e); }
   }
 
-  function editStyle(t: PromptTemplate) {
-    Alert.prompt?.(
-      "Edit style",
-      "The style/tags carried by this template",
-      async (value) => {
-        const next = value?.trim() ?? "";
-        if (next === (t.style ?? "")) return;
-        try { await updatePromptTemplate(t.id, { style: next }); load(); }
-        catch (e) { Alert.alert("Couldn't update", "Please try again."); console.error("[prompt-templates] edit style failed", e); }
-      },
-      "plain-text",
-      t.style ?? "",
-    );
+  async function editStyle(t: PromptTemplate) {
+    const value = await showPrompt({ title: "Edit style", message: "The style/tags carried by this template", defaultValue: t.style ?? "" });
+    const next = value?.trim() ?? "";
+    if (next === (t.style ?? "")) return;
+    try { await updatePromptTemplate(t.id, { style: next }); load(); }
+    catch (e) { Alert.alert("Couldn't update", "Please try again."); console.error("[prompt-templates] edit style failed", e); }
   }
 
   function confirmDelete(t: PromptTemplate) {

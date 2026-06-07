@@ -22,6 +22,7 @@ import { shareSong } from "@/lib/share";
 import { RatingStars } from "@/components/RatingStars";
 import { HeartIcon } from "@/components/Icons";
 import { SongRow } from "@/components/SongRow";
+import { usePrompt } from "@/components/PromptSheet";
 import type { Song } from "@/types";
 import { useTheme } from "@/theme/ThemeContext";
 import { fonts } from "@/theme/theme";
@@ -32,6 +33,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function SongDetailScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const prompt = usePrompt();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [song, setSong] = useState<SongDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -98,57 +100,36 @@ export default function SongDetailScreen() {
     }
   }
 
-  function saveStyleTemplate(s: SongDetail) {
+  async function saveStyleTemplate(s: SongDetail) {
     const tags = s.tagsString.trim();
     if (!tags) { Alert.alert("No style to save", "This song has no style tags."); return; }
-    Alert.prompt?.(
-      "Save style template",
-      "Name this style",
-      async (value) => {
-        const name = value?.trim();
-        if (!name) return;
-        try { await createStyleTemplate(name, tags, s.id); Alert.alert("Saved", `Style template "${name}" saved.`); }
-        catch (e) { Alert.alert("Couldn't save", "Please try again."); console.error("[song-detail] save style template failed", e); }
-      },
-      "plain-text",
-      s.title,
-    );
+    const value = await prompt({ title: "Save style template", message: "Name this style", defaultValue: s.title });
+    const name = value?.trim();
+    if (!name) return;
+    try { await createStyleTemplate(name, tags, s.id); Alert.alert("Saved", `Style template "${name}" saved.`); }
+    catch (e) { Alert.alert("Couldn't save", "Please try again."); console.error("[song-detail] save style template failed", e); }
   }
 
-  function createPersona(s: SongDetail) {
+  async function createPersona(s: SongDetail) {
     if (!s.sunoJobId) { Alert.alert("Not available", "A voice persona can only be cloned from a finished generated song."); return; }
-    Alert.prompt?.(
-      "Create voice persona",
-      "Name this persona (clones this song's voice)",
-      async (value) => {
-        const name = value?.trim();
-        if (!name) return;
-        try {
-          await createPersonaFromSong({ taskId: s.sunoJobId as string, name, songId: s.id, style: s.tagsString.trim() || undefined });
-          Alert.alert("Persona created", `"${name}" is ready to use in Generate.`);
-        } catch (e) {
-          Alert.alert("Couldn't create persona", e instanceof HttpError && e.message ? e.message : "Please try again.");
-          console.error("[song-detail] create persona failed", e);
-        }
-      },
-      "plain-text",
-      `${s.title} voice`,
-    );
+    const value = await prompt({ title: "Create voice persona", message: "Name this persona (clones this song's voice)", defaultValue: `${s.title} voice` });
+    const name = value?.trim();
+    if (!name) return;
+    try {
+      await createPersonaFromSong({ taskId: s.sunoJobId as string, name, songId: s.id, style: s.tagsString.trim() || undefined });
+      Alert.alert("Persona created", `"${name}" is ready to use in Generate.`);
+    } catch (e) {
+      Alert.alert("Couldn't create persona", e instanceof HttpError && e.message ? e.message : "Please try again.");
+      console.error("[song-detail] create persona failed", e);
+    }
   }
 
-  function rename(s: SongDetail) {
-    Alert.prompt?.(
-      "Rename song",
-      undefined,
-      async (value) => {
-        const title = value?.trim();
-        if (!title || title === s.title) return;
-        try { await renameSong(s.id, title); setSong((prev) => (prev ? { ...prev, title } : prev)); }
-        catch (e) { Alert.alert("Couldn't rename", "Please try again."); console.error("[song-detail] rename failed", e); }
-      },
-      "plain-text",
-      s.title,
-    );
+  async function rename(s: SongDetail) {
+    const value = await prompt({ title: "Rename song", defaultValue: s.title });
+    const title = value?.trim();
+    if (!title || title === s.title) return;
+    try { await renameSong(s.id, title); setSong((prev) => (prev ? { ...prev, title } : prev)); }
+    catch (e) { Alert.alert("Couldn't rename", "Please try again."); console.error("[song-detail] rename failed", e); }
   }
 
   function toggleVisibility(s: SongDetail) {
@@ -263,36 +244,23 @@ export default function SongDetailScreen() {
       },
       {
         label: "Add vocals",
-        fn: () => {
-          Alert.prompt?.(
-            "Add vocals",
-            "Lyrics / what the vocals should sing",
-            async (value) => {
-              const prompt = value?.trim();
-              if (!prompt) return;
-              try { await addVocals(s.id, prompt); started("Vocals"); }
-              catch (e) { Alert.alert("Couldn't add vocals", e instanceof HttpError && e.message ? e.message : "Please try again."); console.error("[song-detail] add vocals failed", e); }
-            },
-            "plain-text",
-          );
+        fn: async () => {
+          const value = await prompt({ title: "Add vocals", message: "Lyrics / what the vocals should sing" });
+          const lyricsPrompt = value?.trim();
+          if (!lyricsPrompt) return;
+          try { await addVocals(s.id, lyricsPrompt); started("Vocals"); }
+          catch (e) { Alert.alert("Couldn't add vocals", e instanceof HttpError && e.message ? e.message : "Please try again."); console.error("[song-detail] add vocals failed", e); }
         },
       },
       { label: "Replace a section", fn: () => router.push(`/replace-section/${s.id}` as Href) },
       {
         label: "Set cover art (URL)",
-        fn: () => {
-          Alert.prompt?.(
-            "Set cover art",
-            "Paste an image URL",
-            async (value) => {
-              const url = value?.trim();
-              if (!url) return;
-              try { await setCoverArt(s.id, url); setSong((prev) => (prev ? { ...prev, artworkUrl: url } : prev)); }
-              catch (e) { Alert.alert("Couldn't set cover", e instanceof HttpError && e.message ? e.message : "Please try again."); console.error("[song-detail] cover art failed", e); }
-            },
-            "plain-text",
-            s.artworkUrl ?? "",
-          );
+        fn: async () => {
+          const value = await prompt({ title: "Set cover art", message: "Paste an image URL", defaultValue: s.artworkUrl ?? "" });
+          const url = value?.trim();
+          if (!url) return;
+          try { await setCoverArt(s.id, url); setSong((prev) => (prev ? { ...prev, artworkUrl: url } : prev)); }
+          catch (e) { Alert.alert("Couldn't set cover", e instanceof HttpError && e.message ? e.message : "Please try again."); console.error("[song-detail] cover art failed", e); }
         },
       },
     ];

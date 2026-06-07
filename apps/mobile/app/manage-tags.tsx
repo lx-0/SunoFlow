@@ -8,6 +8,7 @@ import { HttpError } from "@/api/client";
 import { fetchTags, createTag, renameTag, deleteTag, type Tag } from "@/api/tags";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
+import { usePrompt } from "@/components/PromptSheet";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -17,6 +18,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function ManageTagsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const prompt = usePrompt();
   const [tags, setTags] = useState<Tag[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,19 +54,12 @@ export default function ManageTagsScreen() {
     }
   }
 
-  function rename(t: Tag) {
-    Alert.prompt?.(
-      "Rename tag",
-      undefined,
-      async (value) => {
-        const next = value?.trim();
-        if (!next || next === t.name) return;
-        try { await renameTag(t.id, next); load(); }
-        catch (e) { Alert.alert("Couldn't rename", "Please try again."); console.error("[manage-tags] rename failed", e); }
-      },
-      "plain-text",
-      t.name,
-    );
+  async function rename(t: Tag) {
+    const value = await prompt({ title: "Rename tag", defaultValue: t.name });
+    const next = value?.trim();
+    if (!next || next === t.name) return;
+    try { await renameTag(t.id, next); load(); }
+    catch (e) { Alert.alert("Couldn't rename", "Please try again."); console.error("[manage-tags] rename failed", e); }
   }
 
   function confirmDelete(t: Tag) {

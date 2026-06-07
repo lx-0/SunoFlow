@@ -18,6 +18,7 @@ import { getApiKey } from "@/auth/session";
 import { SidebarProvider, Sidebar } from "@/components/Sidebar";
 import { MiniPlayer, TAB_BAR_HEIGHT } from "@/components/MiniPlayer";
 import { BottomTabBar } from "@/components/BottomTabBar";
+import { PromptProvider } from "@/components/PromptSheet";
 import { ThemeProvider, useTheme } from "@/theme/ThemeContext";
 
 // Root layout. ThemeProvider supplies colors app-wide (dark/light, persisted).
@@ -39,7 +40,9 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
   return (
     <ThemeProvider>
-      <RootNav />
+      <PromptProvider>
+        <RootNav />
+      </PromptProvider>
     </ThemeProvider>
   );
 }

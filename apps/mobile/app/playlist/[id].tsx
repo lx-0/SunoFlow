@@ -14,6 +14,7 @@ import {
 } from "@/api/playlist-actions";
 import { sharePlaylist } from "@/lib/share";
 import { SongRow } from "@/components/SongRow";
+import { usePrompt } from "@/components/PromptSheet";
 import { playQueue } from "@/playback/controls";
 import type { Song } from "@/types";
 import { useTheme } from "@/theme/ThemeContext";
@@ -22,6 +23,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function PlaylistDetailScreen() {
   const { colors } = useTheme();
   const st = makeStyles(colors);
+  const prompt = usePrompt();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -77,25 +79,19 @@ export default function PlaylistDetailScreen() {
     }
   }
 
-  function promptRename() {
+  async function promptRename() {
     if (!id) return;
-    Alert.prompt(
-      "Rename Playlist",
-      "Enter a new name",
-      async (value) => {
-        const name = value?.trim();
-        if (!name) return;
-        try {
-          await renamePlaylist(id, name);
-          load();
-          Alert.alert("Renamed", `Playlist renamed to "${name}".`);
-        } catch (e) {
-          console.error("[playlist] rename failed", e);
-          Alert.alert("Couldn't rename playlist", "Please try again.");
-        }
-      },
-      "plain-text",
-    );
+    const value = await prompt({ title: "Rename Playlist", message: "Enter a new name" });
+    const name = value?.trim();
+    if (!name) return;
+    try {
+      await renamePlaylist(id, name);
+      load();
+      Alert.alert("Renamed", `Playlist renamed to "${name}".`);
+    } catch (e) {
+      console.error("[playlist] rename failed", e);
+      Alert.alert("Couldn't rename playlist", "Please try again.");
+    }
   }
 
   function confirmDelete() {

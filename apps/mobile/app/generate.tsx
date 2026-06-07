@@ -33,6 +33,7 @@ import { fetchPromptSuggestions, fetchTrendingCombos, type PromptSuggestion, typ
 import { fetchPersonas, type Persona } from "@/api/personas";
 import { HttpError } from "@/api/client";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
+import { usePrompt } from "@/components/PromptSheet";
 import { useTheme } from "@/theme/ThemeContext";
 import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
@@ -54,6 +55,7 @@ function paramStr(v: string | string[] | undefined): string {
 export default function GenerateScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const prompt = usePrompt();
   const params = useLocalSearchParams<{ prompt?: string; style?: string; personaId?: string; parentSongId?: string }>();
   const [style, setStyle] = useState(() => paramStr(params.style));
   const [customMode, setCustomMode] = useState(() => Boolean(paramStr(params.prompt) && !paramStr(params.style)));
@@ -126,31 +128,25 @@ export default function GenerateScreen() {
 
   const selectedStyleTemplate = styleTemplates.find((t) => t.tags === style) ?? null;
 
-  function saveAsPreset() {
+  async function saveAsPreset() {
     if (!style.trim() && !lyrics.trim()) return;
-    Alert.prompt?.(
-      "Save as preset",
-      "Name this preset",
-      async (value) => {
-        const name = value?.trim();
-        if (!name) return;
-        try {
-          await createPreset({
-            name,
-            title: title.trim() || null,
-            stylePrompt: style.trim() || null,
-            lyricsPrompt: customMode ? (lyrics.trim() || null) : null,
-            isInstrumental: instrumental,
-            customMode,
-          });
-          Alert.alert("Saved", `Preset "${name}" saved.`);
-        } catch (e) {
-          Alert.alert("Couldn't save preset", "Please try again.");
-          console.error("[generate] save preset failed", e);
-        }
-      },
-      "plain-text",
-    );
+    const value = await prompt({ title: "Save as preset", message: "Name this preset" });
+    const name = value?.trim();
+    if (!name) return;
+    try {
+      await createPreset({
+        name,
+        title: title.trim() || null,
+        stylePrompt: style.trim() || null,
+        lyricsPrompt: customMode ? (lyrics.trim() || null) : null,
+        isInstrumental: instrumental,
+        customMode,
+      });
+      Alert.alert("Saved", `Preset "${name}" saved.`);
+    } catch (e) {
+      Alert.alert("Couldn't save preset", "Please try again.");
+      console.error("[generate] save preset failed", e);
+    }
   }
 
   function applySuggestion(s: PromptSuggestion) {

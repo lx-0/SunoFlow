@@ -8,12 +8,14 @@ import { playQueue } from "@/playback/controls";
 import { HttpError } from "@/api/client";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { EmptyState } from "@/components/EmptyState";
+import { usePrompt } from "@/components/PromptSheet";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
 export default function PlaylistsScreen() {
   const { colors } = useTheme();
   const st = makeStyles(colors);
+  const prompt = usePrompt();
   const [items, setItems] = useState<PlaylistSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,24 +37,18 @@ export default function PlaylistsScreen() {
 
   useFocusEffect(load);
 
-  const promptCreate = useCallback(() => {
-    Alert.prompt(
-      "New Playlist",
-      "Name your playlist",
-      async (value) => {
-        const name = value?.trim();
-        if (!name) return;
-        try {
-          await createPlaylist(name);
-          load();
-        } catch (e) {
-          console.error("[playlists] create failed", e);
-          Alert.alert("Couldn't create playlist", "Please try again.");
-        }
-      },
-      "plain-text",
-    );
-  }, [load]);
+  const promptCreate = useCallback(async () => {
+    const value = await prompt({ title: "New Playlist", message: "Name your playlist" });
+    const name = value?.trim();
+    if (!name) return;
+    try {
+      await createPlaylist(name);
+      load();
+    } catch (e) {
+      console.error("[playlists] create failed", e);
+      Alert.alert("Couldn't create playlist", "Please try again.");
+    }
+  }, [load, prompt]);
 
   async function playPlaylist(p: PlaylistSummary, shuffled: boolean) {
     if (p.songCount === 0) return;

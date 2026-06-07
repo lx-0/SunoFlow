@@ -11,6 +11,7 @@ import {
   STYLE_TEMPLATE_NAME_MAX, STYLE_TEMPLATE_TAGS_MAX, type StyleTemplate,
 } from "@/api/style-templates";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
+import { usePrompt } from "@/components/PromptSheet";
 import { useTheme } from "@/theme/ThemeContext";
 import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
@@ -21,6 +22,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function StyleTemplatesScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const prompt = usePrompt();
   const [templates, setTemplates] = useState<StyleTemplate[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,34 +60,20 @@ export default function StyleTemplatesScreen() {
     }
   }
 
-  function rename(t: StyleTemplate) {
-    Alert.prompt?.(
-      "Rename template",
-      undefined,
-      async (value) => {
-        const next = value?.trim();
-        if (!next || next === t.name) return;
-        try { await updateStyleTemplate(t.id, { name: next }); load(); }
-        catch (e) { Alert.alert("Couldn't rename", "Please try again."); console.error("[style-templates] rename failed", e); }
-      },
-      "plain-text",
-      t.name,
-    );
+  async function rename(t: StyleTemplate) {
+    const value = await prompt({ title: "Rename template", defaultValue: t.name });
+    const next = value?.trim();
+    if (!next || next === t.name) return;
+    try { await updateStyleTemplate(t.id, { name: next }); load(); }
+    catch (e) { Alert.alert("Couldn't rename", "Please try again."); console.error("[style-templates] rename failed", e); }
   }
 
-  function editTags(t: StyleTemplate) {
-    Alert.prompt?.(
-      "Edit style/tags",
-      "The text dropped into the Style field",
-      async (value) => {
-        const next = value?.trim();
-        if (!next || next === t.tags) return;
-        try { await updateStyleTemplate(t.id, { tags: next }); load(); }
-        catch (e) { Alert.alert("Couldn't update", "Please try again."); console.error("[style-templates] edit tags failed", e); }
-      },
-      "plain-text",
-      t.tags,
-    );
+  async function editTags(t: StyleTemplate) {
+    const value = await prompt({ title: "Edit style/tags", message: "The text dropped into the Style field", defaultValue: t.tags });
+    const next = value?.trim();
+    if (!next || next === t.tags) return;
+    try { await updateStyleTemplate(t.id, { tags: next }); load(); }
+    catch (e) { Alert.alert("Couldn't update", "Please try again."); console.error("[style-templates] edit tags failed", e); }
   }
 
   function confirmDelete(t: StyleTemplate) {
