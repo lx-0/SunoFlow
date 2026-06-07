@@ -144,7 +144,7 @@ export default function SearchScreen() {
                 onPress={async () => {
                   try {
                     await playQueue(songs, item.index);
-                    router.push("/player");
+                    router.navigate("/player");
                   } catch (e) {
                     console.error("[search] play failed", e);
                   }

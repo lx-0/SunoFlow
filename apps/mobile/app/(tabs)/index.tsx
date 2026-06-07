@@ -173,7 +173,7 @@ export default function LibraryScreen() {
 
   function play(list: Song[], index: number) {
     playQueue(list, index)
-      .then(() => router.push("/player"))
+      .then(() => router.navigate("/player"))
       .catch((e) => console.error("[library] play failed", e));
   }
 

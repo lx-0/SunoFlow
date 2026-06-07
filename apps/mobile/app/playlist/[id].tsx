@@ -50,7 +50,7 @@ export default function PlaylistDetailScreen() {
     if (!songs || songs.length === 0) return;
     const list = shuffled ? [...songs].sort(() => Math.random() - 0.5) : songs;
     void (async () => {
-      try { await playQueue(list, 0); router.push("/player"); }
+      try { await playQueue(list, 0); router.navigate("/player"); }
       catch (e) { console.error("[playlist] play all failed", e); }
     })();
   }
@@ -241,7 +241,7 @@ export default function PlaylistDetailScreen() {
               if (editing) return;
               try {
                 await playQueue(songs, index);
-                router.push("/player");
+                router.navigate("/player");
               } catch (e) {
                 console.error("[playlist] play failed", e);
               }

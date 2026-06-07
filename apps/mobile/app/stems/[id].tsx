@@ -58,7 +58,7 @@ export default function StemsScreen() {
               onPress={async () => {
                 try {
                   await playQueue(stems, index);
-                  router.push("/player");
+                  router.navigate("/player");
                 } catch (e) {
                   console.error("[stems] play failed", e);
                 }

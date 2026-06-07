@@ -104,7 +104,7 @@ export default function GenerationsScreen() {
                 onPress={async () => {
                   try {
                     await playQueue([playable], 0);
-                    router.push("/player");
+                    router.navigate("/player");
                   } catch (e) {
                     console.error("[generations] play failed", e);
                   }

@@ -169,7 +169,7 @@ export default function DiscoverScreen() {
               onPress={async () => {
                 try {
                   await playQueue(songs, index);
-                  router.push("/player");
+                  router.navigate("/player");
                 } catch (e) {
                   console.error("[discover] play failed", e);
                 }

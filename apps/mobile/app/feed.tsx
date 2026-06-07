@@ -60,7 +60,7 @@ export default function FeedScreen() {
                 onPress={async () => {
                   try {
                     await playQueue(entries.map((e) => e.song), index);
-                    router.push("/player");
+                    router.navigate("/player");
                   } catch (e) {
                     console.error("[feed] play failed", e);
                   }

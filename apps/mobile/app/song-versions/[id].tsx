@@ -60,7 +60,7 @@ export default function SongVersionsScreen() {
               onPress={async () => {
                 try {
                   await playQueue(versions, index);
-                  router.push("/player");
+                  router.navigate("/player");
                 } catch (e) {
                   console.error("[song-versions] play failed", e);
                 }

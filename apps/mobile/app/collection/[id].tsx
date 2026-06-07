@@ -62,7 +62,7 @@ export default function CollectionDetailScreen() {
               onPress={async () => {
                 try {
                   await playQueue(songs, index);
-                  router.push("/player");
+                  router.navigate("/player");
                 } catch (e) {
                   console.error("[collection] play failed", e);
                 }

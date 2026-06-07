@@ -1,9 +1,10 @@
 import { View, Text, Pressable, StyleSheet } from "react-native";
-import { router, usePathname, type Href } from "expo-router";
+import { usePathname, type Href } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BookOpen, ListMusic, Heart, Clock, User, type LucideIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
+import { switchTo } from "@/navigation";
 
 // Custom bottom tab bar for the primary views. Pure RN (no @react-navigation
 // bottom-tabs dependency) — it just reads the active route and navigates. The
@@ -34,7 +35,7 @@ export function BottomTabBar() {
           <Pressable
             key={t.route}
             style={styles.tab}
-            onPress={() => { if (!active) router.navigate(t.route as Href); }}
+            onPress={() => switchTo(t.route as Href, pathname)}
           >
             <t.Icon color={tint} size={23} />
             <Text style={[styles.label, { color: tint }]} numberOfLines={1}>{t.label}</Text>

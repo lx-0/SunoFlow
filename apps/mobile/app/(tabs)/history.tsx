@@ -56,7 +56,7 @@ export default function HistoryScreen() {
               onPress={async () => {
                 try {
                   await playQueue(songs, index);
-                  router.push("/player");
+                  router.navigate("/player");
                 } catch (e) {
                   console.error("[history] play failed", e);
                 }

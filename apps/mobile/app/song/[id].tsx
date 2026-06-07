@@ -325,7 +325,7 @@ export default function SongDetailScreen() {
     if (!s) return;
     try {
       await playQueue([s], 0);
-      router.push("/player");
+      router.navigate("/player");
     } catch (e) {
       console.error("[song-detail] play failed", e);
     }
@@ -471,7 +471,7 @@ export default function SongDetailScreen() {
               onPress={async () => {
                 try {
                   await playQueue(related, i);
-                  router.push("/player");
+                  router.navigate("/player");
                 } catch (e) {
                   console.error("[song-detail] related play failed", e);
                 }

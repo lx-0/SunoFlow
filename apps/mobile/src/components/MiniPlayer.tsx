@@ -1,9 +1,9 @@
 import { View, Text, Image, Pressable, StyleSheet, type GestureResponderEvent } from "react-native";
-import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Disc3 } from "lucide-react-native";
 import { usePlayback } from "@/playback/usePlayback";
 import { togglePlay, skipToNext } from "@/playback/audio";
+import { openPlayer } from "@/navigation";
 import { PlayIcon, PauseIcon, SkipNextIcon } from "@/components/Icons";
 import { useTheme } from "@/theme/ThemeContext";
 
@@ -33,7 +33,7 @@ export function MiniPlayer({ tabBarHeight = 0 }: { tabBarHeight?: number }) {
   return (
     <Pressable
       style={[styles.bar, { backgroundColor: colors.surfaceAlt, bottom: insets.bottom + tabBarHeight + BOTTOM_GAP }]}
-      onPress={() => router.push("/player")}
+      onPress={openPlayer}
     >
       {current.artworkUrl ? (
         <Image source={{ uri: current.artworkUrl }} style={styles.thumb} />

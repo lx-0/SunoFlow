@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { View, Text, Pressable, Animated, ScrollView, PanResponder, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router, type Href } from "expo-router";
+import { usePathname, type Href } from "expo-router";
 import { useTheme } from "@/theme/ThemeContext";
+import { switchTo } from "@/navigation";
 import {
   Menu, Search, Plus, BookOpen, ListMusic, Heart, Clock, Layers, Globe, Sparkles, UserPlus, Wand2,
   LayoutGrid, Tag, Radio, Users, BarChart3, Bell, Settings, Lightbulb, TrendingUp, User,
@@ -99,6 +100,7 @@ export function Sidebar() {
   const { open, openSidebar, closeSidebar } = useSidebar();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const pathname = usePathname();
   const anim = useRef(new Animated.Value(0)).current;
   const [mounted, setMounted] = useState(false);
 
@@ -131,7 +133,7 @@ export function Sidebar() {
 
   function go(route: Href) {
     closeSidebar();
-    router.navigate(route);
+    switchTo(route, pathname);
   }
 
   return (

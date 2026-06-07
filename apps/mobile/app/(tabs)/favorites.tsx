@@ -58,7 +58,7 @@ export default function FavoritesScreen() {
               onPress={async () => {
                 try {
                   await playQueue(songs, index);
-                  router.push("/player");
+                  router.navigate("/player");
                 } catch (e) {
                   console.error("[favorites] play failed", e);
                 }

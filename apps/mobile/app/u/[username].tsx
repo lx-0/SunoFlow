@@ -234,7 +234,7 @@ function ProfileContent({
           onPress={async () => {
             try {
               await playQueue(list, index);
-              router.push("/player");
+              router.navigate("/player");
             } catch (e) {
               console.error("[u/username] play failed", e);
             }

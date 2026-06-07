@@ -60,7 +60,7 @@ export default function RadioScreen() {
   const play = useCallback(async (list: Song[], index: number) => {
     try {
       await playQueue(list, index);
-      router.push("/player");
+      router.navigate("/player");
     } catch (e) {
       console.error("[radio] play failed", e);
     }

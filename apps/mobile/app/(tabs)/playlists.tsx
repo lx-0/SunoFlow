@@ -61,7 +61,7 @@ export default function PlaylistsScreen() {
       if (songs.length === 0) { Alert.alert("Nothing to play", "This playlist has no playable tracks."); return; }
       const list = shuffled ? [...songs].sort(() => Math.random() - 0.5) : songs;
       await playQueue(list, 0);
-      router.push("/player");
+      router.navigate("/player");
     } catch (e) {
       Alert.alert("Couldn't play", "Please try again.");
       console.error("[playlists] play failed", e);
