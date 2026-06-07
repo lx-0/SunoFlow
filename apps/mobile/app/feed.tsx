@@ -7,6 +7,7 @@ import { fetchFeedEntries, type FeedEntry } from "@/api/feed";
 import { playQueue } from "@/playback/controls";
 import { SongRow } from "@/components/SongRow";
 import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -47,6 +48,7 @@ export default function FeedScreen() {
       ) : (
         <FlatList
           data={entries}
+          contentContainerStyle={styles.listContent}
           keyExtractor={(e, i) => `${e.song.id}:${i}`}
           renderItem={({ item, index }) => (
             <View style={styles.entry}>
@@ -91,6 +93,7 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    listContent: { paddingBottom: MINIPLAYER_CLEARANCE },
     entry: { paddingTop: 8 },
     context: { color: c.textDim, fontSize: 12, paddingHorizontal: 16, marginBottom: -2 },
     actor: { color: c.text, fontWeight: "600" },

@@ -11,6 +11,7 @@ import {
   type SunoKeyState, type PersonalKey,
 } from "@/api/api-keys";
 import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -242,7 +243,7 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-    listContent: { paddingBottom: 32 },
+    listContent: { paddingBottom: MINIPLAYER_CLEARANCE },
     headerArea: { paddingTop: 8 },
     sectionTitle: { color: c.textFaint, fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, paddingHorizontal: 20, marginTop: 16, marginBottom: 8 },
     sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingRight: 18 },

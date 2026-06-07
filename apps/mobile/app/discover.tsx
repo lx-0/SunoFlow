@@ -16,6 +16,7 @@ import { HttpError } from "@/api/client";
 import { DISCOVER_MOODS, fetchDiscover } from "@/api/discover";
 import { playQueue } from "@/playback/controls";
 import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
@@ -224,7 +225,7 @@ function makeStyles(c: ThemeColors) {
     chipTextActive: { color: c.onAccent },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
     footer: { paddingVertical: 16 },
-    gridContent: { paddingTop: 12 },
+    gridContent: { paddingTop: 12, paddingBottom: MINIPLAYER_CLEARANCE },
     gridRow: { paddingHorizontal: 12, gap: 12 },
     gridItem: { flex: 1, marginBottom: 18, maxWidth: "50%" },
     gridArtWrap: { borderRadius: 14, shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },

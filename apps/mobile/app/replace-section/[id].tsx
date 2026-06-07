@@ -6,6 +6,7 @@ import {
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { HttpError } from "@/api/client";
 import { replaceSection } from "@/api/song-studio";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -98,7 +99,7 @@ export default function ReplaceSectionScreen() {
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
-    content: { padding: 16, gap: 8 },
+    content: { padding: 16, gap: 8, paddingBottom: MINIPLAYER_CLEARANCE },
     help: { color: c.textDim, fontSize: 14, lineHeight: 20, marginBottom: 6 },
     label: { color: c.textDim, fontSize: 13, marginTop: 8 },
     input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },

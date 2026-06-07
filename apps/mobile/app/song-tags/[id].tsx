@@ -21,6 +21,7 @@ import {
   type SongTag,
 } from "@/api/tags";
 import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -200,7 +201,7 @@ function makeStyles(c: ThemeColors) {
       backgroundColor: c.accentStrong,
     },
     btnDisabled: { opacity: 0.45 },
-    chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, padding: 16 },
+    chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, padding: 16, paddingBottom: MINIPLAYER_CLEARANCE },
     chip: {
       flexDirection: "row",
       alignItems: "center",

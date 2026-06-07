@@ -32,6 +32,7 @@ import { fetchPromptTemplates, type PromptTemplate } from "@/api/prompt-template
 import { fetchPromptSuggestions, fetchTrendingCombos, type PromptSuggestion, type TrendingCombo } from "@/api/suggestions";
 import { fetchPersonas, type Persona } from "@/api/personas";
 import { HttpError } from "@/api/client";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -571,7 +572,7 @@ function makeStyles(c: ThemeColors) {
     container: { flex: 1, backgroundColor: c.bg },
     flex: { flex: 1 },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 12 },
-    formContent: { padding: 20, paddingBottom: 48, gap: 8 },
+    formContent: { padding: 20, paddingBottom: MINIPLAYER_CLEARANCE, gap: 8 },
     hero: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 4 },
     heroText: { flex: 1, color: c.textDim, fontSize: 13, lineHeight: 18 },
     presetRow: { gap: 8, paddingVertical: 8 },

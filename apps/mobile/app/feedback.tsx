@@ -7,6 +7,7 @@ import { Stack } from "expo-router";
 import { Star, CheckCircle2 } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { sendFeedback, type FeedbackCategory } from "@/api/feedback";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -118,7 +119,7 @@ export default function FeedbackScreen() {
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
-    content: { padding: 20, paddingBottom: 40 },
+    content: { padding: 20, paddingBottom: MINIPLAYER_CLEARANCE },
     label: { color: c.textDim, fontSize: 13, marginTop: 12, marginBottom: 6 },
     segment: { flexDirection: "row", backgroundColor: c.surface, borderRadius: 12, padding: 4, gap: 4 },
     segmentItem: { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 9 },

@@ -6,6 +6,7 @@ import {
 import { Stack, router } from "expo-router";
 import { HttpError } from "@/api/client";
 import { changePassword } from "@/api/account";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -68,7 +69,7 @@ export default function ChangePasswordScreen() {
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
-    content: { padding: 20, paddingBottom: 40 },
+    content: { padding: 20, paddingBottom: MINIPLAYER_CLEARANCE },
     label: { color: c.textDim, fontSize: 13, marginTop: 12, marginBottom: 6 },
     input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
     error: { color: c.danger, fontSize: 13, marginTop: 14 },

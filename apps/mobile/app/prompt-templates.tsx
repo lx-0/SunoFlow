@@ -11,6 +11,7 @@ import {
   PROMPT_TEMPLATE_NAME_MAX, type PromptTemplate,
 } from "@/api/prompt-templates";
 import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -231,6 +232,7 @@ export default function PromptTemplatesScreen() {
       ) : (
         <FlatList
           data={templates}
+          contentContainerStyle={styles.listContent}
           keyExtractor={(t) => t.id}
           renderItem={({ item }) => (
             <Pressable style={styles.row} onPress={() => rowActions(item)}>
@@ -253,6 +255,7 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    listContent: { paddingBottom: MINIPLAYER_CLEARANCE },
     createCard: { padding: 16, gap: 8, borderBottomColor: c.border, borderBottomWidth: StyleSheet.hairlineWidth },
     label: { color: c.textDim, fontSize: 13, marginTop: 4 },
     input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },

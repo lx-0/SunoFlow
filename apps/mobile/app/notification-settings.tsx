@@ -7,6 +7,7 @@ import {
   fetchEmailPrefs, updateEmailPrefs, fetchPushPrefs, updatePushPrefs,
   DIGEST_FREQUENCIES, type EmailPrefs, type PushPrefs,
 } from "@/api/notification-prefs";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -182,7 +183,7 @@ export default function NotificationSettingsScreen() {
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
-    content: { padding: 20, gap: 10 },
+    content: { padding: 20, gap: 10, paddingBottom: MINIPLAYER_CLEARANCE },
     centered: { paddingVertical: 48, alignItems: "center", justifyContent: "center" },
     errorLine: { color: c.textDim, fontSize: 13, marginBottom: 4 },
     sectionTitle: { color: c.textFaint, fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, marginTop: 8 },

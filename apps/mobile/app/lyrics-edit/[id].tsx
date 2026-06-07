@@ -6,6 +6,7 @@ import {
 import { Stack, router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { HttpError } from "@/api/client";
 import { fetchRawLyrics, updateLyrics } from "@/api/lyrics";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -156,7 +157,7 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-    scroll: { padding: 16, gap: 14 },
+    scroll: { padding: 16, gap: 14, paddingBottom: MINIPLAYER_CLEARANCE },
     saveBtn: { color: c.accent, fontSize: 16, fontWeight: "600" },
     badge: { color: c.warnFg, fontSize: 12, fontWeight: "600" },
     input: {

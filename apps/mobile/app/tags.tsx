@@ -5,6 +5,7 @@ import { Tag as TagIcon, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchTags, type Tag } from "@/api/tags";
 import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -44,6 +45,7 @@ export default function TagsScreen() {
       ) : (
         <FlatList
           data={tags}
+          contentContainerStyle={styles.listContent}
           keyExtractor={(t) => t.id}
           renderItem={({ item }) => (
             <Pressable
@@ -71,6 +73,7 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+    listContent: { paddingBottom: MINIPLAYER_CLEARANCE },
     row: {
       flexDirection: "row",
       alignItems: "center",

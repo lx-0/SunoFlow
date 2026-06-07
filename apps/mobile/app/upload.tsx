@@ -6,6 +6,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import { startUpload } from "@/api/upload";
 import { pollStatus, GenerationError } from "@/api/generate";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -159,7 +160,7 @@ export default function UploadScreen() {
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
-    content: { padding: 20, gap: 10, paddingBottom: 48 },
+    content: { padding: 20, gap: 10, paddingBottom: MINIPLAYER_CLEARANCE },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 12, backgroundColor: c.bg },
     segment: { flexDirection: "row", backgroundColor: c.surface, borderRadius: 12, padding: 4, gap: 4 },
     segmentItem: { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 9 },
