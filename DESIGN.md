@@ -142,7 +142,7 @@ SunoFlow is the dim console at the side of a home studio at 11pm. The surface is
 
 Density is high but never anxious. This is a tool for someone making their tenth playlist of the night, not their first, so layouts favor information over wayfinding and inline action over progressive disclosure. Three modes (Browse, Generate, Edit) share the same chrome, and each one earns full focus when active. Nothing co-renders, nothing competes.
 
-This system explicitly rejects: the 2025 AI-tool look (mesh gradients, glassy violet cards, glowing orbs), the generic SaaS template (hero-metric cards, indigo-purple gradients, identical 3-up grids), the consumer-music-app feed (algorithmic recommendation rails, "Made for you", in-player banners), and Suno.com's own visual chrome (glassmorphism, neon, promo sidebars). SunoFlow takes Suno's creative energy and refuses Suno's surface.
+This system explicitly rejects: the 2025 AI-tool look (mesh gradients, glassy violet cards, glowing orbs), the generic SaaS template (hero-metric cards, indigo-purple gradients, identical 3-up grids), the engagement-farming chrome of consumer music apps (in-player banners, hero album-art cards, attention-maximizing autoplay rails), and Suno.com's own visual chrome (glassmorphism, neon, promo sidebars). SunoFlow does carry discovery and a light social layer (feed, profiles, recommendations) for the closed-beta circle, but it dresses them in this restrained console, not in Suno's surface.
 
 **Key Characteristics:**
 - Dark-first surface tinted toward the brand magenta (chroma 0.01)
@@ -297,6 +297,6 @@ Shadows appear in three specific places only: the global player bar (a subtle up
 - **Don't** add a side-stripe border (`border-left: 4px solid <color>`) as a callout or alert treatment. Use a full thin border, a tonal background tint, or nothing.
 - **Don't** use modal dialogs as the first thought. Drawers (bottom sheet on mobile, right-side panel on desktop) and inline expansion handle most cases. Modal is only for genuinely interrupting confirmations.
 - **Don't** co-render Browse, Generate, and Edit. One mode owns the surface at a time. A persistent "generate panel" in the library sidebar is a violation.
-- **Don't** add "Made for you" sections, recommendation rails, marketing banners inside the player, or any algorithmic feed surface. SunoFlow is a workbench, not a discovery product.
+- **Don't** add marketing banners inside the player, hero album-art cards, or attention-maximizing autoplay rails. Discovery, a feed, and recommendations are legitimate surfaces, but render them in the restrained console style (dense rows, cover art carries the energy), never as an engagement-farming stream.
 - **Don't** animate CSS layout properties (`width`, `height`, `top`, `left`, `padding`, `margin`). Animate `transform` and `opacity`. Use ease-out-quart or ease-out-expo curves; never bounce, never elastic.
 - **Don't** use em dashes in UI copy. Commas, colons, semicolons, periods, parentheses cover every case.
