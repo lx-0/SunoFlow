@@ -3,6 +3,7 @@ import { View, Text, Pressable, Animated, ScrollView, PanResponder, StyleSheet }
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePathname, type Href } from "expo-router";
 import { useTheme } from "@/theme/ThemeContext";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { switchTo } from "@/navigation";
 import {
   Menu, Search, Plus, BookOpen, ListMusic, Heart, Clock, Layers, Globe, Sparkles, UserPlus, Wand2,
@@ -99,6 +100,7 @@ const SECTIONS: Section[] = [
 export function Sidebar() {
   const { open, openSidebar, closeSidebar } = useSidebar();
   const { colors } = useTheme();
+  const reduceMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const anim = useRef(new Animated.Value(0)).current;
@@ -118,10 +120,10 @@ export function Sidebar() {
 
   useEffect(() => {
     if (open) setMounted(true);
-    Animated.timing(anim, { toValue: open ? 1 : 0, duration: 220, useNativeDriver: true }).start(() => {
+    Animated.timing(anim, { toValue: open ? 1 : 0, duration: reduceMotion ? 0 : 220, useNativeDriver: true }).start(() => {
       if (!open) setMounted(false);
     });
-  }, [open, anim]);
+  }, [open, anim, reduceMotion]);
 
   // When closed, only the left edge-swipe catcher is present.
   if (!mounted) {

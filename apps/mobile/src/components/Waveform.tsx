@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { View, Text, Pressable, Animated, StyleSheet, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
 import { useAudioPlayer } from "@simform_solutions/react-native-audio-waveform";
 import { downloadAudioForPeaks, normalizePeaks } from "@/playback/peaks";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useTheme } from "@/theme/ThemeContext";
 
 // Real waveform: peaks are extracted natively from the audio file (see peaks.ts),
@@ -19,11 +20,13 @@ export interface WaveformPopup {
 }
 
 function ReactionPopup({ emoji, leftPct }: { emoji: string; leftPct: number }) {
+  const reduceMotion = useReducedMotion();
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(anim, { toValue: 1, duration: 2000, useNativeDriver: true }).start();
   }, [anim]);
-  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [0, -52] });
+  // Reduce Motion: keep the fade, drop the upward travel.
+  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [0, reduceMotion ? 0 : -52] });
   const opacity = anim.interpolate({ inputRange: [0, 0.7, 1], outputRange: [1, 1, 0] });
   return (
     <Animated.View style={[styles.popup, { left: `${leftPct}%`, opacity, transform: [{ translateY }] }]}>

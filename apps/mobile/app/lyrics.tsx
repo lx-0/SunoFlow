@@ -6,6 +6,7 @@ import { usePlayback } from "@/playback/usePlayback";
 import { fetchLyrics, type LyricLine } from "@/api/lyrics";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useTheme } from "@/theme/ThemeContext";
 import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
@@ -17,6 +18,7 @@ export default function LyricsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { current, positionSeconds } = usePlayback();
+  const reduceMotion = useReducedMotion();
   const songId = current?.id;
   const [lines, setLines] = useState<LyricLine[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,9 +60,9 @@ export default function LyricsScreen() {
     if (activeLine < 0) return;
     const y = offsets.current[activeLine];
     if (typeof y === "number") {
-      scrollRef.current?.scrollTo({ y: Math.max(0, y - 140), animated: true });
+      scrollRef.current?.scrollTo({ y: Math.max(0, y - 140), animated: !reduceMotion });
     }
-  }, [activeLine]);
+  }, [activeLine, reduceMotion]);
 
   return (
     <View style={styles.container}>
