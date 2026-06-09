@@ -105,13 +105,13 @@ export default function PlayerScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Pressable hitSlop={10} style={styles.headerBtn} onPress={() => router.back()}>
+        <Pressable hitSlop={10} style={styles.headerBtn} onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Close now playing">
           <ChevronDown color={colors.text} size={26} />
         </Pressable>
       </View>
 
       <View style={styles.body}>
-        <Pressable style={styles.artWrap} disabled={!songId} onPress={() => songId && router.push(`/song/${songId}`)}>
+        <Pressable style={styles.artWrap} disabled={!songId} onPress={() => songId && router.push(`/song/${songId}`)} accessibilityRole="button" accessibilityLabel="Open song details">
           {current?.videoUrl ? (
             <VideoCover uri={current.videoUrl} style={styles.art} />
           ) : current?.artworkUrl ? (
@@ -131,7 +131,7 @@ export default function PlayerScreen() {
                 <GitBranch color={colors.accent} size={14} />
               </View>
             ) : null}
-            <Pressable hitSlop={10} style={styles.titleMore} onPress={() => setMenuOpen(true)} accessibilityLabel="More options">
+            <Pressable hitSlop={10} style={styles.titleMore} onPress={() => setMenuOpen(true)} accessibilityRole="button" accessibilityLabel="More options">
               <MoreIcon color={colors.textDim} size={22} />
             </Pressable>
           </View>
@@ -156,7 +156,7 @@ export default function PlayerScreen() {
 
         {/* Rating (context menu) + reactions + shuffle-versions + details — one row */}
         <View style={styles.emojiRow}>
-          <Pressable style={styles.secBtn} hitSlop={8} onPress={onToggleFavorite} accessibilityLabel={favorite ? "Unfavorite" : "Favorite"}>
+          <Pressable style={styles.secBtn} hitSlop={8} onPress={onToggleFavorite} accessibilityRole="button" accessibilityLabel={favorite ? "Unfavorite" : "Favorite"}>
             <HeartIcon color={favorite ? colors.danger : colors.textDim} filled={favorite} size={20} />
           </Pressable>
           {songId ? <RatingButton songId={songId} /> : null}
@@ -167,7 +167,7 @@ export default function PlayerScreen() {
         <View style={styles.row}>
           {/* One combined shuffle button: off → shuffle → shuffle + versions → off.
               In versions mode the shuffle icon gets a tiny Boxes badge. */}
-          <Pressable hitSlop={10} style={styles.btnSmall} onPress={cycleShuffle} accessibilityLabel="Shuffle mode">
+          <Pressable hitSlop={10} style={styles.btnSmall} onPress={cycleShuffle} accessibilityRole="button" accessibilityLabel="Toggle shuffle">
             <View>
               <ShuffleIcon color={shuffle ? colors.accent : colors.textFaint} size={22} />
               {shuffleVersions ? (
@@ -177,7 +177,7 @@ export default function PlayerScreen() {
               ) : null}
             </View>
           </Pressable>
-          <Pressable hitSlop={12} style={styles.btn} onPress={() => skipToPrevious()}>
+          <Pressable hitSlop={12} style={styles.btn} onPress={() => skipToPrevious()} accessibilityRole="button" accessibilityLabel="Previous track">
             <SkipPrevIcon color={colors.text} size={28} />
           </Pressable>
           <Pressable
@@ -190,10 +190,10 @@ export default function PlayerScreen() {
           >
             {playing ? <PauseIcon color={colors.onAccent} size={24} /> : <PlayIcon color={colors.onAccent} size={24} />}
           </Pressable>
-          <Pressable hitSlop={12} style={styles.btn} onPress={() => skipToNext()}>
+          <Pressable hitSlop={12} style={styles.btn} onPress={() => skipToNext()} accessibilityRole="button" accessibilityLabel="Next track">
             <SkipNextIcon color={colors.text} size={28} />
           </Pressable>
-          <Pressable hitSlop={10} style={styles.btnSmall} onPress={toggleRepeat}>
+          <Pressable hitSlop={10} style={styles.btnSmall} onPress={toggleRepeat} accessibilityRole="button" accessibilityLabel="Toggle repeat">
             <RepeatIcon color={repeat !== "off" ? colors.accent : colors.textFaint} one={repeat === "one"} size={22} />
           </Pressable>
         </View>

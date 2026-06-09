@@ -52,6 +52,8 @@ export function MiniPlayer({ tabBarHeight = 0 }: { tabBarHeight?: number }) {
         hitSlop={10}
         style={styles.ctrl}
         onPress={(e: GestureResponderEvent) => { e.stopPropagation(); togglePlay(); }}
+        accessibilityRole="button"
+        accessibilityLabel={playing ? "Pause" : "Play"}
       >
         {playing ? <PauseIcon color={colors.text} size={18} /> : <PlayIcon color={colors.text} size={18} />}
       </Pressable>
@@ -59,6 +61,8 @@ export function MiniPlayer({ tabBarHeight = 0 }: { tabBarHeight?: number }) {
         hitSlop={10}
         style={styles.ctrl}
         onPress={(e: GestureResponderEvent) => { e.stopPropagation(); void skipToNext(); }}
+        accessibilityRole="button"
+        accessibilityLabel="Next track"
       >
         <SkipNextIcon color={colors.text} size={20} />
       </Pressable>

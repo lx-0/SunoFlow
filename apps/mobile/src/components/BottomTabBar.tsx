@@ -36,6 +36,8 @@ export function BottomTabBar() {
             key={t.route}
             style={styles.tab}
             onPress={() => switchTo(t.route as Href, pathname)}
+            accessibilityRole="button"
+            accessibilityLabel={`${t.label} tab`}
           >
             <t.Icon color={tint} size={23} />
             <Text style={[styles.label, { color: tint }]} numberOfLines={1}>{t.label}</Text>
