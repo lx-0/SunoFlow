@@ -11,6 +11,7 @@ interface DigestItem {
   mood: string;
   topics: string[];
   suggestedPrompt: string;
+  content?: string;
   feedTitle?: string;
 }
 

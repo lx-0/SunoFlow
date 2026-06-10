@@ -14,6 +14,14 @@ interface UseInspireActionsOptions {
   dismissPending: (id: string) => Promise<void>;
 }
 
+const normalizeText = (text: string) => text.replace(/\s+/g, " ").trim();
+// Article bodies arrive enriched up to ~5000 chars; keep that as the basis so
+// the whole article — not a one-sentence excerpt — drives lyrics generation.
+const ARTICLE_MAX = 5000;
+// Ceiling for the full lyricsprompt (article + framing), kept under the
+// /api/lyrics/generate limit and a sane query-string length.
+const BASIS_MAX = 5800;
+
 export function useInspireActions({ approvePending, dismissPending }: UseInspireActionsOptions) {
   const router = useRouter();
   const { toast } = useToast();
@@ -24,16 +32,14 @@ export function useInspireActions({ approvePending, dismissPending }: UseInspire
         switch (item.sourceType) {
           case "rss": {
             const rssItem = item.original as FeedItem;
-            const normalizeText = (text: string) => text.replace(/\s+/g, " ").trim();
-            const clamp = (text: string, max: number) =>
-              text.length > max ? `${text.slice(0, Math.max(0, max - 1)).trimEnd()}…` : text;
-
-            const title = clamp(normalizeText(rssItem.title || ""), 120);
-            const bodySource = rssItem.content || rssItem.description || "";
-            const body = clamp(normalizeText(bodySource), 520);
+            const title = normalizeText(rssItem.title || "");
+            // Full link-followed article as the generation basis, not a
+            // one-sentence excerpt. rssItem.content is the enriched body (up to
+            // ~5000 chars); fall back to description only if content is missing.
+            const body = normalizeText(rssItem.content || rssItem.description || "").slice(0, ARTICLE_MAX);
             const topics =
               rssItem.topics && rssItem.topics.length > 0
-                ? clamp(normalizeText(rssItem.topics.join(", ")), 120)
+                ? normalizeText(rssItem.topics.join(", "))
                 : "";
 
             const parts: string[] = [];
@@ -41,7 +47,7 @@ export function useInspireActions({ approvePending, dismissPending }: UseInspire
             if (body) parts.push(body);
             if (topics) parts.push(`Themes: ${topics}`);
             if (rssItem.mood && rssItem.mood !== "neutral") parts.push(`Mood: ${rssItem.mood}`);
-            const lyricsPrompt = clamp(parts.join("\n\n"), 800);
+            const lyricsPrompt = parts.join("\n\n").slice(0, BASIS_MAX);
 
             const params = new URLSearchParams();
             params.set("lyricsprompt", lyricsPrompt);
@@ -57,7 +63,23 @@ export function useInspireActions({ approvePending, dismissPending }: UseInspire
           }
           case "picks": {
             const digestItem = item.original as DigestItem;
-            router.push(`/generate?prompt=${encodeURIComponent(digestItem.suggestedPrompt)}`);
+            // Prefer the full article body (now carried on the digest item) as
+            // the lyrics-generator basis; suggestedPrompt is only a short label.
+            const article = normalizeText(digestItem.content || "").slice(0, ARTICLE_MAX);
+            const params = new URLSearchParams();
+            if (article) {
+              const title = normalizeText(digestItem.title || "");
+              const basis = [title, article].filter(Boolean).join("\n\n").slice(0, BASIS_MAX);
+              params.set("lyricsprompt", basis);
+              const style =
+                digestItem.mood && digestItem.mood !== "neutral"
+                  ? [digestItem.mood, ...digestItem.topics.slice(0, 3)].filter(Boolean).join(", ")
+                  : digestItem.topics.slice(0, 3).join(", ");
+              if (style) params.set("tags", style);
+            } else {
+              params.set("prompt", digestItem.suggestedPrompt);
+            }
+            router.push(`/generate?${params.toString()}`);
             break;
           }
           case "pending":

@@ -102,6 +102,10 @@ async function collectItems(feeds: FeedSource[]): Promise<DigestItem[]> {
         mood,
         topics,
         suggestedPrompt: buildPrompt(item.title, mood, topics),
+        // Carry the link-followed full article (fetchFeed → enrichWithFullArticle
+        // populates item.content up to 5000 chars). Without this the generation
+        // basis would be title + mood + topics only — a single sentence.
+        content: item.content,
         feedTitle,
       });
     }

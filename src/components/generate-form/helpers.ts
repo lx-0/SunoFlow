@@ -1,6 +1,10 @@
 import type { RateLimitMeta, RateLimitStatus } from "./types";
 
-const PROMPT_LIMIT = 3000;
+// Matches the Suno limit for the default model (V5_5 → 5000). V4 is 3000, but
+// the form always generates on the default model, so 3000 needlessly capped
+// lyrics 2000 chars below what the API accepts. Server validatePrompt enforces
+// the true per-model limit.
+const PROMPT_LIMIT = 5000;
 
 export function getPromptValidationError(promptValue: string, customMode: boolean): string | null {
   if (!promptValue.trim()) {

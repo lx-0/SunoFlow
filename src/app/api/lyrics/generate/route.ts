@@ -4,7 +4,9 @@ import { authRoute } from "@/lib/route-handler";
 import { generateLyrics } from "@/lib/lyrics";
 
 const bodySchema = z.object({
-  prompt: z.string().min(1, "A lyrics prompt is required").max(2000, "Prompt must be 2000 characters or less"),
+  // Up to a full link-followed article (≈5000 chars) plus framing can be the
+  // generation basis — the LLM in generateLyrics has no such limit.
+  prompt: z.string().min(1, "A lyrics prompt is required").max(6000, "Prompt must be 6000 characters or less"),
 });
 
 export const POST = authRoute(

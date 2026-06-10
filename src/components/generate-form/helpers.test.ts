@@ -18,7 +18,8 @@ describe("getPromptValidationError", () => {
   });
 
   it("enforces max prompt length", () => {
-    expect(getPromptValidationError("x".repeat(3001), false)).toBe("Prompt must be 3000 characters or less");
+    expect(getPromptValidationError("x".repeat(5000), false)).toBeNull();
+    expect(getPromptValidationError("x".repeat(5001), false)).toBe("Prompt must be 5000 characters or less");
   });
 
   it("passes valid prompt", () => {

@@ -12,6 +12,9 @@ export const digestItemSchema = z.object({
   mood: z.string(),
   topics: z.array(z.string()),
   suggestedPrompt: z.string(),
+  // Full article body (link-followed, up to ~5000 chars). This is the real
+  // generation basis — suggestedPrompt is only a short human-readable label.
+  content: z.string().optional(),
   feedTitle: z.string().optional(),
 });
 

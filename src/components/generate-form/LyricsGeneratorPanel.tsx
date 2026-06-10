@@ -70,7 +70,7 @@ export function LyricsGeneratorPanel({ initialPrompt, onUseLyrics }: LyricsGener
               onChange={(e) => setLyricsPrompt(e.target.value)}
               placeholder="Describe your song theme, mood, or topic..."
               aria-label="Lyrics generation prompt"
-              maxLength={2000}
+              maxLength={6000}
               rows={3}
               disabled={isGeneratingLyrics}
               className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50 resize-none"
