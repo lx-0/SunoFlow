@@ -140,7 +140,13 @@ export default function InspireScreen() {
                 ))}
               </View>
 
-              <Text style={styles.suggested}>♪ {item.suggestedPrompt}</Text>
+              {item.content && item.content.trim().length > 0 ? (
+                <Text style={styles.suggested} numberOfLines={4}>
+                  {item.content.replace(/\s+/g, " ").trim().slice(0, 200)}…
+                </Text>
+              ) : (
+                <Text style={styles.suggested}>♪ {item.suggestedPrompt}</Text>
+              )}
 
               <Pressable style={styles.genBtn} onPress={() => generateFrom(item)}>
                 <Sparkles color={colors.accent} size={16} />

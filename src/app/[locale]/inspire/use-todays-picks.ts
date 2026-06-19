@@ -11,6 +11,9 @@ interface DigestItem {
   mood: string;
   topics: string[];
   suggestedPrompt: string;
+  // The link-followed full article (server-side digest carries it); used as the
+  // generation basis and to show a real excerpt on the card.
+  content?: string;
   feedTitle?: string;
 }
 

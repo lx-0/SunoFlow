@@ -41,7 +41,11 @@ export function useInspireFeed({
       id: `picks-${picks.id}-${i}`,
       sourceType: "picks" as SourceType,
       title: item.title,
-      excerpt: item.suggestedPrompt,
+      // Show a real excerpt of the link-followed article (proof the extraction
+      // worked); fall back to the short suggestedPrompt label if absent.
+      excerpt: item.content
+        ? item.content.replace(/\s+/g, " ").trim().slice(0, 240)
+        : item.suggestedPrompt,
       mood: item.mood,
       topics: item.topics,
       link: item.link,
