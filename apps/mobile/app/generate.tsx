@@ -363,6 +363,16 @@ export default function GenerateScreen() {
             </Text>
           </View>
 
+          {genningLyrics ? (
+            <View style={styles.genBanner}>
+              <ActivityIndicator color={colors.onAccent} />
+              <Text style={styles.genBannerText}>
+                Writing your song from the article — title, style and lyrics fill in
+                automatically. This takes a few seconds…
+              </Text>
+            </View>
+          ) : null}
+
           {presets.length > 0 ? (
             <>
               <Text style={styles.label}>Presets</Text>
@@ -594,6 +604,8 @@ function makeStyles(c: ThemeColors) {
     formContent: { padding: 20, paddingBottom: MINIPLAYER_CLEARANCE, gap: 8 },
     hero: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 4 },
     heroText: { flex: 1, color: c.textDim, fontSize: 13, lineHeight: 18 },
+    genBanner: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: c.accentStrong, borderRadius: 12, padding: 14 },
+    genBannerText: { flex: 1, color: c.onAccent, fontSize: 13, lineHeight: 18, fontWeight: "600" },
     presetRow: { gap: 8, paddingVertical: 8 },
     presetChip: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: c.surfaceAlt, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8, maxWidth: 200 },
     badge: { color: c.onAccent, backgroundColor: c.accent, fontSize: 10, fontWeight: "700", paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, overflow: "hidden" },
