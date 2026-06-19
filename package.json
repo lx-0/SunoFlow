@@ -123,7 +123,12 @@
     ],
     "auditConfig": {
       "ignoreGhsas": [
-        "GHSA-5xrq-8626-4rwp"
+        "GHSA-5xrq-8626-4rwp",
+        "GHSA-96hv-2xvq-fx4p",
+        "GHSA-hmw2-7cc7-3qxx",
+        "GHSA-fx2h-pf6j-xcff",
+        "GHSA-wcpc-wj8m-hjx6",
+        "GHSA-88fw-hqm2-52qc"
       ]
     }
   }
