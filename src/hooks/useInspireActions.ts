@@ -51,8 +51,9 @@ export function useInspireActions({ approvePending, dismissPending }: UseInspire
 
             const params = new URLSearchParams();
             params.set("lyricsprompt", lyricsPrompt);
-            const style = rssItem.suggestedStyle || (rssItem.mood !== "neutral" ? rssItem.mood : "");
-            if (style) params.set("tags", style);
+            // No tags: the lyrics generator derives the music style from the
+            // article itself and fills the style field (better than the noisy
+            // mood/topic heuristic).
             router.push(`/generate?${params.toString()}`);
             break;
           }
@@ -71,11 +72,7 @@ export function useInspireActions({ approvePending, dismissPending }: UseInspire
               const title = normalizeText(digestItem.title || "");
               const basis = [title, article].filter(Boolean).join("\n\n").slice(0, BASIS_MAX);
               params.set("lyricsprompt", basis);
-              const style =
-                digestItem.mood && digestItem.mood !== "neutral"
-                  ? [digestItem.mood, ...digestItem.topics.slice(0, 3)].filter(Boolean).join(", ")
-                  : digestItem.topics.slice(0, 3).join(", ");
-              if (style) params.set("tags", style);
+              // No tags — the lyrics generator derives title + style from the article.
             } else {
               params.set("prompt", digestItem.suggestedPrompt);
             }

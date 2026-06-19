@@ -373,6 +373,12 @@ export function GenerateForm() {
             setPrompt(lyrics);
             setCustomMode(true);
           }}
+          onApplyMeta={({ title: t, style: s }) => {
+            // Fill the title + style fields from the LLM, without clobbering
+            // anything already entered.
+            if (t) setTitle((cur) => (cur.trim() ? cur : t));
+            if (s) setStyle((cur) => (cur.trim() ? cur : s));
+          }}
         />
 
         {/* Custom prompt toggle */}

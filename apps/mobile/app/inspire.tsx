@@ -11,8 +11,12 @@ import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
 // Inspire → "Today's Picks": auto-curated RSS-derived prompt ideas (digest items).
-// Each card prefills the Generate screen with its suggestedPrompt — same contract
-// as the web app (router → /generate?prompt=…). Digest logic lives in @sunoflow/core.
+// Each card hands the Generate screen the FULL link-followed article as the
+// lyrics-generation basis (same contract as the web app). Digest logic lives in
+// @sunoflow/core.
+// Mirror of the web BASIS_MAX — stays under the /api/lyrics/generate 6000 cap.
+const LYRICS_BASIS_MAX = 5800;
+
 export default function InspireScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
@@ -57,6 +61,18 @@ export default function InspireScreen() {
   }
 
   function generateFrom(item: DigestItem) {
+    // Prefer the full link-followed article as the lyrics-generation basis (same
+    // contract as the web app's Inspire → /generate?lyricsprompt=…). suggestedPrompt
+    // is only a one-line label; fall back to it when no article body is present.
+    const article = (item.content ?? "").replace(/\s+/g, " ").trim();
+    if (article) {
+      // Hand over ONLY the article. The Generate screen runs it through the LLM,
+      // which produces the title, the music style AND the full lyrics — each into
+      // its own field. (The heuristic mood/topics are too noisy to use as style.)
+      const basis = [item.title, article].filter(Boolean).join("\n\n").slice(0, LYRICS_BASIS_MAX);
+      goToSection({ pathname: "/generate", params: { lyricsprompt: basis } } as Href);
+      return;
+    }
     goToSection({ pathname: "/generate", params: { prompt: item.suggestedPrompt } } as Href);
   }
 

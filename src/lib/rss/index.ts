@@ -13,24 +13,23 @@ import type { RssItem, FeedResult } from "./types";
 
 export type { RssItem, FeedResult };
 
-// Below this, inline feed content is too short to be a real article body even
-// without an explicit truncation marker — follow the link anyway.
-const CONTENT_THRESHOLD = 200;
+// Full article bodies (and the inline feed content fallback) may run long —
+// keep the whole thing, bounded only against runaway pages.
+const MAX_CONTENT_CHARS = 50_000;
 // Cover every displayed item (feeds are sliced to 20), not just the first 5.
 const MAX_ARTICLE_FETCHES = 20;
 // Cap simultaneous outbound article fetches per feed to stay a good citizen.
 const FETCH_CONCURRENCY = 6;
 // Hard ceiling on how long article backfill may delay the feed response.
 // Whatever hasn't resolved by then keeps its (marker-stripped) summary.
-const ENRICH_BUDGET_MS = 9000;
+const ENRICH_BUDGET_MS = 12000;
 
-// An item needs its full article fetched when the inline feed content is a
-// truncated summary (read-more marker) or simply too short to be a real body.
+// RSS is an article-feed format: the inline <description>/<content:encoded> is
+// at best a summary, at worst a one-sentence teaser. So whenever an item has a
+// link, follow it and fetch the real article. (We only keep the fetched body if
+// it's actually longer than what we already have — see enrichWithFullArticle.)
 function needsFullArticle(item: RssItem): boolean {
-  if (!item.link) return false;
-  if (item.truncated) return true;
-  const inlineLength = (item.content || item.description || "").length;
-  return inlineLength < CONTENT_THRESHOLD;
+  return Boolean(item.link);
 }
 
 async function enrichWithFullArticle(items: RssItem[]): Promise<RssItem[]> {
@@ -52,9 +51,13 @@ async function enrichWithFullArticle(items: RssItem[]): Promise<RssItem[]> {
         batch.map(async ({ item, index }) => {
           const article = await extractArticleContent(item.link!);
           if (!article) return;
+          // Never downgrade: some feeds already ship a fuller body inline than
+          // the stripped article page yields. Keep whichever is longer.
+          const existing = item.content || "";
+          if (article.length <= existing.length) return;
           result[index] = {
             ...item,
-            content: article.slice(0, 5000),
+            content: article.slice(0, MAX_CONTENT_CHARS),
             description: article.slice(0, 800),
             truncated: false,
           };
@@ -110,7 +113,7 @@ export async function fetchFeed(url: string): Promise<FeedResult> {
         const truncated = hasReadMoreMarker(rawText);
         const fullText = stripReadMoreMarker(rawText);
         const description = fullText.slice(0, 800);
-        const content = fullText.slice(0, 5000);
+        const content = fullText.slice(0, MAX_CONTENT_CHARS);
         const link = extractAtomLink(entry) || extractTagContent(entry, "id");
         return { title, description, content, link, source: feedTitle, truncated };
       });
@@ -140,7 +143,7 @@ export async function fetchFeed(url: string): Promise<FeedResult> {
         const truncated = hasReadMoreMarker(rawText);
         const fullText = stripReadMoreMarker(rawText);
         const description = fullText.slice(0, 800);
-        const content = fullText.slice(0, 5000);
+        const content = fullText.slice(0, MAX_CONTENT_CHARS);
         const link = extractTagContent(item, "link");
         const pubDate = extractTagContent(item, "pubDate");
         return { title, description, content, link, source: feedTitle, pubDate, truncated };

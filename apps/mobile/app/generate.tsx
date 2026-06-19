@@ -56,9 +56,12 @@ export default function GenerateScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const prompt = usePrompt();
-  const params = useLocalSearchParams<{ prompt?: string; style?: string; personaId?: string; parentSongId?: string }>();
-  const [style, setStyle] = useState(() => paramStr(params.style));
-  const [customMode, setCustomMode] = useState(() => Boolean(paramStr(params.prompt) && !paramStr(params.style)));
+  const params = useLocalSearchParams<{ prompt?: string; style?: string; tags?: string; lyricsprompt?: string; personaId?: string; parentSongId?: string }>();
+  // Inspire hands over the full article as `lyricsprompt` (basis for the AI lyrics
+  // generator) plus `tags` (style). suggestedPrompt-style flows still use `prompt`.
+  const lyricsBasis = paramStr(params.lyricsprompt);
+  const [style, setStyle] = useState(() => paramStr(params.style) || paramStr(params.tags));
+  const [customMode, setCustomMode] = useState(() => Boolean((paramStr(params.prompt) || lyricsBasis) && !paramStr(params.style)));
   const [lyrics, setLyrics] = useState(() => paramStr(params.prompt));
   const [title, setTitle] = useState("");
   const [instrumental, setInstrumental] = useState(false);
@@ -201,20 +204,39 @@ export default function GenerateScreen() {
   }, [style, lyrics, autoFilling]);
 
   const onGenLyrics = useCallback(async () => {
-    const theme = style.trim() || title.trim();
+    // Prefer the full article basis (from Inspire) over style/title as the theme.
+    const theme = lyricsBasis || style.trim() || title.trim();
     if (!theme || genningLyrics) return;
     setGenningLyrics(true);
     setError(null);
     try {
-      const text = await generateLyrics(theme);
-      if (text) setLyrics(text);
+      const res = await generateLyrics(theme);
+      if (res.lyrics) {
+        setLyrics(res.lyrics);
+        setCustomMode(true);
+      }
+      // The LLM also returns a title + music style — drop each into its OWN
+      // field (don't clobber anything the user already typed).
+      if (res.style) setStyle((cur) => (cur.trim() ? cur : res.style));
+      if (res.title) setTitle((cur) => (cur.trim() ? cur : res.title));
     } catch (e) {
       setError(e instanceof HttpError && e.status === 429 ? "Slow down: too many lyric requests." : "Lyrics generation failed.");
       console.error("[generate] lyrics gen failed", e);
     } finally {
       setGenningLyrics(false);
     }
-  }, [style, title, genningLyrics]);
+  }, [lyricsBasis, style, title, genningLyrics]);
+
+  // Arriving from Inspire with a full article: switch to custom mode and generate
+  // the complete song from the article once, so "Generate from this" yields a real
+  // songtext — not the one-line label. Runtime-unverified (headless).
+  const autoLyricsRan = useRef(false);
+  useEffect(() => {
+    if (!lyricsBasis || autoLyricsRan.current) return;
+    autoLyricsRan.current = true;
+    setCustomMode(true);
+    void onGenLyrics();
+  }, [lyricsBasis, onGenLyrics]);
 
   const runPolling = useCallback(async (job: StartedGeneration) => {
     setPhase("polling");

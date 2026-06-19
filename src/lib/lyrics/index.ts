@@ -9,18 +9,38 @@ export {
 } from "./crud";
 
 const SYSTEM_PROMPT =
-  "Generate original song lyrics inspired by the style of the reference lyrics. " +
-  "Never copy — create new original content. " +
-  "Match the mood and style but with fresh words and ideas.";
+  "You are a professional songwriter. Turn the SOURCE TEXT the user provides " +
+  "(often a full news article or blog post, sometimes just a theme) into a " +
+  "COMPLETE, original song, and propose a fitting title and musical style.\n\n" +
+  "Respond EXACTLY in this format and nothing else:\n" +
+  "TITLE: <a short, evocative song title, 2-6 words>\n" +
+  "STYLE: <comma-separated genre and mood tags for the MUSIC, 3-8 words, " +
+  'e.g. "melancholic indie folk, fingerpicked guitar, soft vocals">\n' +
+  "LYRICS:\n" +
+  "<the complete lyrics, clearly structured: multiple verses, a recurring " +
+  "chorus and a bridge, labelled [Verse 1], [Chorus], [Bridge], etc. Capture " +
+  "the actual story, ideas and emotional arc of the source text; do not just " +
+  "name the topic. Aim for a real, full-length song.>\n\n" +
+  "Put ONLY genre/mood tags on the STYLE line — never put style words into the " +
+  "lyrics. When reference lyrics are provided, use them ONLY for stylistic " +
+  "guidance — never copy their words or subject.";
 
 const MAX_REFERENCE_SONGS = 5;
 
 // ── Types ───────────────────────────────────────────────────────────────
 
+export interface GeneratedSong {
+  title: string;
+  style: string;
+  lyrics: string;
+}
+
 export type GenerateLyricsResult =
   | {
       ok: true;
       lyrics: string;
+      title: string;
+      style: string;
       referenceSongs: Array<{ id: string; title: string | null }>;
     }
   | { ok: false; code: "RATE_LIMITED"; resetAt: string; retryAfterSec: number }
@@ -50,17 +70,46 @@ export async function generateLyrics(
   }
 
   const referenceSongs = await selectReferenceSongs(userId);
-  const userPrompt = buildPrompt(prompt, referenceSongs);
-  const lyrics = await generateText(SYSTEM_PROMPT, userPrompt);
+  const song = await generateLyricsFromSource(prompt, referenceSongs);
 
-  if (!lyrics) {
+  if (!song) {
     return { ok: false, code: "GENERATION_FAILED" };
   }
 
   return {
     ok: true,
-    lyrics,
+    lyrics: song.lyrics,
+    title: song.title,
+    style: song.style,
     referenceSongs: referenceSongs.map((s) => ({ id: s.id, title: s.title })),
+  };
+}
+
+// Parse the delimited TITLE/STYLE/LYRICS response. Delimited (not JSON) because
+// multi-line lyrics with quotes reliably break JSON. Degrades gracefully if the
+// model omits the markers (whole output becomes the lyrics).
+export function parseSong(raw: string | null): GeneratedSong | null {
+  if (!raw) return null;
+  const text = raw.replace(/\r\n/g, "\n").trim();
+  const titleM = text.match(/^\s*TITLE:\s*(.+)$/im);
+  const styleM = text.match(/^\s*STYLE:\s*(.+)$/im);
+  const lyrM = text.match(/^\s*LYRICS:\s*\n?/im);
+
+  let lyrics: string;
+  if (lyrM && lyrM.index !== undefined) {
+    lyrics = text.slice(lyrM.index + lyrM[0].length).trim();
+  } else {
+    lyrics = text
+      .replace(/^\s*TITLE:.*$/im, "")
+      .replace(/^\s*STYLE:.*$/im, "")
+      .trim();
+  }
+  if (lyrics.length < 1) return null;
+
+  return {
+    title: titleM ? titleM[1].trim().replace(/^["']|["']$/g, "") : "",
+    style: styleM ? styleM[1].trim() : "",
+    lyrics,
   };
 }
 
@@ -70,6 +119,20 @@ interface ReferenceSong {
   id: string;
   title: string | null;
   lyrics: string | null;
+}
+
+/**
+ * Pure LLM core: turn source text (a full article or a theme) into a complete
+ * song — title, style and full lyrics. No DB / rate-limit, so it's independently
+ * testable. `generateLyrics` wraps this with rate-limiting and reference songs.
+ */
+export async function generateLyricsFromSource(
+  sourceText: string,
+  referenceSongs: ReferenceSong[] = []
+): Promise<GeneratedSong | null> {
+  const userPrompt = buildPrompt(sourceText, referenceSongs);
+  const raw = await generateText(SYSTEM_PROMPT, userPrompt);
+  return parseSong(raw);
 }
 
 async function selectReferenceSongs(userId: string): Promise<ReferenceSong[]> {
@@ -105,8 +168,9 @@ async function selectReferenceSongs(userId: string): Promise<ReferenceSong[]> {
 }
 
 function buildPrompt(prompt: string, referenceSongs: ReferenceSong[]): string {
+  const source = `SOURCE TEXT to turn into a complete song:\n\n${prompt.trim()}`;
   if (referenceSongs.length === 0) {
-    return `Theme/mood/topic: ${prompt.trim()}`;
+    return source;
   }
 
   const referenceContext = referenceSongs
@@ -116,5 +180,5 @@ function buildPrompt(prompt: string, referenceSongs: ReferenceSong[]): string {
     )
     .join("\n\n");
 
-  return `Theme/mood/topic: ${prompt.trim()}\n\nReference lyrics for style inspiration:\n\n${referenceContext}`;
+  return `${source}\n\nReference lyrics for STYLE inspiration only (do not copy words or subject):\n\n${referenceContext}`;
 }

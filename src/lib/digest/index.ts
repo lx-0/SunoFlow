@@ -12,6 +12,12 @@ const MAX_TOTAL_ITEMS = 15;
 const PICKS_MIN = 3;
 const PICKS_MAX = 5;
 const MAX_PER_SOURCE = 2;
+// Below this an item's body is a teaser/caption (e.g. a tagesschau /video page),
+// not a real article — a poor basis for a song. Prefer real articles as picks.
+const MIN_ARTICLE_BODY = 600;
+// Cap the article carried in the stored digest: enough for the lyrics-generation
+// basis (the clients slice to ~5800), without bloating the row / API payload.
+const DIGEST_CONTENT_MAX = 6000;
 
 export function buildPrompt(
   title: string,
@@ -86,7 +92,11 @@ async function collectItems(feeds: FeedSource[]): Promise<DigestItem[]> {
     if (result.error || result.items.length === 0) continue;
 
     const feedTitle = feed.title ?? result.feedTitle;
-    const picked = result.items.slice(0, MAX_ITEMS_PER_FEED);
+    // Prefer items that actually have a full article body (real articles) over
+    // teaser/video items, then fall back to fill the per-feed quota.
+    const withArticle = result.items.filter((i) => (i.content || "").length >= MIN_ARTICLE_BODY);
+    const rest = result.items.filter((i) => (i.content || "").length < MIN_ARTICLE_BODY);
+    const picked = [...withArticle, ...rest].slice(0, MAX_ITEMS_PER_FEED);
 
     for (const item of picked) {
       if (allItems.length >= MAX_TOTAL_ITEMS) break;
@@ -103,9 +113,9 @@ async function collectItems(feeds: FeedSource[]): Promise<DigestItem[]> {
         topics,
         suggestedPrompt: buildPrompt(item.title, mood, topics),
         // Carry the link-followed full article (fetchFeed → enrichWithFullArticle
-        // populates item.content up to 5000 chars). Without this the generation
-        // basis would be title + mood + topics only — a single sentence.
-        content: item.content,
+        // populates item.content). This is the real generation basis; without it
+        // the song would be built from title + mood + topics only — one sentence.
+        content: item.content ? item.content.slice(0, DIGEST_CONTENT_MAX) : undefined,
         feedTitle,
       });
     }

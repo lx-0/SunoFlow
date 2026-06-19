@@ -6,8 +6,11 @@ import { logger } from "@/lib/logger";
 import { generateCoverArtVariants } from "@/lib/cover-art-generator";
 import { createNotification } from "@/lib/notifications";
 import { buildSimplePromptFromItem } from "@/lib/prompts";
+import { generateLyrics as generateSongLyrics } from "@/lib/lyrics";
 
 const MAX_AUTO_PER_USER = 10;
+// V5_5 (default) caps the custom-mode prompt — i.e. the lyrics — at 5000 chars.
+const SONG_LYRICS_MAX = 4900;
 
 export interface AutoGenerateResult {
   processed: number;
@@ -46,6 +49,10 @@ async function hasReachedDailyLimit(
   return count >= 1;
 }
 
+// Below this an item's body is a teaser/caption (e.g. a tagesschau /video page),
+// not a real article — a poor basis for a full song. Prefer real articles.
+const MIN_ARTICLE_BODY = 600;
+
 async function findNewItem(
   feed: AutoFeed,
 ): Promise<{ title: string; description: string; content?: string; mood?: string; topics?: string[]; suggestedStyle?: string } | null> {
@@ -53,15 +60,22 @@ async function findNewItem(
   if (result.error || result.items.length === 0) return null;
 
   const lastChecked = feed.lastCheckedAt;
-  const newItems = lastChecked
+  const candidates = lastChecked
     ? result.items.filter((item) => {
         if (!item.pubDate) return false;
         const pubDate = new Date(item.pubDate);
         return !isNaN(pubDate.getTime()) && pubDate > lastChecked;
       })
-    : result.items.slice(0, 1);
+    : result.items.slice(0, 5);
 
-  return newItems[0] ?? null;
+  if (candidates.length === 0) return null;
+
+  // Prefer the newest candidate that actually has a full article body, so we
+  // never auto-generate a song from a one-sentence video caption or teaser.
+  const withArticle = candidates.find(
+    (item) => (item.content || "").length >= MIN_ARTICLE_BODY,
+  );
+  return withArticle ?? candidates[0] ?? null;
 }
 
 async function generateFromFeedItem(
@@ -72,8 +86,35 @@ async function generateFromFeedItem(
   usingPersonalKey: boolean,
   now: Date,
 ): Promise<boolean> {
-  const { prompt, style } = buildSimplePromptFromItem(item);
-  if (!prompt) return false;
+  const { prompt: fallbackPrompt, style } = buildSimplePromptFromItem(item);
+  if (!fallbackPrompt) return false;
+
+  // Turn the WHOLE article into a complete, structured song via the LLM, then
+  // sing THOSE lyrics: generateSong runs in custom mode here (title is set), so
+  // its `prompt` is the lyrics text — not a style description. Fall back to the
+  // short description prompt if the LLM step is unavailable (rate limit / error)
+  // so auto-generation still produces a song.
+  let prompt = fallbackPrompt;
+  let songStyle = style;
+  let songTitle = item.title;
+  const basis = [item.title?.trim(), (item.content || item.description || "").trim()]
+    .filter(Boolean)
+    .join("\n\n")
+    .trim();
+  if (basis.length > 40) {
+    const lyricsResult = await generateSongLyrics(userId, basis);
+    if (lyricsResult.ok && lyricsResult.lyrics.trim().length > 0) {
+      prompt = lyricsResult.lyrics.trim().slice(0, SONG_LYRICS_MAX);
+      // Use the LLM's title + style (better than the heuristic) when present.
+      if (lyricsResult.style.trim()) songStyle = lyricsResult.style.trim();
+      if (lyricsResult.title.trim()) songTitle = lyricsResult.title.trim();
+    } else {
+      logger.info(
+        { feedId: feed.id, userId, reason: lyricsResult.ok ? "empty" : lyricsResult.code },
+        "feed-auto-generate: LLM lyrics unavailable, falling back to description prompt",
+      );
+    }
+  }
 
   if (!usingPersonalKey) {
     const recheck = await checkCredits(userId, "generate");
@@ -92,7 +133,7 @@ async function generateFromFeedItem(
   try {
     const genResult = await generateSong(
       prompt,
-      { style: style || undefined, title: item.title?.slice(0, 100) || undefined },
+      { style: songStyle || undefined, title: songTitle?.slice(0, 100) || undefined },
       apiKey ?? undefined,
     );
 
@@ -101,8 +142,8 @@ async function generateFromFeedItem(
         userId,
         sunoJobId: genResult.taskId,
         prompt,
-        tags: style || null,
-        title: item.title?.slice(0, 200) || null,
+        tags: songStyle || null,
+        title: songTitle?.slice(0, 200) || null,
         generationStatus: "pending",
         source: "auto",
         rssFeedSubscriptionId: feed.id,
@@ -112,8 +153,8 @@ async function generateFromFeedItem(
     try {
       const [placeholderVariant] = generateCoverArtVariants({
         songId: song.id,
-        title: item.title?.slice(0, 100),
-        tags: style,
+        title: songTitle?.slice(0, 100),
+        tags: songStyle,
       });
       prisma.song
         .update({ where: { id: song.id }, data: { imageUrl: placeholderVariant.dataUrl } })

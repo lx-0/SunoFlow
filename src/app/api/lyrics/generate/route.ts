@@ -35,6 +35,8 @@ export const POST = authRoute(
 
     return NextResponse.json({
       lyrics: result.lyrics,
+      title: result.title,
+      style: result.style,
       referenceSongs: result.referenceSongs,
     });
   },

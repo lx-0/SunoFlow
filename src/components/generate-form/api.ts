@@ -67,11 +67,16 @@ export async function boostStylePrompt(content: string): Promise<{
 export async function generateLyricsFromPrompt(prompt: string): Promise<{
   ok: boolean;
   lyrics?: string;
+  title?: string;
+  style?: string;
   error?: string;
 }> {
   try {
-    const data = await apiPost<{ lyrics?: string }>("/api/lyrics/generate", { prompt });
-    return { ok: true, lyrics: data.lyrics };
+    const data = await apiPost<{ lyrics?: string; title?: string; style?: string }>(
+      "/api/lyrics/generate",
+      { prompt },
+    );
+    return { ok: true, lyrics: data.lyrics, title: data.title, style: data.style };
   } catch (err) {
     return { ok: false, error: clientFetchErrorMessage(err) };
   }

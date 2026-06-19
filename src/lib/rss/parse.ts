@@ -33,9 +33,18 @@ export function decodeHtmlEntities(text: string): string {
 }
 
 export function stripTags(text: string): string {
-  const strip = (s: string) =>
-    decodeHtmlEntities(s).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-  return strip(strip(text));
+  // Drop <script>/<style> blocks AND their inner CSS/JS source — otherwise the
+  // text between the tags pollutes the article body. Some Atom feeds (e.g.
+  // karpathy's) ship ESCAPED HTML, so the <style> only becomes a real tag after
+  // decoding; decode first, then drop the blocks, then strip remaining tags.
+  const dropBlocks = (s: string) =>
+    s
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<!--[\s\S]*?-->/g, " ");
+  let s = dropBlocks(decodeHtmlEntities(text));
+  s = dropBlocks(decodeHtmlEntities(s)); // second pass for double-encoded feeds
+  return s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
 // Bracketed read-more links that German/English feeds append to summaries.

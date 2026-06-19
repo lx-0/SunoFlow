@@ -10,9 +10,12 @@ import { Spinner } from "../Spinner";
 interface LyricsGeneratorPanelProps {
   initialPrompt: string;
   onUseLyrics: (lyrics: string) => void;
+  // The generator also returns a title + music style derived from the source
+  // text — let the form drop each into its own field.
+  onApplyMeta?: (meta: { title?: string; style?: string }) => void;
 }
 
-export function LyricsGeneratorPanel({ initialPrompt, onUseLyrics }: LyricsGeneratorPanelProps) {
+export function LyricsGeneratorPanel({ initialPrompt, onUseLyrics, onApplyMeta }: LyricsGeneratorPanelProps) {
   const { toast } = useToast();
   const [showLyricsGenerator, setShowLyricsGenerator] = useState(Boolean(initialPrompt));
   const [lyricsPrompt, setLyricsPrompt] = useState(initialPrompt);
@@ -26,6 +29,7 @@ export function LyricsGeneratorPanel({ initialPrompt, onUseLyrics }: LyricsGener
       const data = await generateLyricsFromPrompt(lyricsPrompt.trim());
       if (data.ok && data.lyrics) {
         setGeneratedLyrics(data.lyrics);
+        onApplyMeta?.({ title: data.title, style: data.style });
         toast("Lyrics generated!", "success");
       } else {
         toast(data.error ?? "Lyrics generation failed", "error");
