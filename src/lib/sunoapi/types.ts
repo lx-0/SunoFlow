@@ -10,7 +10,12 @@ export type TaskStatus =
   | "CALLBACK_EXCEPTION"
   | "SENSITIVE_WORD_ERROR";
 
-export type SunoModel = "V4" | "V4_5" | "V4_5PLUS" | "V4_5ALL" | "V5" | "V5_5";
+// Single source of truth for Suno models + their limits lives in @sunoflow/core
+// (shared by the web route, mobile client, and this server-side API layer).
+// Imported for local use in this file's interfaces AND re-exported for the rest
+// of the sunoapi layer that imports SunoModel from "./types".
+import type { SunoModel } from "@sunoflow/core";
+export type { SunoModel };
 
 export type VocalGender = "m" | "f";
 

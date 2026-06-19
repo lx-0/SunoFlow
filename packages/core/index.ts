@@ -42,6 +42,10 @@ export {
 export {
   generateSongRequestSchema,
   type GenerateSongRequest,
+  SUNO_MODELS,
+  type SunoModel,
+  DEFAULT_SUNO_MODEL,
+  SUNO_PROMPT_LIMIT_BY_MODEL,
   GENERATION_PROMPT_MAX_LENGTH,
   GENERATION_TITLE_MAX_LENGTH,
   GENERATION_STYLE_MAX_LENGTH,

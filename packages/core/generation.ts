@@ -5,9 +5,33 @@ import { z } from "zod";
 // (server-side validation) AND the mobile client (request typing + pre-send
 // validation). Pure zod / constants, no platform deps.
 
+// ── Suno models + their real prompt limits (single source of truth) ─────────
+// These are the actual per-model lyric/prompt character ceilings enforced by
+// sunoapi.org. The server's validatePrompt enforces the exact per-model value;
+// the /api/generate request schema and the web + mobile lyrics fields all key
+// off the DEFAULT model below, so no layer ever caps under what the API accepts.
+// Anything Suno-version-related (here, the sunoapi validation layer, and the
+// clients) MUST derive from this — do not hardcode the numbers elsewhere.
+
+export const SUNO_MODELS = ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5", "V5_5"] as const;
+export type SunoModel = (typeof SUNO_MODELS)[number];
+
+export const DEFAULT_SUNO_MODEL: SunoModel = "V5_5";
+
+export const SUNO_PROMPT_LIMIT_BY_MODEL: Record<SunoModel, number> = {
+  V4: 3000,
+  V4_5: 5000,
+  V4_5PLUS: 5000,
+  V4_5ALL: 5000,
+  V5: 5000,
+  V5_5: 5000,
+};
+
 // ── Field limits + messages (single source of truth) ───────────────────────
 
-export const GENERATION_PROMPT_MAX_LENGTH = 3000;
+// Derived from the default model's real Suno limit (V5_5 → 5000) so the request
+// schema + UI fields never reject lyrics the API would actually accept.
+export const GENERATION_PROMPT_MAX_LENGTH = SUNO_PROMPT_LIMIT_BY_MODEL[DEFAULT_SUNO_MODEL];
 export const GENERATION_TITLE_MAX_LENGTH = 200;
 export const GENERATION_STYLE_MAX_LENGTH = 500;
 

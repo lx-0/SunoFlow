@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { GENERATION_PROMPT_MAX_LENGTH } from "@sunoflow/core";
 import { GET, POST } from "./route";
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
@@ -148,11 +149,14 @@ describe("POST /api/generation-queue", () => {
     expect(data.code).toBe("VALIDATION_ERROR");
   });
 
-  it("returns 400 for prompt exceeding 3000 characters", async () => {
-    const res = await POST(makeRequest("POST", { prompt: "a".repeat(3001) }) as never, seg);
+  it("returns 400 for a prompt over the max length", async () => {
+    const res = await POST(
+      makeRequest("POST", { prompt: "a".repeat(GENERATION_PROMPT_MAX_LENGTH + 1) }) as never,
+      seg,
+    );
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toContain("3000 characters");
+    expect(data.error).toContain(`${GENERATION_PROMPT_MAX_LENGTH} characters`);
   });
 
   it("returns 400 when queue is full (10 items)", async () => {

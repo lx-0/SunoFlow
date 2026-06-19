@@ -1,4 +1,5 @@
 import type { SunoModel } from "./types";
+import { SUNO_PROMPT_LIMIT_BY_MODEL } from "@sunoflow/core";
 import { DEFAULT_MODEL } from "./constants";
 
 export class SunoValidationError extends Error {
@@ -10,15 +11,11 @@ export class SunoValidationError extends Error {
 }
 
 // ── Model-specific character limits ──────────────────────────────────────────
+// Prompt limit comes from the shared single source in @sunoflow/core so the
+// server validator, the /api/generate request schema, and the clients can never
+// drift apart again. Style/title limits stay local (sunoapi-specific).
 
-const PROMPT_LIMIT: Record<SunoModel, number> = {
-  V4: 3000,
-  V4_5: 5000,
-  V4_5PLUS: 5000,
-  V4_5ALL: 5000,
-  V5: 5000,
-  V5_5: 5000,
-};
+const PROMPT_LIMIT: Record<SunoModel, number> = SUNO_PROMPT_LIMIT_BY_MODEL;
 
 const STYLE_LIMIT: Record<SunoModel, number> = {
   V4: 200,

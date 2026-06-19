@@ -1,4 +1,4 @@
-import type { SunoModel } from "./types";
+import { DEFAULT_SUNO_MODEL } from "@sunoflow/core";
 import { WEBHOOK_BASE_URL, SUNO_WEBHOOK_SECRET } from "@/lib/env";
 
 export const BASE_URL = "https://api.sunoapi.org/api/v1";
@@ -12,4 +12,6 @@ export function getCallbackUrl(): string {
   return `${base}/api/webhooks/suno?token=${encodeURIComponent(SUNO_WEBHOOK_SECRET)}`;
 }
 
-export const DEFAULT_MODEL: SunoModel = "V5_5";
+// Single source: the default model lives in @sunoflow/core (drives prompt limits
+// across server + clients).
+export const DEFAULT_MODEL = DEFAULT_SUNO_MODEL;
