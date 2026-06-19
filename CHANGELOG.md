@@ -2,6 +2,70 @@
 
 All notable changes to this project. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the version numbers follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- **Inspire now uses the full link-followed article as the lyrics generation basis, not a one-sentence excerpt** (commit `7cdc2b7b`). The RSS pipeline already downloaded the full article into `RssItem.content` (≤5000 chars), but every downstream consumer truncated it back to a sentence: the Today's-Picks digest built `suggestedPrompt` from title + mood + topics only (and `DigestItem` never carried `content`), the Inspire→Generate handoff clamped the body to 520 / total 800 chars, and `/api/lyrics/generate` + the generator textarea capped the basis at 2000. Now `DigestItem` carries `content`, both Inspire paths (RSS card "Generate from this" + Today's Picks) pass the whole article as `lyricsprompt`, and the basis caps are raised to 6000. **Runtime-unverified** (typecheck + unit only). Two truncation levers remain open by design: `CONTENT_THRESHOLD = 200` (link-following only fires for very short or read-more-marked inline bodies) and the auto-generate cron path (`buildSimplePromptFromItem`, body sliced to 1500).
+
+### Changed
+
+- **Generate form lyrics-field limit raised 3000 → 5000 chars.** The cap was an artificial SunoFlow constant (`generate-form/helpers.ts`); the form always generates on the default model `V5_5`, whose real Suno limit is 5000 (V4 is 3000). The server's `validatePrompt` already enforced the true per-model limit, so the client constant needlessly capped lyrics 2000 chars below what the API accepts.
+
+### Added
+
+- **Brand + visual-system baseline as agent-readable docs.** Three artifacts now live at the project root and capture strategy, visual identity, and current UX reality:
+  - `PRODUCT.md` — strategic spec (register, users, brand personality, anti-references, design principles, accessibility). Register is `product`, brand personality is *Playful · Vibrant · Disciplined*, dark-first.
+  - `DESIGN.md` — Google Stitch-format visual spec with YAML frontmatter (color, typography, rounded, spacing, component tokens in OKLCH) + 6 fixed sections (Overview, Colors, Typography, Elevation, Components, Do's and Don'ts). North star *"The Late-Night Studio Console"*. Primary accent is Electric Magenta `oklch(62% 0.27 350)`, replacing the legacy violet `#7c3aed`. Geist Sans + Geist Mono as the only typefaces; Mono reserved for user-authored content (lyrics, prompts, slugs, IDs).
+  - `.impeccable/design.json` — sidecar in the impeccable schema carrying 8-step tonal ramps, shadow / motion / breakpoint tokens, and 8 self-contained HTML+CSS component snippets (Live-panel consumer behaviour not verified in this session).
+- **As-is UX audit (`JOURNEYS.md`) + reproducible Playwright recorder (`/tmp/sunoflow-journey/journey.mjs`, ephemeral).** Recorded 2026-06-02 against a fresh authed user on an empty database. 32 screenshots, desktop 1440x900 + mobile 390x844. Surfaces 7 priority findings, smallest blast-radius first:
+  1. `/library` renders a "Failed to load library" **error** for fresh users instead of an empty state. Same bug on mobile.
+  2. Mashup (the entire Edit mode) is paywalled behind "Upgrade to Starter", contradicting PRODUCT.md's three-equal-modes claim.
+  3. Two app shells coexist: Shell A (Library, Generate, Mashup) has no top bar; Shell B (Templates, Settings, Feed, Profile, Discover) has search + credit pill + email-verify banner. Half-finished migration.
+  4. Four overlapping names for one concept inside the generate form: Template / Preset / Style Template / Saved Style.
+  5. Discovery cluster (`/discover`, `/explore`, `/feed`, `/radio`, `/inspire` + auto-generated playlists "Your Top Hits" / "Mood: Chill") implements exactly the recommendation-rail / "Made for you" pattern PRODUCT.md explicitly bans.
+  6. Whole-app visual migration: light theme + violet + pure white surfaces dominate every screen; no screen matches the new DESIGN.md yet.
+  7. Twenty top-level routes vs the "three modes" model. Real surface area: Browse + Generate + Edit + Discover + Social + Meta. Strategic alignment needed before further UX work.
+
+### Notes
+
+- No application code changed in this entry. The docs are the artifact. Treat DESIGN.md as the target system; existing components (1049 inline `bg-violet-*` / `text-violet-*` utilities, `font-family: Arial` fallback in `globals.css`) migrate on touch.
+- `JOURNEYS.md` is a dated audit snapshot. The living UX spec (`UX.md`, hybrid YAML-metadata + 6-section markdown) is not yet written; it is the next decision point and depends on resolving the mode-model question (three or six modes).
+
+### Mobile (native app, `apps/mobile`) — navigation, song-detail parity, UI polish
+
+Native iOS app (Expo SDK 56, New Arch) work. JS-only unless noted; runtime behavior is
+statically verified (tsc + eslint) but **not yet device-tested** — the M004 GATE dev
+build is still the gate.
+
+- **Fixed navigation tree** (commits `26b8b832`, `6c180f93`, `e33f6e6c`). Reworked the
+  ad-hoc flat stack into a native music-app model. Single source of truth in
+  `apps/mobile/src/navigation.ts`: `switchTo` (nav bars) / `goToSection` (in-view jumps)
+  collapse the stack to the home base (`dismissAll` → `navigate`) so sections never stack
+  and Back returns to the home tab; `openPlayer` uses `navigate` (never `push`) so the
+  Now-Playing modal can't open twice (was 21 `push("/player")` sites). Bottom tab bar +
+  mini-player rendered once globally in the root layout (`GlobalChrome`), persistent
+  across all screens, hidden on `/login` + `/player`. Full UX spec + call-site audit in
+  `apps/mobile/NAVIGATION.md`. Consequence: every scrollable screen now clears the global
+  tab bar via `MINIPLAYER_CLEARANCE` (16 stragglers fixed).
+- **Bottom-right tab → Profile** (`365928c2`); Settings moved to the sidebar. Profile
+  screen now surfaces Stats (+ streak) at the top.
+- **Song detail PWA parity** (`7f0fdc49`). The Suno **style** prompt (`tags` string) was
+  never rendered — now in a labeled metadata card (Style / Model / Duration / Created /
+  Instrumental / Suno ID). Tags card shows real custom `SongTags` (`fetchSongTags`)
+  instead of the always-empty `song.tags`. Added thumbs up/down feedback
+  (`src/api/song-feedback.ts`), an "Add to playlist" action (route now takes
+  `?songId&title`), and a "Variation — view the original" link. `SongDetail` gains
+  `isInstrumental` + `parentSongId`.
+- **Consistent UI/UX polish across ~35 screens** (`c15eb6b2`, `beb193ec`): shared
+  `EmptyState`, surface cards, unified inputs/labels/primary buttons, section headers,
+  mini-player clearance — theme tokens only, no logic changes.
+- **Animation toolchain present but unwired:** Reanimated 4 + worklets + gesture-handler
+  + screens are installed (SDK 56, New Arch on) but `babel.config.js` lacks
+  `react-native-worklets/plugin` and nothing imports them yet. Software Mansion
+  `react-native-best-practices` + Expo `building-native-ui` skills vendored into
+  `.claude/skills/` (gitignored).
+
 ## [0.4.0] — 2026-05-28
 
 Remote MCP server. The `sunoflow` Claude Code plugin used to require the operator to clone the repo, set `DATABASE_URL`, and spawn `tsx mcp/server.ts` to use the MCP server. After this release the plugin ships a `.mcp.json` pointing at the hosted Streamable-HTTP endpoint — `/plugin install sunoflow` + `export SUNOFLOW_API_KEY=sk-...` is the entire setup.

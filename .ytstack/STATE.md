@@ -1,7 +1,7 @@
 ---
 project: SunoFlow
 slug: SunoFlow
-last_updated: 2026-06-02T15:00:00Z
+last_updated: 2026-06-07T00:00:00Z
 current_milestone: M004
 active_slice: S02
 active_task: none
@@ -12,9 +12,13 @@ status: brownfield-imported
 
 **Status:** M004 in progress. **S01 monorepo restructure DONE + DEPLOYED LIVE** (`a8b85236`): pnpm workspace + `packages/core` (`@sunoflow/core`), web at root, Expo standalone; verified local docker build → CI green → Railway build → healthcheck → Online, `sunoflow.app/api/health` = 200. **Verifiable backend DONE** (vitest+tsc): `POST /api/v1/auth/token` login (`fe95d8a8`) with per-email brute-force rate-limit; bearer auth + revoke + library endpoints already existed. **Mobile core vertical written** (UNTESTED — headless, no simulator): Expo app, track-player background-audio + lock-screen, login→keychain, Library on real `/api/songs`, Player, playlists list+detail, search, secure sign-out. CI unblocked by ignoring a non-applicable vitest advisory (`5571ded2`).
 
+**Native app feature/UX wave (2026-06-04 → 06-07, all on `main`, pushed; CODE-COMPLETE but UNTESTED on device).** The Expo app grew far past the v1 vertical: full feature waves pulled from the PWA (credits, delete-account, RSS/inspire, personas/templates/presets management, profile depth, analytics/insights, stems/versions/collaborators, lyrics-edit, music-video generation), multiple themes, invite-only registration. Then this cycle: (1) **navigation rework** → native music-app model (`apps/mobile/src/navigation.ts`, global chrome, singleton player; spec `apps/mobile/NAVIGATION.md`); (2) **bottom-right tab → Profile**, stats atop profile; (3) **song-detail PWA parity** (Style/metadata card, real custom tags, thumbs feedback, add-to-playlist, variation link); (4) **consistent UI/UX polish across ~35 screens**; (5) global-chrome **bottom-bar clearance** fixed on 16 screens. Animation stack (Reanimated 4 + worklets + gesture-handler) is installed (New Arch on) but **unwired** (no babel `react-native-worklets/plugin`, no imports). SM + Expo animation skills vendored in `.claude/skills/`.
+
 ## Next action
 
-THE GATE: user runs ONE free-Apple-ID Expo dev build (`apps/mobile/README.md`) to verify the whole vertical on-device — esp. background audio surviving a 10+ min lock (S03/T07, the milestone's proof). Everything the agent wrote is unverifiable without this.
+THE GATE (unchanged + now bigger): user runs ONE free-Apple-ID Expo dev build (`apps/mobile/README.md`) to verify the whole vertical on-device — esp. background audio surviving a 10+ min lock (S03/T07, the milestone's proof). Everything the agent wrote is unverifiable without this. The device pass should now ALSO confirm: navigation behavior (no stack accumulation, single player, persistent chrome — checklist in `apps/mobile/NAVIGATION.md`), song-detail Style/tags/thumbs, and bottom-bar clearance on form screens.
+
+Deliberate mobile follow-ups (NOT done): wire Reanimated (add `react-native-worklets/plugin` to `apps/mobile/babel.config.js` + native rebuild) before any reanimated-based transitions; deferred playback bugs (auto-advance double-skip on slow nets, 700ms poll re-render churn).
 
 iOS-v1 surface CODE-COMPLETE (untested): login, library + search, player (background audio), playlists list + detail, secure sign-out. Remaining agent-writable RN polish (UNTESTED, shape-dependent — better after a device pass): favorites/reactions, native waveform, playlist drag-reorder.
 Login endpoint now fully brute-force protected: per-IP (30/h) + per-email (10/h), verified (`70694d98`). Mini-player bar added (`2fb2c075`, untested). Login security = closed.

@@ -48,9 +48,14 @@ next-env.d.ts
 prisma.config.ts
 
 # Agents local user settings
-.claude/settings.local.json
+.claude/settings.local.json/wra
 .claude/scheduled_tasks.lock
 .claude/worktrees/
+.claude/skills/building-native-ui
+.claude/skills/react-native-best-practices
+
+# VSCode settings
+.vscode/settings.json
 
 # ytstack runtime artifacts (per-install session journal — never tracked)
 .ytstack/journal/

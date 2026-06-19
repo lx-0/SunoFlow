@@ -348,3 +348,82 @@ Stdio remains as a deprecated legacy entry point (stderr banner at startup) for 
 **Reason:** A done milestone with a lingering open slice is roadmap drift — future agents see contradictory state. Bearer-only auth is production-fine for the closed beta; closed-beta users (operator + invitees) all have an API key flow already. OAuth is forward-looking infrastructure (Dynamic Client Registration, PKCE, refresh-token rotation) that deserves its own scope discussion (better-auth provider plugin vs node-oauth2-server vs in-house) when the demand surfaces.
 
 **Reference:** `.ytstack/M003-S05-PLAN.md` (status: cancelled), `.ytstack/M003-ROADMAP.md` (4 done + 1 cancelled), STATE.md "M003 closed 2026-06-02" marker.
+
+## 2026-06-05: Brand + visual-system baseline captured as PRODUCT.md + DESIGN.md + .impeccable/design.json
+
+**Context:** Code shipped a never-deliberate visual system (light-default `globals.css`, violet `#7c3aed` accent reused 1049 times across components, `font-family: Arial` fallback, pure white surfaces, gradient text in marketing copy). No PRODUCT.md or DESIGN.md existed. The impeccable skill produced both as agent-readable docs.
+
+**Options considered:**
+A) Scan-as-is — capture exactly what the code currently does. Honest snapshot, useless for variant generation against a defined brand.
+B) Seed-greenfield — treat the project as if no visual system existed yet, write a minimal scaffold. Discards the established Geist Sans + 16/12/20px-radius vocabulary that IS deliberate.
+C) **Scan + Re-Anchor** — inventory existing tokens, but write DESIGN.md so they fit the just-declared PRODUCT.md (dark-first, anti-violet, OKLCH, new accent). Flag the gap as Don'ts.
+
+**Chose:** **C**, with Electric Magenta `oklch(62% 0.27 350)` as the new primary accent, replacing violet.
+
+**Reason:** The user's three-word brand direction (*Playful · Vibrant · Disciplined*) plus four explicit anti-references — generic SaaS, suno.com's pop-AI execution, trendy AI lila-gradient look, consumer-music-app feeds — directly excluded the current code's palette. Re-anchoring DESIGN.md to the strategy is what the docs are for; the code matches over time via migrate-on-touch. North star "The Late-Night Studio Console" locks the dark-first decision. Geist Sans + Geist Mono retained (already loaded); Mono is reserved for user-authored content (lyrics, prompts, slugs, IDs) as a structural visual signal.
+
+**Reference:** `PRODUCT.md`, `DESIGN.md`, `.impeccable/design.json` at project root. CHANGELOG `[Unreleased]`, roadmap `### Milestone 10` (PROPOSED).
+
+## 2026-06-05: As-is UX captured as JOURNEYS.md via reproducible Playwright recorder
+
+**Context:** PRODUCT.md was written without a journey audit. User pushed back: a complete UX inspection matters more than swapping colors. Needed an empirical snapshot of the live app, not source-archaeology, so the gap between strategy and code is concrete.
+
+**Options considered:**
+A) Static code-trace per mode — read AppShell + LibraryView + GenerateForm + GlobalPlayer source. Faster, sees code intent, misses real friction.
+B) **Full Playwright walkthrough with screenshots against local dev** — drive the actual app, capture 30+ surfaces, record observations from rendered output.
+C) Critique a single surface in depth, then decide whether to broaden.
+D) Operator-dictated journeys — user describes the late-night session, agent reconstructs.
+
+**Chose:** **B**.
+
+**Reason:** Color-swap without UX context is symptom-level work. A real walkthrough surfaced seven priority findings that source-reading would not have: (1) `/library` hard-errors instead of rendering an empty state for fresh users; (2) Mashup is fully paywalled, contradicting the three-equal-modes claim; (3) two app shells coexist; (4) four overlapping names for one concept (Template / Preset / Style Template / Saved Style); (5) the Discovery cluster (`/discover` + `/explore` + `/feed` + `/radio` + `/inspire` + auto-generated playlists) implements the exact "Made for you" recommendation pattern PRODUCT.md bans; (6) whole-app visual migration scope; (7) twenty top-level routes vs the three-modes story. Local-dev setup required several workarounds (DATABASE_URL override away from the `projects-db` docker-network alias; `pnpm dev` wrapper bypass for pnpm-11 `confirmModulesPurge`; `HOSTNAME=0.0.0.0` for Chromium reachability in the macOS sandbox) — captured in the project memory `reference_sunoflow_local_dev_recipe.md`.
+
+**Reference:** `JOURNEYS.md`, `/tmp/sunoflow-journey/journey.mjs` (ephemeral recorder), `/tmp/sunoflow-journey/*.png` (32 screenshots, ephemeral), CHANGELOG `[Unreleased]`, roadmap `### Milestone 10` (PROPOSED).
+
+## 2026-06-05: UX-spec format chosen — hybrid YAML-metadata + Stitch 6-section markdown, file `UX.md`, not yet written
+
+**Context:** Need a format for a living UX spec (separate from the dated JOURNEYS.md audit snapshot). Researched the agentic-engineering doc landscape and the local ytstack idiom.
+
+**Options considered:**
+A) GitHub Spec Kit (`spec.md` + `plan.md` + `tasks.md`) — heavyweight, engineering-flavored, opinionated CLI workflow.
+B) Gherkin `.feature` files (Given-When-Then) — doubles as test source, verbose for screen-state work, under-specifies *feel*.
+C) XState statecharts (TS source or Stately JSON) — exhaustive on transitions, steep entry, non-designer-reviewer hostile.
+D) Addy-Osmani-style prose — lightweight, no tooling enforcement.
+E) **Hybrid: ytstack-style YAML frontmatter for metadata + Stitch 6-section markdown body + Mermaid + tables as structured escape-hatches inside prose-first sections.**
+
+**Chose:** **E**, file name `UX.md`, sibling to PRODUCT.md + DESIGN.md at the project root.
+
+**Reason:** ytstack convention uses YAML frontmatter for queryable metadata (`name`, `slug`, `created`, `updated`, `status`), not for token data. Stitch DESIGN.md uses YAML frontmatter for tokens. SunoFlow already runs both side-by-side. The hybrid reads naturally in both contexts: frontmatter for lineage + screen/journey counts, body for prose with Mermaid statecharts and screen-state tables. Sections in fixed order: Modes / Screens / States / Journeys / Transitions / Empty-States. JOURNEYS.md remains a dated audit-snapshot type; UX.md is the living spec.
+
+**Not yet written.** The mode-model decision (three modes per PRODUCT.md, or six per the route inventory) blocks UX.md authorship: writing it now would cement the unresolved gap.
+
+**Reference:** Project memory `feedback_ux_spec_format_for_ytstack.md`. CHANGELOG `[Unreleased]`. Roadmap `### Milestone 10` deliverable "Write `UX.md` (living spec) after mode decision".
+
+## 2026-06-07: Native app navigation — fixed tree, switch-not-stack, singleton player, global chrome
+
+**Context:** After longer device use the user reported the app had no fixed navigation tree — every sidebar/bottom-nav/in-view navigation pushed a new view, so Back walked an ever-growing stack, and the Now-Playing player could open multiple times (had to be closed twice). Not native music-app UX.
+
+**Root cause:** Every feature screen was a root-level sibling of `(tabs)`, and ~68 of ~70 navigations used `router.push`. `router.navigate` only pops when the *exact* route is already in history, so moving between fresh sections always stacked. 21 sites did `router.push("/player")` → `push` always adds a new modal.
+
+**Options considered:**
+A) Real expo-router `Tabs` with per-tab stacks — restructure ~45 screens into tab folders; the sidebar reaches everything regardless of tab, so per-tab placement is arbitrary. Heavy, risky.
+B) **One stack + disciplined navigation primitives** (collapse-to-base on section switch, `navigate` for the player) + persistent chrome moved to the root layout.
+C) Leave it; document the back behavior.
+
+**Chose:** **B**. Single source of truth `apps/mobile/src/navigation.ts`: `switchTo` (nav bars) + `goToSection` (in-view section jumps) both `dismissAll()` (popToTop of closest stack, guarded by `canDismiss()`) then `navigate` — sections never stack, Back returns to the home tab; `openPlayer` uses `navigate` (never `push`) so the modal can't duplicate. Bottom tab bar + mini-player rendered once in the root layout (`GlobalChrome`), hidden on `/login` + `/player`. Drill-downs (`/song/[id]`, `/playlist/[id]`, Settings sub-pages, player "…" peeks) keep `push`; `generate/upload/mashup` keep `replace`.
+
+**Reason:** Avoids a 45-file folder restructure while fixing both reported bugs at the architecture level (not per-screen). `dismissAll()`/`canDismiss()` verified present in expo-router ~56.2.8. Consequence: making chrome global means every scrollable screen must clear the tab bar — standardized on `MINIPLAYER_CLEARANCE` (16 stragglers fixed). Runtime behavior is statically verified only; on-device checklist in `apps/mobile/NAVIGATION.md`.
+
+**Reference:** `apps/mobile/NAVIGATION.md` (full spec + call-site audit), commits `26b8b832` / `6c180f93` / `e33f6e6c`, project memory `project_mobile_navigation_model.md`. CHANGELOG `[Unreleased]`.
+
+## 2026-06-07: Animation toolchain — keep Reanimated 4 (New Arch), wire on demand; vendor SM + Expo skills
+
+**Context:** User asked which skills/tooling help with native transitions + animations. The app already had the high-end stack installed but unused; the Sidebar uses plain RN `Animated`.
+
+**Findings:** New Architecture is ON (`app.json` `newArchEnabled: true`). `react-native-reanimated@4.3.1`, `react-native-worklets@0.8.3`, `react-native-gesture-handler`, `react-native-screens` are installed (SDK 56 bundled versions) but unwired: `babel.config.js` lacks `react-native-worklets/plugin` and nothing imports them. Reanimated v4 requires New Arch (satisfied).
+
+**Chose:** Keep Reanimated 4; wire it only when first needed (add the worklets babel plugin LAST + native rebuild). For transitions reachable now without a rebuild, use expo-router `Stack.Screen` `animation` options + RN `Animated`/`LayoutAnimation`. Installed two authoritative skills project-local (`SunoFlow/.claude/skills/`, gitignored): Software Mansion `react-native-best-practices` (the Reanimated/gesture maintainers) and Expo `building-native-ui`.
+
+**Reason:** No new native deps needed — the stack is already there and matches our arch. Vendoring the skills keeps them project-scoped without touching `~/.claude` mid-session; the official `/plugin marketplace add software-mansion-labs/skills` + `expo/skills` route (global + auto-update) is the user-run alternative. `expo-app-design` from older docs no longer exists; `building-native-ui` is the successor.
+
+**Reference:** project memory `project_mobile_animation_toolchain.md`. CHANGELOG `[Unreleased]`.
