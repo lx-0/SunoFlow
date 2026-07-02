@@ -252,6 +252,37 @@ test.describe("Library — Song Actions", () => {
   });
 });
 
+// ─── Library Virtualized List ───────────────────────────────────────────────
+
+test.describe("Library — Virtualized list", () => {
+  test("scrolling reveals songs beyond the first viewport", async ({ page }) => {
+    await loginViaUI(page, testEmail, TEST_PASSWORD);
+
+    const songs = Array.from({ length: 40 }, (_, i) =>
+      mockSong({ id: `scroll-${i + 1}`, title: `Scroll Song ${i + 1}` }),
+    );
+    await mockSongsAPI(page, songs);
+
+    await gotoLibraryWithMock(page);
+    await expect(page.getByText("Scroll Song 1", { exact: true })).toBeVisible({
+      timeout: 5000,
+    });
+
+    // The app scrolls inside <main id="main-content"> (h-screen overflow-hidden
+    // shell), not the window. Scroll it to the bottom in steps so the
+    // virtualizer can measure rows and extend the total size as we go.
+    const scroller = page.locator("#main-content");
+    for (let i = 0; i < 10; i++) {
+      await scroller.evaluate((el) => el.scrollTo(0, el.scrollHeight));
+      await page.waitForTimeout(200);
+    }
+
+    await expect(page.getByText("Scroll Song 40", { exact: true })).toBeVisible({
+      timeout: 5000,
+    });
+  });
+});
+
 // ─── Library Batch Selection ────────────────────────────────────────────────
 
 test.describe("Library — Batch Selection", () => {

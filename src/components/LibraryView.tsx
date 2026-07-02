@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useMemo } from "react";
-import { useWindowVirtualizer } from "@tanstack/react-virtual";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -36,6 +36,17 @@ interface LibraryViewProps {
   initialSongs: Song[];
   title?: string;
   enableServerSearch?: boolean;
+}
+
+/** Nearest ancestor that actually scrolls (overflow-y auto/scroll). */
+function findScrollParent(el: HTMLElement): HTMLElement | null {
+  let node = el.parentElement;
+  while (node) {
+    const { overflowY } = getComputedStyle(node);
+    if (overflowY === "auto" || overflowY === "scroll") return node;
+    node = node.parentElement;
+  }
+  return null;
 }
 
 export function LibraryView({
@@ -163,13 +174,31 @@ export function LibraryView({
   });
 
   // ─── Virtualizer ────────────────────────────────────────────────────────
+  // The app shell never scrolls the window: AppShell is h-screen
+  // overflow-hidden and content scrolls inside <main id="main-content">
+  // (overflow-y-auto). The virtualizer must therefore bind to that scroll
+  // container — a window-bound virtualizer sees a scroll offset of 0 forever
+  // and only ever renders the first viewport of rows.
+  const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
   const listScrollMarginRef = useRef(0);
   useLayoutEffect(() => {
-    listScrollMarginRef.current = songListRef.current?.offsetTop ?? 0;
+    const listEl = songListRef.current;
+    if (!listEl) return;
+    const el =
+      findScrollParent(listEl) ??
+      (document.scrollingElement as HTMLElement | null);
+    setScrollEl(el);
+    if (el) {
+      listScrollMarginRef.current =
+        listEl.getBoundingClientRect().top -
+        el.getBoundingClientRect().top +
+        el.scrollTop;
+    }
   });
 
-  const rowVirtualizer = useWindowVirtualizer({
+  const rowVirtualizer = useVirtualizer({
     count: viewMode === "list" ? songs.length : 0,
+    getScrollElement: () => scrollEl,
     estimateSize: () => 120,
     overscan: 5,
     scrollMargin: listScrollMarginRef.current,
