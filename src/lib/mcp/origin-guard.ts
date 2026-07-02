@@ -10,8 +10,11 @@
  * `*` disables the check (intended only for self-hosters who control their
  * own network boundary).
  *
- * Dev bypass: when `NODE_ENV=development` the check accepts missing Origin
- * headers so curl/Inspector probes from localhost work.
+ * Requests WITHOUT an Origin header are accepted: only browsers send Origin,
+ * and a DNS-rebinding attack always carries the attacker page's Origin — a
+ * missing header cannot be a rebinding vector. Non-browser MCP clients
+ * (Claude Code CLI, SDKs, curl) never send Origin; auth is enforced
+ * separately by the API-key check that runs after this guard (#117).
  */
 
 const DEFAULT_ALLOWED = [
@@ -34,25 +37,22 @@ function parseAllowed(): string[] | "*" {
 export interface OriginCheckResult {
   ok: boolean;
   origin: string | null;
-  reason?: "missing" | "blocked";
+  reason?: "blocked";
   allowed?: readonly string[] | "*";
 }
 
 export function checkOrigin(req: Request): OriginCheckResult {
   const allowed = parseAllowed();
   const origin = req.headers.get("origin");
-  const isDev =
-    process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test";
 
   if (allowed === "*") {
     return { ok: true, origin, allowed };
   }
 
   if (!origin) {
-    // No Origin header — accept in dev (curl/Inspector), reject in prod.
-    return isDev
-      ? { ok: true, origin: null, allowed }
-      : { ok: false, origin: null, reason: "missing", allowed };
+    // No Origin header — non-browser client (CLI/SDK/curl). Accept; the
+    // API-key check downstream is the auth boundary.
+    return { ok: true, origin: null, allowed };
   }
 
   if (allowed.includes(origin)) {
