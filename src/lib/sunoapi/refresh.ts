@@ -1,14 +1,11 @@
 import { BASE_URL } from "./constants";
 import { buildHeaders } from "./fetch";
+import { resolveClipAudioUrl } from "./mappers";
 import { logger } from "@/lib/logger";
 
 function extractUrls(raw: Record<string, unknown>): { audioUrl?: string; imageUrl?: string } | null {
-  // Prefer sourceAudioUrl (cdn1.suno.ai, permanent) over audioUrl (tempfile CDN, expires)
-  const audioUrl =
-    (raw.sourceAudioUrl as string) ||
-    (raw.source_audio_url as string) ||
-    (raw.audio_url as string) ||
-    (raw.audioUrl as string);
+  // Shared precedence (sourceAudioUrl → … → derived cdn1.suno.ai/<id>.mp3).
+  const audioUrl = resolveClipAudioUrl(raw);
   if (!audioUrl) return null;
   const imageUrl = (raw.image_url as string) || (raw.imageUrl as string) || undefined;
   return { audioUrl, imageUrl };
@@ -36,10 +33,7 @@ export async function fetchFreshUrls(
         data?: { response?: { sunoData?: Record<string, unknown>[] } };
       };
       const clips = json.data?.response?.sunoData ?? [];
-      const hasUrl = (c: Record<string, unknown>): boolean => {
-        const url = (c.sourceAudioUrl as string) || (c.source_audio_url as string) || (c.audio_url as string) || (c.audioUrl as string);
-        return typeof url === "string" && !!url;
-      };
+      const hasUrl = (c: Record<string, unknown>): boolean => !!resolveClipAudioUrl(c);
       // When sunoAudioId is provided, pick the matching clip — picking
       // clips[0] returns the sibling's URL for alternates that share a task.
       const match = sunoAudioId

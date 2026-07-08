@@ -28,6 +28,14 @@ export async function pollOnce(
   }
 
   if (taskResult.status === "SUCCESS" && taskResult.songs.length > 0) {
+    // Guard: never canonicalize a SUCCESS with no resolvable audio into a
+    // terminal ready-but-unplayable row (the 2026-07-08 silent-failure class).
+    // mapRawSong already derives cdn1.suno.ai/<id>.mp3 from the clip id, so an
+    // empty audioUrl here means the clip has no id at all — genuinely nothing
+    // to play. Keep polling; on timeout it becomes a loud, logged failure.
+    if (!taskResult.songs[0].audioUrl) {
+      return { kind: "processing" };
+    }
     return { kind: "ready", songs: taskResult.songs };
   }
 
