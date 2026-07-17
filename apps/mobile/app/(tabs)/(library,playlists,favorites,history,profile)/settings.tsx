@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { View, Text, Pressable, StyleSheet, Alert, Share, ActivityIndicator } from "react-native";
+import { View, Text, Pressable, StyleSheet, Alert, Share, ActivityIndicator, ScrollView } from "react-native";
 import { router, useFocusEffect, type Href } from "expo-router";
 import * as FileSystem from "expo-file-system/legacy";
 import { getApiKeyId, clearSession } from "@/auth/session";
@@ -8,6 +8,7 @@ import { exportUserData } from "@/api/account";
 import { fetchCredits, type Credits } from "@/api/credits";
 import { useTheme } from "@/theme/ThemeContext";
 import { THEMES, THEME_LABELS, type ThemeMode, type ThemeName } from "@/theme/theme";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 
 const MODES: { key: ThemeMode; label: string }[] = [
   { key: "system", label: "System" },
@@ -60,7 +61,7 @@ export default function SettingsScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.bg }]} contentContainerStyle={styles.content}>
       <Text style={[styles.sectionTitle, { color: colors.textFaint }]}>Appearance</Text>
       <View style={[styles.segment, { backgroundColor: colors.surface }]}>
         {MODES.map((m) => {
@@ -141,12 +142,13 @@ export default function SettingsScreen() {
       <Pressable style={[styles.signOut, { backgroundColor: colors.surfaceAlt }]} onPress={signOut}>
         <Text style={[styles.signOutText, { color: colors.danger }]}>Sign out</Text>
       </Pressable>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, gap: 10 },
+  container: { flex: 1 },
+  content: { flexGrow: 1, padding: 20, gap: 10, paddingBottom: MINIPLAYER_CLEARANCE },
   sectionTitle: { fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, marginTop: 8 },
   segment: { flexDirection: "row", borderRadius: 12, padding: 4, gap: 4 },
   segmentItem: { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 9 },

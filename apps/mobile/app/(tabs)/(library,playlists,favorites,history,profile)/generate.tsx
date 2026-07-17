@@ -13,7 +13,7 @@ import {
   Alert,
   ActionSheetIOS,
 } from "react-native";
-import { Stack, router, useLocalSearchParams } from "expo-router";
+import { Stack, router, useLocalSearchParams, useFocusEffect, useNavigation, type Href } from "expo-router";
 import { Sparkles, AlertCircle, CheckCircle2, Wand2, Star, ChevronDown } from "lucide-react-native";
 import {
   GENERATION_PROMPT_MAX_LENGTH,
@@ -92,6 +92,23 @@ export default function GenerateScreen() {
       aliveRef.current = false;
     };
   }, []);
+
+  // Defer the completion redirect until this screen is focused again: under the
+  // Tabs model a blind router.replace would replace the root of whatever tab the
+  // user switched to while polling. Focus is read imperatively at completion
+  // time (navigation.isFocused()): with freezeOnBlur on the Tabs, a frozen
+  // screen's useIsFocused hook value would stay stale until unfreeze.
+  const navigation = useNavigation();
+  const pendingHrefRef = useRef<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      const href = pendingHrefRef.current;
+      if (href) {
+        pendingHrefRef.current = null;
+        router.replace(href as Href);
+      }
+    }, []),
+  );
 
   const loadStyleTemplates = useCallback(() => {
     setStStatus("loading");
@@ -252,6 +269,10 @@ export default function GenerateScreen() {
         continue;
       }
       if (res.ready) {
+        if (!navigation.isFocused()) {
+          pendingHrefRef.current = `/song/${job.songId}`;
+          return;
+        }
         router.replace(`/song/${job.songId}`);
         return;
       }
@@ -263,7 +284,7 @@ export default function GenerateScreen() {
     }
     setError("Generation is taking longer than expected. Check your library shortly.");
     setPhase("failed");
-  }, []);
+  }, [navigation]);
 
   const onSubmit = useCallback(async () => {
     const submitPrompt = (customMode ? lyrics : style).trim();

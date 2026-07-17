@@ -31,7 +31,7 @@ export default function LoginScreen() {
       }
       const json = (await res.json()) as { key: string; id: string };
       await setSession(json.key, json.id);
-      router.replace("/(tabs)");
+      router.replace("/");
     } catch (e) {
       setError("Network error, check your connection.");
       console.error("[login] failed", e);

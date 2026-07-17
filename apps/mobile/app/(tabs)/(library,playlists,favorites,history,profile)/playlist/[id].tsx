@@ -14,6 +14,7 @@ import {
 } from "@/api/playlist-actions";
 import { sharePlaylist } from "@/lib/share";
 import { SongRow } from "@/components/SongRow";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { usePrompt } from "@/components/PromptSheet";
 import { playQueue } from "@/playback/controls";
 import type { Song } from "@/types";
@@ -204,6 +205,7 @@ export default function PlaylistDetailScreen() {
       <FlatList
         data={songs}
         keyExtractor={(s) => s.id}
+        contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
         ListHeaderComponent={
           <View style={st.hero}>
             {songs[0]?.artworkUrl ? (

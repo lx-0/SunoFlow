@@ -13,6 +13,7 @@ import { Search as SearchIcon, ListMusic, AlertCircle } from "lucide-react-nativ
 import { HttpError } from "@/api/client";
 import { search, type PlaylistHit, type SearchResults } from "@/api/search";
 import { SongRow } from "@/components/SongRow";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { playQueue } from "@/playback/controls";
 import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
@@ -130,6 +131,7 @@ export default function SearchScreen() {
       ) : (
         <SectionList
           sections={sections}
+          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
           keyExtractor={(item) =>
             item.kind === "song" ? `song:${item.song.id}` : `playlist:${item.playlist.id}`
           }

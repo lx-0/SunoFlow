@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePathname, type Href } from "expo-router";
 import { useTheme } from "@/theme/ThemeContext";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { switchTo } from "@/navigation";
+import { switchTo, isAtTabRoot } from "@/navigation";
 import {
   Menu, Search, Plus, BookOpen, ListMusic, Heart, Clock, Layers, Globe, Sparkles, UserPlus, Wand2,
   LayoutGrid, Tag, Radio, Users, BarChart3, Bell, Settings, Lightbulb, TrendingUp, User,
@@ -17,6 +17,9 @@ import {
 // so it reloads without a native rebuild.
 
 const WIDTH = 280;
+
+// The five tab-root paths where the left-edge swipe opens the sidebar.
+const TAB_ROOTS = new Set(["/", "/playlists", "/favorites", "/history", "/profile"]);
 
 type Ctx = { open: boolean; openSidebar: () => void; closeSidebar: () => void };
 const SidebarContext = createContext<Ctx>({ open: false, openSidebar: () => {}, closeSidebar: () => {} });
@@ -108,6 +111,11 @@ export function Sidebar() {
 
   // Edge-swipe to open: a thin left strip claims the gesture only on a clear
   // rightward drag (taps + vertical scrolls pass through to the screen below).
+  // Only offered on the five tab roots — on pushed screens the same edge
+  // gesture is the native swipe-back, and the two must not fight. The
+  // isAtTabRoot() check covers pushed COPIES of tab-root routes (e.g. a
+  // profile pushed from a notification), whose pathname alone would collide.
+  const atTabRoot = TAB_ROOTS.has(pathname) && isAtTabRoot();
   const edgePan = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
@@ -125,8 +133,9 @@ export function Sidebar() {
     });
   }, [open, anim, reduceMotion]);
 
-  // When closed, only the left edge-swipe catcher is present.
+  // When closed, only the left edge-swipe catcher is present (tab roots only).
   if (!mounted) {
+    if (!atTabRoot) return null;
     return <View style={[styles.edge, { top: insets.top + 44 }]} {...edgePan.panHandlers} />;
   }
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, Text, Image, Pressable, Modal, StyleSheet } from "react-native";
 import { router, type Href } from "expo-router";
-import { goToSection } from "@/navigation";
+import { closePlayerThen } from "@/navigation";
 import { formatDuration } from "@sunoflow/core";
 import { usePlayback } from "@/playback/usePlayback";
 import {
@@ -74,15 +74,18 @@ export default function PlayerScreen() {
     }
   }
 
+  // Player-contextual sheets (lyrics / queue / add-to-playlist) stack as
+  // modals over the player. Content destinations close the player first via
+  // closePlayerThen, landing on the active tab's stack with chrome visible.
   const menu: { label: string; Icon: LucideIcon; go: () => void }[] = [
     { label: "Lyrics", Icon: FileText, go: () => router.push("/lyrics") },
-    { label: "Versions", Icon: GitBranch, go: () => songId && router.push(`/song-versions/${songId}` as Href) },
+    { label: "Versions", Icon: GitBranch, go: () => songId && closePlayerThen(`/song-versions/${songId}` as Href) },
     { label: "Add to playlist", Icon: ListPlus, go: () => router.push("/add-to-playlist") },
     { label: "Up next (queue)", Icon: ListMusic, go: () => router.push("/queue") },
-    { label: "Comments", Icon: MessageCircle, go: () => songId && router.push(`/comments/${songId}`) },
-    { label: "Related songs", Icon: Disc3, go: () => songId && router.push(`/related/${songId}`) },
-    { label: "Song details", Icon: Info, go: () => songId && router.push(`/song/${songId}`) },
-    { label: "Extend this song", Icon: Sparkles, go: () => songId && goToSection(`/generate?parentSongId=${songId}`) },
+    { label: "Comments", Icon: MessageCircle, go: () => songId && closePlayerThen(`/comments/${songId}`) },
+    { label: "Related songs", Icon: Disc3, go: () => songId && closePlayerThen(`/related/${songId}`) },
+    { label: "Song details", Icon: Info, go: () => songId && closePlayerThen(`/song/${songId}`) },
+    { label: "Extend this song", Icon: Sparkles, go: () => songId && closePlayerThen(`/generate?parentSongId=${songId}`) },
   ];
 
   function runMenu(go: () => void) {
@@ -111,7 +114,7 @@ export default function PlayerScreen() {
       </View>
 
       <View style={styles.body}>
-        <Pressable style={styles.artWrap} disabled={!songId} onPress={() => songId && router.push(`/song/${songId}`)} accessibilityRole="button" accessibilityLabel="Open song details">
+        <Pressable style={styles.artWrap} disabled={!songId} onPress={() => songId && closePlayerThen(`/song/${songId}`)} accessibilityRole="button" accessibilityLabel="Open song details">
           {current?.videoUrl ? (
             <VideoCover uri={current.videoUrl} style={styles.art} />
           ) : current?.artworkUrl ? (
@@ -123,7 +126,7 @@ export default function PlayerScreen() {
 
         <View style={styles.titleWrap}>
           <View style={styles.titleRow}>
-            <Pressable style={styles.titleTap} disabled={!songId} onPress={() => songId && router.push(`/song/${songId}`)}>
+            <Pressable style={styles.titleTap} disabled={!songId} onPress={() => songId && closePlayerThen(`/song/${songId}`)}>
               <Text style={styles.title} numberOfLines={1}>{current?.title ?? "Nothing playing"}</Text>
             </Pressable>
             {currentIsAlternate ? (

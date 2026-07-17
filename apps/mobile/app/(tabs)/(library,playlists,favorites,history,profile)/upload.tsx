@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
-import { Stack, router } from "expo-router";
+import { Stack, router, useFocusEffect, useNavigation, type Href } from "expo-router";
 import { Upload, AlertCircle } from "lucide-react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
@@ -35,6 +35,23 @@ export default function UploadScreen() {
     aliveRef.current = true;
     return () => { aliveRef.current = false; };
   }, []);
+
+  // Defer the completion redirect until this screen is focused again: under the
+  // Tabs model a blind router.replace would replace the root of whatever tab the
+  // user switched to while polling. Focus is read imperatively at completion
+  // time (navigation.isFocused()): with freezeOnBlur on the Tabs, a frozen
+  // screen's useIsFocused hook value would stay stale until unfreeze.
+  const navigation = useNavigation();
+  const pendingHrefRef = useRef<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      const href = pendingHrefRef.current;
+      if (href) {
+        pendingHrefRef.current = null;
+        router.replace(href as Href);
+      }
+    }, []),
+  );
 
   const pickFile = useCallback(async () => {
     try {
@@ -73,6 +90,10 @@ export default function UploadScreen() {
           continue;
         }
         if (res.ready) {
+          if (!navigation.isFocused()) {
+            pendingHrefRef.current = `/song/${job.songId}`;
+            return;
+          }
           router.replace(`/song/${job.songId}`);
           return;
         }

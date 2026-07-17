@@ -26,6 +26,7 @@ import {
   type Milestone,
 } from "@/api/profile";
 import { fetchSongsPage } from "@/api/songs";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import type { Song } from "@/types";
 import { useTheme } from "@/theme/ThemeContext";
 import { fonts, type ThemeColors } from "@/theme/theme";
@@ -473,7 +474,7 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-    scroll: { padding: 16, gap: 16 },
+    scroll: { padding: 16, gap: 16, paddingBottom: MINIPLAYER_CLEARANCE },
     card: {
       backgroundColor: c.surface,
       borderRadius: 14,

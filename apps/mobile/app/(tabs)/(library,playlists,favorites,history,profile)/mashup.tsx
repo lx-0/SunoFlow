@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, TextInput, Pressable, Switch, FlatList, ActivityIndicator, StyleSheet } from "react-native";
-import { Stack, router, useFocusEffect } from "expo-router";
+import { Stack, router, useFocusEffect, useNavigation, type Href } from "expo-router";
 import { Check, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchLibrary } from "@/api/songs";
@@ -35,6 +35,23 @@ export default function MashupScreen() {
       aliveRef.current = false;
     };
   }, []);
+
+  // Defer the completion redirect until this screen is focused again: under the
+  // Tabs model a blind router.replace would replace the root of whatever tab the
+  // user switched to while polling. Focus is read imperatively at completion
+  // time (navigation.isFocused()): with freezeOnBlur on the Tabs, a frozen
+  // screen's useIsFocused hook value would stay stale until unfreeze.
+  const navigation = useNavigation();
+  const pendingHrefRef = useRef<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      const href = pendingHrefRef.current;
+      if (href) {
+        pendingHrefRef.current = null;
+        router.replace(href as Href);
+      }
+    }, []),
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -87,6 +104,10 @@ export default function MashupScreen() {
           continue;
         }
         if (res.ready) {
+          if (!navigation.isFocused()) {
+            pendingHrefRef.current = `/song/${job.songId}`;
+            return;
+          }
           router.replace(`/song/${job.songId}`);
           return;
         }

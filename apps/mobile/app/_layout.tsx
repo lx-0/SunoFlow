@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Stack, router, usePathname } from "expo-router";
+import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import {
@@ -14,10 +14,10 @@ import {
   GeistMono_500Medium,
   GeistMono_600SemiBold,
 } from "@expo-google-fonts/geist-mono";
+import { Pressable } from "react-native";
+import { X } from "lucide-react-native";
 import { getApiKey } from "@/auth/session";
 import { SidebarProvider, Sidebar } from "@/components/Sidebar";
-import { MiniPlayer, TAB_BAR_HEIGHT } from "@/components/MiniPlayer";
-import { BottomTabBar } from "@/components/BottomTabBar";
 import { PromptProvider } from "@/components/PromptSheet";
 import { ThemeProvider, useTheme } from "@/theme/ThemeContext";
 
@@ -47,20 +47,21 @@ export default function RootLayout() {
   );
 }
 
-// Persistent chrome (bottom tab bar + mini-player) rendered once, globally, so
-// it survives navigating into any section or detail screen — the native
-// music-app pattern. Hidden on login and on the full-screen Now-Playing modal.
-function GlobalChrome() {
-  const pathname = usePathname();
-  if (pathname === "/login" || pathname === "/player") return null;
+// Explicit close affordance for the player-contextual sheets (swipe-down also
+// dismisses; the button makes the exit discoverable).
+function SheetClose() {
+  const { colors } = useTheme();
   return (
-    <>
-      <MiniPlayer tabBarHeight={TAB_BAR_HEIGHT} />
-      <BottomTabBar />
-    </>
+    <Pressable hitSlop={10} onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Close">
+      <X color={colors.textDim} size={22} />
+    </Pressable>
   );
 }
 
+// Root stack: the tab navigator (which owns the bottom tab bar + mini-player),
+// login, and the player layer. The Now-Playing screen is a headerless native
+// modal (swipe-down to dismiss); its contextual sheets (queue, lyrics,
+// add-to-playlist) stack as further modals above it.
 function RootNav() {
   const { colors, scheme } = useTheme();
 
@@ -85,11 +86,11 @@ function RootNav() {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="player" options={{ presentation: "modal", title: "Now Playing" }} />
-        <Stack.Screen name="playlist/[id]" options={{ title: "Playlist" }} />
+        <Stack.Screen name="player" options={{ presentation: "modal", headerShown: false }} />
+        <Stack.Screen name="queue" options={{ presentation: "modal", headerRight: () => <SheetClose /> }} />
+        <Stack.Screen name="lyrics" options={{ presentation: "modal", headerRight: () => <SheetClose /> }} />
+        <Stack.Screen name="add-to-playlist" options={{ presentation: "modal", headerRight: () => <SheetClose /> }} />
       </Stack>
-      {/* Chrome before Sidebar so the drawer overlays the tab bar when open. */}
-      <GlobalChrome />
       <Sidebar />
     </SidebarProvider>
   );

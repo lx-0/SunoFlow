@@ -7,6 +7,7 @@ import { AlertCircle, Plus, Rss, X } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchRssFeeds, addRssFeed, deleteRssFeed, type RssFeed } from "@/api/rss";
 import { EmptyState } from "@/components/EmptyState";
+import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -129,6 +130,7 @@ export default function RssFeedsScreen() {
         <FlatList
           data={feeds}
           keyExtractor={(f) => f.id}
+          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
           renderItem={({ item }) => (
             <Pressable style={styles.row} onPress={() => rowActions(item)}>
               <View style={styles.meta}>

@@ -4,130 +4,139 @@
 > screens relate, how Back behaves, and how the Now-Playing player is presented.
 > Lives next to `README.md`; the logic lives in `src/navigation.ts`.
 
-## The problem this fixes
+## The model (since the tabs rework)
 
-The app grew as one flat stack: every feature screen was a root-level sibling and
-nearly every navigation used `router.push(...)`. Two concrete UX failures resulted:
+The app is a **real Tabs navigator** with **one stack per tab** — the native
+music-app architecture (Apple Music / Spotify):
 
-1. **Unbounded back stack.** Moving between sections (Library → Discover → Radio →
-   Tags) pushed a new screen each time. `router.navigate` only pops when the *exact*
-   target already exists in history, so cross-section moves always stacked. Drilling
-   into a song and then switching sections left Back pointing "wherever you were",
-   not at a stable home.
-2. **The player opened multiple times.** 21 call sites did `router.push("/player")`.
-   `push` always adds a screen, so opening Now-Playing while an instance already
-   existed stacked a second modal — you had to close it twice.
+- **Tab switches are instant.** No push animation, no remount. Each tab keeps
+  its own navigation stack *and* scroll position while you're away.
+- **Back always returns to where you actually came from.** Every section and
+  detail screen is pushed onto the *current* tab's stack. iOS swipe-back works
+  on every pushed screen.
+- **The active tab stays highlighted** while you're drilled into any screen of
+  its stack (navigator state, not pathname matching).
+- **Re-tapping the active tab pops its stack** back to the tab's home screen.
+- **Now Playing is a single headerless native modal** over everything
+  (swipe-down or chevron to dismiss). Queue / Lyrics / Add-to-playlist stack as
+  sheets *above* it; content destinations (song details, comments, …) close the
+  player first and land on the active tab's stack with chrome visible.
 
-Neither is standard native music-app behavior. The fixes below restore a fixed
-navigation tree with predictable Back and a single player.
+### History of the previous model (why it felt unnatural)
 
-## Mental model
-
-A native music app has **one persistent home**, **shallow drill-downs**, and **one
-Now-Playing surface**. SunoFlow maps to exactly three navigation intents:
-
-| Intent | Trigger | Primitive | Back behavior |
-| --- | --- | --- | --- |
-| **Switch section** | Bottom nav, Sidebar | `switchTo(route, pathname)` | Returns to the home tab (Library), not the previous section |
-| **Go to section** | In-view action that jumps to a section ("Use in Generate", "Browse library", "Manage RSS feeds") | `goToSection(href)` | Returns to the home tab |
-| **Drill down** | Opening a song / playlist / detail from a list | `router.push(...)` | Returns to the originating list |
-| **Open player** | Mini-player tap, "play" actions | `openPlayer()` | Dismisses the modal back to where you were |
-
-`switchTo` and `goToSection` share one collapse-then-navigate engine (dismissAll →
-navigate); `switchTo` only adds a no-op guard for tapping the already-active tab.
-Everything else is a consequence of keeping every call site mapped to one of these.
+The first rework (commit `26b8b832`) kept a single flat root Stack and faked
+tabs via `dismissAll()+navigate()`. Consequences: every tab change animated
+like a push and remounted the target (scroll loss), Back jumped to Library
+regardless of origin, Profile was a pushed screen with a back chevron inside a
+"tab", the tab highlight died on ~90% of screens, and the player modal carried
+a doubled header. The current model replaces all of that structurally instead
+of via call-site discipline.
 
 ## The tree
 
 ```
 Root Stack
-├── (tabs)            ← home base (persistent), bottom-nav destinations
-│   ├── index         "Library"      ┐
-│   ├── playlists     "Playlists"    │ reachable from the bottom tab bar
-│   ├── favorites     "Favorites"    │ (Profile is a root section, see below)
-│   ├── history       "History"      │
-│   └── settings      "Settings"     ┘
-├── login             (no chrome)
-├── player            (modal, "Now Playing", no chrome)
-└── <sections + details>   ← discover, radio, profile, stats, song/[id], …
-                              pushed over the base; chrome stays visible
+├── (tabs)                          ← Tabs navigator (owns bottom bar + mini-player)
+│   └── (library,playlists,favorites,history,profile)   ← ONE shared route group,
+│       │                             instantiated as five independent stacks
+│       ├── index        "Library"    (anchor of (library))
+│       ├── playlists    "Playlists"  (anchor of (playlists))
+│       ├── favorites    "Favorites"  (anchor of (favorites))
+│       ├── history      "History"    (anchor of (history))
+│       ├── profile      "Profile"    (anchor of (profile))
+│       └── <everything else>         sections (discover, radio, generate, …),
+│                                     details (song/[id], playlist/[id], …),
+│                                     settings + its sub-pages
+├── login                           (no chrome)
+├── player                          (modal, headerless, swipe-down dismiss)
+├── queue │ lyrics │ add-to-playlist  (sheets stacked over the player)
 ```
 
-- **Persistent chrome** — the bottom tab bar + mini-player — is rendered **once,
-  globally** in `app/_layout.tsx` (`GlobalChrome`), so it survives navigating into
-  any section or detail. It is hidden only on `login` and the `player` modal. This
-  is the Spotify / Apple Music pattern: tab bar + mini-player stay put while you
-  browse; Now-Playing is a modal over everything.
-- **Sidebar** is the full menu (every section). It overlays the chrome (rendered
-  after `GlobalChrome`) and is also reachable by left-edge swipe anywhere.
-- **Bottom tab bar**: Library · Playlists · Favorites · History · Profile.
-  Settings moved to the Sidebar's "You" section.
+- The **array group** `(library,…,profile)` is expo-router's shared-routes
+  mechanism: every route inside exists once per tab group, so any tab can push
+  any section/detail onto *its own* stack. `unstable_settings` anchors each
+  group to its home screen.
+- **Chrome lives inside `(tabs)/_layout.tsx`**: the custom `BottomTabBar` is the
+  Tabs navigator's `tabBar` (rendered in-flow, so content never scrolls under
+  it) and the `MiniPlayer` floats above it. Login and the player modal have no
+  chrome by construction — no pathname checks.
+- **Sidebar** remains the full menu (every section), overlaying everything. Its
+  left-edge swipe is only active on the five tab roots: on pushed screens that
+  edge belongs to iOS swipe-back.
 
-## Rules
+## Navigation intents (src/navigation.ts)
 
-1. **Section navigation never stacks.** Both `switchTo` (nav bars) and
-   `goToSection` (in-view jumps) call `router.dismissAll()` (popToTop of the
-   closest stack) when `router.canDismiss()`, then `router.navigate(href)`. Net
-   effect: the back stack is at most `[home base] → [one section]`. Back from any
-   section returns to the home tab. Params on an object href are preserved (e.g.
-   "Use in Generate" carries `style`/`prompt`/`personaId`).
-2. **The player is a singleton.** `openPlayer()` uses `router.navigate("/player")`,
-   never `push`. `navigate` pops to an existing `/player` instead of stacking a
-   duplicate. **Never** call `router.push("/player")`.
-3. **Drill-downs push.** Contextual children (`/song/[id]`, `/playlist/[id]`,
-   `/stems/[id]`, Settings → API keys, …) keep `router.push(...)`. Back returns to
-   the parent list — this is correct and intentional.
-4. **One source of truth.** All section-switch and player-open logic lives in
-   `src/navigation.ts`. New nav surfaces import `switchTo` / `openPlayer` rather
-   than calling `router` directly.
+| Intent | Trigger | Primitive | Back behavior |
+| --- | --- | --- | --- |
+| **Switch tab** | Bottom bar, sidebar tab rows | `switchTo(route, pathname)` → group-qualified `router.navigate` | Tab keeps its own stack; re-tap pops to tab home |
+| **Go to section** | Sidebar section rows, in-view jumps ("Use in Generate") | `goToSection(href)` → `router.navigate` | Returns to the screen you came from |
+| **Drill down** | Song / playlist / detail from a list | `router.push(...)` at the call site | Returns to the originating list |
+| **Open player** | Mini-player tap, play actions | `openPlayer()` → `router.navigate("/player")` | Swipe-down / chevron dismisses the modal |
+| **Leave player to content** | Player menu: Song details, Comments, Related, Versions, Extend; art/title tap | `closePlayerThen(href)` | Dismisses the modal, then pushes on the active tab |
 
-## Implementation map
+Rules:
 
-- `src/navigation.ts` — `switchTo()`, `goToSection()`, `openPlayer()` (+ rationale).
-- `app/_layout.tsx` — `GlobalChrome` (mini-player + bottom tab bar), hidden on
-  `login` / `player`, rendered before `Sidebar`.
-- `app/(tabs)/_layout.tsx` — home base Stack only; chrome removed (now global).
-- `src/components/BottomTabBar.tsx`, `src/components/Sidebar.tsx` — switchers call
-  `switchTo(route, usePathname())`.
-- `src/components/MiniPlayer.tsx` + 20 play-action sites — `openPlayer()` /
-  `router.navigate("/player")` instead of `push`.
+1. **Tab switches dispatch at the navigator level, never via hrefs.**
+   expo-router's `linkTo` cannot express "switch tab without touching its
+   stack": navigating an anchor href from a drilled tab PUSHES a duplicate
+   anchor, and cross-tab hrefs carry nested `screen` params that reset the
+   target tab (verified against the vendored react-navigation source in
+   expo-router 56). The BottomTabBar registers the Tabs navigator with
+   `src/navigation.ts`; `jumpToTab` dispatches `NAVIGATE` by NAME with no
+   params (switch, stack untouched — the TabRouter resolves `payload.name`
+   only) and the tab bar dispatches `POP_TO_TOP` on a focused re-tap — the
+   stock react-navigation tab-bar actions.
+2. **Tab-root hrefs (`/`, `/playlists`, …) are tab switches everywhere.**
+   `goToSection`/`switchTo` detect them (`TAB_GROUP_BY_HREF`) and route through
+   `jumpToTab`; a plain `router.navigate("/")` from another tab would push a
+   Library copy into that tab instead.
+3. **The player is a singleton.** `openPlayer()` uses `navigate`, never `push`.
+   `closePlayerThen` must group-qualify its push (`/(tabs)/(group)/…`): the
+   dismiss and the push drain in one router batch, so path resolution still
+   sees the modal's segments and a bare href would always land in the first
+   group — the Library tab.
+4. **Async completions must not navigate blind.** Poll loops (generate /
+   mashup / upload) gate their redirect on `useIsFocused` and defer it until
+   the screen is focused again — otherwise the replace hits whatever tab the
+   user moved to meanwhile.
+5. **Sections are ordinary pushes now.** Stacks may grow during a session —
+   that is native behavior; re-tapping the tab or Back unwinds them.
+6. **One source of truth.** New nav surfaces import from `src/navigation.ts`
+   rather than hand-rolling `router` calls for tab switches or player exits.
 
-## Call-site audit
+### Deep links
 
-Every navigation in the app goes through the `router` singleton (no `<Link>` /
-`useRouter`). All call sites were classified:
-
-**Converted to `goToSection` (in-view jumps to a section — previously stacked):**
-`style-templates` → Generate · `presets` → Generate · `prompt-templates` →
-Generate · `personas` → Generate · `inspire` → Generate / Manage RSS · `generations`
-→ Generate (empty CTA) · `favorites` → Library (empty CTA) · player "…" → Extend.
-
-**Kept as `router.push` (correct drill-downs — Back returns to the parent):**
-- Item details: `/song/[id]`, `/playlist/[id]`, `/u/[username]`, `/tag/[id]`,
-  `/collection/[id]`, `/stems/[id]`, `/song-versions/[id]`, `/song-analytics/[id]`,
-  `/song-tags/[id]`, `/related/[id]`, `/lyrics-edit/[id]`, `/comments/[id]`,
-  `/collaborators/[id]`, `/replace-section/[id]`.
-- Settings → its sub-pages (`api-keys`, `rss-feeds`, `notification-settings`,
-  `manage-tags`, `rate-limits`, `feedback`, `change-password`, `delete-account`):
-  drill-downs **within** the Settings section; Back → Settings is intended.
-- Player "…" peeks (Lyrics, Versions, Add-to-playlist, Queue, Comments, Related,
-  Song details): contextual to the now-playing song; layer over the modal and
-  Back returns to the player (the now-playing-peek pattern).
-- Notification row → its target (a specific song/user/playlist = a detail).
-
-**Kept as `router.replace` (correct — must not be in the back stack):**
-`generate` / `upload` / `mashup` → the created song; `generate` → Library;
-`playlist-invite` → the joined playlist; root auth gate → `login`.
+Cold-start deep links to shared-group routes (e.g. `/playlist-invite/[token]`,
+`/song/[id]`) resolve into the FIRST group — they open in the Library tab with
+the target pushed there. That is the accepted behavior for now ("open in
+Library context"); if a link should land in a semantic tab, rewrite it to a
+group-qualified href via a `+native-intent` layer.
 
 ## Verification (on-device — REQUIRED)
 
-Static checks pass (`tsc` clean, `eslint` 0 errors) but navigation behavior is
-runtime-only. On a dev build, confirm:
+Static checks pass (`tsc` clean, `expo lint` 0 errors) but navigation behavior
+is runtime-only. On a dev build, confirm:
 
-- [ ] Library → Discover → Radio → Tags, then Back **once** → Library (not Tags→Radio→…).
-- [ ] Open a song detail, then switch section via Sidebar; Back → home tab, not the song.
-- [ ] Open the player from the mini-player, dismiss; open again — only ever one modal.
-- [ ] Trigger play from a list (which auto-opens the player) twice — no stacked players.
-- [ ] Bottom tab bar + mini-player visible on section/detail screens; hidden on the player modal and login.
-- [ ] Sidebar drawer overlays the bottom tab bar when open.
-- [ ] Tapping the already-active bottom tab is a no-op (no flicker / re-push).
+- [ ] Tab switch (Library → Playlists → Library) is instant, no slide animation,
+      and Library keeps its scroll position.
+- [ ] Drill into a song from Library, switch to Playlists and back — Library
+      still shows the song detail; Back pops to the Library list.
+- [ ] Re-tapping the active tab pops its stack to the tab home.
+- [ ] Profile tab: hamburger (no back chevron), stays highlighted on its
+      sub-screens.
+- [ ] Sidebar → Discover → Radio → Back lands on Discover, Back again on the
+      originating tab home. iOS swipe-back works on every pushed screen.
+- [ ] Sidebar edge-swipe opens the drawer on tab roots only; on pushed screens
+      the same edge triggers swipe-back instead.
+- [ ] Player opens as a headerless sheet (no "Now Playing" native bar), swipe-down
+      dismisses; only ever one player instance.
+- [ ] Player menu: Queue / Lyrics / Add-to-playlist appear as sheets over the
+      player (close via X or swipe); Song details / Comments / Related / Versions /
+      Extend close the player and land on the active tab with chrome visible.
+- [ ] Mini-player + tab bar visible on all tab screens, absent on login; they
+      slide under the player modal instead of popping in/out.
+- [ ] Last list rows reachable above the mini-player while music plays
+      (Library, Search, Playlist detail, Settings, Profile, RSS feeds).
+- [ ] Sign out (Settings) lands on login with no chrome; logging back in lands
+      on Library.
+- [ ] Generate → song ready → replaces to the song detail inside the current tab.
