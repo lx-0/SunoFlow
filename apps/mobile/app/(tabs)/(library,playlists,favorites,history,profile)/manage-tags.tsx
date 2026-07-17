@@ -1,7 +1,8 @@
 import { useCallback, useState } from "react";
 import {
-  View, Text, TextInput, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS,
+  View, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS,
 } from "react-native";
+import { Text, TextInput } from "@/components/Themed";
 import { Stack, router, useFocusEffect } from "expo-router";
 import { AlertCircle, Plus, Tag as TagIcon, X } from "lucide-react-native";
 import { HttpError } from "@/api/client";

@@ -80,8 +80,11 @@ function theme(accent: { dark: [string, string]; light: [string, string] }): Rec
 // Add a theme here and it appears in the Settings picker automatically.
 // `magenta` is the brand default (DESIGN.md Electric Magenta). The other families
 // are user-pickable alternates — none uses the banned violet/indigo/purple hue.
+// Dark magenta accentStrong = accent: DESIGN.md button-primary is the Electric
+// Magenta fill with surface-deep text (4.84:1); the former deep fill (#b40074)
+// only reached 3.0:1 against onAccent and failed WCAG AA on every primary CTA.
 export const THEMES = {
-  magenta: theme({ dark: ["#ef009c", "#b40074"], light: ["#cc0085", "#b40074"] }),
+  magenta: theme({ dark: ["#ef009c", "#ef009c"], light: ["#cc0085", "#b40074"] }),
   ocean: theme({ dark: ["#4cc9f0", "#0096c7"], light: ["#0096c7", "#0077b6"] }),
   sunset: theme({ dark: ["#ff8fab", "#e5383b"], light: ["#e5383b", "#d00000"] }),
   forest: theme({ dark: ["#74c69d", "#2d9d6f"], light: ["#2d9d6f", "#1b7a52"] }),

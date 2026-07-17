@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Pressable, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
+import { Text, TextInput } from "@/components/Themed";
 import { Stack, router, useFocusEffect, useNavigation, type Href } from "expo-router";
 import { Upload, AlertCircle } from "lucide-react-native";
 import * as DocumentPicker from "expo-document-picker";

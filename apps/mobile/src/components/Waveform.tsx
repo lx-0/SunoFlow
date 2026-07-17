@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { View, Text, Pressable, Animated, StyleSheet, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
+import { View, Pressable, Animated, StyleSheet, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
+import { Text } from "@/components/Themed";
 import { useAudioPlayer } from "@simform_solutions/react-native-audio-waveform";
 import { downloadAudioForPeaks, normalizePeaks } from "@/playback/peaks";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -115,7 +116,9 @@ export function Waveform({
               marginHorizontal: 1,
               height: `${Math.max(2, amp * 100)}%`,
               borderRadius: 1,
-              backgroundColor: i < playedBars ? colors.text : colors.border,
+              // Played portion is the brand magenta (DESIGN.md waveform spec),
+              // matching the MiniPlayer's progress fill.
+              backgroundColor: i < playedBars ? colors.accent : colors.border,
             }}
           />
         ))}

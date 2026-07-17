@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { View, Text, Pressable, Animated, ScrollView, PanResponder, StyleSheet } from "react-native";
+import { View, Pressable, Animated, ScrollView, PanResponder, StyleSheet } from "react-native";
+import { Text } from "@/components/Themed";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePathname, type Href } from "expo-router";
 import { useTheme } from "@/theme/ThemeContext";

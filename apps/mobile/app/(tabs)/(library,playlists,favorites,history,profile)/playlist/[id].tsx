@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { View, Text, Image, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS } from "react-native";
+import { View, Image, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS } from "react-native";
+import { Text } from "@/components/Themed";
 import { Stack, router, useLocalSearchParams, useFocusEffect, type Href } from "expo-router";
 import { ChevronUp, ChevronDown, Pencil, Trash2, Share2, Users, MoreHorizontal, Play, Shuffle, ListMusic } from "lucide-react-native";
 import { fetchPlaylistSongs } from "@/api/playlists";

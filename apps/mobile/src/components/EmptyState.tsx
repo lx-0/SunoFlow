@@ -1,4 +1,5 @@
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Pressable, StyleSheet } from "react-native";
+import { Text } from "@/components/Themed";
 import type { LucideIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";

@@ -1,7 +1,8 @@
 import { useCallback, useState } from "react";
 import {
-  View, Text, Pressable, Switch, ScrollView, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS,
+  View, Pressable, Switch, ScrollView, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS,
 } from "react-native";
+import { Text } from "@/components/Themed";
 import { Stack, useFocusEffect } from "expo-router";
 import {
   fetchEmailPrefs, updateEmailPrefs, fetchPushPrefs, updatePushPrefs,

@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { View, FlatList, Pressable, ActivityIndicator, RefreshControl, StyleSheet } from "react-native";
+import { Text } from "@/components/Themed";
 import { Stack, useFocusEffect, router, type Href } from "expo-router";
 import { Bell, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
@@ -24,11 +25,12 @@ export default function NotificationsScreen() {
   const [items, setItems] = useState<AppNotification[] | null>(null);
   const [unread, setUnread] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const load = useCallback(() => {
-    setItems(null);
+  const load = useCallback((clear = true) => {
+    if (clear) setItems(null);
     setError(null);
-    fetchNotifications()
+    return fetchNotifications()
       .then((res) => {
         setItems(res.notifications);
         setUnread(res.unreadCount);
@@ -43,7 +45,16 @@ export default function NotificationsScreen() {
       });
   }, []);
 
-  useFocusEffect(useCallback(() => load(), [load]));
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    load(false).finally(() => setRefreshing(false));
+  }, [load]);
 
   const onRowPress = useCallback((n: AppNotification) => {
     if (!n.read) {
@@ -78,7 +89,7 @@ export default function NotificationsScreen() {
             ) : null,
         }}
       />
-      {error ? (
+      {error && !items ? (
         <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !items ? (
         <View style={styles.centered}>
@@ -95,6 +106,9 @@ export default function NotificationsScreen() {
           data={items}
           keyExtractor={(n) => n.id}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
+          }
           renderItem={({ item }) => (
             <Pressable style={styles.row} onPress={() => onRowPress(item)}>
               <View style={styles.dotCol}>

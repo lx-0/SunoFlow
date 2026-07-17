@@ -1,8 +1,9 @@
 import { useCallback, useState } from "react";
 import {
-  View, Text, TextInput, Pressable, Switch, FlatList, Image, Share,
+  View, Pressable, Switch, FlatList, Image, Share,
   ActivityIndicator, StyleSheet, Alert,
 } from "react-native";
+import { Text, TextInput } from "@/components/Themed";
 import { Stack, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { Users, X, Link2, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";

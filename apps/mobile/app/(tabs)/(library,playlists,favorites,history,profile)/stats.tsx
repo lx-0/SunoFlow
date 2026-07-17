@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
+import { View, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
+import { Text } from "@/components/Themed";
 import { Stack, useFocusEffect } from "expo-router";
 import { Flame, Trophy, TriangleAlert } from "lucide-react-native";
 import { HttpError } from "@/api/client";

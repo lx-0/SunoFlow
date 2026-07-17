@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { View, FlatList, Pressable, ActivityIndicator, StyleSheet, RefreshControl } from "react-native";
+import { Text } from "@/components/Themed";
 import { Stack, useFocusEffect, type Href } from "expo-router";
 import { goToSection } from "@/navigation";
 import { Sparkles, RefreshCw } from "lucide-react-native";
@@ -22,23 +23,35 @@ export default function InspireScreen() {
   const styles = makeStyles(colors);
   const [picks, setPicks] = useState<InspirationDigest | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    setLoading(true);
     setError(null);
     try {
       setPicks(await fetchTodaysPicks(new Date()));
     } catch (e) {
       setError(e instanceof HttpError ? `Couldn't load picks (HTTP ${e.status})` : "Network error");
       console.error("[inspire] load failed", e);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { void load(); }, [load]));
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      void load().finally(() => setLoading(false));
+    }, [load]),
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await load();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [load]);
 
   async function generate() {
     if (generating) return;
@@ -115,6 +128,9 @@ export default function InspireScreen() {
           data={picks.items}
           keyExtractor={(item, i) => `${item.feedTitle ?? "x"}-${i}`}
           contentContainerStyle={{ padding: 16, paddingBottom: MINIPLAYER_CLEARANCE }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
+          }
           ListHeaderComponent={
             <View style={styles.listHeader}>
               <Text style={styles.headerTitle}>{picks.title}</Text>

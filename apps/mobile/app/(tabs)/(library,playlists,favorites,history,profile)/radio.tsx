@@ -1,14 +1,15 @@
 import { useCallback, useState } from "react";
 import {
   View,
-  Text,
   FlatList,
   Pressable,
   ScrollView,
   ActivityIndicator,
   ActionSheetIOS,
+  RefreshControl,
   StyleSheet,
 } from "react-native";
+import { Text } from "@/components/Themed";
 import { Stack, router, useFocusEffect } from "expo-router";
 import { Radio, ChevronDown, AlertCircle } from "lucide-react-native";
 import { formatDuration } from "@sunoflow/core";
@@ -37,13 +38,14 @@ export default function RadioScreen() {
   const [error, setError] = useState<string | null>(null);
   const [mood, setMood] = useState<string | null>(null);
   const [genre, setGenre] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
-  const load = useCallback((nextMood: string | null, nextGenre: string | null) => {
-    setSongs(null);
+  const load = useCallback((nextMood: string | null, nextGenre: string | null, clear = true) => {
+    if (clear) setSongs(null);
     setError(null);
-    fetchRadio({ mood: nextMood ?? undefined, genre: nextGenre ?? undefined })
+    return fetchRadio({ mood: nextMood ?? undefined, genre: nextGenre ?? undefined })
       .then(setSongs)
       .catch((e: unknown) => {
         setError(e instanceof HttpError ? `Failed to load radio (HTTP ${e.status})` : "Network error");
@@ -88,6 +90,11 @@ export default function RadioScreen() {
 
   const startStation = useCallback(() => {
     load(mood, genre);
+  }, [load, mood, genre]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    load(mood, genre, false).finally(() => setRefreshing(false));
   }, [load, mood, genre]);
 
   const header = (
@@ -138,7 +145,7 @@ export default function RadioScreen() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Radio" }} />
-      {error ? (
+      {error && !songs ? (
         <>
           {header}
           <EmptyState tone="error" Icon={AlertCircle} title={error} />
@@ -163,6 +170,9 @@ export default function RadioScreen() {
           keyExtractor={(s, i) => `${s.id}:${i}`}
           ListHeaderComponent={header}
           contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
+          }
           renderItem={({ item, index }) => (
             <SongRow
               song={item}

@@ -1,4 +1,5 @@
-import { View, Text, Image, Pressable, StyleSheet, type GestureResponderEvent } from "react-native";
+import { View, Image, Pressable, StyleSheet, type GestureResponderEvent } from "react-native";
+import { Text } from "@/components/Themed";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Disc3 } from "lucide-react-native";
 import { usePlayback } from "@/playback/usePlayback";

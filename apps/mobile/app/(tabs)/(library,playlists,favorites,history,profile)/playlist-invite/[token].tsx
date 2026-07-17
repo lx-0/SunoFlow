@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { View, Text, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { Text } from "@/components/Themed";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import type { Href } from "expo-router";
 import { Mail } from "lucide-react-native";

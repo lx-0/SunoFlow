@@ -1,5 +1,6 @@
-import { useCallback, useState } from "react";
-import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert } from "react-native";
+import { useCallback, useRef, useState } from "react";
+import { View, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, RefreshControl } from "react-native";
+import { Text } from "@/components/Themed";
 import { Stack, router, useFocusEffect } from "expo-router";
 import { Plus, ListMusic, AlertCircle, Play, Shuffle } from "lucide-react-native";
 import { fetchPlaylists, fetchPlaylistSongs, type PlaylistSummary } from "@/api/playlists";
@@ -18,24 +19,45 @@ export default function PlaylistsScreen() {
   const prompt = usePrompt();
   const [items, setItems] = useState<PlaylistSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const load = useCallback(() => {
-    let alive = true;
+  // One fetch shared by the focus load and pull-to-refresh. The generation
+  // counter drops writes from stale in-flight requests: the focus cleanup bumps
+  // it, so a response arriving after blur (or after a newer focus) can't touch state.
+  const genRef = useRef(0);
+
+  const load = useCallback(async (isActive: () => boolean) => {
     setError(null);
-    fetchPlaylists()
-      .then((p) => alive && setItems(p))
-      .catch((e) => {
-        if (alive) {
-          setError(e instanceof HttpError && e.status === 401 ? "Please sign in again." : "Failed to load playlists");
-        }
-        console.error("[playlists] load failed", e);
-      });
-    return () => {
-      alive = false;
-    };
+    try {
+      const p = await fetchPlaylists();
+      if (isActive()) setItems(p);
+    } catch (e) {
+      if (isActive()) {
+        setError(e instanceof HttpError && e.status === 401 ? "Please sign in again." : "Failed to load playlists");
+      }
+      console.error("[playlists] load failed", e);
+    }
   }, []);
 
-  useFocusEffect(load);
+  useFocusEffect(
+    useCallback(() => {
+      const gen = ++genRef.current;
+      void load(() => genRef.current === gen);
+      return () => {
+        genRef.current++;
+      };
+    }, [load]),
+  );
+
+  const onRefresh = useCallback(async () => {
+    const gen = genRef.current;
+    setRefreshing(true);
+    try {
+      await load(() => genRef.current === gen);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [load]);
 
   const promptCreate = useCallback(async () => {
     const value = await prompt({ title: "New Playlist", message: "Name your playlist" });
@@ -43,7 +65,8 @@ export default function PlaylistsScreen() {
     if (!name) return;
     try {
       await createPlaylist(name);
-      load();
+      const gen = genRef.current;
+      void load(() => genRef.current === gen);
     } catch (e) {
       console.error("[playlists] create failed", e);
       Alert.alert("Couldn't create playlist", "Please try again.");
@@ -82,7 +105,7 @@ export default function PlaylistsScreen() {
     />
   );
 
-  if (error)
+  if (error && !items)
     return (
       <View style={st.list}>
         {header}
@@ -111,6 +134,9 @@ export default function PlaylistsScreen() {
         data={items}
         keyExtractor={(p) => p.id}
         contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
+        }
         renderItem={({ item }) => (
           <View style={st.row}>
             <Pressable style={st.rowMain} onPress={() => router.push(`/playlist/${item.id}`)}>

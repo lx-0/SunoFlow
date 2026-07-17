@@ -2,13 +2,12 @@ import { createContext, useCallback, useContext, useRef, useState, type ReactNod
 import {
   Modal,
   View,
-  Text,
-  TextInput,
   Pressable,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
 } from "react-native";
+import { Text, TextInput } from "@/components/Themed";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 

@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 import { SidebarToggle } from "@/components/Sidebar";
 import { useTheme } from "@/theme/ThemeContext";
+import { fonts } from "@/theme/theme";
 
 // One Stack per tab, instantiated once per group segment. Every section and
 // detail screen lives in this shared group, so it can be pushed onto whichever
@@ -47,6 +48,7 @@ export default function TabStackLayout({ segment }: { segment: string }) {
       screenOptions={{
         headerStyle: { backgroundColor: colors.bg },
         headerTintColor: colors.text,
+        headerTitleStyle: { fontFamily: fonts.sansSemibold },
         contentStyle: { backgroundColor: colors.bg },
         headerBackButtonDisplayMode: "minimal",
       }}

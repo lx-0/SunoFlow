@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
-  Text,
-  TextInput,
   Pressable,
   Switch,
   ScrollView,
@@ -13,6 +11,7 @@ import {
   Alert,
   ActionSheetIOS,
 } from "react-native";
+import { Text, TextInput } from "@/components/Themed";
 import { Stack, router, useLocalSearchParams, useFocusEffect, useNavigation, type Href } from "expo-router";
 import { Sparkles, AlertCircle, CheckCircle2, Wand2, Star, ChevronDown } from "lucide-react-native";
 import {

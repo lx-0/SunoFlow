@@ -1,13 +1,12 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   View,
-  Text,
-  TextInput,
   SectionList,
   Pressable,
   ActivityIndicator,
   StyleSheet,
 } from "react-native";
+import { Text, TextInput } from "@/components/Themed";
 import { Stack, router } from "expo-router";
 import { Search as SearchIcon, ListMusic, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";

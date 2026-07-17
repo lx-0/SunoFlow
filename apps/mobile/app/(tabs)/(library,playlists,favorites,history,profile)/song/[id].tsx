@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from "react";
-import { View, Text, Image, Pressable, ScrollView, ActivityIndicator, StyleSheet, ActionSheetIOS, Alert } from "react-native";
+import { View, Image, Pressable, ScrollView, ActivityIndicator, StyleSheet, ActionSheetIOS, Alert } from "react-native";
+import { Text } from "@/components/Themed";
 import { Stack, useFocusEffect, useLocalSearchParams, router, type Href } from "expo-router";
 import { formatDuration } from "@sunoflow/core";
 import { Play, Disc3, Share2, Sparkles, BarChart2, Layers, MoreHorizontal, Tag as TagIcon, Download, GitBranch, Wand2, Film, ListPlus, ThumbsUp, ThumbsDown, type LucideIcon } from "lucide-react-native";

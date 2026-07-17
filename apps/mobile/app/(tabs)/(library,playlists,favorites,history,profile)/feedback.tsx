@@ -1,8 +1,9 @@
 import { useState } from "react";
 import {
-  View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform,
+  View, Pressable, ScrollView, KeyboardAvoidingView, Platform,
   ActivityIndicator, StyleSheet,
 } from "react-native";
+import { Text, TextInput } from "@/components/Themed";
 import { Stack } from "expo-router";
 import { Star, CheckCircle2 } from "lucide-react-native";
 import { HttpError } from "@/api/client";

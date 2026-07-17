@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Pressable, StyleSheet } from "react-native";
+import { Text } from "@/components/Themed";
 import type { BottomTabBarProps } from "expo-router/tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BookOpen, ListMusic, Heart, Clock, User, type LucideIcon } from "lucide-react-native";

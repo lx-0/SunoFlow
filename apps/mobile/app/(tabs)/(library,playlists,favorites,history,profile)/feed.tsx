@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, ActivityIndicator, StyleSheet } from "react-native";
+import { View, FlatList, ActivityIndicator, RefreshControl, StyleSheet } from "react-native";
+import { Text } from "@/components/Themed";
 import { Stack, router, useFocusEffect } from "expo-router";
 import { UserPlus, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
@@ -18,24 +19,34 @@ export default function FeedScreen() {
   const styles = makeStyles(colors);
   const [entries, setEntries] = useState<FeedEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(() => {
+    setError(null);
+    return fetchFeedEntries()
+      .then(setEntries)
+      .catch((e: unknown) => {
+        setError(e instanceof HttpError ? `Failed to load feed (HTTP ${e.status})` : "Network error");
+        console.error("[feed] load failed", e);
+      });
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
       setEntries(null);
-      setError(null);
-      fetchFeedEntries()
-        .then(setEntries)
-        .catch((e: unknown) => {
-          setError(e instanceof HttpError ? `Failed to load feed (HTTP ${e.status})` : "Network error");
-          console.error("[feed] load failed", e);
-        });
-    }, []),
+      load();
+    }, [load]),
   );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    load().finally(() => setRefreshing(false));
+  }, [load]);
 
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Following" }} />
-      {error ? (
+      {error && !entries ? (
         <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !entries ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
@@ -48,6 +59,9 @@ export default function FeedScreen() {
       ) : (
         <FlatList
           data={entries}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
+          }
           contentContainerStyle={styles.listContent}
           keyExtractor={(e, i) => `${e.song.id}:${i}`}
           renderItem={({ item, index }) => (

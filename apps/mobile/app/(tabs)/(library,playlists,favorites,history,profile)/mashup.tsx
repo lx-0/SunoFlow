@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { View, Text, TextInput, Pressable, Switch, FlatList, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Pressable, Switch, FlatList, ActivityIndicator, StyleSheet } from "react-native";
+import { Text, TextInput } from "@/components/Themed";
 import { Stack, router, useFocusEffect, useNavigation, type Href } from "expo-router";
 import { Check, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
@@ -7,6 +8,7 @@ import { fetchLibrary } from "@/api/songs";
 import { startMashup } from "@/api/mashup";
 import { pollStatus, GenerationError } from "@/api/generate";
 import { SongRow } from "@/components/SongRow";
+import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
@@ -53,20 +55,35 @@ export default function MashupScreen() {
     }, []),
   );
 
+  const loadSongs = useCallback(() => {
+    let cancelled = false;
+    setError(null);
+    setSongs(null);
+    fetchLibrary()
+      .then((s) => !cancelled && setSongs(s))
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof HttpError ? `Failed to load songs (HTTP ${e.status})` : "Network error");
+        console.error("[mashup] load failed", e);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Focus load and Retry share one cancel slot: whichever load runs next first
+  // cancels the previous in-flight one, and the focus cleanup cancels on blur —
+  // so an uncancelled retry can't write state or a spurious late error.
+  const cancelRef = useRef<(() => void) | undefined>(undefined);
+  const runLoad = useCallback(() => {
+    cancelRef.current?.();
+    cancelRef.current = loadSongs();
+  }, [loadSongs]);
+
   useFocusEffect(
     useCallback(() => {
-      let cancelled = false;
-      setSongs(null);
-      fetchLibrary()
-        .then((s) => !cancelled && setSongs(s))
-        .catch((e) => {
-          if (!cancelled) setError(e instanceof HttpError ? `Failed to load songs (HTTP ${e.status})` : "Network error");
-          console.error("[mashup] load failed", e);
-        });
-      return () => {
-        cancelled = true;
-      };
-    }, []),
+      runLoad();
+      return () => cancelRef.current?.();
+    }, [runLoad]),
   );
 
   function toggle(id: string) {
@@ -147,6 +164,22 @@ export default function MashupScreen() {
         <Pressable style={styles.primaryBtn} onPress={() => { setError(null); setPhase("form"); }}>
           <Text style={styles.primaryBtnText}>Try again</Text>
         </Pressable>
+      </View>
+    );
+  }
+
+  if (error && songs === null) {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen options={{ title: "Mashup" }} />
+        <EmptyState
+          tone="error"
+          Icon={AlertCircle}
+          title="Couldn't load songs"
+          subtitle={error}
+          ctaLabel="Retry"
+          onCta={runLoad}
+        />
       </View>
     );
   }

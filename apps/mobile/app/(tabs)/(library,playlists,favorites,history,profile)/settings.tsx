@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { View, Text, Pressable, StyleSheet, Alert, Share, ActivityIndicator, ScrollView } from "react-native";
+import { View, Pressable, StyleSheet, Alert, Share, ActivityIndicator, ScrollView } from "react-native";
+import { Text } from "@/components/Themed";
 import { router, useFocusEffect, type Href } from "expo-router";
 import * as FileSystem from "expo-file-system/legacy";
 import { getApiKeyId, clearSession } from "@/auth/session";

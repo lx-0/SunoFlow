@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { View, Text, Image, Pressable, StyleSheet } from "react-native";
+import { View, Image, Pressable, StyleSheet } from "react-native";
+import { Text } from "@/components/Themed";
 import { formatDuration } from "@sunoflow/core";
 import { Disc3 } from "lucide-react-native";
 import { HeartIcon } from "@/components/Icons";

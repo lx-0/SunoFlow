@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { View, Text, Image, Pressable, Modal, StyleSheet } from "react-native";
+import { View, Image, Pressable, Modal, StyleSheet } from "react-native";
+import { Text } from "@/components/Themed";
 import { router, type Href } from "expo-router";
 import { closePlayerThen } from "@/navigation";
 import { formatDuration } from "@sunoflow/core";

@@ -1,8 +1,6 @@
 import { useCallback, useState } from "react";
 import {
   View,
-  Text,
-  TextInput,
   Pressable,
   ActivityIndicator,
   Alert,
@@ -11,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
 } from "react-native";
+import { Text, TextInput } from "@/components/Themed";
 import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Plus, X, Tag, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";

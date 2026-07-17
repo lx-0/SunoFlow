@@ -1,14 +1,14 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   View,
-  Text,
-  TextInput,
   Pressable,
   ScrollView,
   ActivityIndicator,
   ActionSheetIOS,
+  RefreshControl,
   StyleSheet,
 } from "react-native";
+import { Text, TextInput } from "@/components/Themed";
 import { Stack, useFocusEffect } from "expo-router";
 import { Flame, ChevronDown } from "lucide-react-native";
 import { HttpError } from "@/api/client";
@@ -54,6 +54,7 @@ export default function ProfileScreen() {
   // One shared notice for the secondary (stats/streak/milestones) loads, so a
   // failed sub-load surfaces instead of masquerading as "no data".
   const [secondaryError, setSecondaryError] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Editable form fields.
   const [name, setName] = useState("");
@@ -77,15 +78,14 @@ export default function ProfileScreen() {
   const [prefsSaved, setPrefsSaved] = useState(false);
   const [prefsError, setPrefsError] = useState<string | null>(null);
 
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-      setError(null);
-      setSecondaryError(false);
+  const load = useCallback((isActive: () => boolean) => {
+    setError(null);
+    setSecondaryError(false);
 
+    return Promise.all([
       fetchProfile()
         .then((p) => {
-          if (!active) return;
+          if (!isActive()) return;
           setProfile(p);
           setName(p.name ?? "");
           setUsername(p.username ?? "");
@@ -95,41 +95,64 @@ export default function ProfileScreen() {
           setFeaturedSongId(p.featuredSongId);
         })
         .catch((e: unknown) => {
-          if (!active) return;
+          if (!isActive()) return;
           setError(e instanceof HttpError ? `Failed to load profile (HTTP ${e.status})` : "Network error");
           console.error("[profile] load profile failed", e);
-        });
+        }),
 
       fetchPreferences()
         .then((p) => {
-          if (!active) return;
+          if (!isActive()) return;
           setPrefs(p);
           setDefaultStyle(p.defaultStyle ?? "");
           setGenresText(p.preferredGenres.join(", "));
         })
-        .catch((e: unknown) => { if (active) setSecondaryError(true); console.error("[profile] load preferences failed", e); });
+        .catch((e: unknown) => { if (isActive()) setSecondaryError(true); console.error("[profile] load preferences failed", e); }),
 
       fetchSongsPage({})
-        .then((page) => active && setMySongs(page.songs))
-        .catch((e: unknown) => { if (active) setSecondaryError(true); console.error("[profile] load songs failed", e); });
+        .then((page) => isActive() && setMySongs(page.songs))
+        .catch((e: unknown) => { if (isActive()) setSecondaryError(true); console.error("[profile] load songs failed", e); }),
 
       fetchProfileStats()
-        .then((s) => active && setStats(s))
-        .catch((e: unknown) => { if (active) setSecondaryError(true); console.error("[profile] load stats failed", e); });
+        .then((s) => isActive() && setStats(s))
+        .catch((e: unknown) => { if (isActive()) setSecondaryError(true); console.error("[profile] load stats failed", e); }),
 
       fetchStreak()
-        .then((s) => active && setStreak(s))
-        .catch((e: unknown) => { if (active) setSecondaryError(true); console.error("[profile] load streak failed", e); });
+        .then((s) => isActive() && setStreak(s))
+        .catch((e: unknown) => { if (isActive()) setSecondaryError(true); console.error("[profile] load streak failed", e); }),
 
       fetchMilestones()
-        .then((m) => active && setMilestones(m))
-        .catch((e: unknown) => { if (active) setSecondaryError(true); console.error("[profile] load milestones failed", e); });
+        .then((m) => isActive() && setMilestones(m))
+        .catch((e: unknown) => { if (isActive()) setSecondaryError(true); console.error("[profile] load milestones failed", e); }),
+    ]);
+  }, []);
 
+  // Generation counter shared by the focus load and pull-to-refresh: the focus
+  // cleanup bumps it, so a slow stale response (from either path) can no longer
+  // clobber newer data or reset form fields after blur.
+  const loadGenRef = useRef(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      const gen = ++loadGenRef.current;
+      load(() => loadGenRef.current === gen);
       return () => {
-        active = false;
+        loadGenRef.current++;
       };
-    }, []),
+    }, [load]),
   );
+
+  // Pull-to-refresh: re-run all loads in place — current content stays visible
+  // until fresh data replaces it.
+  const onRefresh = useCallback(async () => {
+    const gen = loadGenRef.current;
+    setRefreshing(true);
+    try {
+      await load(() => loadGenRef.current === gen);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [load]);
 
   async function save() {
     if (busy || !profile) return;
@@ -259,7 +282,13 @@ export default function ProfileScreen() {
           <ActivityIndicator color={colors.text} />
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
+          }
+        >
           {/* Stats — top of profile */}
           {stats ? (
             <View style={styles.card}>

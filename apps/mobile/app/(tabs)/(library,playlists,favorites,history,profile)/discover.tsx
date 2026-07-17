@@ -1,14 +1,15 @@
 import { useCallback, useRef, useState } from "react";
 import {
   View,
-  Text,
   Image,
   FlatList,
   ScrollView,
   Pressable,
   ActivityIndicator,
+  RefreshControl,
   StyleSheet,
 } from "react-native";
+import { Text } from "@/components/Themed";
 import { Stack, router, useFocusEffect } from "expo-router";
 import { Globe, AlertCircle, Disc3, Heart } from "lucide-react-native";
 import { formatDuration } from "@sunoflow/core";
@@ -44,21 +45,26 @@ export default function DiscoverScreen() {
   const [mood, setMood] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [exhausted, setExhausted] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   // Page already loaded into `songs` (1-based). Bumped by load-more.
   const pageRef = useRef(1);
+  const reqRef = useRef(0); // guards against stale pages after a refresh/mood switch
 
   const load = useCallback(
     (nextMood: string | null) => {
+      const req = ++reqRef.current;
       setSongs(null);
       setError(null);
       setExhausted(false);
       pageRef.current = 1;
       fetchDiscover({ mood: nextMood ?? undefined, page: 1 })
         .then((rows) => {
+          if (reqRef.current !== req) return;
           setSongs(rows);
           if (rows.length === 0) setExhausted(true);
         })
         .catch((e: unknown) => {
+          if (reqRef.current !== req) return;
           setError(describeError(e));
           console.error("[discover] load failed", e);
         });
@@ -82,11 +88,13 @@ export default function DiscoverScreen() {
   );
 
   const loadMore = useCallback(() => {
-    if (loadingMore || exhausted || !songs || songs.length === 0) return;
+    if (loadingMore || refreshing || exhausted || !songs || songs.length === 0) return;
+    const req = reqRef.current;
     setLoadingMore(true);
     const nextPage = pageRef.current + 1;
     fetchDiscover({ mood: mood ?? undefined, page: nextPage })
       .then((rows) => {
+        if (reqRef.current !== req) return;
         if (rows.length === 0) {
           setExhausted(true);
           return;
@@ -98,7 +106,28 @@ export default function DiscoverScreen() {
         console.error("[discover] load more failed", e);
       })
       .finally(() => setLoadingMore(false));
-  }, [loadingMore, exhausted, songs, mood]);
+  }, [loadingMore, refreshing, exhausted, songs, mood]);
+
+  // Pull-to-refresh: refetch page 1 in place — the current list stays visible
+  // until the fresh rows arrive (no full-screen spinner flash).
+  const onRefresh = useCallback(() => {
+    const req = ++reqRef.current;
+    setRefreshing(true);
+    fetchDiscover({ mood: mood ?? undefined, page: 1 })
+      .then((rows) => {
+        if (reqRef.current !== req) return;
+        pageRef.current = 1;
+        setSongs(rows);
+        setError(null);
+        setExhausted(rows.length === 0);
+      })
+      .catch((e: unknown) => {
+        if (reqRef.current !== req) return;
+        setError(describeError(e));
+        console.error("[discover] refresh failed", e);
+      })
+      .finally(() => setRefreshing(false));
+  }, [mood]);
 
   const chips: { key: string; label: string; value: string | null }[] = [
     { key: "__all", label: "All", value: null },
@@ -135,7 +164,7 @@ export default function DiscoverScreen() {
         </ScrollView>
       </View>
 
-      {error ? (
+      {error && !songs ? (
         <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !songs ? (
         <View style={styles.centered}>
@@ -154,6 +183,9 @@ export default function DiscoverScreen() {
           numColumns={2}
           columnWrapperStyle={styles.gridRow}
           keyExtractor={(s, i) => `${s.id}:${i}`}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
+          }
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           contentContainerStyle={styles.gridContent}

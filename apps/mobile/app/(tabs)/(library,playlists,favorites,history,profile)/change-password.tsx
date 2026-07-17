@@ -1,8 +1,9 @@
 import { useState } from "react";
 import {
-  Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform,
+  Pressable, ScrollView, KeyboardAvoidingView, Platform,
   ActivityIndicator, StyleSheet, Alert,
 } from "react-native";
+import { Text, TextInput } from "@/components/Themed";
 import { Stack, router } from "expo-router";
 import { HttpError } from "@/api/client";
 import { changePassword } from "@/api/account";

@@ -1,4 +1,5 @@
-import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
+import { View, FlatList, Pressable, StyleSheet } from "react-native";
+import { Text } from "@/components/Themed";
 import { Stack } from "expo-router";
 import { ListMusic, ChevronUp, ChevronDown, X } from "lucide-react-native";
 import { usePlayback } from "@/playback/usePlayback";

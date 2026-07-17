@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { View, Text, Image, Pressable, FlatList, ActivityIndicator, TextInput, ActionSheetIOS, StyleSheet } from "react-native";
+import { View, Image, Pressable, FlatList, ActivityIndicator, ActionSheetIOS, StyleSheet, RefreshControl } from "react-native";
+import { Text, TextInput } from "@/components/Themed";
 import { router } from "expo-router";
-import { ArrowUpDown, LayoutGrid, List, SlidersHorizontal, Disc3, Heart } from "lucide-react-native";
+import { goToSection } from "@/navigation";
+import { ArrowUpDown, LayoutGrid, List, SlidersHorizontal, Disc3, Heart, AlertCircle, Search } from "lucide-react-native";
 import { formatDuration } from "@sunoflow/core";
 import { HttpError } from "@/api/client";
 import {
@@ -13,6 +15,7 @@ import {
 } from "@/api/songs";
 import { playQueue } from "@/playback/controls";
 import { SongRow } from "@/components/SongRow";
+import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
@@ -59,22 +62,25 @@ export default function LibraryScreen() {
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState(""); // query that produced the current result set (search is submit-driven)
   const [sortBy, setSortBy] = useState<SongSortBy>("newest");
   const [filters, setFilters] = useState<LibraryFilters>(NO_FILTERS);
   const [view, setView] = useState<"list" | "grid">("list");
   const [loadingMore, setLoadingMore] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const cursorRef = useRef<string | null>(null);
   const hasMoreRef = useRef(true);
   const reqRef = useRef(0); // guards against stale pages after a new query/sort/filter
 
-  const load = useCallback((q: string, sort: SongSortBy, filt: LibraryFilters) => {
+  const load = useCallback((q: string, sort: SongSortBy, filt: LibraryFilters, keepList = false) => {
     const req = ++reqRef.current;
     cursorRef.current = null;
     hasMoreRef.current = true;
-    setSongs(null);
+    if (!keepList) setSongs(null); // keepList: pull-to-refresh keeps the current list visible
     setError(null);
-    fetchSongsPage({
+    setSubmittedQuery(q);
+    return fetchSongsPage({
       query: q || undefined,
       sortBy: sort,
       status: filt.status,
@@ -125,6 +131,11 @@ export default function LibraryScreen() {
       })
       .finally(() => setLoadingMore(false));
   }, [loadingMore, query, sortBy, filters]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    load(submittedQuery, sortBy, filters, true).finally(() => setRefreshing(false));
+  }, [load, submittedQuery, sortBy, filters]);
 
   function openSort() {
     const labels = SORTS.map((s) => s.label);
@@ -211,12 +222,33 @@ export default function LibraryScreen() {
         </Pressable>
       </View>
 
-      {error ? (
-        <Centered><Text style={styles.dim}>{error}</Text></Centered>
+      {error && !songs ? (
+        <EmptyState
+          tone="error"
+          Icon={AlertCircle}
+          title="Couldn't load your library"
+          subtitle={error}
+          ctaLabel="Retry"
+          onCta={() => load(query.trim(), sortBy, filters)}
+        />
       ) : !songs ? (
         <Centered><ActivityIndicator color={colors.text} /></Centered>
       ) : songs.length === 0 ? (
-        <Centered><Text style={styles.dim}>{query || hasFilters ? "No matches." : "No songs yet. Generate some on the web."}</Text></Centered>
+        submittedQuery || hasFilters ? (
+          <EmptyState
+            Icon={Search}
+            title="No matches"
+            subtitle="Try a different search or clear your filters."
+          />
+        ) : (
+          <EmptyState
+            Icon={Disc3}
+            title="No songs yet"
+            subtitle="Generate your first track"
+            ctaLabel="Generate a song"
+            onCta={() => goToSection("/generate")}
+          />
+        )
       ) : (
         <FlatList
           key={view} // numColumns change requires a fresh list
@@ -226,6 +258,7 @@ export default function LibraryScreen() {
           keyExtractor={(s, i) => `${s.id}:${i}`}
           onEndReached={loadMore}
           onEndReachedThreshold={0.6}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />}
           contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
           ListFooterComponent={loadingMore ? <ActivityIndicator color={colors.textFaint} style={styles.footer} /> : null}
           renderItem={({ item, index }) =>
@@ -280,7 +313,6 @@ function makeStyles(c: ThemeColors) {
     filterTextActive: { color: c.accent },
     viewBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center", backgroundColor: c.surface, borderRadius: 8 },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-    dim: { color: c.textDim, fontSize: 13, marginTop: 2 },
     footer: { paddingVertical: 18 },
     gridRow: { paddingHorizontal: 12, gap: 12 },
     gridItem: { flex: 1, marginBottom: 18, maxWidth: "50%" },

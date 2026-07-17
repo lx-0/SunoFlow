@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { Text, TextInput } from "@/components/Themed";
 import { router } from "expo-router";
 import { API_BASE_URL } from "@/api/client";
 import { setSession } from "@/auth/session";

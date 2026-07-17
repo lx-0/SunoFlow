@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
+import { View, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
+import { Text } from "@/components/Themed";
 import { Stack, useFocusEffect } from "expo-router";
 import { BarChart3, TriangleAlert } from "lucide-react-native";
 import type { InsightsResult, TagStat, ComboStat, WeeklyDataPoint } from "@sunoflow/core";
@@ -56,8 +57,8 @@ export default function InsightsScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
           <SummaryCard data={data} styles={styles} />
-          <TagSection tags={data.tagBreakdown} styles={styles} colors={colors} />
-          <ComboSection combos={data.topCombos} styles={styles} colors={colors} />
+          <TagSection tags={data.tagBreakdown} styles={styles} />
+          <ComboSection combos={data.topCombos} styles={styles} />
           <WeeklySection trend={data.weeklyTrend} styles={styles} />
         </ScrollView>
       )}
@@ -90,7 +91,7 @@ function RatioBar({ ratio, styles }: { ratio: number; styles: Styles }) {
   );
 }
 
-function TagSection({ tags, styles, colors }: { tags: TagStat[]; styles: Styles; colors: ThemeColors }) {
+function TagSection({ tags, styles }: { tags: TagStat[]; styles: Styles }) {
   if (tags.length === 0) return null;
   return (
     <View style={styles.card}>
@@ -100,9 +101,9 @@ function TagSection({ tags, styles, colors }: { tags: TagStat[]; styles: Styles;
           <View style={styles.statHead}>
             <Text style={styles.statLabel} numberOfLines={1}>{t.tag}</Text>
             <Text style={styles.counts}>
-              <Text style={{ color: colors.successFg }}>{t.likes} up</Text>
+              <Text style={styles.up}>{t.likes} up</Text>
               <Text style={styles.dim}>  ·  </Text>
-              <Text style={{ color: colors.danger }}>{t.dislikes} down</Text>
+              <Text style={styles.down}>{t.dislikes} down</Text>
             </Text>
           </View>
           <RatioBar ratio={t.likeRatio} styles={styles} />
@@ -112,7 +113,7 @@ function TagSection({ tags, styles, colors }: { tags: TagStat[]; styles: Styles;
   );
 }
 
-function ComboSection({ combos, styles, colors }: { combos: ComboStat[]; styles: Styles; colors: ThemeColors }) {
+function ComboSection({ combos, styles }: { combos: ComboStat[]; styles: Styles }) {
   if (combos.length === 0) return null;
   return (
     <View style={styles.card}>
@@ -123,7 +124,7 @@ function ComboSection({ combos, styles, colors }: { combos: ComboStat[]; styles:
             <Text style={styles.statLabel} numberOfLines={1}>{c.combo}</Text>
             <Text style={styles.counts}>
               <Text style={styles.dim}>{c.total} rated · </Text>
-              <Text style={{ color: colors.successFg }}>{Math.round(Math.max(0, Math.min(1, c.likeRatio)) * 100)}%</Text>
+              <Text style={styles.up}>{Math.round(Math.max(0, Math.min(1, c.likeRatio)) * 100)}%</Text>
             </Text>
           </View>
           <RatioBar ratio={c.likeRatio} styles={styles} />
@@ -158,7 +159,9 @@ function makeStyles(c: ThemeColors) {
     container: { flex: 1, backgroundColor: c.bg },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 14 },
     scroll: { padding: 16, gap: 16, paddingBottom: MINIPLAYER_CLEARANCE },
-    dim: { color: c.textDim, fontSize: 13 },
+    // Nested inside the mono `counts` Text: the Themed wrapper sets an explicit
+    // family per Text (no nested inheritance), so these must declare mono too.
+    dim: { color: c.textDim, fontSize: 13, fontFamily: fonts.mono },
     infoRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
     infoLabel: { color: c.textDim, fontSize: 15 },
     infoValue: { color: c.text, fontSize: 16, fontFamily: fonts.monoMedium, fontVariant: ["tabular-nums"] },
@@ -179,7 +182,7 @@ function makeStyles(c: ThemeColors) {
     barFill: { height: 6, borderRadius: 999, backgroundColor: c.successFg },
     weekRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
     weekLabel: { color: c.textDim, fontSize: 13, fontVariant: ["tabular-nums"] },
-    up: { color: c.successFg },
-    down: { color: c.danger },
+    up: { color: c.successFg, fontFamily: fonts.mono },
+    down: { color: c.danger, fontFamily: fonts.mono },
   });
 }

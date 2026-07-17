@@ -1,8 +1,9 @@
 import { useState } from "react";
 import {
-  View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform,
+  View, Pressable, ScrollView, KeyboardAvoidingView, Platform,
   ActivityIndicator, StyleSheet, Alert,
 } from "react-native";
+import { Text, TextInput } from "@/components/Themed";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { HttpError } from "@/api/client";
 import { replaceSection } from "@/api/song-studio";

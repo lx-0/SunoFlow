@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { View, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { Text } from "@/components/Themed";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { User, Music, Heart, ListMusic, TriangleAlert } from "lucide-react-native";
 import { HttpError } from "@/api/client";

@@ -1,7 +1,8 @@
 import { useCallback, useState } from "react";
 import {
-  View, Text, TextInput, FlatList, Pressable, Switch, ActivityIndicator, StyleSheet, Alert,
+  View, FlatList, Pressable, Switch, ActivityIndicator, StyleSheet, Alert,
 } from "react-native";
+import { Text, TextInput } from "@/components/Themed";
 import { Stack, useFocusEffect } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import { AlertCircle, Plus, X } from "lucide-react-native";

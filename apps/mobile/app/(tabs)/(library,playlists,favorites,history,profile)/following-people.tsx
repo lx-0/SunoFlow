@@ -1,7 +1,8 @@
 import { useCallback, useState } from "react";
 import {
-  View, Text, Image, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS,
+  View, Image, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS,
 } from "react-native";
+import { Text } from "@/components/Themed";
 import { Stack, router, useFocusEffect } from "expo-router";
 import { Users, MoreHorizontal, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";

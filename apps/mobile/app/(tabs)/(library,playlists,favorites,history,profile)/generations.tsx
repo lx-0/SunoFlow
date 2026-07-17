@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { View, FlatList, Pressable, ActivityIndicator, RefreshControl, StyleSheet } from "react-native";
+import { Text } from "@/components/Themed";
 import { Stack, router, useFocusEffect } from "expo-router";
 import { goToSection } from "@/navigation";
 import { Sparkles, AlertCircle } from "lucide-react-native";
@@ -47,26 +48,36 @@ function formatDate(iso: string | null): string {
 export default function GenerationsScreen() {
   const [items, setItems] = useState<Generation[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+
+  const load = useCallback(() => {
+    setError(null);
+    return fetchGenerations()
+      .then(setItems)
+      .catch((e: unknown) => {
+        setError(e instanceof HttpError ? `Failed to load generations (HTTP ${e.status})` : "Network error");
+        console.error("[generations] load failed", e);
+      });
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
       setItems(null);
-      setError(null);
-      fetchGenerations()
-        .then(setItems)
-        .catch((e: unknown) => {
-          setError(e instanceof HttpError ? `Failed to load generations (HTTP ${e.status})` : "Network error");
-          console.error("[generations] load failed", e);
-        });
-    }, []),
+      load();
+    }, [load]),
   );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    load().finally(() => setRefreshing(false));
+  }, [load]);
 
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Generations" }} />
-      {error ? (
+      {error && !items ? (
         <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !items ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
@@ -83,6 +94,9 @@ export default function GenerationsScreen() {
           data={items}
           keyExtractor={(g) => g.id}
           contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
+          }
           renderItem={({ item }) => {
             const badge = statusBadge(item.status, colors);
             const label = item.title ?? item.prompt ?? "Untitled";

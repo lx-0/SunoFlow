@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { View, FlatList, ActivityIndicator, StyleSheet } from "react-native";
+import { View, FlatList, ActivityIndicator, StyleSheet, RefreshControl } from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
 import { Sparkles, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
@@ -18,25 +18,35 @@ export default function RecommendationsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const [songs, setSongs] = useState<Song[] | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    setError(null);
+    return fetchRecommendations()
+      .then(setSongs)
+      .catch((e: unknown) => {
+        setError(e instanceof HttpError ? `Failed to load recommendations (HTTP ${e.status})` : "Network error");
+        console.error("[recommendations] load failed", e);
+      });
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
       setSongs(null);
-      setError(null);
-      fetchRecommendations()
-        .then(setSongs)
-        .catch((e: unknown) => {
-          setError(e instanceof HttpError ? `Failed to load recommendations (HTTP ${e.status})` : "Network error");
-          console.error("[recommendations] load failed", e);
-        });
-    }, []),
+      void load();
+    }, [load]),
   );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    void load().finally(() => setRefreshing(false));
+  }, [load]);
 
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: "For You" }} />
-      {error ? (
+      {error && !songs ? (
         <EmptyState tone="error" Icon={AlertCircle} title={error} />
       ) : !songs ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
@@ -51,6 +61,9 @@ export default function RecommendationsScreen() {
           data={songs}
           keyExtractor={(s) => s.id}
           contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
+          }
           renderItem={({ item, index }) => (
             <SongRow
               song={item}

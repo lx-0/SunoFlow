@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Pressable, Text, StyleSheet, ActionSheetIOS } from "react-native";
+import { Pressable, StyleSheet, ActionSheetIOS } from "react-native";
+import { Text } from "@/components/Themed";
 import { Star } from "lucide-react-native";
 import { getRating, setRating } from "@/api/ratings";
 import { useTheme } from "@/theme/ThemeContext";

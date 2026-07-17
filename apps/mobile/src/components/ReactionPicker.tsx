@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Pressable, StyleSheet } from "react-native";
+import { Text } from "@/components/Themed";
 import { pickReactionEmojis } from "@sunoflow/core";
 import { ReactIcon } from "@/components/Icons";
 import { useTheme } from "@/theme/ThemeContext";

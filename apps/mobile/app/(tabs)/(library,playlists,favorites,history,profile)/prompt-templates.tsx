@@ -1,7 +1,8 @@
 import { useCallback, useState } from "react";
 import {
-  View, Text, TextInput, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS, Switch,
+  View, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, ActionSheetIOS, Switch,
 } from "react-native";
+import { Text, TextInput } from "@/components/Themed";
 import { Stack, useFocusEffect } from "expo-router";
 import { goToSection } from "@/navigation";
 import { AlertCircle, FileText, Plus, X } from "lucide-react-native";

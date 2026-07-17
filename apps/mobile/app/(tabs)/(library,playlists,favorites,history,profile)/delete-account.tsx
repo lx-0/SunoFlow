@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet, Alert } from "react-native";
+import { View, Pressable, ActivityIndicator, StyleSheet, Alert } from "react-native";
+import { Text, TextInput } from "@/components/Themed";
 import { Stack, router } from "expo-router";
 import { HttpError } from "@/api/client";
 import { deleteAccount } from "@/api/account";

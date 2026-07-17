@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { View, FlatList, ActivityIndicator, StyleSheet } from "react-native";
+import { View, FlatList, ActivityIndicator, StyleSheet, RefreshControl } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Clock, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
@@ -19,12 +19,13 @@ export default function HistoryScreen() {
   const styles = makeStyles(colors);
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Stale-while-revalidate: keep the current list visible on refocus and refetch
   // in the background. The spinner only shows on the very first load (songs null).
   const load = useCallback(() => {
     setError(null);
-    fetchHistory()
+    return fetchHistory()
       .then(setSongs)
       .catch((e: unknown) => {
         setError(e instanceof HttpError ? `Failed to load history (HTTP ${e.status})` : "Network error");
@@ -33,6 +34,15 @@ export default function HistoryScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await load();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [load]);
 
   return (
     <View style={styles.container}>
@@ -58,6 +68,9 @@ export default function HistoryScreen() {
           data={songs}
           keyExtractor={(s, i) => `${s.id}:${i}`}
           contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
+          }
           renderItem={({ item, index }) => (
             <SongRow
               song={item}

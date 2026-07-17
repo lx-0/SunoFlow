@@ -20,6 +20,7 @@ import { getApiKey } from "@/auth/session";
 import { SidebarProvider, Sidebar } from "@/components/Sidebar";
 import { PromptProvider } from "@/components/PromptSheet";
 import { ThemeProvider, useTheme } from "@/theme/ThemeContext";
+import { fonts } from "@/theme/theme";
 
 // Root layout. ThemeProvider supplies colors app-wide (dark/light, persisted).
 // Gates the app on a stored API key — no key → login.
@@ -80,6 +81,7 @@ function RootNav() {
         screenOptions={{
           headerStyle: { backgroundColor: colors.bg },
           headerTintColor: colors.text,
+          headerTitleStyle: { fontFamily: fonts.sansSemibold },
           contentStyle: { backgroundColor: colors.bg },
           headerBackButtonDisplayMode: "minimal",
         }}

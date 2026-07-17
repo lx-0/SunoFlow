@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { View, Text, ScrollView, ActivityIndicator, StyleSheet, type LayoutChangeEvent } from "react-native";
+import { View, ScrollView, ActivityIndicator, StyleSheet, type LayoutChangeEvent } from "react-native";
+import { Text } from "@/components/Themed";
 import { Stack } from "expo-router";
 import { FileText } from "lucide-react-native";
 import { usePlayback } from "@/playback/usePlayback";
