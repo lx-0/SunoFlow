@@ -8,7 +8,7 @@ import { fetchSongAnalytics, type SongAnalytics } from "@/api/song-analytics";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
-import { fonts, type ThemeColors } from "@/theme/theme";
+import { fonts, radii, type ThemeColors } from "@/theme/theme";
 
 type Styles = ReturnType<typeof makeStyles>;
 
@@ -143,7 +143,7 @@ function makeStyles(c: ThemeColors) {
       fontWeight: "700",
       paddingHorizontal: 10,
       paddingVertical: 4,
-      borderRadius: 999,
+      borderRadius: radii.full,
       overflow: "hidden",
     },
     badgeOn: { color: c.onAccent, backgroundColor: c.accentStrong },
@@ -153,7 +153,7 @@ function makeStyles(c: ThemeColors) {
     infoValue: { color: c.text, fontSize: 16, fontFamily: fonts.monoMedium, fontVariant: ["tabular-nums"] },
     card: {
       backgroundColor: c.surface,
-      borderRadius: 14,
+      borderRadius: radii.xl,
       borderColor: c.border,
       borderWidth: StyleSheet.hairlineWidth,
       padding: 16,
@@ -166,11 +166,11 @@ function makeStyles(c: ThemeColors) {
     barTrack: {
       width: 14,
       backgroundColor: c.surfaceAlt,
-      borderRadius: 7,
+      borderRadius: radii.full,
       justifyContent: "flex-end",
       overflow: "hidden",
     },
-    barFill: { width: "100%", borderRadius: 7 },
+    barFill: { width: "100%", borderRadius: radii.full },
     barLabel: { color: c.textFaint, fontSize: 11, fontWeight: "600" },
   });
 }

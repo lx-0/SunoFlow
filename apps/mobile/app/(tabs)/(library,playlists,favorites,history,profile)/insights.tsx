@@ -9,7 +9,7 @@ import { fetchInsights } from "@/api/insights";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
-import { fonts, type ThemeColors } from "@/theme/theme";
+import { fonts, radii, type ThemeColors } from "@/theme/theme";
 
 type Styles = ReturnType<typeof makeStyles>;
 
@@ -167,7 +167,7 @@ function makeStyles(c: ThemeColors) {
     infoValue: { color: c.text, fontSize: 16, fontFamily: fonts.monoMedium, fontVariant: ["tabular-nums"] },
     card: {
       backgroundColor: c.surface,
-      borderRadius: 14,
+      borderRadius: radii.xl,
       borderColor: c.border,
       borderWidth: StyleSheet.hairlineWidth,
       padding: 16,
@@ -178,8 +178,8 @@ function makeStyles(c: ThemeColors) {
     statHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
     statLabel: { color: c.text, fontSize: 14, fontWeight: "600", flex: 1 },
     counts: { fontSize: 12, fontFamily: fonts.mono, fontVariant: ["tabular-nums"] },
-    barTrack: { height: 6, borderRadius: 999, backgroundColor: c.surfaceAlt, overflow: "hidden" },
-    barFill: { height: 6, borderRadius: 999, backgroundColor: c.successFg },
+    barTrack: { height: 6, borderRadius: radii.full, backgroundColor: c.surfaceAlt, overflow: "hidden" },
+    barFill: { height: 6, borderRadius: radii.full, backgroundColor: c.successFg },
     weekRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
     weekLabel: { color: c.textDim, fontSize: 13, fontVariant: ["tabular-nums"] },
     up: { color: c.successFg, fontFamily: fonts.mono },

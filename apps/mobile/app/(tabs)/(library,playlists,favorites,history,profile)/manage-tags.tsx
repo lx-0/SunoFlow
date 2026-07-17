@@ -11,7 +11,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { usePrompt } from "@/components/PromptSheet";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { radii, type ThemeColors } from "@/theme/theme";
 
 // Global tag management: rename or delete the user's tags across all songs, and
 // create new ones. Mirrors the web Settings → Tag Management section. Per-song
@@ -173,8 +173,8 @@ function makeStyles(c: ThemeColors) {
     listContent: { paddingBottom: MINIPLAYER_CLEARANCE },
     createCard: { padding: 16, gap: 8, borderBottomColor: c.border, borderBottomWidth: StyleSheet.hairlineWidth },
     label: { color: c.textDim, fontSize: 13, marginTop: 4 },
-    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
-    saveBtn: { backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 13, alignItems: "center", marginTop: 8 },
+    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radii.lg, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
+    saveBtn: { backgroundColor: c.accentStrong, borderRadius: radii.lg, paddingVertical: 13, alignItems: "center", marginTop: 8 },
     saveText: { color: c.onAccent, fontSize: 15, fontWeight: "700" },
     btnDisabled: { opacity: 0.45 },
     row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: c.border, borderBottomWidth: StyleSheet.hairlineWidth },

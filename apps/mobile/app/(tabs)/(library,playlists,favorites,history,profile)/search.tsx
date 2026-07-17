@@ -16,7 +16,7 @@ import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { playQueue } from "@/playback/controls";
 import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { radii, type ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
 type Status = "idle" | "loading" | "error" | "results";
@@ -190,7 +190,7 @@ function makeStyles(c: ThemeColors) {
       paddingHorizontal: 14,
       paddingVertical: 10,
       backgroundColor: c.surface,
-      borderRadius: 12,
+      borderRadius: radii.lg,
       borderColor: c.border,
       borderWidth: StyleSheet.hairlineWidth,
     },
@@ -218,7 +218,7 @@ function makeStyles(c: ThemeColors) {
     thumbPlaceholder: {
       width: 52,
       height: 52,
-      borderRadius: 8,
+      borderRadius: radii.md,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: c.surfaceAlt,

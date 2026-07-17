@@ -4,7 +4,7 @@ import { Text } from "@/components/Themed";
 import { pickReactionEmojis } from "@sunoflow/core";
 import { ReactIcon } from "@/components/Icons";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { radii, type ThemeColors } from "@/theme/theme";
 
 // Emoji reaction picker as a popover (mirrors the PWA): a trigger button opens a
 // floating pill of 6 emojis — the 4 most-used for this song plus 2 random — and
@@ -73,7 +73,7 @@ function makeStyles(c: ThemeColors) {
       alignItems: "center",
       gap: 4,
       backgroundColor: c.surfaceAlt,
-      borderRadius: 24,
+      borderRadius: radii.xxl,
       paddingHorizontal: 8,
       paddingVertical: 6,
       shadowColor: "#000",
@@ -81,7 +81,7 @@ function makeStyles(c: ThemeColors) {
       shadowRadius: 12,
       shadowOffset: { width: 0, height: 4 },
     },
-    emojiBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center", borderRadius: 18 },
+    emojiBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center", borderRadius: radii.full },
     emoji: { fontSize: 22 },
     trigger: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   });

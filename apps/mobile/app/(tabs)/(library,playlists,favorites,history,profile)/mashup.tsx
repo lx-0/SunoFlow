@@ -11,7 +11,7 @@ import { SongRow } from "@/components/SongRow";
 import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
-import { fonts } from "@/theme/theme";
+import { fonts, radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
@@ -240,11 +240,11 @@ function makeStyles(c: ThemeColors) {
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 12, backgroundColor: c.bg },
     listContent: { paddingBottom: 96 },
     header: { padding: 16, gap: 10 },
-    slot: { color: c.text, fontSize: 15, backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12 },
-    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, fontFamily: fonts.mono, paddingHorizontal: 14, paddingVertical: 12 },
+    slot: { color: c.text, fontSize: 15, backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radii.lg, paddingHorizontal: 14, paddingVertical: 12 },
+    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radii.lg, color: c.text, fontSize: 15, fontFamily: fonts.mono, paddingHorizontal: 14, paddingVertical: 12 },
     switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 4 },
     switchLabel: { color: c.text, fontSize: 15 },
-    primaryBtn: { backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 4 },
+    primaryBtn: { backgroundColor: c.accentStrong, borderRadius: radii.lg, paddingVertical: 14, alignItems: "center", marginTop: 4 },
     btnDisabled: { opacity: 0.45 },
     primaryBtnText: { color: c.onAccent, fontSize: 16, fontWeight: "700" },
     statusTitle: { color: c.text, fontSize: 18, fontWeight: "700", marginTop: 6 },

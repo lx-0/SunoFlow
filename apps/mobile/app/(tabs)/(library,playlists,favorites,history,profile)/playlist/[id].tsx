@@ -20,6 +20,7 @@ import { usePrompt } from "@/components/PromptSheet";
 import { playQueue } from "@/playback/controls";
 import type { Song } from "@/types";
 import { useTheme } from "@/theme/ThemeContext";
+import { radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 export default function PlaylistDetailScreen() {
@@ -280,14 +281,14 @@ function makeStyles(c: ThemeColors) {
     arrows: { flexDirection: "row", alignItems: "center" },
     arrowBtn: { paddingHorizontal: 6, paddingVertical: 2 },
     hero: { alignItems: "center", paddingTop: 16, paddingBottom: 12, paddingHorizontal: 20 },
-    cover: { width: 160, height: 160, borderRadius: 16, marginBottom: 14 },
+    cover: { width: 160, height: 160, borderRadius: radii.xl, marginBottom: 14 },
     coverPlaceholder: { backgroundColor: c.surfaceAlt, alignItems: "center", justifyContent: "center" },
     heroName: { color: c.text, fontSize: 20, fontWeight: "800", textAlign: "center" },
     heroMeta: { color: c.textDim, fontSize: 13, marginTop: 4 },
     heroBtns: { flexDirection: "row", gap: 12, marginTop: 16 },
-    playAll: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.accentStrong, borderRadius: 999, paddingHorizontal: 22, paddingVertical: 11 },
+    playAll: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.accentStrong, borderRadius: radii.full, paddingHorizontal: 22, paddingVertical: 11 },
     playAllText: { color: c.onAccent, fontSize: 15, fontWeight: "700" },
-    shuffleBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.surface, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 11 },
+    shuffleBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.surface, borderRadius: radii.full, paddingHorizontal: 18, paddingVertical: 11 },
     shuffleText: { color: c.accent, fontSize: 15, fontWeight: "600" },
   });
 }

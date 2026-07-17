@@ -9,6 +9,7 @@ import { HttpError } from "@/api/client";
 import { fetchTodaysPicks, generateTodaysPicks } from "@/api/digests";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Inspire → "Today's Picks": auto-curated RSS-derived prompt ideas (digest items).
@@ -203,18 +204,18 @@ function makeStyles(c: ThemeColors) {
     emptyText: { color: c.textDim, fontSize: 14, lineHeight: 20, textAlign: "center" },
     error: { color: c.danger, fontSize: 13, textAlign: "center" },
     manageLink: { color: c.accent, fontSize: 14, fontWeight: "600" },
-    cta: { backgroundColor: c.accentStrong, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 12 },
+    cta: { backgroundColor: c.accentStrong, borderRadius: radii.lg, paddingHorizontal: 20, paddingVertical: 12 },
     ctaDisabled: { opacity: 0.5 },
     ctaText: { color: c.onAccent, fontSize: 15, fontWeight: "700" },
     listHeader: { marginBottom: 12, gap: 8 },
     headerTitle: { color: c.text, fontSize: 18, fontWeight: "700" },
-    card: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, padding: 16 },
+    card: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radii.xl, padding: 16 },
     feed: { color: c.accent, fontSize: 11, fontWeight: "600", marginBottom: 4 },
     cardTitle: { color: c.text, fontSize: 15, fontWeight: "600", lineHeight: 20 },
     chips: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 },
-    moodChip: { backgroundColor: c.accentStrong, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
+    moodChip: { backgroundColor: c.accentStrong, borderRadius: radii.full, paddingHorizontal: 10, paddingVertical: 3 },
     moodText: { color: c.onAccent, fontSize: 11, fontWeight: "700" },
-    topicChip: { backgroundColor: c.surfaceAlt, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    topicChip: { backgroundColor: c.surfaceAlt, borderRadius: radii.md, paddingHorizontal: 8, paddingVertical: 3 },
     topicText: { color: c.textDim, fontSize: 11 },
     suggested: { color: c.textDim, fontSize: 13, lineHeight: 19, marginTop: 12 },
     genBtn: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 14 },

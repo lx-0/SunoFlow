@@ -8,6 +8,7 @@ import { HttpError } from "@/api/client";
 import { fetchInviteInfo, acceptInvite, type InviteInfo } from "@/api/playlist-invite";
 import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
+import { radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Playlist-collaboration invite accept screen. Opened via a token-carrying link;
@@ -103,7 +104,7 @@ function makeStyles(c: ThemeColors) {
     count: { color: c.textDim, fontSize: 14, marginTop: 4 },
     description: { color: c.textDim, fontSize: 14, lineHeight: 20, marginTop: 16 },
     error: { color: c.danger, fontSize: 13, marginTop: 16 },
-    btn: { backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 24 },
+    btn: { backgroundColor: c.accentStrong, borderRadius: radii.lg, paddingVertical: 14, alignItems: "center", marginTop: 24 },
     btnDisabled: { opacity: 0.45 },
     btnText: { color: c.onAccent, fontSize: 16, fontWeight: "700" },
   });

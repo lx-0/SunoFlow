@@ -10,7 +10,7 @@ import { playQueue } from "@/playback/controls";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
-import { fonts } from "@/theme/theme";
+import { fonts, radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
@@ -161,7 +161,7 @@ function makeStyles(c: ThemeColors) {
     title: { color: c.text, fontSize: 16 },
     titlePrompt: { fontFamily: fonts.mono },
     subRow: { flexDirection: "row", alignItems: "center", marginTop: 6 },
-    badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, marginRight: 8 },
+    badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: radii.full, marginRight: 8 },
     badgeText: { fontSize: 11, fontWeight: "600" },
     date: { color: c.textDim, fontSize: 13 },
   });

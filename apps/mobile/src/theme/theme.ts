@@ -12,6 +12,8 @@ export interface ThemeColors {
   bg: string;
   surface: string;
   surfaceAlt: string;
+  /** Hover/pressed plane above surfaceAlt (DESIGN.md surface-hover): chips, pressed rows. */
+  surfaceHover: string;
   border: string;
   text: string;
   textDim: string;
@@ -38,6 +40,7 @@ const darkBase = {
   bg: "#0f090c", // surface-deep oklch(15% 0.01 350)
   surface: "#151012", // surface oklch(18% 0.01 350)
   surfaceAlt: "#20181c", // surface-raised oklch(22% 0.015 350)
+  surfaceHover: "#2a2125", // surface-hover oklch(26% 0.015 350)
   border: "#2f262a", // border oklch(28% 0.015 350)
   text: "#f5f0f2", // text-primary oklch(96% 0.005 350)
   textDim: "#aaa2a5", // text-secondary oklch(72% 0.01 350)
@@ -56,6 +59,7 @@ const lightBase = {
   bg: "#faf8f9", // light-surface oklch(98% 0.003 350)
   surface: "#f1edef",
   surfaceAlt: "#fdfbfc", // light-surface-raised oklch(99% 0.003 350)
+  surfaceHover: "#e9e3e6", // pressed/chip plane below light borders
   border: "#e1ddde", // light-border oklch(90% 0.005 350)
   text: "#151012", // light-text-primary oklch(18% 0.01 350)
   textDim: "#5a5356",
@@ -110,6 +114,31 @@ export const lightColors: ThemeColors = THEMES.magenta.light;
 // identifying content — lyrics, prompts, style tags, IDs, slugs, timestamps).
 // RN custom fonts bake weight into the family name, so each weight is its own key;
 // set `fontFamily` (not `fontWeight`) when using these. Loaded in app/_layout.tsx.
+// Radius scale (DESIGN.md rounded sm/md/lg/xl/2xl/full; "xxl" here because a
+// "2xl" key needs bracket access). Use these instead of ad-hoc numbers; the
+// only raw numbers allowed are micro radii (1-3) on progress bars/hairlines,
+// and circles use `full`.
+export const radii = {
+  sm: 4,
+  md: 8,
+  lg: 12,
+  xl: 16,
+  xxl: 20,
+  full: 999,
+} as const;
+
+// Spacing scale (DESIGN.md). Adopt in NEW code; existing paddings migrate on
+// touch, not wholesale.
+export const spacing = {
+  xxs: 4,
+  xs: 8,
+  sm: 12,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
+} as const;
+
 export const fonts = {
   sans: "Geist_400Regular",
   sansMedium: "Geist_500Medium",

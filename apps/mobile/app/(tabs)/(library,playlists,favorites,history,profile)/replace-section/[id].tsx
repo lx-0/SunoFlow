@@ -10,7 +10,7 @@ import { replaceSection } from "@/api/song-studio";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
-import { fonts } from "@/theme/theme";
+import { fonts, radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Replace (infill) a time section of a song with a freshly-generated part. The
@@ -106,12 +106,12 @@ function makeStyles(c: ThemeColors) {
     content: { padding: 16, gap: 8, paddingBottom: MINIPLAYER_CLEARANCE },
     help: { color: c.textDim, fontSize: 14, lineHeight: 20, marginBottom: 6 },
     label: { color: c.textDim, fontSize: 13, marginTop: 8 },
-    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12, fontFamily: fonts.mono },
+    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radii.lg, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12, fontFamily: fonts.mono },
     multiline: { minHeight: 80, textAlignVertical: "top" },
     row: { flexDirection: "row", gap: 12 },
     half: { flex: 1 },
     error: { color: c.danger, fontSize: 13, marginTop: 8 },
-    btn: { backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 20 },
+    btn: { backgroundColor: c.accentStrong, borderRadius: radii.lg, paddingVertical: 14, alignItems: "center", marginTop: 20 },
     btnDisabled: { opacity: 0.45 },
     btnText: { color: c.onAccent, fontSize: 15, fontWeight: "700" },
   });

@@ -26,7 +26,7 @@ import { SongRow } from "@/components/SongRow";
 import { usePrompt } from "@/components/PromptSheet";
 import type { Song } from "@/types";
 import { useTheme } from "@/theme/ThemeContext";
-import { fonts } from "@/theme/theme";
+import { fonts, radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Song details — mirrors the web SongDetailView: cover, title, metadata, favorite
@@ -380,7 +380,7 @@ export default function SongDetailScreen() {
           accessibilityLabel={favorite ? "Remove from favorites" : "Add to favorites"}
           accessibilityState={{ selected: favorite }}
         >
-          <HeartIcon color={favorite ? colors.danger : colors.text} filled={favorite} size={22} />
+          <HeartIcon color={favorite ? colors.accent : colors.text} filled={favorite} size={22} />
           {favCount > 0 ? <Text style={styles.circleCount}>{favCount}</Text> : null}
         </Pressable>
         <Pressable
@@ -550,10 +550,10 @@ function makeStyles(c: ThemeColors) {
     centered: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg, padding: 24 },
 
     hero: { alignItems: "center", marginBottom: 20 },
-    art: { width: 220, height: 220, borderRadius: 18, marginBottom: 16 },
+    art: { width: 220, height: 220, borderRadius: radii.xxl, marginBottom: 16 },
     artPlaceholder: { backgroundColor: c.surfaceAlt, alignItems: "center", justifyContent: "center" },
     title: { color: c.text, fontSize: 22, fontWeight: "800", textAlign: "center", lineHeight: 28 },
-    badge: { marginTop: 12, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999 },
+    badge: { marginTop: 12, paddingHorizontal: 12, paddingVertical: 4, borderRadius: radii.full },
     badgePublic: { backgroundColor: c.successBg },
     badgePrivate: { backgroundColor: c.surfaceAlt },
     badgeText: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6 },
@@ -561,21 +561,21 @@ function makeStyles(c: ThemeColors) {
     badgeTextPrivate: { color: c.textDim },
 
     primaryRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-    playBtn: { flex: 1, flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center", backgroundColor: c.accentStrong, borderRadius: 14, paddingVertical: 15 },
+    playBtn: { flex: 1, flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center", backgroundColor: c.accentStrong, borderRadius: radii.xl, paddingVertical: 15 },
     playText: { color: c.onAccent, fontSize: 16, fontWeight: "700" },
-    circleBtn: { minWidth: 54, height: 54, paddingHorizontal: 10, flexDirection: "row", gap: 5, alignItems: "center", justifyContent: "center", backgroundColor: c.surface, borderRadius: 14 },
+    circleBtn: { minWidth: 54, height: 54, paddingHorizontal: 10, flexDirection: "row", gap: 5, alignItems: "center", justifyContent: "center", backgroundColor: c.surface, borderRadius: radii.xl },
     circleCount: { color: c.textDim, fontSize: 13, fontWeight: "600" },
 
-    ratingRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 18, backgroundColor: c.surface, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12 },
+    ratingRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 18, backgroundColor: c.surface, borderRadius: radii.xl, paddingHorizontal: 16, paddingVertical: 12 },
     ratingLabel: { color: c.textDim, fontSize: 14, fontWeight: "600" },
 
-    thumbsRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 10, backgroundColor: c.surface, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12 },
+    thumbsRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 10, backgroundColor: c.surface, borderRadius: radii.xl, paddingHorizontal: 16, paddingVertical: 12 },
     thumbsBtns: { flexDirection: "row", gap: 10 },
-    thumbBtn: { width: 44, height: 38, alignItems: "center", justifyContent: "center", backgroundColor: c.surfaceAlt, borderRadius: 10 },
+    thumbBtn: { width: 44, height: 38, alignItems: "center", justifyContent: "center", backgroundColor: c.surfaceAlt, borderRadius: radii.lg },
     thumbActive: { backgroundColor: c.accentStrong },
     thumbActiveDown: { backgroundColor: c.danger },
 
-    variationLink: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 16, backgroundColor: c.surface, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12 },
+    variationLink: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 16, backgroundColor: c.surface, borderRadius: radii.xl, paddingHorizontal: 16, paddingVertical: 12 },
     variationText: { color: c.accent, fontSize: 14, fontWeight: "600" },
 
     metaGrid: { flexDirection: "row", flexWrap: "wrap" },
@@ -585,23 +585,23 @@ function makeStyles(c: ThemeColors) {
     metaValue: { color: c.text, fontSize: 14, fontFamily: fonts.mono },
 
     grid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 16 },
-    gridItem: { flexBasis: "31%", flexGrow: 1, alignItems: "center", gap: 6, backgroundColor: c.surface, borderRadius: 14, paddingVertical: 14 },
+    gridItem: { flexBasis: "31%", flexGrow: 1, alignItems: "center", gap: 6, backgroundColor: c.surface, borderRadius: radii.xl, paddingVertical: 14 },
     gridLabel: { color: c.text, fontSize: 12, fontWeight: "600" },
 
-    card: { backgroundColor: c.surface, borderRadius: 14, padding: 16, marginTop: 16 },
+    card: { backgroundColor: c.surface, borderRadius: radii.xl, padding: 16, marginTop: 16 },
     cardHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
     cardTitle: { color: c.text, fontSize: 15, fontWeight: "700" },
     cardEmpty: { color: c.textFaint, fontSize: 13 },
     editLink: { color: c.accent, fontSize: 13, fontWeight: "600" },
     videoBusy: { flexDirection: "row", alignItems: "center", gap: 12 },
     videoError: { color: c.danger, fontSize: 13, marginBottom: 10 },
-    videoBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 12 },
+    videoBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.accentStrong, borderRadius: radii.lg, paddingVertical: 12 },
     videoBtnText: { color: c.onAccent, fontSize: 15, fontWeight: "700" },
 
     section: { marginTop: 24 },
     sectionTitle: { color: c.textDim, fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6 },
     tags: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-    tag: { backgroundColor: c.surfaceAlt, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 },
+    tag: { backgroundColor: c.surfaceAlt, borderRadius: radii.xl, paddingHorizontal: 12, paddingVertical: 6 },
     tagText: { color: c.textDim, fontSize: 13 },
     body: { color: c.textDim, fontSize: 14, lineHeight: 21 },
     contentBody: { color: c.textDim, fontSize: 14, lineHeight: 21, fontFamily: fonts.mono },

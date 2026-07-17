@@ -10,7 +10,7 @@ import { fetchRawLyrics, updateLyrics } from "@/api/lyrics";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
-import { fonts } from "@/theme/theme";
+import { fonts, radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Edit a song's lyric TEXT (the `edited` override). Owner-only — reached from the
@@ -167,15 +167,15 @@ function makeStyles(c: ThemeColors) {
     badge: { color: c.warnFg, fontSize: 12, fontWeight: "600" },
     input: {
       backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth,
-      borderRadius: 12, color: c.text, fontSize: 15, lineHeight: 22, padding: 14, minHeight: 280,
+      borderRadius: radii.lg, color: c.text, fontSize: 15, lineHeight: 22, padding: 14, minHeight: 280,
       fontFamily: fonts.mono,
     },
     error: { color: c.danger, fontSize: 13 },
     saved: { color: c.successFg, fontSize: 13 },
     actions: { gap: 10 },
-    saveFull: { backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
+    saveFull: { backgroundColor: c.accentStrong, borderRadius: radii.lg, paddingVertical: 14, alignItems: "center" },
     saveFullText: { color: c.onAccent, fontSize: 15, fontWeight: "700" },
-    resetBtn: { borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
+    resetBtn: { borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radii.lg, paddingVertical: 14, alignItems: "center" },
     resetText: { color: c.danger, fontSize: 15, fontWeight: "600" },
     cancel: { alignItems: "center", paddingVertical: 10 },
     cancelText: { color: c.textDim, fontSize: 15 },

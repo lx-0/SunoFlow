@@ -15,7 +15,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { usePrompt } from "@/components/PromptSheet";
 import { useTheme } from "@/theme/ThemeContext";
-import { fonts } from "@/theme/theme";
+import { fonts, radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Prompt Templates management: browse built-in + saved prompts, and create /
@@ -246,17 +246,17 @@ function makeStyles(c: ThemeColors) {
     listContent: { paddingBottom: MINIPLAYER_CLEARANCE },
     createCard: { padding: 16, gap: 8, borderBottomColor: c.border, borderBottomWidth: StyleSheet.hairlineWidth },
     label: { color: c.textDim, fontSize: 13, marginTop: 4 },
-    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
+    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radii.lg, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
     multiInput: { minHeight: 64, textAlignVertical: "top" },
     switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 },
-    saveBtn: { backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 13, alignItems: "center", marginTop: 8 },
+    saveBtn: { backgroundColor: c.accentStrong, borderRadius: radii.lg, paddingVertical: 13, alignItems: "center", marginTop: 8 },
     saveText: { color: c.onAccent, fontSize: 15, fontWeight: "700" },
     btnDisabled: { opacity: 0.45 },
     row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: c.border, borderBottomWidth: StyleSheet.hairlineWidth },
     meta: { flex: 1, marginRight: 12 },
     titleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
     title: { color: c.text, fontSize: 16, flexShrink: 1 },
-    tag: { color: c.textDim, fontSize: 11, backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1, overflow: "hidden" },
+    tag: { color: c.textDim, fontSize: 11, backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radii.md, paddingHorizontal: 6, paddingVertical: 1, overflow: "hidden" },
     dim: { color: c.textDim, fontSize: 13, fontFamily: fonts.mono, marginTop: 2 },
   });
 }

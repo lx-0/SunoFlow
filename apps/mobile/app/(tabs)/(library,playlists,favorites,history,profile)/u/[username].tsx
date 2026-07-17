@@ -19,7 +19,7 @@ import {
 import { playQueue } from "@/playback/controls";
 import type { Song } from "@/types";
 import { useTheme } from "@/theme/ThemeContext";
-import { fonts, type ThemeColors } from "@/theme/theme";
+import { fonts, radii, type ThemeColors } from "@/theme/theme";
 
 type Tab = "songs" | "liked" | "playlists";
 const TABS: { key: Tab; label: string }[] = [
@@ -298,7 +298,7 @@ function makeStyles(c: ThemeColors) {
       alignSelf: "flex-start",
       paddingHorizontal: 22,
       paddingVertical: 9,
-      borderRadius: 999,
+      borderRadius: radii.full,
       backgroundColor: c.accent,
     },
     followingBtn: { backgroundColor: "transparent", borderColor: c.border, borderWidth: 1 },
@@ -314,7 +314,7 @@ function makeStyles(c: ThemeColors) {
     segmentItem: {
       paddingHorizontal: 14,
       paddingVertical: 7,
-      borderRadius: 999,
+      borderRadius: radii.full,
       marginRight: 8,
     },
     segmentItemActive: { backgroundColor: c.accent },

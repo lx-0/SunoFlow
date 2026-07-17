@@ -10,7 +10,7 @@ import {
 } from "@/api/notification-prefs";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { radii, type ThemeColors } from "@/theme/theme";
 
 // Notification preferences: email + push toggles, digest frequency, quiet hours.
 // Every change PATCHes immediately and optimistically — local state flips first,
@@ -197,14 +197,14 @@ function makeStyles(c: ThemeColors) {
     sectionTitle: { color: c.textFaint, fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, marginTop: 8 },
     subLabel: { color: c.textDim, fontSize: 13, marginTop: 4 },
     note: { color: c.textDim, fontSize: 13, marginBottom: 2 },
-    card: { backgroundColor: c.surface, borderRadius: 12, overflow: "hidden" },
+    card: { backgroundColor: c.surface, borderRadius: radii.lg, overflow: "hidden" },
     row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
     rowText: { color: c.text, fontSize: 15 },
     divider: { height: StyleSheet.hairlineWidth, backgroundColor: c.border, marginLeft: 16 },
-    segment: { flexDirection: "row", backgroundColor: c.surface, borderRadius: 12, padding: 4, gap: 4 },
-    segmentItem: { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 9 },
+    segment: { flexDirection: "row", backgroundColor: c.surface, borderRadius: radii.lg, padding: 4, gap: 4 },
+    segmentItem: { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: radii.md },
     segmentText: { fontSize: 14, fontWeight: "600" },
-    hourChip: { backgroundColor: c.surfaceAlt, borderRadius: 9, paddingHorizontal: 14, paddingVertical: 8 },
+    hourChip: { backgroundColor: c.surfaceAlt, borderRadius: radii.md, paddingHorizontal: 14, paddingVertical: 8 },
     hourText: { color: c.text, fontSize: 15, fontWeight: "600" },
   });
 }

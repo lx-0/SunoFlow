@@ -23,7 +23,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { radii, type ThemeColors } from "@/theme/theme";
 
 // Per-song tag editor (mobile parity with the web owner view). Loads the song's
 // tags on focus, adds via an inline input, and removes a tag by tapping its chip
@@ -191,7 +191,7 @@ function makeStyles(c: ThemeColors) {
       backgroundColor: c.surface,
       borderColor: c.border,
       borderWidth: StyleSheet.hairlineWidth,
-      borderRadius: 10,
+      borderRadius: radii.lg,
       color: c.text,
       fontSize: 15,
       paddingHorizontal: 14,
@@ -200,7 +200,7 @@ function makeStyles(c: ThemeColors) {
     addBtn: {
       width: 44,
       height: 44,
-      borderRadius: 12,
+      borderRadius: radii.lg,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: c.accentStrong,
@@ -215,7 +215,7 @@ function makeStyles(c: ThemeColors) {
       backgroundColor: c.surfaceAlt,
       borderColor: c.border,
       borderWidth: StyleSheet.hairlineWidth,
-      borderRadius: 16,
+      borderRadius: radii.xl,
       paddingLeft: 14,
       paddingRight: 8,
       paddingVertical: 8,

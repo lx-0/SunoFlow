@@ -16,10 +16,11 @@ import { formatDuration } from "@sunoflow/core";
 import { HttpError } from "@/api/client";
 import { DISCOVER_MOODS, fetchDiscover } from "@/api/discover";
 import { playQueue } from "@/playback/controls";
+import { Chip } from "@/components/Chip";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { radii, type ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
 // Discover: a public feed of songs (trending / new / recommended). v1 flattens
@@ -182,22 +183,14 @@ export default function DiscoverScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipRow}
         >
-          {chips.map((chip) => {
-            const active = chip.value === mood;
-            return (
-              <Pressable
-                key={chip.key}
-                onPress={() => selectMood(chip.value)}
-                style={[styles.chip, active && styles.chipActive]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-              >
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                  {chip.label}
-                </Text>
-              </Pressable>
-            );
-          })}
+          {chips.map((chip) => (
+            <Chip
+              key={chip.key}
+              label={chip.label}
+              active={chip.value === mood}
+              onPress={() => selectMood(chip.value)}
+            />
+          ))}
         </ScrollView>
       </View>
 
@@ -281,26 +274,15 @@ function makeStyles(c: ThemeColors) {
       borderBottomWidth: StyleSheet.hairlineWidth,
     },
     chipRow: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
-    chip: {
-      paddingHorizontal: 14,
-      paddingVertical: 7,
-      borderRadius: 16,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: c.border,
-      backgroundColor: c.surface,
-    },
-    chipActive: { backgroundColor: c.accent, borderColor: c.accent },
-    chipText: { color: c.textDim, fontSize: 13, fontWeight: "500" },
-    chipTextActive: { color: c.onAccent },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
     footer: { paddingVertical: 16 },
     gridContent: { paddingTop: 12, paddingBottom: MINIPLAYER_CLEARANCE },
     gridRow: { paddingHorizontal: 12, gap: 12 },
     gridItem: { flex: 1, marginBottom: 18, maxWidth: "50%" },
-    gridArtWrap: { borderRadius: 14 },
-    gridArt: { width: "100%", aspectRatio: 1, borderRadius: 14, backgroundColor: c.surfaceAlt },
+    gridArtWrap: { borderRadius: radii.xl },
+    gridArt: { width: "100%", aspectRatio: 1, borderRadius: radii.xl, backgroundColor: c.surfaceAlt },
     gridPlaceholder: { alignItems: "center", justifyContent: "center" },
-    gridFav: { position: "absolute", top: 8, right: 8, backgroundColor: c.bg, opacity: 0.92, borderRadius: 999, padding: 5 },
+    gridFav: { position: "absolute", top: 8, right: 8, backgroundColor: c.bg, opacity: 0.92, borderRadius: radii.full, padding: 5 },
     gridTitle: { color: c.text, fontSize: 14, fontWeight: "600", marginTop: 8 },
     gridSub: { color: c.textDim, fontSize: 12, marginTop: 2 },
   });

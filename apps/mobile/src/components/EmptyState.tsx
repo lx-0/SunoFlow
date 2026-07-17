@@ -2,7 +2,7 @@ import { View, Pressable, StyleSheet } from "react-native";
 import { Text } from "@/components/Themed";
 import type { LucideIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { radii, type ThemeColors } from "@/theme/theme";
 
 // Shared empty / error state: a centered icon + title + optional subtitle and a
 // single CTA. Used across list screens for a consistent, friendly empty look
@@ -44,7 +44,7 @@ function makeStyles(c: ThemeColors) {
     wrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 12 },
     title: { color: c.text, fontSize: 16, fontWeight: "600", textAlign: "center" },
     sub: { color: c.textDim, fontSize: 14, lineHeight: 20, textAlign: "center" },
-    cta: { marginTop: 6, backgroundColor: c.accentStrong, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 11 },
+    cta: { marginTop: 6, backgroundColor: c.accentStrong, borderRadius: radii.lg, paddingHorizontal: 20, paddingVertical: 11 },
     ctaText: { color: c.onAccent, fontSize: 15, fontWeight: "700" },
   });
 }

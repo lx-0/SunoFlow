@@ -8,7 +8,7 @@ import { fetchTags, type Tag } from "@/api/tags";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { radii, type ThemeColors } from "@/theme/theme";
 
 // Tags: browse the user's tags. Reloads on focus. Tap a tag to see its songs.
 export default function TagsScreen() {
@@ -83,7 +83,7 @@ function makeStyles(c: ThemeColors) {
       borderBottomColor: c.border,
       borderBottomWidth: StyleSheet.hairlineWidth,
     },
-    dot: { width: 10, height: 10, borderRadius: 5, marginRight: 12 },
+    dot: { width: 10, height: 10, borderRadius: radii.full, marginRight: 12 },
     meta: { flex: 1 },
     title: { color: c.text, fontSize: 16 },
     count: { color: c.textDim, fontSize: 13, fontVariant: ["tabular-nums"] },

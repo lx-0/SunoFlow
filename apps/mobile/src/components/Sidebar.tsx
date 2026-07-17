@@ -4,6 +4,7 @@ import { Text } from "@/components/Themed";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePathname, type Href } from "expo-router";
 import { useTheme } from "@/theme/ThemeContext";
+import { radii } from "@/theme/theme";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { switchTo, isAtTabRoot } from "@/navigation";
 import {
@@ -192,6 +193,6 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   section: { marginBottom: 18 },
   sectionTitle: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, paddingHorizontal: 12, marginBottom: 6 },
-  row: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 12, paddingVertical: 12, borderRadius: 10 },
+  row: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 12, paddingVertical: 12, borderRadius: radii.lg },
   label: { fontSize: 16 },
 });

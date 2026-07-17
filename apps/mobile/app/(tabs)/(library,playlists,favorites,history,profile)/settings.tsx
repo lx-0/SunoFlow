@@ -8,7 +8,7 @@ import { apiDelete } from "@/api/client";
 import { exportUserData } from "@/api/account";
 import { fetchCredits, type Credits } from "@/api/credits";
 import { useTheme } from "@/theme/ThemeContext";
-import { THEMES, THEME_LABELS, type ThemeMode, type ThemeName } from "@/theme/theme";
+import { THEMES, THEME_LABELS, radii, type ThemeMode, type ThemeName } from "@/theme/theme";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 
 const MODES: { key: ThemeMode; label: string }[] = [
@@ -155,16 +155,16 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flexGrow: 1, padding: 20, gap: 10, paddingBottom: MINIPLAYER_CLEARANCE },
   sectionTitle: { fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, marginTop: 8 },
-  segment: { flexDirection: "row", borderRadius: 12, padding: 4, gap: 4 },
-  segmentItem: { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 9 },
+  segment: { flexDirection: "row", borderRadius: radii.lg, padding: 4, gap: 4 },
+  segmentItem: { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: radii.md },
   segmentText: { fontSize: 14, fontWeight: "600" },
   themeRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  themeChip: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, borderWidth: 2 },
-  swatch: { width: 16, height: 16, borderRadius: 8 },
+  themeChip: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderRadius: radii.lg, borderWidth: 2 },
+  swatch: { width: 16, height: 16, borderRadius: radii.full },
   themeText: { fontSize: 14, fontWeight: "600" },
-  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12 },
+  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14, borderRadius: radii.lg },
   rowText: { fontSize: 15 },
   rowSub: { fontSize: 13 },
-  signOut: { marginTop: "auto", alignItems: "center", paddingVertical: 14, borderRadius: 12 },
+  signOut: { marginTop: "auto", alignItems: "center", paddingVertical: 14, borderRadius: radii.lg },
   signOutText: { fontSize: 15, fontWeight: "600" },
 });

@@ -15,6 +15,7 @@ import {
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 type Role = "editor" | "viewer";
@@ -259,23 +260,23 @@ function makeStyles(c: ThemeColors) {
     listContent: { paddingBottom: MINIPLAYER_CLEARANCE },
     dim: { color: c.textDim, fontSize: 13 },
     header: { padding: 16, gap: 14 },
-    toggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: c.surface, borderRadius: 12, padding: 14 },
+    toggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: c.surface, borderRadius: radii.lg, padding: 14 },
     toggleText: { flex: 1, paddingRight: 12, gap: 2 },
     toggleTitle: { color: c.text, fontSize: 15, fontWeight: "600" },
-    inviteBox: { backgroundColor: c.surface, borderRadius: 12, padding: 14, gap: 12 },
-    roleSeg: { flexDirection: "row", backgroundColor: c.surfaceAlt, borderRadius: 10, padding: 3, gap: 3 },
-    roleItem: { flex: 1, alignItems: "center", paddingVertical: 8, borderRadius: 8 },
+    inviteBox: { backgroundColor: c.surface, borderRadius: radii.lg, padding: 14, gap: 12 },
+    roleSeg: { flexDirection: "row", backgroundColor: c.surfaceAlt, borderRadius: radii.lg, padding: 3, gap: 3 },
+    roleItem: { flex: 1, alignItems: "center", paddingVertical: 8, borderRadius: radii.md },
     roleText: { fontSize: 13, fontWeight: "600" },
     inviteRow: { flexDirection: "row", gap: 8 },
-    input: { flex: 1, backgroundColor: c.surfaceAlt, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 12, paddingVertical: 10 },
-    inviteBtn: { backgroundColor: c.accentStrong, borderRadius: 10, paddingHorizontal: 18, alignItems: "center", justifyContent: "center" },
+    input: { flex: 1, backgroundColor: c.surfaceAlt, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radii.lg, color: c.text, fontSize: 15, paddingHorizontal: 12, paddingVertical: 10 },
+    inviteBtn: { backgroundColor: c.accentStrong, borderRadius: radii.lg, paddingHorizontal: 18, alignItems: "center", justifyContent: "center" },
     inviteBtnText: { color: c.onAccent, fontSize: 15, fontWeight: "700" },
     btnDisabled: { opacity: 0.45 },
     linkBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
     linkText: { color: c.accent, fontSize: 14, fontWeight: "600" },
     sectionTitle: { color: c.textFaint, fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6 },
     row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderBottomColor: c.border, borderBottomWidth: StyleSheet.hairlineWidth },
-    avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.surfaceAlt },
+    avatar: { width: 40, height: 40, borderRadius: radii.full, backgroundColor: c.surfaceAlt },
     avatarPlaceholder: { alignItems: "center", justifyContent: "center" },
     meta: { flex: 1 },
     name: { color: c.text, fontSize: 15, fontWeight: "500" },

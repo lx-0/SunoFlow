@@ -11,7 +11,7 @@ import { unfollowUser } from "@/api/users";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { radii, type ThemeColors } from "@/theme/theme";
 
 // People You Follow: the creators the user follows. Reloads on focus so changes
 // made elsewhere (follow/unfollow on a profile) are reflected. Tap a row to open
@@ -142,7 +142,7 @@ function makeStyles(c: ThemeColors) {
       borderBottomColor: c.border,
       borderBottomWidth: StyleSheet.hairlineWidth,
     },
-    avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: c.surfaceAlt },
+    avatar: { width: 44, height: 44, borderRadius: radii.full, backgroundColor: c.surfaceAlt },
     avatarPlaceholder: { alignItems: "center", justifyContent: "center" },
     meta: { flex: 1, marginLeft: 12 },
     moreBtn: { paddingLeft: 12, paddingVertical: 4 },

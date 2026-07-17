@@ -10,6 +10,7 @@ import { fetchRssFeeds, addRssFeed, deleteRssFeed, type RssFeed } from "@/api/rs
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // RSS feed management: add (by URL) and delete feeds. Feeds power Inspire's
@@ -158,8 +159,8 @@ function makeStyles(c: ThemeColors) {
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
     createCard: { padding: 16, gap: 8, borderBottomColor: c.border, borderBottomWidth: StyleSheet.hairlineWidth },
     label: { color: c.textDim, fontSize: 13, marginTop: 4 },
-    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
-    saveBtn: { backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 13, alignItems: "center", marginTop: 8 },
+    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radii.lg, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
+    saveBtn: { backgroundColor: c.accentStrong, borderRadius: radii.lg, paddingVertical: 13, alignItems: "center", marginTop: 8 },
     saveText: { color: c.onAccent, fontSize: 15, fontWeight: "700" },
     btnDisabled: { opacity: 0.45 },
     row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: c.border, borderBottomWidth: StyleSheet.hairlineWidth },

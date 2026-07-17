@@ -16,11 +16,12 @@ import { formatDuration } from "@sunoflow/core";
 import { HttpError } from "@/api/client";
 import { fetchRadio, RADIO_MOODS, RADIO_GENRES } from "@/api/radio";
 import { playQueue } from "@/playback/controls";
+import { Chip } from "@/components/Chip";
 import { SongRow } from "@/components/SongRow";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { radii, type ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
 // Radio: a generated continuous station. A controls header lets the listener pick
@@ -117,30 +118,15 @@ export default function RadioScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipRow}
         >
-          <Pressable
-            style={[styles.chip, mood === null && styles.chipActive]}
-            onPress={() => setMood(null)}
-            accessibilityRole="button"
-            accessibilityState={{ selected: mood === null }}
-          >
-            <Text style={[styles.chipText, mood === null && styles.chipTextActive]}>Any mood</Text>
-          </Pressable>
-          {RADIO_MOODS.map((m) => {
-            const active = mood === m;
-            return (
-              <Pressable
-                key={m}
-                style={[styles.chip, active && styles.chipActive]}
-                onPress={() => toggleMood(m)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-              >
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                  {capitalize(m)}
-                </Text>
-              </Pressable>
-            );
-          })}
+          <Chip label="Any mood" active={mood === null} onPress={() => setMood(null)} />
+          {RADIO_MOODS.map((m) => (
+            <Chip
+              key={m}
+              label={capitalize(m)}
+              active={mood === m}
+              onPress={() => toggleMood(m)}
+            />
+          ))}
         </ScrollView>
 
         <Pressable style={styles.genreButton} onPress={pickGenre}>
@@ -217,17 +203,6 @@ function makeStyles(c: ThemeColors) {
       borderBottomWidth: StyleSheet.hairlineWidth,
     },
     chipRow: { paddingHorizontal: 16, gap: 8 },
-    chip: {
-      paddingHorizontal: 14,
-      paddingVertical: 8,
-      borderRadius: 999,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: c.border,
-      backgroundColor: c.surface,
-    },
-    chipActive: { borderColor: c.accent, backgroundColor: c.surfaceAlt },
-    chipText: { color: c.textDim, fontSize: 14 },
-    chipTextActive: { color: c.accent, fontWeight: "700" },
     genreButton: {
       flexDirection: "row",
       alignItems: "center",
@@ -237,7 +212,7 @@ function makeStyles(c: ThemeColors) {
       marginTop: 12,
       paddingHorizontal: 14,
       paddingVertical: 12,
-      borderRadius: 12,
+      borderRadius: radii.lg,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: c.border,
       backgroundColor: c.surface,
@@ -253,7 +228,7 @@ function makeStyles(c: ThemeColors) {
       marginTop: 12,
       marginBottom: 8,
       paddingVertical: 14,
-      borderRadius: 12,
+      borderRadius: radii.lg,
     },
     playButtonText: { color: c.onAccent, fontSize: 16, fontWeight: "700" },
     duration: { color: c.textFaint, fontSize: 13, fontVariant: ["tabular-nums"] },

@@ -4,7 +4,7 @@ import { Text } from "@/components/Themed";
 import { Star } from "lucide-react-native";
 import { getRating, setRating } from "@/api/ratings";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { radii, type ThemeColors } from "@/theme/theme";
 
 // Compact rating control: one star button showing the current value; tapping
 // opens a context menu (1–5 / clear) — saves the horizontal space the 5-star row
@@ -62,7 +62,7 @@ export function RatingButton({ songId }: { songId: string }) {
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
-    btn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: c.surface, borderRadius: 999, paddingHorizontal: 12, height: 44 },
+    btn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: c.surface, borderRadius: radii.full, paddingHorizontal: 12, height: 44 },
     label: { color: c.textDim, fontSize: 13, fontWeight: "600" },
     labelRated: { color: c.star },
   });

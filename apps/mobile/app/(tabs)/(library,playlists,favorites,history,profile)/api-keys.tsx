@@ -16,7 +16,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
-import { fonts } from "@/theme/theme";
+import { fonts, radii } from "@/theme/theme";
 
 const KEY_NAME_MAX = 64;
 
@@ -279,16 +279,16 @@ function makeStyles(c: ThemeColors) {
     sectionTitle: { color: c.textFaint, fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, paddingHorizontal: 20, marginTop: 16, marginBottom: 8 },
     sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingRight: 18 },
     sectionHint: { paddingHorizontal: 20, marginTop: -2, marginBottom: 8 },
-    card: { marginHorizontal: 16, backgroundColor: c.surface, borderRadius: 12, padding: 16, gap: 12 },
+    card: { marginHorizontal: 16, backgroundColor: c.surface, borderRadius: radii.lg, padding: 16, gap: 12 },
     toggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
     toggleMeta: { flex: 1, marginRight: 12 },
     keyEntry: { gap: 8 },
-    input: { backgroundColor: c.bg, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
+    input: { backgroundColor: c.bg, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radii.lg, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
     keyInput: { fontFamily: fonts.mono },
-    saveBtn: { backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 13, alignItems: "center" },
+    saveBtn: { backgroundColor: c.accentStrong, borderRadius: radii.lg, paddingVertical: 13, alignItems: "center" },
     saveText: { color: c.onAccent, fontSize: 15, fontWeight: "700" },
     btnDisabled: { opacity: 0.45 },
-    row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginHorizontal: 16, marginTop: 8, backgroundColor: c.surface, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14 },
+    row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginHorizontal: 16, marginTop: 8, backgroundColor: c.surface, borderRadius: radii.lg, paddingHorizontal: 16, paddingVertical: 14 },
     rowTitle: { color: c.text, fontSize: 16, flex: 1, marginRight: 12 },
     deleteBtn: { padding: 2 },
     emptyBox: { paddingHorizontal: 20, paddingVertical: 16 },

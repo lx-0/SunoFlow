@@ -8,6 +8,7 @@ import { fetchRateLimits, type RateLimit } from "@/api/rate-limit";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 type Styles = ReturnType<typeof makeStyles>;
@@ -95,7 +96,7 @@ function makeStyles(c: ThemeColors) {
     scroll: { padding: 16, gap: 12, paddingBottom: MINIPLAYER_CLEARANCE },
     card: {
       backgroundColor: c.surface,
-      borderRadius: 14,
+      borderRadius: radii.xl,
       borderColor: c.border,
       borderWidth: StyleSheet.hairlineWidth,
       padding: 16,

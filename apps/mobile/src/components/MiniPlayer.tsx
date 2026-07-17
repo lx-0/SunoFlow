@@ -7,6 +7,7 @@ import { togglePlay, skipToNext } from "@/playback/audio";
 import { openPlayer } from "@/navigation";
 import { PlayIcon, PauseIcon, SkipNextIcon } from "@/components/Icons";
 import { useTheme } from "@/theme/ThemeContext";
+import { radii } from "@/theme/theme";
 
 // Persistent now-playing bar near the bottom of every primary screen, so playback
 // stays controllable while the user browses. Driven by the expo-audio controller's
@@ -84,7 +85,7 @@ const styles = StyleSheet.create({
     left: 8,
     right: 8,
     height: 56,
-    borderRadius: 14,
+    borderRadius: radii.xl,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
@@ -94,7 +95,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
   },
-  thumb: { width: 40, height: 40, borderRadius: 8 },
+  thumb: { width: 40, height: 40, borderRadius: radii.md },
   thumbPlaceholder: { alignItems: "center", justifyContent: "center" },
   meta: { flex: 1, minWidth: 0 },
   title: { fontSize: 14, fontWeight: "600" },

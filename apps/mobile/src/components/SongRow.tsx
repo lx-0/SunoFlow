@@ -5,6 +5,7 @@ import { formatDuration } from "@sunoflow/core";
 import { Disc3 } from "lucide-react-native";
 import { HeartIcon } from "@/components/Icons";
 import { useTheme } from "@/theme/ThemeContext";
+import { radii } from "@/theme/theme";
 import type { Song } from "@/types";
 
 // Shared song list row (artwork + title + "artist · duration" + optional right
@@ -36,7 +37,7 @@ export function SongRow({
         <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>{song.title}</Text>
         {subtitle ? <Text style={[styles.sub, { color: colors.textDim }]} numberOfLines={1}>{subtitle}</Text> : null}
       </View>
-      {right ?? (song.isFavorite ? <HeartIcon color={colors.danger} filled size={16} /> : null)}
+      {right ?? (song.isFavorite ? <HeartIcon color={colors.accent} filled size={16} /> : null)}
     </Pressable>
   );
 }
@@ -50,7 +51,7 @@ const styles = StyleSheet.create({
     gap: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  thumb: { width: 52, height: 52, borderRadius: 8 },
+  thumb: { width: 52, height: 52, borderRadius: radii.md },
   thumbPlaceholder: { alignItems: "center", justifyContent: "center" },
   meta: { flex: 1, minWidth: 0 },
   title: { fontSize: 16 },

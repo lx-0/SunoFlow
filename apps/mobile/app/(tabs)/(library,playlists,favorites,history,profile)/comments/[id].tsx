@@ -16,6 +16,7 @@ import { fetchComments, addComment, type Comment } from "@/api/comments";
 import { EmptyState } from "@/components/EmptyState";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
+import { radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Comments on a public song. Loads on focus, posts optimistically (the new
@@ -179,12 +180,12 @@ function makeStyles(c: ThemeColors) {
       backgroundColor: c.surface,
       borderColor: c.border,
       borderWidth: StyleSheet.hairlineWidth,
-      borderRadius: 10,
+      borderRadius: radii.lg,
     },
     send: {
       width: 44,
       height: 44,
-      borderRadius: 10,
+      borderRadius: radii.lg,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: c.accentStrong,

@@ -11,7 +11,7 @@ import { sendFeedback, type FeedbackCategory } from "@/api/feedback";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { radii, type ThemeColors } from "@/theme/theme";
 
 const CATEGORIES: { key: FeedbackCategory; label: string }[] = [
   { key: "bug_report", label: "Bug" },
@@ -133,8 +133,8 @@ function makeStyles(c: ThemeColors) {
     container: { flex: 1, backgroundColor: c.bg },
     content: { padding: 20, paddingBottom: MINIPLAYER_CLEARANCE },
     label: { color: c.textDim, fontSize: 13, marginTop: 12, marginBottom: 6 },
-    segment: { flexDirection: "row", backgroundColor: c.surface, borderRadius: 12, padding: 4, gap: 4 },
-    segmentItem: { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 9 },
+    segment: { flexDirection: "row", backgroundColor: c.surface, borderRadius: radii.lg, padding: 4, gap: 4 },
+    segmentItem: { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: radii.md },
     segmentItemActive: { backgroundColor: c.accentStrong },
     segmentText: { fontSize: 14, fontWeight: "600", color: c.textDim },
     segmentTextActive: { color: c.onAccent },
@@ -142,7 +142,7 @@ function makeStyles(c: ThemeColors) {
       backgroundColor: c.surface,
       borderColor: c.border,
       borderWidth: StyleSheet.hairlineWidth,
-      borderRadius: 10,
+      borderRadius: radii.lg,
       color: c.text,
       fontSize: 15,
       paddingHorizontal: 14,
@@ -152,7 +152,7 @@ function makeStyles(c: ThemeColors) {
     },
     starRow: { flexDirection: "row", gap: 10 },
     error: { color: c.danger, fontSize: 13, marginTop: 14 },
-    btn: { backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 24 },
+    btn: { backgroundColor: c.accentStrong, borderRadius: radii.lg, paddingVertical: 14, alignItems: "center", marginTop: 24 },
     btnDisabled: { opacity: 0.45 },
     btnText: { color: c.onAccent, fontSize: 16, fontWeight: "700" },
     sentBox: { alignItems: "center", justifyContent: "center", gap: 12 },

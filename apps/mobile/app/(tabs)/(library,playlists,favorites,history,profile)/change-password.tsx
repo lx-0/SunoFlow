@@ -10,7 +10,7 @@ import { changePassword } from "@/api/account";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { radii, type ThemeColors } from "@/theme/theme";
 
 export default function ChangePasswordScreen() {
   const { colors } = useTheme();
@@ -74,9 +74,9 @@ function makeStyles(c: ThemeColors) {
     container: { flex: 1, backgroundColor: c.bg },
     content: { padding: 20, paddingBottom: MINIPLAYER_CLEARANCE },
     label: { color: c.textDim, fontSize: 13, marginTop: 12, marginBottom: 6 },
-    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
+    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radii.lg, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
     error: { color: c.danger, fontSize: 13, marginTop: 14 },
-    btn: { backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 24 },
+    btn: { backgroundColor: c.accentStrong, borderRadius: radii.lg, paddingVertical: 14, alignItems: "center", marginTop: 24 },
     btnDisabled: { opacity: 0.45 },
     btnText: { color: c.onAccent, fontSize: 16, fontWeight: "700" },
   });

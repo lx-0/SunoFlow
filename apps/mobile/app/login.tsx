@@ -5,6 +5,7 @@ import { router } from "expo-router";
 import { API_BASE_URL } from "@/api/client";
 import { setSession } from "@/auth/session";
 import { useTheme } from "@/theme/ThemeContext";
+import { radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Login → POST /api/v1/auth/token (M004-S02-T01) → store the returned API key.
@@ -81,9 +82,9 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     c: { flex: 1, justifyContent: "center", backgroundColor: c.bg, padding: 24, gap: 12 },
     h: { color: c.text, fontSize: 28, fontWeight: "700", marginBottom: 16 },
-    input: { backgroundColor: c.surface, color: c.text, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16 },
+    input: { backgroundColor: c.surface, color: c.text, borderRadius: radii.lg, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16 },
     err: { color: c.danger, fontSize: 13 },
-    btn: { backgroundColor: c.accentStrong, borderRadius: 10, paddingVertical: 14, alignItems: "center", marginTop: 4 },
+    btn: { backgroundColor: c.accentStrong, borderRadius: radii.lg, paddingVertical: 14, alignItems: "center", marginTop: 4 },
     btnText: { color: c.onAccent, fontSize: 16, fontWeight: "600" },
   });
 }

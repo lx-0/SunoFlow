@@ -6,7 +6,7 @@ import { HttpError } from "@/api/client";
 import { deleteAccount } from "@/api/account";
 import { clearSession } from "@/auth/session";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { radii, type ThemeColors } from "@/theme/theme";
 
 // Permanent account deletion. Requires the account password + the user's own
 // email as confirmation (server checks confirmEmail === user.email).
@@ -77,9 +77,9 @@ function makeStyles(c: ThemeColors) {
     container: { flex: 1, backgroundColor: c.bg, padding: 20 },
     warn: { color: c.textDim, fontSize: 14, lineHeight: 20 },
     label: { color: c.textDim, fontSize: 13, marginTop: 14, marginBottom: 6 },
-    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: 1, borderRadius: 10, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
+    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: 1, borderRadius: radii.lg, color: c.text, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
     error: { color: c.danger, fontSize: 13, marginTop: 14 },
-    btn: { backgroundColor: c.danger, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 24 },
+    btn: { backgroundColor: c.danger, borderRadius: radii.lg, paddingVertical: 14, alignItems: "center", marginTop: 24 },
     btnDisabled: { opacity: 0.45 },
     btnText: { color: c.onAccent, fontSize: 16, fontWeight: "700" },
   });

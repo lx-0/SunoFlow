@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Text, TextInput } from "@/components/Themed";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { radii, type ThemeColors } from "@/theme/theme";
 
 // Cross-platform replacement for Alert.prompt (which is iOS-only — on Android it
 // is undefined, so `Alert.prompt(...)` crashes and `Alert.prompt?.(...)` silently
@@ -118,8 +118,8 @@ function makeStyles(c: ThemeColors) {
     kav: { flex: 1, justifyContent: "flex-end" },
     sheet: {
       backgroundColor: c.surface,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
+      borderTopLeftRadius: radii.xxl,
+      borderTopRightRadius: radii.xxl,
       paddingHorizontal: 20,
       paddingTop: 20,
       paddingBottom: 32,
@@ -130,13 +130,13 @@ function makeStyles(c: ThemeColors) {
     input: {
       backgroundColor: c.surfaceAlt,
       color: c.text,
-      borderRadius: 12,
+      borderRadius: radii.lg,
       paddingHorizontal: 14,
       paddingVertical: 12,
       fontSize: 15,
     },
     actions: { flexDirection: "row", justifyContent: "flex-end", gap: 10 },
-    btn: { borderRadius: 12, paddingHorizontal: 18, paddingVertical: 10 },
+    btn: { borderRadius: radii.lg, paddingHorizontal: 18, paddingVertical: 10 },
     btnGhost: { backgroundColor: "transparent" },
     btnGhostText: { color: c.textDim, fontSize: 15, fontWeight: "500" },
     btnPrimary: { backgroundColor: c.accent },

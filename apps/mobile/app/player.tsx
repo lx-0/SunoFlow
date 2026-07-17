@@ -22,6 +22,7 @@ import { useTimedPopups } from "@/hooks/useTimedPopups";
 import { getFavorite, setFavorite as setFavoriteApi } from "@/api/favorites";
 import { fetchReactions, addReaction, type Reaction } from "@/api/reactions";
 import { useTheme } from "@/theme/ThemeContext";
+import { radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Now-Playing screen — cover, seek bar with timecoded reactions, rating/reactions,
@@ -161,7 +162,7 @@ export default function PlayerScreen() {
         {/* Rating (context menu) + reactions + shuffle-versions + details — one row */}
         <View style={styles.emojiRow}>
           <Pressable style={styles.secBtn} hitSlop={8} onPress={onToggleFavorite} accessibilityRole="button" accessibilityLabel={favorite ? "Unfavorite" : "Favorite"} accessibilityState={{ selected: favorite }}>
-            <HeartIcon color={favorite ? colors.danger : colors.textDim} filled={favorite} size={20} />
+            <HeartIcon color={favorite ? colors.accent : colors.textDim} filled={favorite} size={20} />
           </Pressable>
           {songId ? <RatingButton songId={songId} /> : null}
           <ReactionPicker onReact={(e) => void onReact(e)} reactionEmojis={reactions.map((r) => r.emoji)} />
@@ -212,7 +213,7 @@ export default function PlayerScreen() {
           {current?.title ? <Text style={styles.sheetTitle} numberOfLines={1}>{current.title}</Text> : null}
           {menu.map((m) => (
             <Pressable key={m.label} style={styles.menuRow} onPress={() => runMenu(m.go)}>
-              <m.Icon color={colors.accent} size={20} />
+              <m.Icon color={colors.textDim} size={20} />
               <Text style={styles.menuLabel}>{m.label}</Text>
             </Pressable>
           ))}
@@ -231,31 +232,31 @@ function makeStyles(c: ThemeColors) {
     header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingTop: 8 },
     headerBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
     body: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 28 },
-    artWrap: { marginBottom: 28, borderRadius: 20 },
-    art: { width: 300, height: 300, borderRadius: 20 },
+    artWrap: { marginBottom: 28, borderRadius: radii.xxl },
+    art: { width: 300, height: 300, borderRadius: radii.xxl },
     artPlaceholder: { backgroundColor: c.surfaceAlt, alignItems: "center", justifyContent: "center" },
     titleWrap: { alignSelf: "stretch" },
     titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
     titleTap: { flexShrink: 1 },
     title: { color: c.text, fontSize: 23, fontWeight: "800", textAlign: "center" },
     titleMore: { padding: 2 },
-    altBadge: { backgroundColor: c.surfaceAlt, borderRadius: 999, padding: 5 },
+    altBadge: { backgroundColor: c.surfaceAlt, borderRadius: radii.full, padding: 5 },
     artist: { color: c.textDim, fontSize: 15, marginTop: 4, textAlign: "center" },
     times: { alignSelf: "stretch", flexDirection: "row", justifyContent: "space-between", marginTop: 2 },
     time: { color: c.textDim, fontSize: 12, fontVariant: ["tabular-nums"] },
     emojiRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 14 },
     row: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 22, marginTop: 24 },
     btnSmall: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-    shuffleBadge: { position: "absolute", right: -7, bottom: -5, backgroundColor: c.accent, borderRadius: 999, padding: 2 },
+    shuffleBadge: { position: "absolute", right: -7, bottom: -5, backgroundColor: c.accent, borderRadius: radii.full, padding: 2 },
     btn: { width: 56, height: 56, alignItems: "center", justifyContent: "center" },
-    btnPlay: { width: 72, height: 72, borderRadius: 36, backgroundColor: c.accentStrong },
-    secBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center", backgroundColor: c.surface, borderRadius: 22 },
+    btnPlay: { width: 72, height: 72, borderRadius: radii.full, backgroundColor: c.accentStrong },
+    secBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center", backgroundColor: c.surface, borderRadius: radii.full },
     // bottom-sheet menu
     backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)" },
-    sheet: { backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 8, paddingTop: 8, paddingBottom: 34 },
+    sheet: { backgroundColor: c.surface, borderTopLeftRadius: radii.xxl, borderTopRightRadius: radii.xxl, paddingHorizontal: 8, paddingTop: 8, paddingBottom: 34 },
     grabber: { alignSelf: "center", width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, marginBottom: 8 },
     sheetTitle: { color: c.textDim, fontSize: 13, fontWeight: "600", paddingHorizontal: 14, paddingBottom: 8 },
-    menuRow: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12 },
+    menuRow: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderRadius: radii.lg },
     menuLabel: { color: c.text, fontSize: 16 },
     cancelRow: { alignItems: "center", paddingVertical: 14, marginTop: 4 },
     cancelText: { color: c.textDim, fontSize: 16, fontWeight: "600" },

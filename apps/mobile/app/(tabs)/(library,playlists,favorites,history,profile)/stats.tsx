@@ -15,7 +15,7 @@ import {
   type UserStats,
 } from "@/api/stats";
 import { useTheme } from "@/theme/ThemeContext";
-import { fonts, type ThemeColors } from "@/theme/theme";
+import { fonts, radii, type ThemeColors } from "@/theme/theme";
 
 type Styles = ReturnType<typeof makeStyles>;
 
@@ -138,7 +138,7 @@ function makeStyles(c: ThemeColors) {
     scroll: { padding: 16, gap: 16, paddingBottom: MINIPLAYER_CLEARANCE },
     card: {
       backgroundColor: c.surface,
-      borderRadius: 14,
+      borderRadius: radii.xl,
       borderColor: c.border,
       borderWidth: StyleSheet.hairlineWidth,
       padding: 16,
@@ -161,7 +161,7 @@ function makeStyles(c: ThemeColors) {
     milestoneMeta: { flex: 1 },
     milestoneLabel: { color: c.text, fontSize: 15, fontWeight: "600" },
     lockedText: { color: c.textDim },
-    badge: { fontSize: 11, fontWeight: "700", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, overflow: "hidden" },
+    badge: { fontSize: 11, fontWeight: "700", paddingHorizontal: 8, paddingVertical: 3, borderRadius: radii.full, overflow: "hidden" },
     badgeOn: { color: c.successFg, backgroundColor: c.successBg },
     badgeOff: { color: c.textFaint, backgroundColor: c.surfaceAlt },
     dim: { color: c.textDim, fontSize: 13, marginTop: 2 },

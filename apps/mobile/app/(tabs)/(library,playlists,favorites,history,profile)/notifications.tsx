@@ -14,7 +14,7 @@ import {
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
-import type { ThemeColors } from "@/theme/theme";
+import { radii, type ThemeColors } from "@/theme/theme";
 
 // Notifications feed. Reloads on focus. Unread rows are brighter and carry an
 // accent dot; tapping a row marks it read (if unread) and navigates to its target
@@ -176,7 +176,7 @@ function makeStyles(c: ThemeColors) {
       borderBottomWidth: StyleSheet.hairlineWidth,
     },
     dotCol: { width: 18, paddingTop: 6, alignItems: "flex-start" },
-    dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: c.accent },
+    dot: { width: 8, height: 8, borderRadius: radii.full, backgroundColor: c.accent },
     meta: { flex: 1 },
     title: { color: c.text, fontSize: 15, fontWeight: "600" },
     titleRead: { color: c.textDim, fontWeight: "500" },

@@ -18,6 +18,7 @@ import { SongRow } from "@/components/SongRow";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
@@ -333,22 +334,22 @@ function Centered({ children }: { children: React.ReactNode }) {
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.bg },
-    search: { backgroundColor: c.surface, color: c.text, margin: 12, marginBottom: 8, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15 },
+    search: { backgroundColor: c.surface, color: c.text, margin: 12, marginBottom: 8, borderRadius: radii.lg, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15 },
     controls: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14, paddingBottom: 8 },
     controlsLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
-    sortBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: c.surface, borderRadius: 8 },
+    sortBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: c.surface, borderRadius: radii.md },
     sortText: { color: c.textDim, fontSize: 13 },
     filterBtnActive: { backgroundColor: c.surfaceAlt, borderWidth: 1, borderColor: c.accent },
     filterTextActive: { color: c.accent },
-    viewBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center", backgroundColor: c.surface, borderRadius: 8 },
+    viewBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center", backgroundColor: c.surface, borderRadius: radii.md },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
     footer: { paddingVertical: 18 },
     gridRow: { paddingHorizontal: 12, gap: 12 },
     gridItem: { flex: 1, marginBottom: 18, maxWidth: "50%" },
-    gridArtWrap: { borderRadius: 14 },
-    gridArt: { width: "100%", aspectRatio: 1, borderRadius: 14, backgroundColor: c.surfaceAlt },
+    gridArtWrap: { borderRadius: radii.xl },
+    gridArt: { width: "100%", aspectRatio: 1, borderRadius: radii.xl, backgroundColor: c.surfaceAlt },
     gridPlaceholder: { alignItems: "center", justifyContent: "center" },
-    gridFav: { position: "absolute", top: 8, right: 8, backgroundColor: c.bg, opacity: 0.92, borderRadius: 999, padding: 5 },
+    gridFav: { position: "absolute", top: 8, right: 8, backgroundColor: c.bg, opacity: 0.92, borderRadius: radii.full, padding: 5 },
     gridTitle: { color: c.text, fontSize: 14, fontWeight: "600", marginTop: 8 },
     gridSub: { color: c.textDim, fontSize: 12, marginTop: 2 },
   });

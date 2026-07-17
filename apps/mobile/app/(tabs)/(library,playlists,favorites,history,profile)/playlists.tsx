@@ -11,6 +11,7 @@ import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { EmptyState } from "@/components/EmptyState";
 import { usePrompt } from "@/components/PromptSheet";
 import { useTheme } from "@/theme/ThemeContext";
+import { radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 export default function PlaylistsScreen() {
@@ -157,7 +158,7 @@ export default function PlaylistsScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Play playlist"
                 >
-                  <Play color={colors.accent} fill={colors.accent} size={18} />
+                  <Play color={colors.textDim} fill={colors.textDim} size={18} />
                 </Pressable>
                 <Pressable
                   style={st.actBtn}
@@ -166,7 +167,7 @@ export default function PlaylistsScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Shuffle playlist"
                 >
-                  <Shuffle color={colors.accent} size={18} />
+                  <Shuffle color={colors.textDim} size={18} />
                 </Pressable>
               </View>
             ) : null}
@@ -197,11 +198,11 @@ function makeStyles(c: ThemeColors) {
     },
     rowMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12, minWidth: 0 },
     actions: { flexDirection: "row", alignItems: "center", gap: 4, marginLeft: 8 },
-    actBtn: { width: 38, height: 38, alignItems: "center", justifyContent: "center", backgroundColor: c.surface, borderRadius: 19 },
+    actBtn: { width: 38, height: 38, alignItems: "center", justifyContent: "center", backgroundColor: c.surface, borderRadius: radii.full },
     thumb: {
       width: 52,
       height: 52,
-      borderRadius: 8,
+      borderRadius: radii.md,
       backgroundColor: c.surfaceAlt,
       alignItems: "center",
       justifyContent: "center",

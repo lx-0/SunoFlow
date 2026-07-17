@@ -35,7 +35,7 @@ import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { usePrompt } from "@/components/PromptSheet";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
-import { fonts } from "@/theme/theme";
+import { fonts, radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Generate — mirrors the web GenerateForm. Style mode: the style/genre IS the
@@ -345,7 +345,7 @@ export default function GenerateScreen() {
     return (
       <View style={styles.centered}>
         <Stack.Screen options={{ title: "Generate" }} />
-        <ActivityIndicator color={colors.accent} size="large" />
+        <ActivityIndicator color={colors.warnFg} size="large" />
         <Text style={styles.statusTitle}>{phase === "submitting" ? "Starting generation…" : "Composing your song…"}</Text>
         <Text style={styles.dim}>This usually takes a minute or two. Keep this screen open.</Text>
         {started?.title ? <Text style={styles.dim} numberOfLines={1}>{started.title}</Text> : null}
@@ -387,7 +387,7 @@ export default function GenerateScreen() {
 
           {genningLyrics ? (
             <View style={styles.genBanner}>
-              <ActivityIndicator color={colors.onAccent} />
+              <ActivityIndicator color={colors.warnFg} />
               <Text style={styles.genBannerText}>
                 Writing your song from the article — title, style and lyrics fill in
                 automatically. This takes a few seconds…
@@ -636,29 +636,29 @@ function makeStyles(c: ThemeColors) {
     flex: { flex: 1 },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 12 },
     formContent: { padding: 20, paddingBottom: MINIPLAYER_CLEARANCE, gap: 8 },
-    hero: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 4 },
+    hero: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: c.surface, borderRadius: radii.lg, padding: 14, marginBottom: 4 },
     heroText: { flex: 1, color: c.textDim, fontSize: 13, lineHeight: 18 },
-    genBanner: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: c.accentStrong, borderRadius: 12, padding: 14 },
-    genBannerText: { flex: 1, color: c.onAccent, fontSize: 13, lineHeight: 18, fontWeight: "600" },
+    genBanner: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: c.warnBg, borderRadius: radii.lg, padding: 14 },
+    genBannerText: { flex: 1, color: c.warnFg, fontSize: 13, lineHeight: 18, fontWeight: "600" },
     presetRow: { gap: 8, paddingVertical: 8 },
-    presetChip: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: c.surfaceAlt, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8, maxWidth: 200 },
-    badge: { color: c.onAccent, backgroundColor: c.accent, fontSize: 10, fontWeight: "700", paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, overflow: "hidden" },
+    presetChip: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: c.surfaceAlt, borderRadius: radii.xl, paddingHorizontal: 14, paddingVertical: 8, maxWidth: 200 },
+    badge: { color: c.onAccent, backgroundColor: c.accent, fontSize: 10, fontWeight: "700", paddingHorizontal: 5, paddingVertical: 1, borderRadius: radii.sm, overflow: "hidden" },
     presetText: { color: c.textDim, fontSize: 13 },
     chipActive: { backgroundColor: c.accentStrong },
     chipActiveText: { color: c.onAccent },
     countRow: { flexDirection: "row", gap: 8, marginTop: 4 },
-    countChip: { width: 44, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: c.surfaceAlt },
+    countChip: { width: 44, height: 40, alignItems: "center", justifyContent: "center", borderRadius: radii.lg, backgroundColor: c.surfaceAlt },
     countText: { color: c.textDim, fontSize: 15, fontWeight: "600" },
     label: { color: c.textDim, fontSize: 13, marginTop: 12, marginBottom: 6 },
-    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: 1, borderRadius: 10, color: c.text, fontSize: 15, fontFamily: fonts.mono, paddingHorizontal: 14, paddingVertical: 12 },
+    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: 1, borderRadius: radii.lg, color: c.text, fontSize: 15, fontFamily: fonts.mono, paddingHorizontal: 14, paddingVertical: 12 },
     lyricsInput: { minHeight: 140, textAlignVertical: "top" },
     lyricsHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12 },
     miniRow: { flexDirection: "row", gap: 10, marginTop: 8 },
-    miniBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: c.border },
+    miniBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: radii.lg, borderWidth: 1, borderColor: c.border },
     miniText: { color: c.accent, fontSize: 13, fontWeight: "600" },
     switchRow: { flexDirection: "row", alignItems: "center", marginTop: 18, paddingVertical: 4 },
     switchLabel: { color: c.text, fontSize: 15 },
-    primaryBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 15, marginTop: 24 },
+    primaryBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.accentStrong, borderRadius: radii.lg, paddingVertical: 15, marginTop: 24 },
     btnDisabled: { opacity: 0.45 },
     primaryBtnText: { color: c.onAccent, fontSize: 16, fontWeight: "700" },
     secondaryBtn: { paddingVertical: 12 },
@@ -666,12 +666,12 @@ function makeStyles(c: ThemeColors) {
     statusTitle: { color: c.text, fontSize: 18, fontWeight: "700", marginTop: 6 },
     dim: { color: c.textDim, fontSize: 13 },
     retry: { color: c.accent, fontSize: 13, fontWeight: "600" },
-    dropdown: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, backgroundColor: c.surfaceAlt, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 },
+    dropdown: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, backgroundColor: c.surfaceAlt, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radii.lg, paddingHorizontal: 14, paddingVertical: 12, marginTop: 8 },
     dropdownText: { color: c.text, fontSize: 15, flex: 1 },
     dropdownPlaceholder: { color: c.textFaint },
     savePresetBtn: { alignItems: "center", paddingVertical: 12, marginTop: 4 },
     savePresetText: { color: c.accent, fontSize: 14, fontWeight: "600" },
-    inlineError: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.surfaceAlt, borderRadius: 10, padding: 12, marginTop: 16 },
+    inlineError: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.surfaceAlt, borderRadius: radii.lg, padding: 12, marginTop: 16 },
     inlineErrorText: { flex: 1, color: c.danger, fontSize: 13 },
   });
 }

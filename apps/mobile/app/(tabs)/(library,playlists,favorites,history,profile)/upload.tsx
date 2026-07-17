@@ -10,7 +10,7 @@ import { pollStatus, GenerationError } from "@/api/generate";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
-import { fonts } from "@/theme/theme";
+import { fonts, radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Cover / extend from your own audio — pick a file (base64) or paste a URL.
@@ -196,18 +196,18 @@ function makeStyles(c: ThemeColors) {
     container: { flex: 1, backgroundColor: c.bg },
     content: { padding: 20, gap: 10, paddingBottom: MINIPLAYER_CLEARANCE },
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 12, backgroundColor: c.bg },
-    segment: { flexDirection: "row", backgroundColor: c.surface, borderRadius: 12, padding: 4, gap: 4 },
-    segmentItem: { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 9 },
+    segment: { flexDirection: "row", backgroundColor: c.surface, borderRadius: radii.lg, padding: 4, gap: 4 },
+    segmentItem: { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: radii.md },
     segmentActive: { backgroundColor: c.accentStrong },
     segmentText: { color: c.textDim, fontSize: 14, fontWeight: "600" },
     segmentActiveText: { color: c.onAccent },
-    pickBtn: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 14, marginTop: 6 },
+    pickBtn: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radii.lg, paddingHorizontal: 14, paddingVertical: 14, marginTop: 6 },
     pickText: { color: c.text, fontSize: 15, flex: 1 },
     orLabel: { color: c.textFaint, fontSize: 12, textAlign: "center", marginTop: 6 },
     label: { color: c.textDim, fontSize: 13, marginTop: 12, marginBottom: 6 },
-    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, color: c.text, fontSize: 15, fontFamily: fonts.mono, paddingHorizontal: 14, paddingVertical: 12 },
+    input: { backgroundColor: c.surface, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radii.lg, color: c.text, fontSize: 15, fontFamily: fonts.mono, paddingHorizontal: 14, paddingVertical: 12 },
     errorText: { color: c.danger, fontSize: 13, marginTop: 8 },
-    primaryBtn: { backgroundColor: c.accentStrong, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 20 },
+    primaryBtn: { backgroundColor: c.accentStrong, borderRadius: radii.lg, paddingVertical: 14, alignItems: "center", marginTop: 20 },
     btnDisabled: { opacity: 0.45 },
     primaryBtnText: { color: c.onAccent, fontSize: 16, fontWeight: "700" },
     statusTitle: { color: c.text, fontSize: 18, fontWeight: "700", marginTop: 6 },
