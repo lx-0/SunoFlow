@@ -1,7 +1,7 @@
 ---
 project: SunoFlow
 slug: SunoFlow
-last_updated: 2026-06-07T00:00:00Z
+last_updated: 2026-07-17T00:00:00Z
 current_milestone: M004
 active_slice: S02
 active_task: none
@@ -14,19 +14,23 @@ status: brownfield-imported
 
 **Native app feature/UX wave (2026-06-04 → 06-07, all on `main`, pushed; CODE-COMPLETE but UNTESTED on device).** The Expo app grew far past the v1 vertical: full feature waves pulled from the PWA (credits, delete-account, RSS/inspire, personas/templates/presets management, profile depth, analytics/insights, stems/versions/collaborators, lyrics-edit, music-video generation), multiple themes, invite-only registration. Then this cycle: (1) **navigation rework** → native music-app model (`apps/mobile/src/navigation.ts`, global chrome, singleton player; spec `apps/mobile/NAVIGATION.md`); (2) **bottom-right tab → Profile**, stats atop profile; (3) **song-detail PWA parity** (Style/metadata card, real custom tags, thumbs feedback, add-to-playlist, variation link); (4) **consistent UI/UX polish across ~35 screens**; (5) global-chrome **bottom-bar clearance** fixed on 16 screens. Animation stack (Reanimated 4 + worklets + gesture-handler) is installed (New Arch on) but **unwired** (no babel `react-native-worklets/plugin`, no imports). SM + Expo animation skills vendored in `.claude/skills/`.
 
+**2026-07-17 mega-session (all on `main`, pushed; 15 commits `00418ad6`..`b2c93ff1`).** (1) **Navigation rework #2**: REAL Tabs navigator (per-tab stacks via shared 5-way array group, NAVIGATE-by-name dispatch, headerless player sheet, `closePlayerThen`) supersedes the 06-07 flat-stack model — see DECISIONS 2026-07-17. (2) **UX waves 1–4**: Geist app-wide (Themed wrappers), WCAG-AA CTAs, pull-to-refresh + silent focus-revalidate on all lists, a11y sweep + keyboard handling, design tokens (radii/spacing/surfaceHover/Chip). (3) **Playback fixes** (both formerly deferred): 700ms re-render churn (emit gating + `usePlaybackSelector`) and the auto-advance double-skip window. (4) **Prod-DB incident fixed + deployed**: 114 dead tempfile audio URLs migrated to cdn1 (backed up, 114/114 verified) + `proxyAudio` self-heal live (Railway SUCCESS, health 200). (5) **Architecture deepening deployed** (`b2c93ff1`): shared core queue machine / poll loop / coerce + http-client, asset-heal seam (`healAudio` guard), `advancePendingSong` dispatcher, `useListResource`/`usePollingJob`; net ≈ −600 lines, ~120 new tests, suite 1788 green. Everything mobile remains **runtime-UNVERIFIED** (headless); audit trail: `apps/mobile/UX-REVIEW-2026-07-17.md`.
+
 ## Next action
 
-THE GATE (unchanged + now bigger): user runs ONE free-Apple-ID Expo dev build (`apps/mobile/README.md`) to verify the whole vertical on-device — esp. background audio surviving a 10+ min lock (S03/T07, the milestone's proof). Everything the agent wrote is unverifiable without this. The device pass should now ALSO confirm: navigation behavior (no stack accumulation, single player, persistent chrome — checklist in `apps/mobile/NAVIGATION.md`), song-detail Style/tags/thumbs, and bottom-bar clearance on form screens.
+THE GATE (bigger again): user runs ONE free-Apple-ID Expo dev build (`apps/mobile/README.md`) — JS-only since the last native build, so `expo start -c` + reload suffices. Verify on-device: background audio surviving a 10+ min lock (the milestone's proof), the NEW tabs navigation (checklist in `apps/mobile/NAVIGATION.md`), Geist fonts/magenta CTAs/chips everywhere, pull-to-refresh + silent revalidate, keyboard over forms, VoiceOver spot-check, playback (smooth progress, auto-advance on slow network, rapid skips, seek right after a track change).
 
-Deliberate mobile follow-ups (NOT done): wire Reanimated (add `react-native-worklets/plugin` to `apps/mobile/babel.config.js` + native rebuild) before any reanimated-based transitions; deferred playback bugs (auto-advance double-skip on slow nets, 700ms poll re-render churn).
+Open USER decisions (agent blocked without them): (a) song-tap → full player (today) vs. playback + mini-player only (Spotify pattern); (b) 4 permanently dead covers — regenerate (credits, new art) vs. NULL/placeholder; (c) prod hygiene — 18 E2E test songs + 1 stuck-pending row from April (delete/archive only on explicit go).
 
-iOS-v1 surface CODE-COMPLETE (untested): login, library + search, player (background audio), playlists list + detail, secure sign-out. Remaining agent-writable RN polish (UNTESTED, shape-dependent — better after a device pass): favorites/reactions, native waveform, playlist drag-reorder.
+Deliberate mobile follow-ups (NOT done): wire Reanimated (add `react-native-worklets/plugin` to `apps/mobile/babel.config.js` + native rebuild) before any reanimated-based transitions.
+
+iOS-v1 surface CODE-COMPLETE (untested): login, library + search, player (background audio), playlists list + detail, favorites/reactions/thumbs, secure sign-out. Remaining agent-writable RN polish (better after a device pass): native waveform, playlist drag-reorder (needs Reanimated wiring).
 Login endpoint now fully brute-force protected: per-IP (30/h) + per-email (10/h), verified (`70694d98`). Mini-player bar added (`2fb2c075`, untested). Login security = closed.
 Deliberate follow-ups (NOT done — risky/uncertain, need focus or a device pass):
 - vitest 3.2.4 → ≥4.1.0: blast radius is 183 test files (major-bump breakage risk that would re-break CI). Own task. The GHSA ignore is fine meanwhile (non-applicable dev-only advisory).
 - Favorites / playlist drag-reorder / native waveform: API-shape-uncertain (favorite toggle endpoint + per-song favorite state not exposed in the library response); do AFTER the device pass clarifies real shapes.
 - OAuth for `/api/mcp` (would be a new milestone, not M003-S05 — that slice is cancelled). Bearer-only is production-fine for the closed beta.
-- Migrate more shared modules into `@sunoflow/core` (mcp/* relocation is the obvious next batch — collapses the `@mcp/*` alias).
+- Migrate more shared modules into `@sunoflow/core` — PARTIALLY DONE 2026-07-17 (queue machine, poll loop, coerce, http-client now live there); mcp/* relocation (collapsing the `@mcp/*` alias) remains the next batch.
 
 **M003 closed 2026-06-02.** Remote `/api/mcp` lives on `sunoflow.app` (deploy `35b34cde`, uptime stable since 2026-05-28 14:35 +02:00). S04-T05 closed as `passed_with_caveats`: server boundary (`401` + `WWW-Authenticate: Bearer realm="sunoflow"` + Origin allowlist) verified live; full E2E tools/call against prod DB never run from this session (needs a real API key + operator). Smoke-script at `scripts/smoke-mcp.mjs` for any operator who wants to run it. S05 OAuth cancelled (out of M003 scope).
 

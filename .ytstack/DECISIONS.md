@@ -427,3 +427,27 @@ C) Leave it; document the back behavior.
 **Reason:** No new native deps needed — the stack is already there and matches our arch. Vendoring the skills keeps them project-scoped without touching `~/.claude` mid-session; the official `/plugin marketplace add software-mansion-labs/skills` + `expo/skills` route (global + auto-update) is the user-run alternative. `expo-app-design` from older docs no longer exists; `building-native-ui` is the successor.
 
 **Reference:** project memory `project_mobile_animation_toolchain.md`. CHANGELOG `[Unreleased]`.
+
+## 2026-07-17: Mobile navigation — REAL Tabs navigator supersedes the flat-stack model (2026-06-07 entry)
+
+**Context:** User reported navigation "unnatuerlich" after living with the 2026-06-07 model (option B: one flat stack + `dismissAll()+navigate()` discipline). A 6-lens UX review confirmed the model's structural failures: every tab switch animated as a push and remounted the target (scroll loss), Back was path-dependent, Profile was a pushed screen with a back chevron, the tab highlight was dead on ~90% of screens, the sidebar edge-swipe fought iOS swipe-back, the player modal had doubled chrome.
+
+**Options:** A) Real Tabs navigator (restructure routes into per-tab stacks); B) keep flat stack + more call-site discipline; C) NativeTabs (`expo-router/unstable-native-tabs`).
+
+**Chose:** **A with JS Tabs** (expo-router `Tabs`, custom tab bar) — commit `00418ad6`. All section/detail routes live in ONE shared 5-way array group `(library,playlists,favorites,history,profile)/` with per-segment `unstable_settings` anchors; chrome (custom BottomTabBar in-flow + floating MiniPlayer) lives inside the Tabs layout; the player is a headerless root modal with queue/lyrics/add-to-playlist as sheets above it and `closePlayerThen()` (group-qualified push) for content exits.
+
+**Reason vs C (NativeTabs):** the mini-player must dock above the tab bar on iOS < 26 (BottomAccessory is iOS 26+), the design system needs full control of the bar (Geist labels, Lucide icons, surface tokens), and JS Tabs needs NO native rebuild (free-Apple-ID 7-day signing). Critical implementation facts (verified against the VENDORED react-navigation inside expo-router 56 — it no longer depends on @react-navigation/*): tab switches MUST dispatch `NAVIGATE`-by-NAME at the navigator level (`linkTo` pushes duplicate anchors onto drilled tabs; the TabRouter resolves `payload.name` ONLY — a key-only payload is a silent no-op); the segment's anchor must be the FIRST declared `Stack.Screen` (declared order defines the initial route); `closePlayerThen` must group-qualify hrefs (dismiss+push drain in one router batch over stale segments, a bare href always lands in the first group = Library).
+
+**Reference:** `apps/mobile/NAVIGATION.md` (rewritten spec + on-device checklist), `apps/mobile/UX-REVIEW-2026-07-17.md` (full audit, 49 findings), commits `00418ad6`..`1d166e28`, project memory `project_mobile_navigation_model.md`. CHANGELOG `[Unreleased]`. Runtime device-pass still pending.
+
+## 2026-07-17: Architecture deepening — shared core seams (queue, polling, coerce/http, asset-heal, list-resource)
+
+**Context:** Post-UX-wave exploration (7 lenses) found the same logic stamped and drifting across runtimes: queue math duplicated between the mobile playback singleton and the web's queue-ops reducer, the generation-poll loop triplicated (one copy had already regressed), ~136 hand-rolled boundary coercions with 9 divergent local helpers, the CDN refresh-and-heal recipe copied 5-6x with a custom-cover-clobber bug, and 8+ list screens each hand-rolling load/revalidate/refresh with FOUR different liveness mechanisms.
+
+**Chose (commit `b2c93ff1`):** deep modules behind small interfaces — `@sunoflow/core`: `queue.ts` (pure reducer machine + poll helpers; BOTH runtimes consume), `polling.ts` (`runGenerationPoll`), `coerce.ts` + `http-client.ts` (`createJsonClient`, ONE `HttpError` class identity across web/mobile/react-query). Web: `songs/asset-refresh.ts` (`refreshSongCdnUrls` with custom-cover guard + `healAudio:false` so cover requests can never rewrite a healed audioUrl) + `images/proxy.ts` (`proxyImage` mirroring `proxyAudio`), `advancePendingSong` dispatcher (SSE/status/sweep keep their policies as params). Mobile: `useListResource` (ONE liveness mechanism: generation counter; silent focus revalidate; `mutate`/`revalidate` for optimistic post-actions) + `usePollingJob`.
+
+**Documented divergence:** web `toggleShuffleQueue` keeps the duplicate-preserving INDEX-filter locally (core's id-filter dedupe is the mobile semantic — a user-queued duplicate must survive shuffle on the web); core `reorderQueue` re-points by index arithmetic (duplicate-safe, fixes a latent first-occurrence bug both sides carried). `inspire.tsx` deliberately NOT on `useListResource` (null-is-success digest, flag-driven spinner, imperative POST-sets-data — 3 structural mismatches).
+
+**Reason:** deletion test passed everywhere (complexity reappears across N callers), locality (one place per policy), and the test surface: the queue/poll/heal logic — previously device-only-verifiable — now has ~120 table-driven tests at root vitest (suite 1788 green). Adversarial verification (6 lenses) caught 1 major + 7 minors before commit; all fixed with regression tests.
+
+**Reference:** commit `b2c93ff1`, CHANGELOG `[Unreleased]`. Deployed to Railway (SUCCESS, health 200).
