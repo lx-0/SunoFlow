@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { fetchFreshUrls } from "@/lib/sunoapi";
+import { sunoCdnAudioUrl } from "@/lib/sunoapi/mappers";
 import { audioCache, imageCache } from "@/lib/cache";
 import { logger } from "@/lib/logger";
 import { CDN_URL_TTL_MS, CDN_REFRESH_THRESHOLD_MS } from "@/lib/cdn-constants";
@@ -119,6 +120,42 @@ export async function proxyAudio(params: AudioProxyParams): Promise<Response> {
           },
           { status: 502 },
         );
+      }
+    }
+  }
+
+  // Last resort: Suno's permanent per-clip CDN, derived from the clip id.
+  // Aggregator hosts (tempfile.*) expire their files and the aggregator's
+  // record-info refresh can return the same dead URL; the cdn1 mp3 outlives
+  // both (incident 2026-07-17: 114 songs with dead tempfile URLs, all live on
+  // cdn1). On success the row is healed so future requests skip the dead
+  // origin; a failed heal write is non-fatal — the audio still streams.
+  if (!upstream.ok && sunoAudioId) {
+    const derived = sunoCdnAudioUrl(sunoAudioId);
+    if (derived !== audioUrl) {
+      logger.warn(
+        { songId, status: upstream.status },
+        "audio proxy: falling back to derived cdn url",
+      );
+      try {
+        const fallback = await fetch(derived);
+        if (fallback.ok) {
+          upstream = fallback;
+          audioUrl = derived;
+          await prisma.song
+            .update({
+              where: { id: songId },
+              data: {
+                audioUrl: derived,
+                audioUrlExpiresAt: new Date(Date.now() + CDN_URL_TTL_MS),
+              },
+            })
+            .catch((err: unknown) => {
+              logger.warn({ songId, err }, "audio proxy: heal update failed");
+            });
+        }
+      } catch (err) {
+        logger.warn({ songId, err }, "audio proxy: derived cdn fetch threw");
       }
     }
   }

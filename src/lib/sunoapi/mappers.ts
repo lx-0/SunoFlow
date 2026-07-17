@@ -25,6 +25,15 @@ export async function extractTaskId(res: Response, context: string): Promise<str
 const SUNO_CDN_BASE = "https://cdn1.suno.ai";
 
 /**
+ * Permanent Suno CDN mp3 for a clip id. Aggregator hosts (tempfile.*) expire
+ * their files; this URL outlives them. Used at completion time
+ * (resolveClipAudioUrl) and as the audio proxy's last-resort fallback.
+ */
+export function sunoCdnAudioUrl(clipId: string): string {
+  return `${SUNO_CDN_BASE}/${encodeURIComponent(clipId)}.mp3`;
+}
+
+/**
  * Resolve the best playable audio URL for a raw Suno clip.
  *
  * Precedence mirrors refresh.ts (single source of truth for this whitelist):
@@ -46,7 +55,7 @@ export function resolveClipAudioUrl(raw: Record<string, unknown>): string {
     (raw.audioUrl as string);
   if (direct) return direct;
   const id = (raw.id as string) || (raw.audioId as string) || "";
-  return id ? `${SUNO_CDN_BASE}/${encodeURIComponent(id)}.mp3` : "";
+  return id ? sunoCdnAudioUrl(id) : "";
 }
 
 export function applyStyleTuning(body: Record<string, unknown>, opts: StyleTuningOptions): void {
