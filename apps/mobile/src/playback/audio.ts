@@ -43,7 +43,20 @@ let repeat: RepeatMode = "off";
 let shuffleVersions = false;
 let alternateSongId: string | null = null; // the shuffle-versions-swapped track id
 let index = 0;
-let advancing = false; // guard: one auto-advance per track end
+// Guard: a track load is in flight (auto-advance OR manual skip/start). While
+// set, the poll suppresses UI patches and end-detection: on a slow network the
+// native player keeps reporting the OLD track's near-end position after
+// replace(), which end-detection would read as "ended" again and double-skip.
+// Cleared by the poll once the new track reports a fresh position (or after a
+// timeout so a failed load can't suppress auto-advance forever).
+let advancing = false;
+let advanceStartedAt = 0;
+// A seek issued while `advancing` moves the fresh track PAST the settle
+// threshold; remember the target so the poll can settle on evidence the seek
+// landed instead of freezing progress until the timeout.
+let pendingSeekTarget: number | null = null;
+const ADVANCE_SETTLE_S = 1.5;
+const ADVANCE_TIMEOUT_MS = 15000;
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let lastPlaying = false;
 let lastPos = 0;
@@ -109,6 +122,30 @@ function startPolling() {
     const dur = typeof p.duration === "number" ? p.duration : 0;
     const pos = typeof p.currentTime === "number" ? p.currentTime : 0;
     const playing = Boolean(p.playing);
+
+    // Load in flight: ignore stale old-track readings (see `advancing` above).
+    // Settle once the new track reports a fresh position; the timeout keeps a
+    // failed load from suppressing auto-advance forever. Suppressing the UI
+    // patch here also kills the "progress flashes to the end then resets"
+    // artifact during track changes.
+    if (advancing) {
+      const seekSettled =
+        pendingSeekTarget != null && Math.abs(pos - pendingSeekTarget) < 2;
+      if (
+        pos < ADVANCE_SETTLE_S ||
+        seekSettled ||
+        Date.now() - advanceStartedAt > ADVANCE_TIMEOUT_MS
+      ) {
+        advancing = false;
+        pendingSeekTarget = null;
+        lastPlaying = playing;
+        lastPos = pos;
+        patch({ playing, positionSeconds: pos, durationSeconds: dur });
+      }
+      return;
+    }
+    pendingSeekTarget = null;
+
     // Emit only when something actually changed: while paused every tick used
     // to publish an identical-but-new snapshot, re-rendering every subscriber
     // (mini-player, player, lyrics) at 700ms for nothing. The end-detection
@@ -134,6 +171,10 @@ function startPolling() {
 
     if (ended && !advancing) {
       advancing = true;
+      // Arm the timestamp here too: at end-of-queue (repeat off) skipToNext
+      // falls through without loadCurrent, and a stale timestamp would make
+      // the timeout clause settle instantly and re-fire ended every tick.
+      advanceStartedAt = Date.now();
       void skipToNext(true); // auto-advance: honors repeat mode
     }
   }, 700);
@@ -179,7 +220,12 @@ async function loadCurrent(): Promise<void> {
   const song = queue[index];
   if (!song) return;
   const p = await ensurePlayer();
-  advancing = false;
+  // Keep the guard SET until the poll sees the new track's fresh position —
+  // clearing it here (the old behavior) re-armed end-detection while the
+  // native player could still report the previous track's tail, causing an
+  // occasional double-skip on slow networks.
+  advancing = true;
+  advanceStartedAt = Date.now();
   lastPlaying = false;
   lastPos = 0;
 
@@ -350,6 +396,11 @@ export async function removeFromQueue(target: number): Promise<void> {
   if (queue.length === 0) {
     index = 0;
     player?.pause();
+    // Reset the load guard: nothing is loading anymore, and a lingering flag
+    // would suppress-then-settle stale player values over this cleared state.
+    advancing = false;
+    lastPlaying = false;
+    lastPos = 0;
     patch({ current: null, playing: false, index: 0, queueLength: 0, queue, positionSeconds: 0, durationSeconds: 0 });
     return;
   }
@@ -385,6 +436,7 @@ export function seekTo(seconds: number): void {
   const t = Number.isFinite(seconds)
     ? Math.max(0, d > 0 ? Math.min(seconds, d) : seconds)
     : 0;
+  if (advancing) pendingSeekTarget = t;
   player?.seekTo(t).catch((e) => console.error("[audio] seek failed", e));
   patch({ positionSeconds: t });
 }
