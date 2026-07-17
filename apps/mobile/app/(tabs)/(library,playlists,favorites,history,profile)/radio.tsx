@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   View,
   FlatList,
@@ -53,9 +53,21 @@ export default function RadioScreen() {
       });
   }, []);
 
+  // Tracks the mood|genre pair the last load was issued for. A refocus with
+  // unchanged filters revalidates silently (stale-while-revalidate: the visible
+  // station stays and is replaced when the fetch resolves — the render gate is
+  // `error && !songs`, so a failed revalidate never hides it). A filter change
+  // — the same effect re-runs while focused, since mood/genre are deps — or the
+  // very first load still clears to the spinner. Start station and pull-to-
+  // refresh keep their existing behavior.
+  const lastParamsRef = useRef<string | null>(null);
+
   useFocusEffect(
     useCallback(() => {
-      load(mood, genre);
+      const key = `${mood ?? ""}|${genre ?? ""}`;
+      const filtersChanged = lastParamsRef.current !== key;
+      lastParamsRef.current = key;
+      load(mood, genre, filtersChanged);
     }, [load, mood, genre]),
   );
 

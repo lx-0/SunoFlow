@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { View, FlatList, Pressable, ActivityIndicator, RefreshControl, StyleSheet } from "react-native";
 import { Text } from "@/components/Themed";
 import { Stack, router, useFocusEffect } from "expo-router";
@@ -49,6 +49,10 @@ export default function GenerationsScreen() {
   const [items, setItems] = useState<Generation[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  // Latest-data ref so the focus callback can check for existing data without
+  // depending on `items` (which would re-run the focus effect on every load).
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
@@ -64,7 +68,9 @@ export default function GenerationsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      setItems(null);
+      // Stale-while-revalidate: with data already shown, revalidate silently and
+      // swap it in on success; only clear (→ spinner) on first load / after an error.
+      if (!itemsRef.current) setItems(null);
       load();
     }, [load]),
   );

@@ -273,7 +273,10 @@ export default function ProfileScreen() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: "My Profile" }} />
-      {error ? (
+      {/* Gate on error && !profile: a failed background revalidate with a
+          profile already on screen keeps the content visible (stale-while-
+          revalidate) instead of swapping in the error screen. */}
+      {error && !profile ? (
         <View style={styles.centered}>
           <Text style={styles.dim}>{error}</Text>
         </View>

@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { View, FlatList, Pressable, ActivityIndicator, StyleSheet, RefreshControl } from "react-native";
 import { Text } from "@/components/Themed";
 import { Stack, useFocusEffect, type Href } from "expo-router";
@@ -37,10 +37,24 @@ export default function InspireScreen() {
     }
   }, []);
 
+  // Latest-value ref so the focus effect can branch on data presence without
+  // depending on `picks` (which would re-run the effect on every fetch).
+  const picksRef = useRef<InspirationDigest | null>(null);
+  picksRef.current = picks;
+
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
-      void load().finally(() => setLoading(false));
+      // With picks on screen: silent background revalidate — no loading flag,
+      // so no full-screen spinner flash; picks are replaced when the fetch
+      // resolves (a failed revalidate surfaces inline via `error`, it never
+      // hides the list). Without picks (first mount / after an error / no
+      // digest yet): today's spinner behavior, unchanged.
+      if (picksRef.current) {
+        void load();
+      } else {
+        setLoading(true);
+        void load().finally(() => setLoading(false));
+      }
     }, [load]),
   );
 

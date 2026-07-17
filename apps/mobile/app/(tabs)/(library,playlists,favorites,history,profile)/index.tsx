@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Image, Pressable, FlatList, ActivityIndicator, ActionSheetIOS, StyleSheet, RefreshControl } from "react-native";
 import { Text, TextInput } from "@/components/Themed";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { goToSection } from "@/navigation";
 import { ArrowUpDown, LayoutGrid, List, SlidersHorizontal, Disc3, Heart, AlertCircle, Search } from "lucide-react-native";
 import { formatDuration } from "@sunoflow/core";
@@ -105,6 +105,27 @@ export default function LibraryScreen() {
     // re-run when sort or filters change (search is submit-driven)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortBy, filters]);
+
+  // Silent stale-while-revalidate on tab re-focus: tab screens stay mounted, so
+  // without this the library never updates after e.g. generating a song elsewhere.
+  // The focus callback must stay stable (deps: only the stable `load`) — reading
+  // current params via a ref — because useFocusEffect re-runs whenever the
+  // callback identity changes, which would loop once a revalidate resolves.
+  const focusedOnceRef = useRef(false);
+  const focusParamsRef = useRef({ submittedQuery, sortBy, filters, hasSongs: songs !== null });
+  focusParamsRef.current = { submittedQuery, sortBy, filters, hasSongs: songs !== null };
+  useFocusEffect(
+    useCallback(() => {
+      if (!focusedOnceRef.current) {
+        focusedOnceRef.current = true; // first focus: the mount effect above already loads
+        return;
+      }
+      const { submittedQuery: q, sortBy: sort, filters: filt, hasSongs } = focusParamsRef.current;
+      // With data: keep the list visible while revalidating (no spinner flash).
+      // Without data (first load failed): full reload with spinner + error handling.
+      load(q, sort, filt, /* keepList */ hasSongs);
+    }, [load]),
+  );
 
   const loadMore = useCallback(() => {
     if (loadingMore || !hasMoreRef.current || !cursorRef.current) return;

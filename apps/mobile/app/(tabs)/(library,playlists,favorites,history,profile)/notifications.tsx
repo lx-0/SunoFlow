@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { View, FlatList, Pressable, ActivityIndicator, RefreshControl, StyleSheet } from "react-native";
 import { Text } from "@/components/Themed";
 import { Stack, useFocusEffect, router, type Href } from "expo-router";
@@ -26,6 +26,10 @@ export default function NotificationsScreen() {
   const [unread, setUnread] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  // Latest-data ref so the focus callback can check for existing data without
+  // depending on `items` (which would re-run the focus effect on every load).
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
 
   const load = useCallback((clear = true) => {
     if (clear) setItems(null);
@@ -47,7 +51,9 @@ export default function NotificationsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      load();
+      // Stale-while-revalidate: only clear (→ spinner) when there's no data yet;
+      // with data already shown, revalidate silently and swap it in on success.
+      load(!itemsRef.current);
     }, [load]),
   );
 

@@ -58,7 +58,12 @@ export default function MashupScreen() {
   const loadSongs = useCallback(() => {
     let cancelled = false;
     setError(null);
-    setSongs(null);
+    // Stale-while-revalidate: with songs already loaded, a refocus load runs
+    // silently — the list stays visible and is replaced when the fetch resolves
+    // (no setSongs(null)). Without data (first load, or Retry after an error —
+    // both reach here with songs === null) the spinner path is unchanged. The
+    // render gate stays `error && songs === null`, so a failed revalidate never
+    // hides a populated list.
     fetchLibrary()
       .then((s) => !cancelled && setSongs(s))
       .catch((e) => {

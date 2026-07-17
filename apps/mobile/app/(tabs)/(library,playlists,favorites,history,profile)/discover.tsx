@@ -72,10 +72,45 @@ export default function DiscoverScreen() {
     [],
   );
 
+  // Silent stale-while-revalidate on re-focus: refetch page 1 in the
+  // background WITHOUT clearing the grid (no full-screen spinner flash on tab
+  // return / player-modal dismiss). Bumping reqRef also invalidates any
+  // in-flight load/load-more, same as onRefresh. `error && !songs` gating
+  // means a failed revalidate never hides a populated grid.
+  const revalidate = useCallback(
+    (nextMood: string | null) => {
+      const req = ++reqRef.current;
+      fetchDiscover({ mood: nextMood ?? undefined, page: 1 })
+        .then((rows) => {
+          if (reqRef.current !== req) return;
+          pageRef.current = 1;
+          setSongs(rows);
+          setError(null);
+          setExhausted(rows.length === 0);
+        })
+        .catch((e: unknown) => {
+          if (reqRef.current !== req) return;
+          setError(describeError(e));
+          console.error("[discover] revalidate failed", e);
+        });
+    },
+    [],
+  );
+
+  // Latest-value ref so the focus effect can branch on data presence without
+  // depending on `songs` (which would re-run the effect on every fetch).
+  const songsRef = useRef<Song[] | null>(null);
+  songsRef.current = songs;
+
   useFocusEffect(
     useCallback(() => {
-      load(mood);
-    }, [load, mood]),
+      // With data on screen: silent background revalidate. Without data
+      // (first mount / after an error): full-spinner load, as before. Mood
+      // switches go through selectMood → load(), which nulls `songs` first,
+      // so the effect re-run for the new mood keeps the full spinner too.
+      if (songsRef.current) revalidate(mood);
+      else load(mood);
+    }, [load, revalidate, mood]),
   );
 
   const selectMood = useCallback(

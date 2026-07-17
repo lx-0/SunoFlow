@@ -33,7 +33,12 @@ export default function RecommendationsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      setSongs(null);
+      // Stale-while-revalidate: keep any existing list on screen (no
+      // setSongs(null)) and refetch in the background; the list is replaced
+      // when the fetch resolves. Without data (first mount / after an error,
+      // songs === null) the `!songs` branch still shows the full spinner, and
+      // `error && !songs` still gates the error state — a failed revalidate
+      // never hides a populated list.
       void load();
     }, [load]),
   );
