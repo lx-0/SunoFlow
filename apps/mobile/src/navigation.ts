@@ -27,8 +27,8 @@ import type { BottomTabBarProps } from "expo-router/tabs";
 // drilled tab PUSHES a duplicate anchor (Stack NAVIGATE only reuses the top
 // route), and cross-tab hrefs carry nested `screen` params that reset the
 // target tab. The BottomTabBar therefore registers the tab navigator once, and
-// tab switches dispatch a NAVIGATE-by-key at the Tabs level — exactly what the
-// stock react-navigation tab bar does. Verified against the vendored
+// tab switches dispatch a NAVIGATE-by-name at the Tabs level — exactly what
+// the stock react-navigation tab bar does. Verified against the vendored
 // react-navigation source in expo-router 56.
 //
 // See apps/mobile/NAVIGATION.md for the full UX model and rationale.
@@ -81,7 +81,7 @@ export function isAtTabRoot(): boolean {
 
 /**
  * Jump to a tab WITHOUT touching its stack — the native tab metaphor: the tab
- * resumes exactly where the user left it. NAVIGATE-by-key at the Tabs level
+ * resumes exactly where the user left it. NAVIGATE-by-name at the Tabs level
  * (the stock tab-bar action); never a path-based navigate, which would push a
  * duplicate anchor screen onto a drilled tab.
  */

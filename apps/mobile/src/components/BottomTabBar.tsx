@@ -12,7 +12,7 @@ import { registerTabNavigation } from "@/navigation";
 // underneath it. Active state comes from the navigator, so the tab stays
 // highlighted while drilled into a detail screen of that tab's stack.
 //
-// Presses dispatch at the navigator level (NAVIGATE-by-key / POP_TO_TOP), the
+// Presses dispatch at the navigator level (NAVIGATE-by-name / POP_TO_TOP), the
 // same actions the stock react-navigation tab bar uses — a path-based
 // router.navigate would push a duplicate anchor screen onto a drilled tab
 // instead of resuming or popping its stack.
