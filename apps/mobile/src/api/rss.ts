@@ -1,3 +1,4 @@
+import { asBool, asRecord, asString, unwrapList } from "@sunoflow/core";
 import { apiGet, apiPost, apiDelete } from "./client";
 
 // RSS feeds talk to the existing web endpoint (bearer sk- key auth). They power
@@ -17,29 +18,24 @@ export interface RssFeed {
   createdAt: string | null;
 }
 
-interface RssFeedsResponse {
-  feeds?: unknown[];
-}
-
 function mapFeed(raw: unknown): RssFeed | null {
-  if (typeof raw !== "object" || raw === null) return null;
-  const f = raw as Record<string, unknown>;
-  if (typeof f.id !== "string" || typeof f.url !== "string") return null;
+  const f = asRecord(raw);
+  const id = f ? asString(f.id) : null;
+  const url = f ? asString(f.url) : null;
+  if (!f || !id || !url) return null;
   return {
-    id: f.id,
-    url: f.url,
-    title: typeof f.title === "string" ? f.title : null,
-    autoGenerate: f.autoGenerate === true,
-    createdAt: typeof f.createdAt === "string" ? f.createdAt : null,
+    id,
+    url,
+    title: asString(f.title),
+    autoGenerate: asBool(f.autoGenerate),
+    createdAt: asString(f.createdAt),
   };
 }
 
 /** List the user's RSS feeds. */
 export async function fetchRssFeeds(): Promise<RssFeed[]> {
-  const res = await apiGet<RssFeedsResponse>(`/api/rss/feeds`);
-  return (Array.isArray(res?.feeds) ? res.feeds : [])
-    .map(mapFeed)
-    .filter((f): f is RssFeed => f !== null);
+  const res = await apiGet<unknown>(`/api/rss/feeds`);
+  return unwrapList(res, "feeds", mapFeed);
 }
 
 /** Add an RSS feed by URL. */

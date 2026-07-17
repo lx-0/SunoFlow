@@ -1,22 +1,23 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { View, Pressable, ScrollView, ActivityIndicator, StyleSheet, KeyboardAvoidingView } from "react-native";
 import { Text, TextInput } from "@/components/Themed";
-import { Stack, router, useFocusEffect, useNavigation, type Href } from "expo-router";
+import { Stack } from "expo-router";
 import { Upload, AlertCircle } from "lucide-react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import { startUpload } from "@/api/upload";
-import { pollStatus, GenerationError } from "@/api/generate";
+import { GenerationError } from "@/api/generate";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
+import { usePollingJob } from "@/hooks/usePollingJob";
 import { fonts, radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 // Cover / extend from your own audio — pick a file (base64) or paste a URL.
-type Phase = "form" | "submitting" | "polling" | "failed";
-const POLL_INTERVAL_MS = 4000;
-const MAX_POLLS = 75;
+// The polling + poll-failed legs live in usePollingJob; the screen phase covers
+// the submit step (and submit failures) only — render on the union of both.
+type Phase = "form" | "submitting" | "failed";
 
 export default function UploadScreen() {
   const { colors } = useTheme();
@@ -27,34 +28,10 @@ export default function UploadScreen() {
   const [base64, setBase64] = useState<string | null>(null);
   const [fileUrl, setFileUrl] = useState("");
   const [title, setTitle] = useState("");
-  const [phase, setPhase] = useState<Phase>("form");
+  const [submitPhase, setSubmitPhase] = useState<Phase>("form");
   const [error, setError] = useState<string | null>(null);
 
-  const aliveRef = useRef(true);
-
-  // Stop the poll loop from touching state / navigating after unmount (the user
-  // can leave mid-poll). Matches generate.tsx / mashup.tsx.
-  useEffect(() => {
-    aliveRef.current = true;
-    return () => { aliveRef.current = false; };
-  }, []);
-
-  // Defer the completion redirect until this screen is focused again: under the
-  // Tabs model a blind router.replace would replace the root of whatever tab the
-  // user switched to while polling. Focus is read imperatively at completion
-  // time (navigation.isFocused()): with freezeOnBlur on the Tabs, a frozen
-  // screen's useIsFocused hook value would stay stale until unfreeze.
-  const navigation = useNavigation();
-  const pendingHrefRef = useRef<string | null>(null);
-  useFocusEffect(
-    useCallback(() => {
-      const href = pendingHrefRef.current;
-      if (href) {
-        pendingHrefRef.current = null;
-        router.replace(href as Href);
-      }
-    }, []),
-  );
+  const poll = usePollingJob({ logTag: "upload" });
 
   const pickFile = useCallback(async () => {
     try {
@@ -74,46 +51,27 @@ export default function UploadScreen() {
   async function onSubmit() {
     if (!base64 && !fileUrl.trim()) return;
     setError(null);
-    setPhase("submitting");
+    setSubmitPhase("submitting");
     try {
       const job = await startUpload({
         mode,
         title: title.trim() || undefined,
         ...(base64 ? { base64Data: base64 } : { fileUrl: fileUrl.trim() }),
       });
-      setPhase("polling");
-      for (let attempt = 0; attempt < MAX_POLLS; attempt++) {
-        if (!aliveRef.current) return;
-        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-        if (!aliveRef.current) return;
-        let res;
-        try {
-          res = await pollStatus(job.songId);
-        } catch (e) {
-          console.error("[upload] poll failed", e);
-          continue;
-        }
-        if (res.ready) {
-          if (!navigation.isFocused()) {
-            pendingHrefRef.current = `/song/${job.songId}`;
-            return;
-          }
-          router.replace(`/song/${job.songId}`);
-          return;
-        }
-        if (res.failed) {
-          setError(res.errorMessage ?? "Upload generation failed.");
-          setPhase("failed");
-          return;
-        }
-      }
-      setError("Taking longer than expected. Check your library shortly.");
-      setPhase("failed");
+      await poll.start(job, {
+        hrefFor: (j) => `/song/${j.songId}`,
+        messages: {
+          failed: "Upload generation failed.",
+          timeout: "Taking longer than expected. Check your library shortly.",
+        },
+      });
     } catch (e) {
       setError(e instanceof GenerationError ? e.message : "Something went wrong. Please try again.");
-      setPhase("failed");
+      setSubmitPhase("failed");
     }
   }
+
+  const phase = poll.phase === "idle" ? submitPhase : poll.phase;
 
   if (phase === "submitting" || phase === "polling") {
     return (
@@ -131,8 +89,8 @@ export default function UploadScreen() {
         <Stack.Screen options={{ title: "Upload" }} />
         <AlertCircle color={colors.danger} size={40} />
         <Text style={styles.statusTitle}>Upload failed</Text>
-        <Text style={styles.dim}>{error}</Text>
-        <Pressable style={styles.primaryBtn} onPress={() => { setError(null); setPhase("form"); }} accessibilityRole="button">
+        <Text style={styles.dim}>{poll.error ?? error}</Text>
+        <Pressable style={styles.primaryBtn} onPress={() => { setError(null); setSubmitPhase("form"); poll.reset(); }} accessibilityRole="button">
           <Text style={styles.primaryBtnText}>Try again</Text>
         </Pressable>
       </View>

@@ -1,24 +1,25 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { View, Pressable, Switch, FlatList, ActivityIndicator, StyleSheet, KeyboardAvoidingView } from "react-native";
 import { Text, TextInput } from "@/components/Themed";
-import { Stack, router, useFocusEffect, useNavigation, type Href } from "expo-router";
+import { Stack, useFocusEffect } from "expo-router";
 import { Check, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchLibrary } from "@/api/songs";
 import { startMashup } from "@/api/mashup";
-import { pollStatus, GenerationError } from "@/api/generate";
+import { GenerationError } from "@/api/generate";
 import { SongRow } from "@/components/SongRow";
 import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
+import { usePollingJob } from "@/hooks/usePollingJob";
 import { fonts, radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
 // Mashup: pick two songs from the library → POST /api/mashup → poll until ready.
-type Phase = "form" | "submitting" | "polling" | "failed";
-const POLL_INTERVAL_MS = 4000;
-const MAX_POLLS = 75;
+// The polling + poll-failed legs live in usePollingJob; the screen phase covers
+// the submit step (and submit failures) only — render on the union of both.
+type Phase = "form" | "submitting" | "failed";
 
 export default function MashupScreen() {
   const { colors } = useTheme();
@@ -29,33 +30,10 @@ export default function MashupScreen() {
   const [title, setTitle] = useState("");
   const [style, setStyle] = useState("");
   const [instrumental, setInstrumental] = useState(false);
-  const [phase, setPhase] = useState<Phase>("form");
+  const [submitPhase, setSubmitPhase] = useState<Phase>("form");
   const [error, setError] = useState<string | null>(null);
 
-  const aliveRef = useRef(true);
-  useEffect(() => {
-    aliveRef.current = true;
-    return () => {
-      aliveRef.current = false;
-    };
-  }, []);
-
-  // Defer the completion redirect until this screen is focused again: under the
-  // Tabs model a blind router.replace would replace the root of whatever tab the
-  // user switched to while polling. Focus is read imperatively at completion
-  // time (navigation.isFocused()): with freezeOnBlur on the Tabs, a frozen
-  // screen's useIsFocused hook value would stay stale until unfreeze.
-  const navigation = useNavigation();
-  const pendingHrefRef = useRef<string | null>(null);
-  useFocusEffect(
-    useCallback(() => {
-      const href = pendingHrefRef.current;
-      if (href) {
-        pendingHrefRef.current = null;
-        router.replace(href as Href);
-      }
-    }, []),
-  );
+  const poll = usePollingJob({ logTag: "mashup" });
 
   const loadSongs = useCallback(() => {
     let cancelled = false;
@@ -106,7 +84,7 @@ export default function MashupScreen() {
   async function onSubmit() {
     if (selected.length !== 2) return;
     setError(null);
-    setPhase("submitting");
+    setSubmitPhase("submitting");
     try {
       const job = await startMashup({
         trackAId: selected[0],
@@ -115,39 +93,20 @@ export default function MashupScreen() {
         style: style.trim() || undefined,
         instrumental,
       });
-      setPhase("polling");
-      for (let attempt = 0; attempt < MAX_POLLS; attempt++) {
-        if (!aliveRef.current) return;
-        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-        if (!aliveRef.current) return;
-        let res;
-        try {
-          res = await pollStatus(job.songId);
-        } catch (e) {
-          console.error("[mashup] poll failed", e);
-          continue;
-        }
-        if (res.ready) {
-          if (!navigation.isFocused()) {
-            pendingHrefRef.current = `/song/${job.songId}`;
-            return;
-          }
-          router.replace(`/song/${job.songId}`);
-          return;
-        }
-        if (res.failed) {
-          setError(res.errorMessage ?? "Mashup failed. Please try again.");
-          setPhase("failed");
-          return;
-        }
-      }
-      setError("Mashup is taking longer than expected. Check your library shortly.");
-      setPhase("failed");
+      await poll.start(job, {
+        hrefFor: (j) => `/song/${j.songId}`,
+        messages: {
+          failed: "Mashup failed. Please try again.",
+          timeout: "Mashup is taking longer than expected. Check your library shortly.",
+        },
+      });
     } catch (e) {
       setError(e instanceof GenerationError ? e.message : "Something went wrong. Please try again.");
-      setPhase("failed");
+      setSubmitPhase("failed");
     }
   }
+
+  const phase = poll.phase === "idle" ? submitPhase : poll.phase;
 
   if (phase === "submitting" || phase === "polling") {
     return (
@@ -167,8 +126,8 @@ export default function MashupScreen() {
         <Stack.Screen options={{ title: "Mashup" }} />
         <AlertCircle color={colors.danger} size={40} />
         <Text style={styles.statusTitle}>Mashup failed</Text>
-        <Text style={styles.dim}>{error}</Text>
-        <Pressable style={styles.primaryBtn} onPress={() => { setError(null); setPhase("form"); }} accessibilityRole="button">
+        <Text style={styles.dim}>{poll.error ?? error}</Text>
+        <Pressable style={styles.primaryBtn} onPress={() => { setError(null); setSubmitPhase("form"); poll.reset(); }} accessibilityRole="button">
           <Text style={styles.primaryBtnText}>Try again</Text>
         </Pressable>
       </View>

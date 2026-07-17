@@ -1,3 +1,4 @@
+import { asBool, asNumber, asRecord, asString } from "@sunoflow/core";
 import { apiGet } from "./client";
 
 // Per-song analytics for the Song Analytics screen. Backend returns headline
@@ -17,21 +18,21 @@ export interface SongAnalytics {
 export async function fetchSongAnalytics(id: string): Promise<SongAnalytics> {
   // Raw JSON at the boundary — coerce every scalar so a null/missing field can't
   // render as NaN/blank in the tiles or break the bar-chart math.
-  const res = await apiGet<Record<string, unknown>>(`/api/songs/${id}/analytics`);
+  const res = asRecord(await apiGet<unknown>(`/api/songs/${id}/analytics`)) ?? {};
   const views7d = Array.isArray(res.views7d)
-    ? res.views7d.filter(
-        (v): v is { date: string; count: number } =>
-          !!v && typeof v === "object" &&
-          typeof (v as { date?: unknown }).date === "string" &&
-          typeof (v as { count?: unknown }).count === "number",
-      )
+    ? res.views7d.flatMap((v) => {
+        const r = asRecord(v);
+        const date = r ? asString(r.date) : null;
+        const count = r ? asNumber(r.count) : null;
+        return date !== null && count !== null ? [{ date, count }] : [];
+      })
     : [];
   return {
-    songId: typeof res.songId === "string" ? res.songId : id,
-    title: typeof res.title === "string" ? res.title : "Untitled",
-    totalPlays: typeof res.totalPlays === "number" ? res.totalPlays : 0,
-    totalViews: typeof res.totalViews === "number" ? res.totalViews : 0,
-    isPublic: res.isPublic === true,
+    songId: asString(res.songId) ?? id,
+    title: asString(res.title) ?? "Untitled",
+    totalPlays: asNumber(res.totalPlays, 0),
+    totalViews: asNumber(res.totalViews, 0),
+    isPublic: asBool(res.isPublic),
     views7d,
   };
 }

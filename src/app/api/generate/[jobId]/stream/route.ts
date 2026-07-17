@@ -1,10 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { resolveUserApiKey } from "@/lib/sunoapi";
-import { broadcast } from "@/lib/event-bus";
-import { pollToCompletion } from "@/lib/generation/completion";
+import { advancePendingSong, pollToCompletion } from "@/lib/generation/completion";
 import { authRoute } from "@/lib/route-handler";
 import { logServerError } from "@/lib/error-logger";
-import { markSongFailedSimple } from "@/lib/songs/lifecycle";
 import { closeSSE, createSSEStream, createSSEResponse, enqueueSSEEvent } from "@/lib/sse";
 import { notFound } from "@/lib/api-error";
 
@@ -36,10 +34,20 @@ export const GET = authRoute<{ jobId: string }>(async (request, { auth, params }
       }
 
       if (!song.sunoJobId) {
-        await markSongFailedSimple(jobId, "No Suno task ID");
-        const failData = { songId: jobId, status: "failed", errorMessage: "No Suno task ID" };
-        broadcast(song.userId, { type: "generation_update", data: failData });
-        enqueueSSEEvent(controller, "generation_update", failData);
+        // advancePendingSong marks the row failed + broadcasts; this stream
+        // still forwards the terminal event to ITS client before closing.
+        await advancePendingSong(song, { kind: "no_suno_job_id" }, {
+          pollErrorLog: {
+            source: "generation-poll",
+            route: "/api/generate/[jobId]/stream",
+            params: { songId: jobId, sunoJobId: song.sunoJobId },
+          },
+        });
+        enqueueSSEEvent(controller, "generation_update", {
+          songId: jobId,
+          status: "failed",
+          errorMessage: "No Suno task ID",
+        });
         closeSSE(controller);
         return;
       }

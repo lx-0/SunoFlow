@@ -1,3 +1,4 @@
+import { asBool, asNumber, asRecord, asString } from "@sunoflow/core";
 import { apiGet, apiPatch } from "./client";
 
 // Notification preferences (email + push) for the native app. Mirrors the web
@@ -24,27 +25,15 @@ export interface PushPrefs {
   pushSongComment: boolean;
 }
 
-function bool(r: Record<string, unknown>, k: string): boolean {
-  return r?.[k] === true;
-}
-
-function int(r: Record<string, unknown>, k: string, fallback: number): number {
-  return typeof r?.[k] === "number" ? (r[k] as number) : fallback;
-}
-
-function str(r: Record<string, unknown>, k: string, fallback: string): string {
-  return typeof r?.[k] === "string" ? (r[k] as string) : fallback;
-}
-
 export async function fetchEmailPrefs(): Promise<EmailPrefs> {
-  const r = await apiGet<Record<string, unknown>>("/api/profile/email-preferences");
+  const r = asRecord(await apiGet<unknown>("/api/profile/email-preferences")) ?? {};
   return {
-    emailWelcome: bool(r, "emailWelcome"),
-    emailGenerationComplete: bool(r, "emailGenerationComplete"),
-    emailDigestFrequency: str(r, "emailDigestFrequency", "off"),
-    quietHoursEnabled: bool(r, "quietHoursEnabled"),
-    quietHoursStart: int(r, "quietHoursStart", 22),
-    quietHoursEnd: int(r, "quietHoursEnd", 8),
+    emailWelcome: asBool(r.emailWelcome),
+    emailGenerationComplete: asBool(r.emailGenerationComplete),
+    emailDigestFrequency: asString(r.emailDigestFrequency) ?? "off",
+    quietHoursEnabled: asBool(r.quietHoursEnabled),
+    quietHoursStart: asNumber(r.quietHoursStart, 22),
+    quietHoursEnd: asNumber(r.quietHoursEnd, 8),
   };
 }
 
@@ -53,11 +42,11 @@ export async function updateEmailPrefs(patch: Partial<EmailPrefs>): Promise<void
 }
 
 export async function fetchPushPrefs(): Promise<PushPrefs> {
-  const r = await apiGet<Record<string, unknown>>("/api/push/preferences");
+  const r = asRecord(await apiGet<unknown>("/api/push/preferences")) ?? {};
   return {
-    pushGenerationComplete: bool(r, "pushGenerationComplete"),
-    pushNewFollower: bool(r, "pushNewFollower"),
-    pushSongComment: bool(r, "pushSongComment"),
+    pushGenerationComplete: asBool(r.pushGenerationComplete),
+    pushNewFollower: asBool(r.pushNewFollower),
+    pushSongComment: asBool(r.pushSongComment),
   };
 }
 

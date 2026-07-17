@@ -12,6 +12,9 @@
  *   - `processing`   → bump pollCount, defer; hard-fail past the ceiling
  *   - `poll_error`   → handleSongFailure with "upstream lost"
  *
+ * The dispatch itself runs through advancePendingSong with a sweep-specific
+ * policy — the ceiling/failure semantics above are encoded there.
+ *
  * Per-row failures are isolated — one bad row must not abort the loop.
  *
  * This module is intentionally separate from `library.ts` (the read
@@ -20,7 +23,8 @@
  * the read function hard to test. The trigger is now explicit at the
  * route layer.
  */
-import { handleSongFailure, handleSongSuccess, pollOnce } from "@/lib/generation";
+import { advancePendingSong, pollOnce } from "@/lib/generation/completion";
+import type { AdvanceOutcome } from "@/lib/generation/completion";
 import type { SongRecord } from "@/lib/generation";
 import { logServerError } from "@/lib/error-logger";
 import { logger } from "@/lib/logger";
@@ -83,43 +87,30 @@ export async function runStalePendingRecovery(userId: string): Promise<void> {
       };
       const ageMs = now - song.createdAt.getTime();
 
-      if (!song.sunoJobId) {
-        await handleSongFailure(record, "Generation timed out (no Suno task ID)");
-        continue;
-      }
+      const outcome: AdvanceOutcome = song.sunoJobId
+        ? await pollOnce(song.sunoJobId, apiKey)
+        : { kind: "no_suno_job_id" };
 
-      const outcome = await pollOnce(song.sunoJobId, apiKey);
-
-      switch (outcome.kind) {
-        case "ready":
-          await handleSongSuccess(record, outcome.songs);
-          break;
-        case "failed":
-          await handleSongFailure(record, outcome.errorMessage);
-          break;
-        case "processing":
-          if (ageMs >= STALE_PENDING_HARD_CEILING_MS) {
-            await handleSongFailure(record, "Generation timed out (upstream still processing)");
-          } else {
-            await prisma.song.update({
-              where: { id: song.id },
-              data: { pollCount: song.pollCount + 1 },
-            });
-            logger.warn(
-              { songId: song.id, sunoJobId: song.sunoJobId, pollCount: song.pollCount, ageMs },
-              "stale-pending: upstream still processing, deferring",
-            );
-          }
-          break;
-        case "poll_error":
-          logServerError("song-stale-poll-error", outcome.error, {
-            userId,
-            route: "/api/songs",
-            params: { songId: song.id, sunoJobId: song.sunoJobId, pollCount: song.pollCount, ageMs },
-          });
-          await handleSongFailure(record, "Generation timed out (upstream lost)");
-          break;
-      }
+      await advancePendingSong(record, outcome, {
+        pollErrorLog: {
+          source: "song-stale-poll-error",
+          route: "/api/songs",
+          params: { songId: song.id, sunoJobId: song.sunoJobId, pollCount: song.pollCount, ageMs },
+        },
+        onProcessing:
+          ageMs >= STALE_PENDING_HARD_CEILING_MS
+            ? { action: "fail", errorMessage: "Generation timed out (upstream still processing)" }
+            : {
+                action: "defer",
+                onDefer: () =>
+                  logger.warn(
+                    { songId: song.id, sunoJobId: song.sunoJobId, pollCount: song.pollCount, ageMs },
+                    "stale-pending: upstream still processing, deferring",
+                  ),
+              },
+        onPollError: { action: "fail", errorMessage: "Generation timed out (upstream lost)" },
+        noJobIdFailure: { errorMessage: "Generation timed out (no Suno task ID)" },
+      });
     } catch (err) {
       logServerError("song-stale-recover-error", err, {
         userId,

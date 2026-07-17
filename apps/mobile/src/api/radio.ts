@@ -1,3 +1,4 @@
+import { unwrapList } from "@sunoflow/core";
 import { apiGet } from "./client";
 import { mapApiSong } from "./songs";
 import type { Song } from "@/types";
@@ -12,13 +13,6 @@ import type { Song } from "@/types";
 // The GET accepts optional query params (mood, genre, tempoMin, tempoMax, limit);
 // mood + genre are matched against tags, lowercased server-side. We forward the
 // user's mood/genre selection so the native Radio screen can curate a station.
-
-interface RadioResponse {
-  songs: unknown[];
-  mood: string | null;
-  genre: string | null;
-  total: number;
-}
 
 // Mood keywords mirror the web Mood Radio (src/components/MoodRadioView.tsx) and
 // are a subset of MOOD_KEYWORDS in src/lib/radio. Plain lowercase keywords; the
@@ -60,8 +54,6 @@ export async function fetchRadio(opts?: { mood?: string; genre?: string }): Prom
   if (genre) params.set("genre", genre);
   const qs = params.toString();
 
-  const res = await apiGet<RadioResponse>(`/api/radio${qs ? `?${qs}` : ""}`);
-  return (Array.isArray(res?.songs) ? res.songs : [])
-    .map(mapApiSong)
-    .filter((s): s is Song => s !== null);
+  const res = await apiGet<unknown>(`/api/radio${qs ? `?${qs}` : ""}`);
+  return unwrapList(res, "songs", mapApiSong);
 }

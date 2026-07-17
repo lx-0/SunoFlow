@@ -1,10 +1,10 @@
-import { useCallback, useRef, useState } from "react";
 import { View, FlatList, ActivityIndicator, RefreshControl, StyleSheet } from "react-native";
 import { Text } from "@/components/Themed";
-import { Stack, router, useFocusEffect } from "expo-router";
+import { Stack, router } from "expo-router";
 import { UserPlus, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
-import { fetchFeedEntries, type FeedEntry } from "@/api/feed";
+import { fetchFeedEntries } from "@/api/feed";
+import { useListResource } from "@/hooks/useListResource";
 import { playQueue } from "@/playback/controls";
 import { SongRow } from "@/components/SongRow";
 import { EmptyState } from "@/components/EmptyState";
@@ -17,43 +17,24 @@ import type { ThemeColors } from "@/theme/theme";
 export default function FeedScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const [entries, setEntries] = useState<FeedEntry[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  // Latest-data ref so the focus callback can check for existing data without
-  // depending on `entries` (which would re-run the focus effect on every load).
-  const entriesRef = useRef(entries);
-  entriesRef.current = entries;
-
-  const load = useCallback(() => {
-    setError(null);
-    return fetchFeedEntries()
-      .then(setEntries)
-      .catch((e: unknown) => {
-        setError(e instanceof HttpError ? `Failed to load feed (HTTP ${e.status})` : "Network error");
-        console.error("[feed] load failed", e);
-      });
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      // Stale-while-revalidate: with data already shown, revalidate silently and
-      // swap it in on success; only clear (→ spinner) on first load / after an error.
-      if (!entriesRef.current) setEntries(null);
-      load();
-    }, [load]),
-  );
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    load().finally(() => setRefreshing(false));
-  }, [load]);
+  const { data: entries, refreshing, onRefresh, retry, showError } = useListResource(fetchFeedEntries, {
+    errorMessage: (e) =>
+      e instanceof HttpError ? `Failed to load feed (HTTP ${e.status})` : "Network error",
+    logTag: "feed",
+  });
 
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Following" }} />
-      {error && !entries ? (
-        <EmptyState tone="error" Icon={AlertCircle} title={error} />
+      {showError ? (
+        <EmptyState
+          tone="error"
+          Icon={AlertCircle}
+          title="Couldn't load your feed"
+          subtitle="Check your connection and try again."
+          ctaLabel="Retry"
+          onCta={retry}
+        />
       ) : !entries ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : entries.length === 0 ? (

@@ -1,3 +1,4 @@
+import { unwrapList } from "@sunoflow/core";
 import { apiGet, apiPost, apiDelete } from "./client";
 import { mapApiSong } from "./songs";
 import type { Song } from "@/types";
@@ -6,18 +7,10 @@ import type { Song } from "@/types";
 // the bearer sk- key). GET /favorite returns { isFavorite }, POST adds, DELETE
 // removes; GET /songs/favorites lists the favorited songs (newest-liked first).
 
-interface FavoritesResponse {
-  songs: unknown[];
-  nextCursor: string | null;
-  total: number;
-}
-
 /** List the user's favorited songs. */
 export async function fetchFavorites(): Promise<Song[]> {
-  const res = await apiGet<FavoritesResponse>(`/api/songs/favorites`);
-  return (Array.isArray(res.songs) ? res.songs : [])
-    .map(mapApiSong)
-    .filter((s): s is Song => s !== null);
+  const res = await apiGet<unknown>(`/api/songs/favorites`);
+  return unwrapList(res, "songs", mapApiSong);
 }
 
 export async function getFavorite(songId: string): Promise<boolean> {

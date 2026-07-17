@@ -16,6 +16,7 @@ export const GET = authRoute<{ songId: string }>(
         audioUrlExpiresAt: true,
         sunoJobId: true,
         sunoAudioId: true,
+        imageUrlIsCustom: true,
         parentSong: { select: { sunoJobId: true } },
       },
     });
@@ -30,6 +31,7 @@ export const GET = authRoute<{ songId: string }>(
       audioUrlExpiresAt: song.audioUrlExpiresAt,
       sunoJobId: song.sunoJobId,
       sunoAudioId: song.sunoAudioId,
+      imageUrlIsCustom: song.imageUrlIsCustom,
       parentSunoJobId: song.parentSong?.sunoJobId ?? null,
       resolveApiKey: () => resolveUserApiKey(auth.userId),
       rangeHeader: request.headers.get("range"),

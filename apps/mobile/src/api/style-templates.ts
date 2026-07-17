@@ -1,3 +1,4 @@
+import { asRecord, asString, unwrapList } from "@sunoflow/core";
 import { apiGet, apiPost, apiPatch, apiDelete } from "./client";
 
 // Validation bounds (mirror the server's createTemplateSchema).
@@ -21,30 +22,24 @@ export interface StyleTemplate {
   sourceSongId: string | null;
 }
 
-interface StyleTemplatesResponse {
-  templates?: unknown[];
-}
-
 function mapTemplate(raw: unknown): StyleTemplate | null {
-  if (typeof raw !== "object" || raw === null) return null;
-  const t = raw as Record<string, unknown>;
-  if (typeof t.id !== "string" || typeof t.name !== "string" || typeof t.tags !== "string") {
-    return null;
-  }
+  const t = asRecord(raw);
+  const id = t ? asString(t.id) : null;
+  const name = t ? asString(t.name) : null;
+  const tags = t ? asString(t.tags) : null;
+  if (!t || !id || !name || !tags) return null;
   return {
-    id: t.id,
-    name: t.name,
-    tags: t.tags,
-    sourceSongId: typeof t.sourceSongId === "string" ? t.sourceSongId : null,
+    id,
+    name,
+    tags,
+    sourceSongId: asString(t.sourceSongId),
   };
 }
 
 /** List the user's saved style templates (newest-first). */
 export async function fetchStyleTemplates(): Promise<StyleTemplate[]> {
-  const res = await apiGet<StyleTemplatesResponse>(`/api/style-templates`);
-  return (Array.isArray(res?.templates) ? res.templates : [])
-    .map(mapTemplate)
-    .filter((t): t is StyleTemplate => t !== null);
+  const res = await apiGet<unknown>(`/api/style-templates`);
+  return unwrapList(res, "templates", mapTemplate);
 }
 
 /** Create a style template. Pass sourceSongId when saving from a song's style. */

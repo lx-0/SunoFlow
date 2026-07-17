@@ -1,3 +1,4 @@
+import { asBool, asRecord, asString, unwrapList } from "@sunoflow/core";
 import { apiGet, apiPost, apiPatch, apiDelete } from "./client";
 
 // Prompt templates talk to the existing web endpoint (authRoute → resolveUser
@@ -21,35 +22,28 @@ export interface PromptTemplate {
   isBuiltIn: boolean;
 }
 
-interface PromptTemplatesResponse {
-  templates?: unknown[];
-  categories?: unknown[];
-}
-
 function mapTemplate(raw: unknown): PromptTemplate | null {
-  if (typeof raw !== "object" || raw === null) return null;
-  const t = raw as Record<string, unknown>;
-  if (typeof t.id !== "string" || typeof t.name !== "string" || typeof t.prompt !== "string") {
-    return null;
-  }
+  const t = asRecord(raw);
+  const id = t ? asString(t.id) : null;
+  const name = t ? asString(t.name) : null;
+  const prompt = t ? asString(t.prompt) : null;
+  if (!t || !id || !name || !prompt) return null;
   return {
-    id: t.id,
-    name: t.name,
-    prompt: t.prompt,
-    description: typeof t.description === "string" ? t.description : null,
-    style: typeof t.style === "string" ? t.style : null,
-    category: typeof t.category === "string" ? t.category : null,
-    isInstrumental: t.isInstrumental === true,
-    isBuiltIn: t.isBuiltIn === true,
+    id,
+    name,
+    prompt,
+    description: asString(t.description),
+    style: asString(t.style),
+    category: asString(t.category),
+    isInstrumental: asBool(t.isInstrumental),
+    isBuiltIn: asBool(t.isBuiltIn),
   };
 }
 
 /** List built-in + user prompt templates. */
 export async function fetchPromptTemplates(): Promise<PromptTemplate[]> {
-  const res = await apiGet<PromptTemplatesResponse>(`/api/prompt-templates`);
-  return (Array.isArray(res?.templates) ? res.templates : [])
-    .map(mapTemplate)
-    .filter((t): t is PromptTemplate => t !== null);
+  const res = await apiGet<unknown>(`/api/prompt-templates`);
+  return unwrapList(res, "templates", mapTemplate);
 }
 
 /** Create a prompt template (name + prompt required; style + instrumental optional). */

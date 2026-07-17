@@ -43,6 +43,18 @@ describe("queue-ops", () => {
     expect(result.currentIndex).toBe(1);
   });
 
+  it("toggleShuffleQueue preserves duplicate queue entries when turning shuffle on", () => {
+    const a = makeSong("a");
+    const queue = [a, makeSong("b"), a];
+
+    const result = toggleShuffleQueue(queue, 0, true, queue);
+
+    expect(result.queue).toHaveLength(3);
+    expect(result.queue[0]).toBe(a);
+    expect(result.currentIndex).toBe(0);
+    expect(result.queue.map((s) => s.id).sort()).toEqual(["a", "a", "b"]);
+  });
+
   it("insertAfterCurrent places song after current index", () => {
     const queue = [makeSong("a"), makeSong("b")];
     const result = insertAfterCurrent(queue, 0, makeSong("x"));
@@ -73,6 +85,16 @@ describe("queue-ops", () => {
     const result = reorderQueueState(queue, 2, 0, 3);
 
     expect(result.queue.map((s) => s.id)).toEqual(["b", "c", "d", "a"]);
+    expect(result.currentIndex).toBe(1);
+  });
+
+  it("reorderQueueState keeps pointing at the playing duplicate via index arithmetic", () => {
+    const x = makeSong("x");
+    const queue = [x, makeSong("b"), x];
+
+    const result = reorderQueueState(queue, 2, 1, 2);
+
+    expect(result.queue.map((s) => s.id)).toEqual(["x", "x", "b"]);
     expect(result.currentIndex).toBe(1);
   });
 

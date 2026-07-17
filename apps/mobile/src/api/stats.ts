@@ -1,4 +1,4 @@
-import { MILESTONE_CATALOG } from "@sunoflow/core";
+import { MILESTONE_CATALOG, asNumber, asRecord, asString } from "@sunoflow/core";
 import { apiGet } from "@/api/client";
 
 // Stats / Insights data. Three independent bearer endpoints, each mapped
@@ -34,21 +34,14 @@ export interface UserStats {
 // logic); the API only returns the ones the user has earned, so we render the
 // catalog and mark achieved by set-membership.
 
-function asRecord(v: unknown): Record<string, unknown> {
-  return v && typeof v === "object" ? (v as Record<string, unknown>) : {};
-}
-
+/** Count fields arrive as integers; truncate defensively in case of drift. */
 function toInt(v: unknown): number {
-  return typeof v === "number" && Number.isFinite(v) ? Math.trunc(v) : 0;
-}
-
-function toNumOrNull(v: unknown): number | null {
-  return typeof v === "number" && Number.isFinite(v) ? v : null;
+  return Math.trunc(asNumber(v, 0));
 }
 
 export async function fetchStreaks(): Promise<Streak> {
-  const raw = asRecord(await apiGet<unknown>("/api/streaks"));
-  const s = asRecord(raw.streak);
+  const raw = asRecord(await apiGet<unknown>("/api/streaks")) ?? {};
+  const s = asRecord(raw.streak) ?? {};
   return {
     currentStreak: toInt(s.currentStreak),
     longestStreak: toInt(s.longestStreak),
@@ -56,24 +49,24 @@ export async function fetchStreaks(): Promise<Streak> {
 }
 
 export async function fetchMilestones(): Promise<Milestone[]> {
-  const raw = asRecord(await apiGet<unknown>("/api/milestones"));
+  const raw = asRecord(await apiGet<unknown>("/api/milestones")) ?? {};
   const list = Array.isArray(raw.milestones) ? raw.milestones : [];
   const earned = new Set<string>();
   for (const m of list) {
-    const t = asRecord(m).type;
-    if (typeof t === "string") earned.add(t);
+    const t = asString(asRecord(m)?.type);
+    if (t) earned.add(t);
   }
   return MILESTONE_CATALOG.map((m) => ({ ...m, achieved: earned.has(m.type) }));
 }
 
 export async function fetchUserStats(): Promise<UserStats> {
-  const raw = asRecord(await apiGet<unknown>("/api/analytics/user"));
+  const raw = asRecord(await apiGet<unknown>("/api/analytics/user")) ?? {};
   return {
     totalGenerations: toInt(raw.totalGenerations),
     completedGenerations: toInt(raw.completedGenerations),
     totalFavorites: toInt(raw.totalFavorites),
     totalPlaylists: toInt(raw.totalPlaylists),
-    averageRating: toNumOrNull(raw.averageRating),
+    averageRating: asNumber(raw.averageRating),
     ratedSongsCount: toInt(raw.ratedSongsCount),
   };
 }

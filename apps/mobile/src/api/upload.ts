@@ -1,4 +1,4 @@
-import { uploadBodySchema, type UploadBody } from "@sunoflow/core";
+import { asRecord, asString, uploadBodySchema, type UploadBody } from "@sunoflow/core";
 import { apiPost, HttpError } from "./client";
 import { GenerationError, type StartedGeneration } from "./generate";
 
@@ -15,12 +15,10 @@ interface UploadResponse {
 }
 
 function extractId(data: UploadResponse): { id: string; title: string | null } | null {
-  const raw = (Array.isArray(data.songs) ? data.songs[0] : undefined) ?? data.song;
-  if (raw && typeof raw === "object") {
-    const s = raw as Record<string, unknown>;
-    if (typeof s.id === "string") return { id: s.id, title: typeof s.title === "string" ? s.title : null };
-  }
-  if (typeof data.id === "string") return { id: data.id, title: typeof data.title === "string" ? data.title : null };
+  const s = asRecord((Array.isArray(data.songs) ? data.songs[0] : undefined) ?? data.song);
+  const id = s ? asString(s.id) : null;
+  if (s && id) return { id, title: asString(s.title) };
+  if (typeof data.id === "string") return { id: data.id, title: asString(data.title) };
   return null;
 }
 

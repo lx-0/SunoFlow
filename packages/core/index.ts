@@ -81,3 +81,48 @@ export {
   type WeeklyDataPoint,
   type InsightsResult,
 } from "./insights";
+export {
+  createQueueState,
+  fisherYatesShuffle,
+  playQueue,
+  toggleShuffle,
+  skipToNext,
+  skipToPrevious,
+  jumpTo,
+  reorderQueue,
+  removeFromQueue,
+  cycleRepeat,
+  ADVANCE_SETTLE_S,
+  ADVANCE_TIMEOUT_MS,
+  detectEnded,
+  advanceSettled,
+  clampSeek,
+  type RepeatMode,
+  type QueueEffect,
+  type QueueSongLike,
+  type QueueState,
+  type QueueTransition,
+} from "./queue";
+export {
+  runGenerationPoll,
+  type GenerationPollOptions,
+  type GenerationPollResult,
+} from "./polling";
+export {
+  asString,
+  asNumber,
+  asBool,
+  asRecord,
+  asStringArray,
+  unwrapList,
+} from "./coerce";
+export {
+  HttpError,
+  createJsonClient,
+  type JsonResponseLike,
+  type JsonRequestInit,
+  type FetchLike,
+  type HeadersProvider,
+  type JsonClientOptions,
+  type JsonClient,
+} from "./http-client";

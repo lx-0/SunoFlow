@@ -1,3 +1,4 @@
+import { asNumber, asRecord, asString, unwrapList } from "@sunoflow/core";
 import { apiGet } from "./client";
 import { mapApiSong } from "./songs";
 import type { Song } from "@/types";
@@ -17,26 +18,23 @@ export interface CollectionSummary {
 
 /** Defensive map of one raw collection → list summary. Null if unidentifiable. */
 function mapCollection(raw: unknown): CollectionSummary | null {
-  if (!raw || typeof raw !== "object") return null;
-  const c = raw as Record<string, unknown>;
-  if (typeof c.id !== "string" || !c.id) return null;
+  const c = asRecord(raw);
+  const id = c ? asString(c.id) : null;
+  if (!c || !id) return null;
   return {
-    id: c.id,
-    title: typeof c.title === "string" && c.title ? c.title : "Untitled",
-    songCount: typeof c.songCount === "number" ? c.songCount : 0,
-    coverUrl: typeof c.coverImage === "string" ? c.coverImage : undefined,
+    id,
+    title: asString(c.title) ?? "Untitled",
+    songCount: asNumber(c.songCount, 0),
+    coverUrl: asString(c.coverImage) ?? undefined,
   };
 }
 
 export async function fetchCollections(): Promise<CollectionSummary[]> {
-  const res = await apiGet<{ collections?: unknown }>("/api/collections");
-  const rows = Array.isArray(res.collections) ? res.collections : [];
-  return rows.map(mapCollection).filter((c): c is CollectionSummary => c !== null);
+  const res = await apiGet<unknown>("/api/collections");
+  return unwrapList(res, "collections", mapCollection);
 }
 
 export async function fetchCollectionSongs(id: string): Promise<Song[]> {
   const res = await apiGet<{ collection?: unknown }>(`/api/collections/${encodeURIComponent(id)}`);
-  const detail = res.collection && typeof res.collection === "object" ? (res.collection as Record<string, unknown>) : null;
-  const rows = detail && Array.isArray(detail.songs) ? detail.songs : [];
-  return rows.map(mapApiSong).filter((s): s is Song => s !== null);
+  return unwrapList(res?.collection, "songs", mapApiSong);
 }

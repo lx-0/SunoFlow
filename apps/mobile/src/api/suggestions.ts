@@ -1,3 +1,4 @@
+import { asBool, asRecord, asString, unwrapList } from "@sunoflow/core";
 import { apiGet } from "./client";
 
 // One-tap style suggestions for the Generate screen — mirrors the web GenerateForm's
@@ -22,51 +23,39 @@ export interface TrendingCombo {
   displayScore: string;
 }
 
-function rec(v: unknown): Record<string, unknown> {
-  return v && typeof v === "object" ? (v as Record<string, unknown>) : {};
-}
-function str(v: unknown): string {
-  return typeof v === "string" ? v : "";
-}
-
 export async function fetchPromptSuggestions(): Promise<PromptSuggestion[]> {
-  const res = await apiGet<{ suggestions?: unknown[] }>("/api/suggestions/prompts");
-  const list = Array.isArray(res?.suggestions) ? res.suggestions : [];
-  return list
-    .map((raw) => {
-      const r = rec(raw);
-      const id = str(r.id);
-      const stylePrompt = str(r.stylePrompt);
-      if (!id || !stylePrompt) return null;
-      const source = r.source === "personal" || r.source === "community" || r.source === "curated"
+  const res = await apiGet<unknown>("/api/suggestions/prompts");
+  return unwrapList(res, "suggestions", (raw): PromptSuggestion | null => {
+    const r = asRecord(raw);
+    const id = r ? asString(r.id) : null;
+    const stylePrompt = r ? asString(r.stylePrompt) : null;
+    if (!r || !id || !stylePrompt) return null;
+    const source =
+      r.source === "personal" || r.source === "community" || r.source === "curated"
         ? r.source
         : "curated";
-      return {
-        id,
-        label: str(r.label) || stylePrompt,
-        stylePrompt,
-        isInstrumental: r.isInstrumental === true,
-        source,
-      } as PromptSuggestion;
-    })
-    .filter((s): s is PromptSuggestion => s !== null);
+    return {
+      id,
+      label: asString(r.label) ?? stylePrompt,
+      stylePrompt,
+      isInstrumental: asBool(r.isInstrumental),
+      source,
+    };
+  });
 }
 
 export async function fetchTrendingCombos(): Promise<TrendingCombo[]> {
-  const res = await apiGet<{ trending?: unknown[] }>("/api/suggestions/trending");
-  const list = Array.isArray(res?.trending) ? res.trending : [];
-  return list
-    .map((raw) => {
-      const r = rec(raw);
-      const id = str(r.id);
-      const stylePrompt = str(r.stylePrompt);
-      if (!id || !stylePrompt) return null;
-      return {
-        id,
-        label: str(r.label) || str(r.combo) || stylePrompt,
-        stylePrompt,
-        displayScore: str(r.displayScore),
-      } as TrendingCombo;
-    })
-    .filter((c): c is TrendingCombo => c !== null);
+  const res = await apiGet<unknown>("/api/suggestions/trending");
+  return unwrapList(res, "trending", (raw): TrendingCombo | null => {
+    const r = asRecord(raw);
+    const id = r ? asString(r.id) : null;
+    const stylePrompt = r ? asString(r.stylePrompt) : null;
+    if (!r || !id || !stylePrompt) return null;
+    return {
+      id,
+      label: asString(r.label) ?? asString(r.combo) ?? stylePrompt,
+      stylePrompt,
+      displayScore: asString(r.displayScore, ""),
+    };
+  });
 }

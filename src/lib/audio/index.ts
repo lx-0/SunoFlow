@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { fetchFreshUrls } from "@/lib/sunoapi";
-import { sunoCdnAudioUrl } from "@/lib/sunoapi/mappers";
 import { audioCache, imageCache } from "@/lib/cache";
 import { logger } from "@/lib/logger";
-import { CDN_URL_TTL_MS, CDN_REFRESH_THRESHOLD_MS } from "@/lib/cdn-constants";
+import { CDN_REFRESH_THRESHOLD_MS } from "@/lib/cdn-constants";
+import { refreshSongCdnUrls, fetchDerivedCdnAudio } from "@/lib/songs/asset-refresh";
 
 export interface AudioProxyParams {
   songId: string;
@@ -18,6 +16,12 @@ export interface AudioProxyParams {
    * keyed by the parent's task-id instead.
    */
   parentSunoJobId?: string | null;
+  /**
+   * When true the cover is user-provided and the refresh heal must not
+   * overwrite it. Optional so existing callers keep compiling; omitting it
+   * leaves the image heal unguarded, as before.
+   */
+  imageUrlIsCustom?: boolean;
   resolveApiKey: () => Promise<string | undefined>;
   rangeHeader: string | null;
   cacheControl: "public" | "private";
@@ -29,6 +33,7 @@ export async function proxyAudio(params: AudioProxyParams): Promise<Response> {
     audioUrlExpiresAt,
     sunoJobId,
     sunoAudioId,
+    imageUrlIsCustom,
     parentSunoJobId,
     resolveApiKey,
     rangeHeader,
@@ -45,38 +50,17 @@ export async function proxyAudio(params: AudioProxyParams): Promise<Response> {
   const now = Date.now();
 
   const tryRefresh = async (): Promise<boolean> => {
-    if (!refreshTaskId) return false;
-    try {
-      const apiKey = await resolveApiKey();
-      const fresh = await fetchFreshUrls(
-        refreshTaskId,
-        apiKey,
-        sunoAudioId ?? undefined,
-      );
-      if (fresh?.audioUrl) {
-        await prisma.song.update({
-          where: { id: songId },
-          data: {
-            audioUrl: fresh.audioUrl,
-            audioUrlExpiresAt: new Date(Date.now() + CDN_URL_TTL_MS),
-            imageUrl: fresh.imageUrl || undefined,
-          },
-        });
-        if (fresh.imageUrl && !imageCache.has(songId)) {
-          imageCache.downloadAndPut(songId, fresh.imageUrl).catch(() => {});
-        }
-        audioUrl = fresh.audioUrl;
-        refreshed = true;
-        return true;
-      }
-      logger.warn(
-        { songId, sunoJobId },
-        "audio proxy: refresh returned no audioUrl",
-      );
-    } catch (err) {
-      logger.warn({ songId, sunoJobId, err }, "audio proxy: refresh failed");
+    const fresh = await refreshSongCdnUrls(
+      { id: songId, sunoJobId, sunoAudioId, imageUrlIsCustom, parentSunoJobId },
+      { resolveApiKey },
+    );
+    if (!fresh?.audioUrl) return false;
+    if (fresh.imageUrl && !imageCache.has(songId)) {
+      imageCache.downloadAndPut(songId, fresh.imageUrl).catch(() => {});
     }
-    return false;
+    audioUrl = fresh.audioUrl;
+    refreshed = true;
+    return true;
   };
 
   const isExpired =
@@ -124,39 +108,18 @@ export async function proxyAudio(params: AudioProxyParams): Promise<Response> {
     }
   }
 
-  // Last resort: Suno's permanent per-clip CDN, derived from the clip id.
-  // Aggregator hosts (tempfile.*) expire their files and the aggregator's
-  // record-info refresh can return the same dead URL; the cdn1 mp3 outlives
-  // both (incident 2026-07-17: 114 songs with dead tempfile URLs, all live on
-  // cdn1). On success the row is healed so future requests skip the dead
-  // origin; a failed heal write is non-fatal — the audio still streams.
+  // Last resort: Suno's permanent per-clip CDN, derived from the clip id —
+  // see fetchDerivedCdnAudio for the rationale (incident 2026-07-17) and the
+  // non-fatal row heal.
   if (!upstream.ok && sunoAudioId) {
-    const derived = sunoCdnAudioUrl(sunoAudioId);
-    if (derived !== audioUrl) {
-      logger.warn(
-        { songId, status: upstream.status },
-        "audio proxy: falling back to derived cdn url",
-      );
-      try {
-        const fallback = await fetch(derived);
-        if (fallback.ok) {
-          upstream = fallback;
-          audioUrl = derived;
-          await prisma.song
-            .update({
-              where: { id: songId },
-              data: {
-                audioUrl: derived,
-                audioUrlExpiresAt: new Date(Date.now() + CDN_URL_TTL_MS),
-              },
-            })
-            .catch((err: unknown) => {
-              logger.warn({ songId, err }, "audio proxy: heal update failed");
-            });
-        }
-      } catch (err) {
-        logger.warn({ songId, err }, "audio proxy: derived cdn fetch threw");
-      }
+    logger.warn(
+      { songId, status: upstream.status },
+      "audio proxy: falling back to derived cdn url",
+    );
+    const fallback = await fetchDerivedCdnAudio({ id: songId, sunoAudioId }, audioUrl);
+    if (fallback) {
+      upstream = fallback.response;
+      audioUrl = fallback.url;
     }
   }
 

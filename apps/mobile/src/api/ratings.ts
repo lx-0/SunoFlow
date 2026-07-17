@@ -1,3 +1,4 @@
+import { asNumber } from "@sunoflow/core";
 import { apiGet, apiPatch } from "@/api/client";
 
 // Per-song, per-user star rating (1-5; 0 clears it).
@@ -8,8 +9,9 @@ type RatingResponse = { rating?: unknown; ratingNote?: unknown };
 
 // Coerce the upstream rating into an integer 0-5, or null when absent/invalid.
 function normalizeRating(value: unknown): number | null {
-  if (typeof value !== "number" || !Number.isFinite(value)) return null;
-  const rounded = Math.round(value);
+  const n = asNumber(value);
+  if (n === null) return null;
+  const rounded = Math.round(n);
   if (rounded < 1 || rounded > 5) return null;
   return rounded;
 }

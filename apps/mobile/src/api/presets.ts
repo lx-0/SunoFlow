@@ -1,3 +1,4 @@
+import { asBool, asRecord, asString, unwrapList } from "@sunoflow/core";
 import { apiGet, apiPost, apiDelete } from "@/api/client";
 
 export const PRESET_NAME_MAX = 100;
@@ -20,29 +21,24 @@ export interface Preset {
   customMode: boolean;
 }
 
-function asString(v: unknown): string | null {
-  return typeof v === "string" ? v : null;
-}
-
 function mapPreset(raw: unknown): Preset | null {
-  if (typeof raw !== "object" || raw === null) return null;
-  const r = raw as Record<string, unknown>;
-  if (typeof r.id !== "string") return null;
+  const r = asRecord(raw);
+  const id = r ? asString(r.id) : null;
+  if (!r || !id) return null;
   return {
-    id: r.id,
-    name: typeof r.name === "string" ? r.name : "Untitled preset",
+    id,
+    name: asString(r.name) ?? "Untitled preset",
     title: asString(r.title),
     stylePrompt: asString(r.stylePrompt),
     lyricsPrompt: asString(r.lyricsPrompt),
-    isInstrumental: r.isInstrumental === true,
-    customMode: r.customMode === true,
+    isInstrumental: asBool(r.isInstrumental),
+    customMode: asBool(r.customMode),
   };
 }
 
 export async function fetchPresets(): Promise<Preset[]> {
-  const data = await apiGet<{ presets?: unknown }>("/api/presets");
-  const list = Array.isArray(data?.presets) ? data.presets : [];
-  return list.map(mapPreset).filter((p): p is Preset => p !== null);
+  const data = await apiGet<unknown>("/api/presets");
+  return unwrapList(data, "presets", mapPreset);
 }
 
 // Create a preset from a Generate config. Mirrors web POST /api/presets:

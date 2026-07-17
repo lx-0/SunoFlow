@@ -1,3 +1,4 @@
+import { asNumber, asRecord, asString, unwrapList } from "@sunoflow/core";
 import { apiDelete, apiGet, apiPatch, apiPost } from "./client";
 import { mapApiSong } from "./songs";
 import type { Song } from "@/types";
@@ -14,42 +15,24 @@ export interface Tag {
   songCount?: number;
 }
 
-interface TagsResponse {
-  tags: unknown[];
-}
-
-interface LibraryResponse {
-  songs: unknown[];
-  nextCursor: string | null;
-  total: number;
-}
-
 /** Defensive map of one raw API tag → Tag. Returns null if unusable. */
 function mapApiTag(raw: unknown): Tag | null {
-  if (!raw || typeof raw !== "object") return null;
-  const t = raw as Record<string, unknown>;
-  const id = t.id;
-  const name = t.name;
-  if (typeof id !== "string" || !id) return null;
-  if (typeof name !== "string" || !name) return null;
-  const count =
-    t._count && typeof t._count === "object"
-      ? (t._count as Record<string, unknown>).songTags
-      : undefined;
+  const t = asRecord(raw);
+  const id = t ? asString(t.id) : null;
+  const name = t ? asString(t.name) : null;
+  if (!t || !id || !name) return null;
   return {
     id,
     name,
-    color: typeof t.color === "string" ? t.color : undefined,
-    songCount: typeof count === "number" ? count : undefined,
+    color: asString(t.color) ?? undefined,
+    songCount: asNumber(asRecord(t._count)?.songTags) ?? undefined,
   };
 }
 
 /** List the user's tags (alphabetical, per the web endpoint). */
 export async function fetchTags(): Promise<Tag[]> {
-  const res = await apiGet<TagsResponse>(`/api/tags`);
-  return (Array.isArray(res.tags) ? res.tags : [])
-    .map(mapApiTag)
-    .filter((t): t is Tag => t !== null);
+  const res = await apiGet<unknown>(`/api/tags`);
+  return unwrapList(res, "tags", mapApiTag);
 }
 
 // --- Global tag management (mirrors the web Settings → Tag Management section) ---
@@ -75,12 +58,8 @@ export async function deleteTag(id: string): Promise<void> {
 
 /** Songs assigned to a tag, by tag id (server-side filter via ?tagId=). */
 export async function fetchSongsByTag(tagId: string): Promise<Song[]> {
-  const res = await apiGet<LibraryResponse>(
-    `/api/songs?tagId=${encodeURIComponent(tagId)}`,
-  );
-  return (Array.isArray(res.songs) ? res.songs : [])
-    .map(mapApiSong)
-    .filter((s): s is Song => s !== null);
+  const res = await apiGet<unknown>(`/api/songs?tagId=${encodeURIComponent(tagId)}`);
+  return unwrapList(res, "songs", mapApiSong);
 }
 
 // --- Per-song tag editing (owner-only on the web; bearer key resolves the user) ---
@@ -95,28 +74,19 @@ export interface SongTag {
   name: string;
 }
 
-interface SongTagsResponse {
-  tags: unknown[];
-}
-
 /** Defensive map of one raw API song-tag → SongTag. Returns null if unusable. */
 function mapApiSongTag(raw: unknown): SongTag | null {
-  if (!raw || typeof raw !== "object") return null;
-  const t = raw as Record<string, unknown>;
-  const { id, name } = t;
-  if (typeof id !== "string" || !id) return null;
-  if (typeof name !== "string" || !name) return null;
+  const t = asRecord(raw);
+  const id = t ? asString(t.id) : null;
+  const name = t ? asString(t.name) : null;
+  if (!id || !name) return null;
   return { id, name };
 }
 
 /** The tags currently assigned to a song (alphabetical, per the web endpoint). */
 export async function fetchSongTags(songId: string): Promise<SongTag[]> {
-  const res = await apiGet<SongTagsResponse>(
-    `/api/songs/${encodeURIComponent(songId)}/tags`,
-  );
-  return (Array.isArray(res.tags) ? res.tags : [])
-    .map(mapApiSongTag)
-    .filter((t): t is SongTag => t !== null);
+  const res = await apiGet<unknown>(`/api/songs/${encodeURIComponent(songId)}/tags`);
+  return unwrapList(res, "tags", mapApiSongTag);
 }
 
 /** Add (create-or-assign) a tag to a song by name. */

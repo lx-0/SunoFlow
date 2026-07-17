@@ -1,3 +1,4 @@
+import { asNumber, asRecord, asString, asStringArray } from "@sunoflow/core";
 import { apiGet, apiPatch } from "@/api/client";
 
 // Profile data for the "My Profile" screen. Bearer endpoints, raw JSON (no
@@ -45,38 +46,23 @@ export interface Milestone {
   emoji: string;
 }
 
-function asRecord(v: unknown): Record<string, unknown> {
-  return v && typeof v === "object" ? (v as Record<string, unknown>) : {};
-}
-
-function toStr(v: unknown): string {
-  return typeof v === "string" ? v : "";
-}
-
-function toStrOrNull(v: unknown): string | null {
-  return typeof v === "string" ? v : null;
-}
-
+/** Count fields arrive as integers; truncate defensively in case of drift. */
 function toInt(v: unknown): number {
-  return typeof v === "number" && Number.isFinite(v) ? Math.trunc(v) : 0;
-}
-
-function toStrArray(v: unknown): string[] {
-  return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  return Math.trunc(asNumber(v, 0));
 }
 
 export async function fetchProfile(): Promise<Profile> {
-  const raw = asRecord(await apiGet<unknown>("/api/profile"));
+  const raw = asRecord(await apiGet<unknown>("/api/profile")) ?? {};
   return {
-    id: toStr(raw.id),
-    email: toStr(raw.email),
-    name: toStrOrNull(raw.name),
-    bio: toStrOrNull(raw.bio),
-    username: toStrOrNull(raw.username),
-    avatarUrl: toStrOrNull(raw.avatarUrl),
-    bannerUrl: toStrOrNull(raw.bannerUrl),
-    featuredSongId: toStrOrNull(raw.featuredSongId),
-    preferredGenres: toStrArray(raw.preferredGenres),
+    id: asString(raw.id, ""),
+    email: asString(raw.email, ""),
+    name: asString(raw.name),
+    bio: asString(raw.bio),
+    username: asString(raw.username),
+    avatarUrl: asString(raw.avatarUrl),
+    bannerUrl: asString(raw.bannerUrl),
+    featuredSongId: asString(raw.featuredSongId),
+    preferredGenres: asStringArray(raw.preferredGenres),
   };
 }
 
@@ -100,10 +86,10 @@ export async function setFeaturedSong(songId: string | null): Promise<void> {
 // envelope): { defaultStyle, preferredGenres }. defaultStyle drives the style
 // auto-applied on the Generate screen.
 export async function fetchPreferences(): Promise<ProfilePreferences> {
-  const raw = asRecord(await apiGet<unknown>("/api/profile/preferences"));
+  const raw = asRecord(await apiGet<unknown>("/api/profile/preferences")) ?? {};
   return {
-    defaultStyle: toStrOrNull(raw.defaultStyle),
-    preferredGenres: toStrArray(raw.preferredGenres),
+    defaultStyle: asString(raw.defaultStyle),
+    preferredGenres: asStringArray(raw.preferredGenres),
   };
 }
 
@@ -115,7 +101,7 @@ export async function updatePreferences(patch: {
 }
 
 export async function fetchProfileStats(): Promise<ProfileStats> {
-  const raw = asRecord(await apiGet<unknown>("/api/profile/stats"));
+  const raw = asRecord(await apiGet<unknown>("/api/profile/stats")) ?? {};
   return {
     totalSongs: toInt(raw.totalSongs),
     totalFavorites: toInt(raw.totalFavorites),
@@ -123,8 +109,8 @@ export async function fetchProfileStats(): Promise<ProfileStats> {
     totalTemplates: toInt(raw.totalTemplates),
     followersCount: toInt(raw.followersCount),
     followingCount: toInt(raw.followingCount),
-    memberSince: toStr(raw.memberSince),
-    lastLoginAt: toStrOrNull(raw.lastLoginAt),
+    memberSince: asString(raw.memberSince, ""),
+    lastLoginAt: asString(raw.lastLoginAt),
   };
 }
 
@@ -133,26 +119,26 @@ export async function fetchStreak(): Promise<{
   longestStreak: number;
   lastActiveDate: string | null;
 }> {
-  const raw = asRecord(await apiGet<unknown>("/api/streaks"));
-  const s = asRecord(raw.streak);
+  const raw = asRecord(await apiGet<unknown>("/api/streaks")) ?? {};
+  const s = asRecord(raw.streak) ?? {};
   return {
     currentStreak: toInt(s.currentStreak),
     longestStreak: toInt(s.longestStreak),
-    lastActiveDate: toStrOrNull(s.lastActiveDate),
+    lastActiveDate: asString(s.lastActiveDate),
   };
 }
 
 export async function fetchMilestones(): Promise<Milestone[]> {
-  const raw = asRecord(await apiGet<unknown>("/api/milestones"));
+  const raw = asRecord(await apiGet<unknown>("/api/milestones")) ?? {};
   const list = Array.isArray(raw.milestones) ? raw.milestones : [];
   return list.map((m) => {
-    const r = asRecord(m);
+    const r = asRecord(m) ?? {};
     return {
-      type: toStr(r.type),
-      earnedAt: toStr(r.earnedAt),
-      label: toStr(r.label),
-      description: toStr(r.description),
-      emoji: toStr(r.emoji),
+      type: asString(r.type, ""),
+      earnedAt: asString(r.earnedAt, ""),
+      label: asString(r.label, ""),
+      description: asString(r.description, ""),
+      emoji: asString(r.emoji, ""),
     };
   });
 }

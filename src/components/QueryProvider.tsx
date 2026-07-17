@@ -1,15 +1,14 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { HttpError } from "@sunoflow/core";
 import { useState } from "react";
 
-export class HttpError extends Error {
-  constructor(public readonly status: number, message?: string) {
-    super(message ?? `HTTP ${status}`);
-    this.name = "HttpError";
-    Object.setPrototypeOf(this, HttpError.prototype);
-  }
-}
+// Re-exported so existing `import { HttpError } from "@/components/QueryProvider"`
+// call sites keep the SAME class identity as the @sunoflow/core http-client —
+// the instanceof check in the retry logic below must match errors thrown by
+// src/lib/api-client.ts.
+export { HttpError };
 
 function makeClient() {
   return new QueryClient({

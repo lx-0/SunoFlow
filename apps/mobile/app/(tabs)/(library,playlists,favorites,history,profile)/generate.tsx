@@ -12,7 +12,7 @@ import {
   ActionSheetIOS,
 } from "react-native";
 import { Text, TextInput } from "@/components/Themed";
-import { Stack, router, useLocalSearchParams, useFocusEffect, useNavigation, type Href } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { Sparkles, AlertCircle, CheckCircle2, Wand2, Star, ChevronDown } from "lucide-react-native";
 import {
   GENERATION_PROMPT_MAX_LENGTH,
@@ -21,7 +21,7 @@ import {
   MAX_BATCH_SIZE,
 } from "@sunoflow/core";
 import { startBatch } from "@/api/batch";
-import { startGeneration, pollStatus, GenerationError, type StartedGeneration } from "@/api/generate";
+import { startGeneration, GenerationError, type StartedGeneration } from "@/api/generate";
 import { boostStyle } from "@/api/style-boost";
 import { autoFill } from "@/api/generate-auto";
 import { generateLyrics } from "@/api/lyrics-generate";
@@ -34,6 +34,7 @@ import { HttpError } from "@/api/client";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { usePrompt } from "@/components/PromptSheet";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
+import { usePollingJob } from "@/hooks/usePollingJob";
 import { useTheme } from "@/theme/ThemeContext";
 import { fonts, radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
@@ -43,9 +44,9 @@ import type { ThemeColors } from "@/theme/theme";
 // lyrics, with style as the genre. Presets apply a saved bundle of fields.
 // RUNTIME UNTESTED (headless): verify on device — submit, poll to ready, route.
 
-type Phase = "form" | "submitting" | "polling" | "failed";
-const POLL_INTERVAL_MS = 4000;
-const MAX_POLLS = 75;
+// The polling + poll-failed legs live in usePollingJob; the screen phase covers
+// the submit step (and submit failures) only — render on the union of both.
+type Phase = "form" | "submitting" | "failed";
 
 function paramStr(v: string | string[] | undefined): string {
   if (Array.isArray(v)) return v[0] ?? "";
@@ -80,36 +81,13 @@ export default function GenerateScreen() {
   const [autoFilling, setAutoFilling] = useState(false);
   const [genningLyrics, setGenningLyrics] = useState(false);
 
-  const [phase, setPhase] = useState<Phase>("form");
+  const [submitPhase, setSubmitPhase] = useState<Phase>("form");
   const [error, setError] = useState<string | null>(null);
   const [started, setStarted] = useState<StartedGeneration | null>(null);
 
   const parentSongId = paramStr(params.parentSongId) || undefined;
 
-  const aliveRef = useRef(true);
-  useEffect(() => {
-    aliveRef.current = true;
-    return () => {
-      aliveRef.current = false;
-    };
-  }, []);
-
-  // Defer the completion redirect until this screen is focused again: under the
-  // Tabs model a blind router.replace would replace the root of whatever tab the
-  // user switched to while polling. Focus is read imperatively at completion
-  // time (navigation.isFocused()): with freezeOnBlur on the Tabs, a frozen
-  // screen's useIsFocused hook value would stay stale until unfreeze.
-  const navigation = useNavigation();
-  const pendingHrefRef = useRef<string | null>(null);
-  useFocusEffect(
-    useCallback(() => {
-      const href = pendingHrefRef.current;
-      if (href) {
-        pendingHrefRef.current = null;
-        router.replace(href as Href);
-      }
-    }, []),
-  );
+  const { start: startPoll, reset: resetPoll, phase: pollPhase, error: pollError } = usePollingJob({ logTag: "generate" });
 
   const loadStyleTemplates = useCallback(() => {
     setStStatus("loading");
@@ -256,37 +234,6 @@ export default function GenerateScreen() {
     void onGenLyrics();
   }, [lyricsBasis, onGenLyrics]);
 
-  const runPolling = useCallback(async (job: StartedGeneration) => {
-    setPhase("polling");
-    for (let attempt = 0; attempt < MAX_POLLS; attempt++) {
-      if (!aliveRef.current) return;
-      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-      if (!aliveRef.current) return;
-      let res;
-      try {
-        res = await pollStatus(job.songId);
-      } catch (e) {
-        console.error("[generate] poll failed", e);
-        continue;
-      }
-      if (res.ready) {
-        if (!navigation.isFocused()) {
-          pendingHrefRef.current = `/song/${job.songId}`;
-          return;
-        }
-        router.replace(`/song/${job.songId}`);
-        return;
-      }
-      if (res.failed) {
-        setError(res.errorMessage ?? "Generation failed. Please try again.");
-        setPhase("failed");
-        return;
-      }
-    }
-    setError("Generation is taking longer than expected. Check your library shortly.");
-    setPhase("failed");
-  }, [navigation]);
-
   const onSubmit = useCallback(async () => {
     const submitPrompt = (customMode ? lyrics : style).trim();
     if (!submitPrompt) {
@@ -294,7 +241,7 @@ export default function GenerateScreen() {
       return;
     }
     setError(null);
-    setPhase("submitting");
+    setSubmitPhase("submitting");
 
     // Batch: fire N variations of the same config; they surface in the library.
     if (count > 1) {
@@ -311,7 +258,7 @@ export default function GenerateScreen() {
         router.replace("/");
       } catch (e) {
         setError(e instanceof GenerationError ? e.message : "Something went wrong. Please try again.");
-        setPhase("failed");
+        setSubmitPhase("failed");
       }
       return;
     }
@@ -326,19 +273,27 @@ export default function GenerateScreen() {
         parentSongId,
       });
       setStarted(job);
-      await runPolling(job);
+      await startPoll(job, {
+        hrefFor: (j) => `/song/${j.songId}`,
+        messages: {
+          failed: "Generation failed. Please try again.",
+          timeout: "Generation is taking longer than expected. Check your library shortly.",
+        },
+      });
     } catch (e) {
       setError(e instanceof GenerationError ? e.message : "Something went wrong. Please try again.");
-      setPhase("failed");
+      setSubmitPhase("failed");
     }
-  }, [customMode, lyrics, style, title, instrumental, count, personaId, parentSongId, runPolling]);
+  }, [customMode, lyrics, style, title, instrumental, count, personaId, parentSongId, startPoll]);
 
   const reset = useCallback(() => {
     setError(null);
     setStarted(null);
-    setPhase("form");
-  }, []);
+    setSubmitPhase("form");
+    resetPoll();
+  }, [resetPoll]);
 
+  const phase = pollPhase === "idle" ? submitPhase : pollPhase;
   const canSubmit = (customMode ? lyrics.trim() : style.trim()).length > 0 && phase === "form";
 
   if (phase === "submitting" || phase === "polling") {
@@ -358,7 +313,7 @@ export default function GenerateScreen() {
         <Stack.Screen options={{ title: "Generate" }} />
         <AlertCircle color={colors.danger} size={40} />
         <Text style={styles.statusTitle}>Generation failed</Text>
-        <Text style={styles.dim}>{error}</Text>
+        <Text style={styles.dim}>{pollError ?? error}</Text>
         <Pressable style={styles.primaryBtn} onPress={reset}>
           <Text style={styles.primaryBtnText}>Try again</Text>
         </Pressable>

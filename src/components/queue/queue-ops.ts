@@ -1,135 +1,124 @@
+// Thin delegates around the shared @sunoflow/core queue machine. The web
+// queue state lives in React state/refs (QueueContext) rather than a held
+// machine state, so each helper builds a transient QueueState, runs the core
+// transition, and maps the result back to the web's { queue, currentIndex }
+// shape. Web-only edges the core machine does not model (empty queue →
+// playIndex -1, "nothing playing" currentIndex -1) are guarded here.
+import {
+	createQueueState,
+	fisherYatesShuffle,
+	playQueue,
+	removeFromQueue,
+	reorderQueue,
+	toggleShuffle,
+} from "@sunoflow/core";
 import type { QueueSong } from "@/components/queue/playback-state";
 import { getCurrentQueueSong } from "@/components/queue/queue-selectors";
 
-export function fisherYatesShuffle<T>(arr: T[]): T[] {
-  const copy = [...arr];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
+export { fisherYatesShuffle };
 
 export function buildPlayQueue(
-  songs: QueueSong[],
-  startIndex: number,
-  shuffle: boolean,
+	songs: QueueSong[],
+	startIndex: number,
+	shuffle: boolean,
 ): { playOrder: QueueSong[]; playIndex: number } {
-  if (songs.length === 0) {
-    return { playOrder: [], playIndex: -1 };
-  }
-  const normalizedStartIndex = Math.min(Math.max(startIndex, 0), songs.length - 1);
-
-  if (!shuffle) {
-    return { playOrder: songs, playIndex: normalizedStartIndex };
-  }
-
-  const startSong = songs[normalizedStartIndex];
-  const rest = songs.filter((_, i) => i !== normalizedStartIndex);
-  return {
-    playOrder: [startSong, ...fisherYatesShuffle(rest)],
-    playIndex: 0,
-  };
+	if (songs.length === 0) {
+		return { playOrder: [], playIndex: -1 };
+	}
+	const { state } = playQueue(
+		createQueueState<QueueSong>({ shuffle }),
+		songs,
+		startIndex,
+	);
+	return { playOrder: state.queue, playIndex: state.index };
 }
 
 export function toggleShuffleQueue(
-  queue: QueueSong[],
-  currentIndex: number,
-  nextShuffle: boolean,
-  originalQueue: QueueSong[],
+	queue: QueueSong[],
+	currentIndex: number,
+	nextShuffle: boolean,
+	originalQueue: QueueSong[],
 ): { queue: QueueSong[]; currentIndex: number } {
-  if (queue.length <= 1) {
-    return { queue, currentIndex };
-  }
+	if (queue.length <= 1) {
+		return { queue, currentIndex };
+	}
 
-  const currentSong = getCurrentQueueSong(queue, currentIndex);
+	const currentSong = getCurrentQueueSong(queue, currentIndex);
 
-  if (nextShuffle) {
-    const rest = queue.filter((_, i) => i !== currentIndex);
-    const shuffled = currentSong
-      ? [currentSong, ...fisherYatesShuffle(rest)]
-      : fisherYatesShuffle(queue);
-    return { queue: shuffled, currentIndex: currentSong ? 0 : currentIndex };
-  }
+	// Nothing playing: the core machine would re-anchor to index 0; the web keeps
+	// its currentIndex (usually -1) and simply shuffles / leaves the list as-is.
+	if (!currentSong) {
+		return nextShuffle
+			? { queue: fisherYatesShuffle(queue), currentIndex }
+			: { queue, currentIndex };
+	}
+	if (!nextShuffle && originalQueue.length === 0) {
+		return { queue, currentIndex };
+	}
 
-  if (originalQueue.length > 0 && currentSong) {
-    const originalIndex = originalQueue.findIndex((song) => song.id === currentSong.id);
-    return {
-      queue: originalQueue,
-      currentIndex: originalIndex >= 0 ? originalIndex : 0,
-    };
-  }
+	// Shuffle ON stays local with an INDEX filter: the core machine filters the
+	// rest by the current song's id, which would silently drop duplicate queue
+	// entries of the playing song (reachable via "Add to queue"/"Play next").
+	if (nextShuffle) {
+		const rest = fisherYatesShuffle(queue.filter((_, i) => i !== currentIndex));
+		return { queue: [currentSong, ...rest], currentIndex: 0 };
+	}
 
-  return { queue, currentIndex };
+	const { state } = toggleShuffle(
+		createQueueState<QueueSong>({
+			queue,
+			originalQueue,
+			index: currentIndex,
+			shuffle: true,
+		}),
+	);
+	return { queue: state.queue, currentIndex: state.index };
 }
 
 export function insertAfterCurrent(
-  queue: QueueSong[],
-  currentIndex: number,
-  song: QueueSong,
+	queue: QueueSong[],
+	currentIndex: number,
+	song: QueueSong,
 ): QueueSong[] {
-  const next = [...queue];
-  next.splice(currentIndex + 1, 0, song);
-  return next;
+	const next = [...queue];
+	next.splice(currentIndex + 1, 0, song);
+	return next;
 }
 
 export function removeFromQueueState(
-  queue: QueueSong[],
-  currentIndex: number,
-  removeIndex: number,
+	queue: QueueSong[],
+	currentIndex: number,
+	removeIndex: number,
 ): { queue: QueueSong[]; currentIndex: number; removedCurrent: boolean } {
-  if (removeIndex < 0 || removeIndex >= queue.length) {
-    return { queue, currentIndex, removedCurrent: false };
-  }
-
-  const nextQueue = [...queue];
-  nextQueue.splice(removeIndex, 1);
-
-  if (removeIndex < currentIndex) {
-    return { queue: nextQueue, currentIndex: currentIndex - 1, removedCurrent: false };
-  }
-
-  if (removeIndex === currentIndex) {
-    return { queue: nextQueue, currentIndex: -1, removedCurrent: true };
-  }
-
-  return { queue: nextQueue, currentIndex, removedCurrent: false };
+	const { state } = removeFromQueue(
+		createQueueState<QueueSong>({ queue, index: currentIndex }),
+		removeIndex,
+	);
+	if (state.queue === queue) {
+		return { queue, currentIndex, removedCurrent: false }; // out of range
+	}
+	const removedCurrent = removeIndex === currentIndex;
+	// The web signals "current removed" via currentIndex -1, not a clamped index
+	// like the core machine (the caller stops playback itself). A queue emptied
+	// WITHOUT removing the current track (nothing was playing) keeps currentIndex.
+	const nextIndex = removedCurrent
+		? -1
+		: state.queue.length === 0
+			? currentIndex
+			: state.index;
+	return { queue: state.queue, currentIndex: nextIndex, removedCurrent };
 }
 
 export function reorderQueueState(
-  queue: QueueSong[],
-  currentIndex: number,
-  fromIndex: number,
-  toIndex: number,
+	queue: QueueSong[],
+	currentIndex: number,
+	fromIndex: number,
+	toIndex: number,
 ): { queue: QueueSong[]; currentIndex: number } {
-  if (
-    fromIndex < 0 ||
-    fromIndex >= queue.length ||
-    toIndex < 0 ||
-    toIndex >= queue.length
-  ) {
-    return { queue, currentIndex };
-  }
-
-  if (fromIndex === toIndex) {
-    return { queue, currentIndex };
-  }
-
-  const nextQueue = [...queue];
-  const [moved] = nextQueue.splice(fromIndex, 1);
-  nextQueue.splice(toIndex, 0, moved);
-
-  if (fromIndex === currentIndex) {
-    return { queue: nextQueue, currentIndex: toIndex };
-  }
-
-  if (fromIndex < currentIndex && toIndex >= currentIndex) {
-    return { queue: nextQueue, currentIndex: currentIndex - 1 };
-  }
-
-  if (fromIndex > currentIndex && toIndex <= currentIndex) {
-    return { queue: nextQueue, currentIndex: currentIndex + 1 };
-  }
-
-  return { queue: nextQueue, currentIndex };
+	const { state } = reorderQueue(
+		createQueueState<QueueSong>({ queue, index: currentIndex }),
+		fromIndex,
+		toIndex,
+	);
+	return { queue: state.queue, currentIndex: state.index };
 }

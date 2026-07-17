@@ -1,3 +1,4 @@
+import { asBool, asNumber, asRecord, asString } from "@sunoflow/core";
 import { apiGet, apiPatch } from "@/api/client";
 
 // Notifications feed. Shape from the web app's GET /api/notifications:
@@ -21,24 +22,19 @@ export type NotificationsResult = {
   unreadCount: number;
 };
 
-function asString(v: unknown): string {
-  return typeof v === "string" ? v : "";
-}
-
 function mapNotification(raw: unknown): AppNotification | null {
-  if (!raw || typeof raw !== "object") return null;
-  const r = raw as Record<string, unknown>;
-  const id = asString(r.id);
-  if (!id) return null;
+  const r = asRecord(raw);
+  const id = r ? asString(r.id) : null;
+  if (!r || !id) return null;
   return {
     id,
-    type: asString(r.type),
-    title: asString(r.title),
-    message: asString(r.message),
-    href: typeof r.href === "string" ? r.href : null,
-    songId: typeof r.songId === "string" ? r.songId : null,
-    read: r.read === true,
-    createdAt: typeof r.createdAt === "string" ? r.createdAt : null,
+    type: asString(r.type, ""),
+    title: asString(r.title, ""),
+    message: asString(r.message, ""),
+    href: asString(r.href),
+    songId: asString(r.songId),
+    read: asBool(r.read),
+    createdAt: asString(r.createdAt),
   };
 }
 
@@ -62,15 +58,13 @@ export function notificationTarget(n: AppNotification): string | null {
 
 export async function fetchNotifications(): Promise<NotificationsResult> {
   const res = await apiGet<unknown>("/api/notifications");
-  const obj = res && typeof res === "object" ? (res as Record<string, unknown>) : {};
+  const obj = asRecord(res) ?? {};
   const list = Array.isArray(obj.notifications) ? obj.notifications : [];
   const notifications = list
     .map(mapNotification)
     .filter((n): n is AppNotification => n !== null);
   const unreadCount =
-    typeof obj.unreadCount === "number"
-      ? obj.unreadCount
-      : notifications.filter((n) => !n.read).length;
+    asNumber(obj.unreadCount) ?? notifications.filter((n) => !n.read).length;
   return { notifications, unreadCount };
 }
 

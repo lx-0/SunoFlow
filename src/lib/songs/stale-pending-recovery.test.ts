@@ -26,21 +26,22 @@ vi.mock("@/lib/sunoapi", async () => {
   return { ...actual, resolveUserApiKey: vi.fn().mockResolvedValue(undefined) };
 });
 
-vi.mock("@/lib/generation", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/generation")>("@/lib/generation");
-  return {
-    ...actual,
-    pollOnce: vi.fn(),
-    handleSongSuccess: vi.fn().mockResolvedValue(undefined),
-    handleSongFailure: vi.fn().mockResolvedValue(undefined),
-  };
+vi.mock("@/lib/generation/completion", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/generation/completion")>("@/lib/generation/completion");
+  return { ...actual, pollOnce: vi.fn() };
 });
+
+vi.mock("@/lib/generation/song-completion", () => ({
+  handleSongSuccess: vi.fn().mockResolvedValue(undefined),
+  handleSongFailure: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock("@/lib/error-logger", () => ({ logServerError: vi.fn() }));
 vi.mock("@/lib/logger", () => ({ logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 
 import { prisma } from "@/lib/prisma";
-import { pollOnce, handleSongSuccess, handleSongFailure } from "@/lib/generation";
+import { pollOnce } from "@/lib/generation/completion";
+import { handleSongSuccess, handleSongFailure } from "@/lib/generation/song-completion";
 import { logServerError } from "@/lib/error-logger";
 import { runStalePendingRecovery, kickoffStalePendingRecovery } from "./stale-pending-recovery";
 

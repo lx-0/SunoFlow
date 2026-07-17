@@ -1,3 +1,4 @@
+import { asNumber, asRecord, asString } from "@sunoflow/core";
 import { apiGet, apiPost } from "./client";
 
 // Playlist-collaboration invites. A user opens an invite link carrying a token;
@@ -21,40 +22,27 @@ export interface InviteInfo {
   };
 }
 
-function asRecord(raw: unknown): Record<string, unknown> {
-  return raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
-}
-
-function asString(raw: unknown): string {
-  return typeof raw === "string" ? raw : "";
-}
-
-function asStringOrNull(raw: unknown): string | null {
-  return typeof raw === "string" ? raw : null;
-}
-
 interface InviteResponse {
   invite?: unknown;
 }
 
 export async function fetchInviteInfo(token: string): Promise<InviteInfo> {
   const res = await apiGet<InviteResponse>(`/api/playlists/invite/${token}`);
-  const invite = asRecord(res?.invite);
-  const playlist = asRecord(invite.playlist);
-  const count = asRecord(playlist._count);
-  const user = asRecord(playlist.user);
-  const songs = count.songs;
+  const invite = asRecord(res?.invite) ?? {};
+  const playlist = asRecord(invite.playlist) ?? {};
+  const count = asRecord(playlist._count) ?? {};
+  const user = asRecord(playlist.user) ?? {};
 
   return {
-    id: asString(invite.id),
-    status: asString(invite.status),
-    expiresAt: asStringOrNull(invite.expiresAt),
+    id: asString(invite.id, ""),
+    status: asString(invite.status, ""),
+    expiresAt: asString(invite.expiresAt),
     playlist: {
-      id: asString(playlist.id),
-      name: asString(playlist.name),
-      description: asStringOrNull(playlist.description),
-      songCount: typeof songs === "number" ? songs : 0,
-      ownerName: asStringOrNull(user.name),
+      id: asString(playlist.id, ""),
+      name: asString(playlist.name, ""),
+      description: asString(playlist.description),
+      songCount: asNumber(count.songs, 0),
+      ownerName: asString(user.name),
     },
   };
 }
@@ -65,5 +53,5 @@ interface AcceptResponse {
 
 export async function acceptInvite(token: string): Promise<{ playlistId: string }> {
   const res = await apiPost<AcceptResponse>(`/api/playlists/invite/${token}`, {});
-  return { playlistId: asString(res?.playlistId) };
+  return { playlistId: asString(res?.playlistId, "") };
 }

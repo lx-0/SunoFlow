@@ -1,3 +1,4 @@
+import { asBool, asNumber, asRecord, asString, unwrapList } from "@sunoflow/core";
 import { apiGet } from "./client";
 import type { Song } from "@/types";
 
@@ -12,23 +13,29 @@ interface LibraryResponse {
   total: number;
 }
 
-/** Defensive map of one raw API song → player Song. Returns null if unplayable. */
+/**
+ * Defensive map of one raw API song → player Song. Returns null if unplayable.
+ * The ONE song mapper for every endpoint variant: library rows (imageUrl),
+ * public/discover rows (albumArtUrl + creatorDisplayName aliases), and playlist
+ * entries (nested under `.song`).
+ */
 export function mapApiSong(raw: unknown): Song | null {
-  if (!raw || typeof raw !== "object") return null;
-  const s = raw as Record<string, unknown>;
+  const s = asRecord(raw);
+  if (!s) return null;
   // playlist entries may nest the song under `.song`
-  const src = (s.song && typeof s.song === "object" ? (s.song as Record<string, unknown>) : s);
-  const audioUrl = src.audioUrl;
-  if (typeof audioUrl !== "string" || !audioUrl) return null;
+  const src = asRecord(s.song) ?? s;
+  const audioUrl = asString(src.audioUrl);
+  if (!audioUrl) return null;
   return {
     id: String(src.id ?? audioUrl),
-    title: typeof src.title === "string" ? src.title : "Untitled",
+    title: asString(src.title) ?? "Untitled",
+    artist: asString(src.creatorDisplayName) ?? undefined,
     streamUrl: audioUrl,
-    artworkUrl: typeof src.imageUrl === "string" ? src.imageUrl : undefined,
-    videoUrl: typeof src.videoUrl === "string" ? src.videoUrl : null,
-    durationSeconds: typeof src.duration === "number" ? src.duration : undefined,
-    isFavorite: src.isFavorite === true,
-    rating: typeof src.rating === "number" ? src.rating : null,
+    artworkUrl: asString(src.imageUrl) ?? asString(src.albumArtUrl) ?? undefined,
+    videoUrl: asString(src.videoUrl),
+    durationSeconds: asNumber(src.duration) ?? undefined,
+    isFavorite: asBool(src.isFavorite),
+    rating: asNumber(src.rating),
   };
 }
 
@@ -85,10 +92,7 @@ export async function fetchSongsPage(opts: FetchSongsOptions = {}): Promise<Song
   if (opts.archived) params.set("archived", "true");
   const qs = params.toString();
   const res = await apiGet<LibraryResponse>(`/api/songs${qs ? `?${qs}` : ""}`);
-  const songs = (Array.isArray(res.songs) ? res.songs : [])
-    .map(mapApiSong)
-    .filter((s): s is Song => s !== null);
-  return { songs, nextCursor: res.nextCursor ?? null };
+  return { songs: unwrapList(res, "songs", mapApiSong), nextCursor: res.nextCursor ?? null };
 }
 
 /** Back-compat: first page only, songs array. */

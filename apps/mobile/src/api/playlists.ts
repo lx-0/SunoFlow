@@ -1,3 +1,4 @@
+import { asNumber, asRecord, asString, unwrapList } from "@sunoflow/core";
 import { apiGet, apiPost } from "./client";
 import { mapApiSong } from "./songs";
 import type { Song } from "@/types";
@@ -16,25 +17,25 @@ export interface PlaylistSummary {
   songCount: number;
 }
 
+/** Defensive map of one raw playlist row → PlaylistSummary (shared with smart-playlists). */
+export function mapPlaylistSummary(raw: unknown): PlaylistSummary | null {
+  const p = asRecord(raw);
+  const id = p ? asString(p.id) : null;
+  if (!p || !id) return null;
+  return {
+    id,
+    name: asString(p.name) ?? "Untitled playlist",
+    songCount: asNumber(asRecord(p._count)?.songs, 0),
+  };
+}
+
 export async function fetchPlaylists(): Promise<PlaylistSummary[]> {
-  const res = await apiGet<{ playlists: unknown[] }>("/api/playlists");
-  const list = Array.isArray(res.playlists) ? res.playlists : [];
-  return list.map((raw): PlaylistSummary | null => {
-    if (!raw || typeof raw !== "object") return null;
-    const p = raw as Record<string, unknown>;
-    if (typeof p.id !== "string") return null;
-    const count = (p._count as Record<string, unknown> | undefined)?.songs;
-    return {
-      id: p.id,
-      name: typeof p.name === "string" ? p.name : "Untitled playlist",
-      songCount: typeof count === "number" ? count : 0,
-    };
-  }).filter((p): p is PlaylistSummary => p !== null);
+  const res = await apiGet<unknown>("/api/playlists");
+  return unwrapList(res, "playlists", mapPlaylistSummary);
 }
 
 /** Fetch a playlist's playable tracks. Detail returns { playlist: { songs: [...] } }. */
 export async function fetchPlaylistSongs(id: string): Promise<Song[]> {
-  const res = await apiGet<{ playlist?: { songs?: unknown[] } }>(`/api/playlists/${id}`);
-  const rawSongs = res.playlist?.songs;
-  return (Array.isArray(rawSongs) ? rawSongs : []).map(mapApiSong).filter((s): s is Song => s !== null);
+  const res = await apiGet<{ playlist?: unknown }>(`/api/playlists/${id}`);
+  return unwrapList(res?.playlist, "songs", mapApiSong);
 }

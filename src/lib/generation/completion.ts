@@ -1,7 +1,10 @@
+import type { Song } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getTaskStatus, isTerminalFailure } from "@/lib/sunoapi";
 import type { SunoSong } from "@/lib/sunoapi";
 import { logServerError } from "@/lib/error-logger";
+import { broadcast } from "@/lib/event-bus";
+import { markSongFailedSimple } from "@/lib/songs/lifecycle";
 import { handleSongSuccess, handleSongFailure } from "./song-completion";
 import type { SongRecord } from "./song-completion";
 
@@ -45,6 +48,109 @@ export async function pollOnce(
   }
 
   return { kind: "processing" };
+}
+
+// ── Shared pending-song dispatch ───────────────────────────────────
+
+const TIMEOUT_MESSAGE = "Generation timed out";
+const NO_TASK_ID_MESSAGE = "No Suno task ID";
+
+/**
+ * A pollOnce outcome, or one of the two pre-poll conditions callers
+ * detect before hitting Suno (poll ceiling exceeded, row has no task id).
+ */
+export type AdvanceOutcome =
+  | PollOutcome
+  | { kind: "timeout" }
+  | { kind: "no_suno_job_id" };
+
+/** What an inconclusive poll (still processing / transient error) means for a caller. */
+export type StillPendingAction =
+  | { action: "defer"; onDefer?: () => void }
+  | { action: "fail"; errorMessage: string };
+
+export interface AdvancePolicy {
+  /** GlitchTip attribution when the poll itself threw — labels differ per caller. */
+  pollErrorLog: { source: string; route: string; params?: Record<string, unknown> };
+  /** What upstream-still-processing means for this caller. Default: bump pollCount. */
+  onProcessing?: StillPendingAction;
+  /** What an unreachable upstream (poll threw) means for this caller. Default: bump pollCount. */
+  onPollError?: StillPendingAction;
+  /**
+   * When set, the missing-task-id early-fail runs through handleSongFailure
+   * with this message (stale-sweep semantics). Default: markSongFailedSimple
+   * + a single generation_update broadcast (route semantics).
+   */
+  noJobIdFailure?: { errorMessage: string };
+}
+
+export type AdvanceResult =
+  | { status: "ready"; songs: SunoSong[] }
+  | { status: "failed"; errorMessage: string }
+  | { status: "processing"; pollCount: number; updatedSong: Song };
+
+/**
+ * Shared dispatcher for the three pending-song consumers (SSE poll loop,
+ * client status poll, stale-pending sweep): given a poll outcome — or a
+ * pre-poll condition — persist the song's next state via handleSongSuccess /
+ * handleSongFailure / a pollCount bump. Caller-specific differences (log
+ * attribution, defer-vs-fail thresholds, no-task-id semantics) are encoded
+ * in the policy, not unified — their values intentionally differ per consumer.
+ */
+export async function advancePendingSong(
+  record: SongRecord,
+  outcome: AdvanceOutcome,
+  policy: AdvancePolicy,
+): Promise<AdvanceResult> {
+  switch (outcome.kind) {
+    case "ready":
+      await handleSongSuccess(record, outcome.songs);
+      return { status: "ready", songs: outcome.songs };
+    case "failed":
+      await handleSongFailure(record, outcome.errorMessage);
+      return { status: "failed", errorMessage: outcome.errorMessage };
+    case "timeout":
+      await handleSongFailure(record, TIMEOUT_MESSAGE);
+      return { status: "failed", errorMessage: TIMEOUT_MESSAGE };
+    case "no_suno_job_id": {
+      if (policy.noJobIdFailure) {
+        await handleSongFailure(record, policy.noJobIdFailure.errorMessage);
+        return { status: "failed", errorMessage: policy.noJobIdFailure.errorMessage };
+      }
+      await markSongFailedSimple(record.id, NO_TASK_ID_MESSAGE);
+      broadcast(record.userId, {
+        type: "generation_update",
+        data: { songId: record.id, status: "failed", errorMessage: NO_TASK_ID_MESSAGE },
+      });
+      return { status: "failed", errorMessage: NO_TASK_ID_MESSAGE };
+    }
+    case "poll_error":
+      logServerError(policy.pollErrorLog.source, outcome.error, {
+        userId: record.userId,
+        route: policy.pollErrorLog.route,
+        params: policy.pollErrorLog.params,
+      });
+      return advanceStillPending(record, policy.onPollError ?? { action: "defer" });
+    case "processing":
+      return advanceStillPending(record, policy.onProcessing ?? { action: "defer" });
+  }
+}
+
+async function advanceStillPending(
+  record: SongRecord,
+  action: StillPendingAction,
+): Promise<AdvanceResult> {
+  if (action.action === "fail") {
+    await handleSongFailure(record, action.errorMessage);
+    return { status: "failed", errorMessage: action.errorMessage };
+  }
+  const pollCount = record.pollCount + 1;
+  const updatedSong = await prisma.song.update({
+    where: { id: record.id },
+    data: { pollCount },
+  });
+  action.onDefer?.();
+  return { status: "processing", pollCount, updatedSong };
 }
 
 export interface CompletionUpdate {
@@ -106,53 +212,40 @@ export async function* pollToCompletion(
   while (!signal?.aborted) {
     pollCount += 1;
 
-    if (pollCount > MAX_POLL_ATTEMPTS) {
-      const songRecord = buildSongRecord(target, pollCount - 1);
-      await handleSongFailure(songRecord, "Generation timed out");
-      yield { songId: target.songId, status: "failed", errorMessage: "Generation timed out" };
-      return;
-    }
+    const songRecord = buildSongRecord(target, pollCount - 1);
+    const outcome: AdvanceOutcome =
+      pollCount > MAX_POLL_ATTEMPTS
+        ? { kind: "timeout" }
+        : await pollOnce(target.sunoJobId, target.apiKey);
 
-    const outcome = await pollOnce(target.sunoJobId, target.apiKey);
+    const result = await advancePendingSong(songRecord, outcome, {
+      pollErrorLog: {
+        source: "generation-poll",
+        route: "generation/completion",
+        params: { songId: target.songId, sunoJobId: target.sunoJobId, pollCount },
+      },
+    });
 
-    switch (outcome.kind) {
+    switch (result.status) {
       case "ready": {
-        const songRecord = buildSongRecord(target, pollCount - 1);
-        await handleSongSuccess(songRecord, outcome.songs);
-        const firstSong = outcome.songs[0];
+        const firstSong = result.songs[0];
         yield {
           songId: target.songId,
           status: "ready",
           title: firstSong.title || target.existingSong.title,
           audioUrl: firstSong.audioUrl || target.existingSong.audioUrl,
           imageUrl: firstSong.imageUrl || target.existingSong.imageUrl,
-          alternateCount: outcome.songs.length - 1,
+          alternateCount: result.songs.length - 1,
         };
         return;
       }
-      case "failed": {
-        const songRecord = buildSongRecord(target, pollCount - 1);
-        await handleSongFailure(songRecord, outcome.errorMessage);
-        yield { songId: target.songId, status: "failed", errorMessage: outcome.errorMessage };
+      case "failed":
+        yield { songId: target.songId, status: "failed", errorMessage: result.errorMessage };
         return;
-      }
-      case "poll_error": {
-        logServerError("generation-poll", outcome.error, {
-          userId: target.userId,
-          route: "generation/completion",
-          params: { songId: target.songId, sunoJobId: target.sunoJobId, pollCount },
-        });
-        await prisma.song.update({ where: { id: target.songId }, data: { pollCount } });
-        yield { songId: target.songId, status: "processing", pollCount };
+      case "processing":
+        yield { songId: target.songId, status: "processing", pollCount: result.pollCount };
         await sleep(POLL_INTERVAL_MS);
         continue;
-      }
-      case "processing": {
-        await prisma.song.update({ where: { id: target.songId }, data: { pollCount } });
-        yield { songId: target.songId, status: "processing", pollCount };
-        await sleep(POLL_INTERVAL_MS);
-        continue;
-      }
     }
   }
 }

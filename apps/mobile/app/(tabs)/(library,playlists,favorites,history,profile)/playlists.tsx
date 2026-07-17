@@ -1,12 +1,13 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback } from "react";
 import { View, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert, RefreshControl } from "react-native";
 import { Text } from "@/components/Themed";
-import { Stack, router, useFocusEffect } from "expo-router";
+import { Stack, router } from "expo-router";
 import { Plus, ListMusic, AlertCircle, Play, Shuffle } from "lucide-react-native";
 import { fetchPlaylists, fetchPlaylistSongs, type PlaylistSummary } from "@/api/playlists";
 import { createPlaylist } from "@/api/playlist-actions";
 import { playQueue } from "@/playback/controls";
 import { HttpError } from "@/api/client";
+import { useListResource } from "@/hooks/useListResource";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { EmptyState } from "@/components/EmptyState";
 import { usePrompt } from "@/components/PromptSheet";
@@ -18,47 +19,11 @@ export default function PlaylistsScreen() {
   const { colors } = useTheme();
   const st = makeStyles(colors);
   const prompt = usePrompt();
-  const [items, setItems] = useState<PlaylistSummary[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-
-  // One fetch shared by the focus load and pull-to-refresh. The generation
-  // counter drops writes from stale in-flight requests: the focus cleanup bumps
-  // it, so a response arriving after blur (or after a newer focus) can't touch state.
-  const genRef = useRef(0);
-
-  const load = useCallback(async (isActive: () => boolean) => {
-    setError(null);
-    try {
-      const p = await fetchPlaylists();
-      if (isActive()) setItems(p);
-    } catch (e) {
-      if (isActive()) {
-        setError(e instanceof HttpError && e.status === 401 ? "Please sign in again." : "Failed to load playlists");
-      }
-      console.error("[playlists] load failed", e);
-    }
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      const gen = ++genRef.current;
-      void load(() => genRef.current === gen);
-      return () => {
-        genRef.current++;
-      };
-    }, [load]),
-  );
-
-  const onRefresh = useCallback(async () => {
-    const gen = genRef.current;
-    setRefreshing(true);
-    try {
-      await load(() => genRef.current === gen);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [load]);
+  const { data: items, error, refreshing, onRefresh, retry, revalidate } = useListResource(fetchPlaylists, {
+    errorMessage: (e) =>
+      e instanceof HttpError && e.status === 401 ? "Please sign in again." : "Failed to load playlists",
+    logTag: "playlists",
+  });
 
   const promptCreate = useCallback(async () => {
     const value = await prompt({ title: "New Playlist", message: "Name your playlist" });
@@ -66,13 +31,14 @@ export default function PlaylistsScreen() {
     if (!name) return;
     try {
       await createPlaylist(name);
-      const gen = genRef.current;
-      void load(() => genRef.current === gen);
+      // Truly silent reload: revalidate has no refreshing flag, so the
+      // RefreshControl spinner doesn't pop programmatically.
+      revalidate();
     } catch (e) {
       console.error("[playlists] create failed", e);
       Alert.alert("Couldn't create playlist", "Please try again.");
     }
-  }, [load, prompt]);
+  }, [revalidate, prompt]);
 
   async function playPlaylist(p: PlaylistSummary, shuffled: boolean) {
     if (p.songCount === 0) return;
@@ -110,7 +76,14 @@ export default function PlaylistsScreen() {
     return (
       <View style={st.list}>
         {header}
-        <EmptyState tone="error" Icon={AlertCircle} title={error} />
+        <EmptyState
+          tone="error"
+          Icon={AlertCircle}
+          title="Couldn't load playlists"
+          subtitle={error ?? undefined}
+          ctaLabel="Retry"
+          onCta={retry}
+        />
       </View>
     );
   if (!items) return <C>{header}<ActivityIndicator color={colors.text} /></C>;

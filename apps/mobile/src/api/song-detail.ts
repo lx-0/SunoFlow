@@ -1,3 +1,4 @@
+import { asBool, asNumber, asRecord, asString } from "@sunoflow/core";
 import { apiGet, apiPatch } from "@/api/client";
 import type { Song } from "@/types";
 
@@ -38,41 +39,38 @@ function toStringTags(v: unknown): string[] {
   return v
     .map((t) => {
       if (typeof t === "string") return t;
-      if (t && typeof t === "object") {
-        const o = t as Record<string, unknown>;
-        if (typeof o.name === "string") return o.name;
-        const tag = o.tag as Record<string, unknown> | undefined;
-        if (tag && typeof tag.name === "string") return tag.name;
-      }
-      return "";
+      const o = asRecord(t);
+      return asString(o?.name) ?? asString(asRecord(o?.tag)?.name) ?? "";
     })
     .filter((s) => s.length > 0);
 }
 
 export async function fetchSongDetail(id: string): Promise<SongDetail> {
   const res = await apiGet<{ song?: unknown }>(`/api/songs/${id}`);
-  const s = (res?.song && typeof res.song === "object" ? res.song : {}) as Record<string, unknown>;
+  const s = asRecord(res?.song) ?? {};
   return {
     id: String(s.id ?? id),
-    title: typeof s.title === "string" ? s.title : "Untitled",
-    streamUrl: typeof s.audioUrl === "string" ? s.audioUrl : undefined,
-    artworkUrl: typeof s.imageUrl === "string" ? s.imageUrl : undefined,
-    videoUrl: typeof s.videoUrl === "string" ? s.videoUrl : null,
-    durationSeconds: typeof s.duration === "number" ? s.duration : undefined,
+    title: asString(s.title) ?? "Untitled",
+    streamUrl: asString(s.audioUrl) ?? undefined,
+    artworkUrl: asString(s.imageUrl) ?? undefined,
+    videoUrl: asString(s.videoUrl),
+    durationSeconds: asNumber(s.duration) ?? undefined,
     tags: toStringTags(s.tags),
-    model: typeof s.model === "string" ? s.model : undefined,
-    prompt: typeof s.prompt === "string" ? s.prompt : undefined,
-    createdAt: typeof s.createdAt === "string" ? s.createdAt : undefined,
-    rating: typeof s.rating === "number" ? s.rating : null,
-    isFavorite: s.isFavorite === true,
-    favoriteCount: typeof s.favoriteCount === "number" ? s.favoriteCount : 0,
-    publicSlug: typeof s.publicSlug === "string" ? s.publicSlug : null,
-    isPublic: s.isPublic === true,
+    model: asString(s.model) ?? undefined,
+    prompt: asString(s.prompt) ?? undefined,
+    createdAt: asString(s.createdAt) ?? undefined,
+    rating: asNumber(s.rating),
+    isFavorite: asBool(s.isFavorite),
+    favoriteCount: asNumber(s.favoriteCount, 0),
+    publicSlug: asString(s.publicSlug),
+    isPublic: asBool(s.isPublic),
+    // Deliberately NOT asString: "" must stay "" (not-ready gating), only a
+    // missing/non-string field defaults to "ready".
     generationStatus: typeof s.generationStatus === "string" ? s.generationStatus : "ready",
     tagsString: typeof s.tags === "string" ? s.tags : toStringTags(s.tags).join(", "),
-    sunoJobId: typeof s.sunoJobId === "string" ? s.sunoJobId : null,
-    isInstrumental: s.isInstrumental === true,
-    parentSongId: typeof s.parentSongId === "string" ? s.parentSongId : null,
+    sunoJobId: asString(s.sunoJobId),
+    isInstrumental: asBool(s.isInstrumental),
+    parentSongId: asString(s.parentSongId),
   };
 }
 

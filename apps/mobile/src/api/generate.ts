@@ -1,5 +1,7 @@
 import { apiGet, apiPost, HttpError } from "./client";
 import {
+  asRecord,
+  asString,
   generateSongRequestSchema,
   isTerminalGenerationStatus,
   type GenerateSongRequest,
@@ -54,16 +56,13 @@ interface GenerateResponse {
 }
 
 function extractSong(data: GenerateResponse): { id: string; title: string | null } | null {
-  const raw = (Array.isArray(data.songs) ? data.songs[0] : undefined) ?? data.song;
-  if (raw && typeof raw === "object") {
-    const s = raw as Record<string, unknown>;
-    const id = typeof s.id === "string" ? s.id : undefined;
-    if (id) {
-      return { id, title: typeof s.title === "string" ? s.title : null };
-    }
+  const s = asRecord((Array.isArray(data.songs) ? data.songs[0] : undefined) ?? data.song);
+  const id = s ? asString(s.id) : null;
+  if (s && id) {
+    return { id, title: asString(s.title) };
   }
   if (typeof data.id === "string") {
-    return { id: data.id, title: typeof data.title === "string" ? data.title : null };
+    return { id: data.id, title: asString(data.title) };
   }
   return null;
 }
@@ -153,15 +152,15 @@ interface StatusResponse {
 export async function pollStatus(songId: string): Promise<StatusResult> {
   const data = await apiGet<StatusResponse>(`/api/songs/${songId}/status`);
   const song = data.song ?? null;
-  const status = typeof song?.generationStatus === "string" ? song.generationStatus : "pending";
+  const status = asString(song?.generationStatus) ?? "pending";
   const terminal = isTerminalGenerationStatus(status);
   return {
     status,
     terminal,
     ready: status === "ready",
     failed: status === "failed",
-    errorMessage: typeof song?.errorMessage === "string" ? song.errorMessage : null,
-    audioUrl: typeof song?.audioUrl === "string" ? song.audioUrl : null,
-    title: typeof song?.title === "string" ? song.title : null,
+    errorMessage: asString(song?.errorMessage),
+    audioUrl: asString(song?.audioUrl),
+    title: asString(song?.title),
   };
 }

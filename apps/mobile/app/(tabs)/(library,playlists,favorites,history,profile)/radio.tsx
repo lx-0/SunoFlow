@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   FlatList,
@@ -10,11 +10,12 @@ import {
   StyleSheet,
 } from "react-native";
 import { Text } from "@/components/Themed";
-import { Stack, router, useFocusEffect } from "expo-router";
+import { Stack, router } from "expo-router";
 import { Radio, ChevronDown, AlertCircle } from "lucide-react-native";
 import { formatDuration } from "@sunoflow/core";
 import { HttpError } from "@/api/client";
 import { fetchRadio, RADIO_MOODS, RADIO_GENRES } from "@/api/radio";
+import { useListResource } from "@/hooks/useListResource";
 import { playQueue } from "@/playback/controls";
 import { Chip } from "@/components/Chip";
 import { SongRow } from "@/components/SongRow";
@@ -35,42 +36,34 @@ function capitalize(s: string): string {
 }
 
 export default function RadioScreen() {
-  const [songs, setSongs] = useState<Song[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [mood, setMood] = useState<string | null>(null);
   const [genre, setGenre] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
-  const load = useCallback((nextMood: string | null, nextGenre: string | null, clear = true) => {
-    if (clear) setSongs(null);
-    setError(null);
-    return fetchRadio({ mood: nextMood ?? undefined, genre: nextGenre ?? undefined })
-      .then(setSongs)
-      .catch((e: unknown) => {
-        setError(e instanceof HttpError ? `Failed to load radio (HTTP ${e.status})` : "Network error");
-        console.error("[radio] load failed", e);
-      });
-  }, []);
-
-  // Tracks the mood|genre pair the last load was issued for. A refocus with
-  // unchanged filters revalidates silently (stale-while-revalidate: the visible
-  // station stays and is replaced when the fetch resolves — the render gate is
-  // `error && !songs`, so a failed revalidate never hides it). A filter change
-  // — the same effect re-runs while focused, since mood/genre are deps — or the
-  // very first load still clears to the spinner. Start station and pull-to-
-  // refresh keep their existing behavior.
-  const lastParamsRef = useRef<string | null>(null);
-
-  useFocusEffect(
-    useCallback(() => {
-      const key = `${mood ?? ""}|${genre ?? ""}`;
-      const filtersChanged = lastParamsRef.current !== key;
-      lastParamsRef.current = key;
-      load(mood, genre, filtersChanged);
-    }, [load, mood, genre]),
+  const { data: songs, error, refreshing, onRefresh, retry, showError } = useListResource(
+    () => fetchRadio({ mood: mood ?? undefined, genre: genre ?? undefined }),
+    {
+      errorMessage: (e) =>
+        e instanceof HttpError ? `Failed to load radio (HTTP ${e.status})` : "Network error",
+      logTag: "radio",
+    },
   );
+
+  // Param-keyed reload: a mood/genre change is a user decision, so it takes the
+  // full-spinner path — retry() clears the station and refetches through the
+  // inline fetcher, which reads the new filters. The key compare skips the mount
+  // run (the hook's first focus load covers it — and is StrictMode-proof, unlike
+  // a bare first-run flag). Refocus with unchanged filters stays the hook's
+  // silent revalidate; start station and pull-to-refresh keep their behavior.
+  const filtersKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const key = `${mood ?? ""}|${genre ?? ""}`;
+    if (filtersKeyRef.current === key) return;
+    const isFirstRun = filtersKeyRef.current === null;
+    filtersKeyRef.current = key;
+    if (!isFirstRun) retry();
+  }, [mood, genre, retry]);
 
   const play = useCallback(async (list: Song[], index: number) => {
     try {
@@ -101,14 +94,9 @@ export default function RadioScreen() {
     );
   }, []);
 
-  const startStation = useCallback(() => {
-    load(mood, genre);
-  }, [load, mood, genre]);
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    load(mood, genre, false).finally(() => setRefreshing(false));
-  }, [load, mood, genre]);
+  // Start station: a user-triggered full reload of the curated queue, even with
+  // unchanged filters — exactly retry's spinner path.
+  const startStation = retry;
 
   const header = (
     <View>
@@ -147,7 +135,8 @@ export default function RadioScreen() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Radio" }} />
-      {error && !songs ? (
+      {showError && error ? (
+        // `&& error` only narrows the message for the dynamic title — showError implies it.
         <>
           {header}
           <EmptyState tone="error" Icon={AlertCircle} title={error} />

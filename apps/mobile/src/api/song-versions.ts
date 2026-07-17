@@ -1,3 +1,4 @@
+import { asRecord, asString } from "@sunoflow/core";
 import { apiGet } from "./client";
 import { mapApiSong } from "./songs";
 import type { Song } from "@/types";
@@ -15,12 +16,11 @@ interface VersionsResponse {
 
 /** Ensure a raw version row carries `audioUrl` (what mapApiSong expects). */
 function normalizeVersionRow(raw: unknown): unknown {
-  if (!raw || typeof raw !== "object") return raw;
-  const r = raw as Record<string, unknown>;
-  if (typeof r.audioUrl === "string" && r.audioUrl) return r;
-  if (typeof r.streamUrl === "string" && r.streamUrl) {
-    return { ...r, audioUrl: r.streamUrl };
-  }
+  const r = asRecord(raw);
+  if (!r) return raw;
+  if (asString(r.audioUrl)) return r;
+  const streamUrl = asString(r.streamUrl);
+  if (streamUrl) return { ...r, audioUrl: streamUrl };
   return r;
 }
 

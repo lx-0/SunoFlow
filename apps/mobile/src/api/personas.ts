@@ -1,3 +1,4 @@
+import { asRecord, asString, unwrapList } from "@sunoflow/core";
 import { apiGet, apiPost, apiDelete } from "./client";
 
 // Personas talk to the existing web endpoint (authDataRoute → resolveUser accepts
@@ -16,30 +17,23 @@ export interface Persona {
   style: string | null;
 }
 
-interface PersonasResponse {
-  personas: unknown[];
-}
-
 function mapApiPersona(raw: unknown): Persona | null {
-  if (!raw || typeof raw !== "object") return null;
-  const r = raw as Record<string, unknown>;
-  if (typeof r.id !== "string") return null;
-  const name = typeof r.name === "string" ? r.name : "Untitled persona";
+  const r = asRecord(raw);
+  const id = r ? asString(r.id) : null;
+  if (!r || !id) return null;
   return {
-    id: r.id,
-    personaId: typeof r.personaId === "string" ? r.personaId : null,
-    name,
-    description: typeof r.description === "string" ? r.description : null,
-    style: typeof r.style === "string" ? r.style : null,
+    id,
+    personaId: asString(r.personaId),
+    name: asString(r.name) ?? "Untitled persona",
+    description: asString(r.description),
+    style: asString(r.style),
   };
 }
 
 /** List the user's saved personas (newest first, as returned by the API). */
 export async function fetchPersonas(): Promise<Persona[]> {
-  const res = await apiGet<PersonasResponse>(`/api/personas`);
-  return (Array.isArray(res?.personas) ? res.personas : [])
-    .map(mapApiPersona)
-    .filter((p): p is Persona => p !== null);
+  const res = await apiGet<unknown>(`/api/personas`);
+  return unwrapList(res, "personas", mapApiPersona);
 }
 
 /** Delete a saved persona by its DB row id. */

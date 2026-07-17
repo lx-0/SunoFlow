@@ -1,3 +1,4 @@
+import { asBool, asRecord, asString, unwrapList } from "@sunoflow/core";
 import { apiGet, apiPost, apiPatch, apiDelete, API_BASE_URL } from "./client";
 
 // Playlist collaboration (owner side): list collaborators, toggle collaborative
@@ -21,42 +22,36 @@ export interface PlaylistCollabMeta {
   isOwner: boolean;
 }
 
-function rec(v: unknown): Record<string, unknown> {
-  return v && typeof v === "object" ? (v as Record<string, unknown>) : {};
-}
-function str(v: unknown): string | null {
-  return typeof v === "string" && v ? v : null;
-}
-
 /** GET /api/playlists/[id] → name + isCollaborative + isOwner (all scalars come back via Prisma include). */
 export async function fetchPlaylistCollabMeta(playlistId: string): Promise<PlaylistCollabMeta> {
   const res = await apiGet<unknown>(`/api/playlists/${playlistId}`);
-  const root = rec(res);
-  const pl = rec(root.playlist);
+  const root = asRecord(res) ?? {};
+  const pl = asRecord(root.playlist) ?? {};
   return {
-    name: str(pl.name) ?? "Playlist",
-    isCollaborative: pl.isCollaborative === true,
-    isOwner: root.isOwner === true,
+    name: asString(pl.name) ?? "Playlist",
+    isCollaborative: asBool(pl.isCollaborative),
+    isOwner: asBool(root.isOwner),
   };
 }
 
 /** GET /api/playlists/[id]/collaborators → { collaborators: [{ ...row, user }] }. */
 export async function fetchCollaborators(playlistId: string): Promise<Collaborator[]> {
-  const res = await apiGet<{ collaborators?: unknown[] }>(`/api/playlists/${playlistId}/collaborators`);
-  const list = Array.isArray(res.collaborators) ? res.collaborators : [];
-  return list.map((raw) => {
-    const r = rec(raw);
-    const u = rec(r.user);
+  const res = await apiGet<unknown>(`/api/playlists/${playlistId}/collaborators`);
+  return unwrapList(res, "collaborators", (raw): Collaborator | null => {
+    const r = asRecord(raw) ?? {};
+    const u = asRecord(r.user) ?? {};
+    const id = asString(r.id);
+    if (!id) return null;
     return {
-      id: str(r.id) ?? "",
-      status: str(r.status) ?? "pending",
-      role: str(r.role) ?? "editor",
-      userId: str(r.userId),
-      name: str(u.name),
-      username: str(u.username),
-      avatarUrl: str(u.avatarUrl) ?? str(u.image),
+      id,
+      status: asString(r.status) ?? "pending",
+      role: asString(r.role) ?? "editor",
+      userId: asString(r.userId),
+      name: asString(u.name),
+      username: asString(u.username),
+      avatarUrl: asString(u.avatarUrl) ?? asString(u.image),
     };
-  }).filter((c) => c.id);
+  });
 }
 
 /** PATCH /api/playlists/[id]/collaborative → flips the flag; returns the NEW value. */

@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { audioCache, imageCache } from "./file";
-import { resolveUserApiKey, fetchFreshUrls } from "@/lib/sunoapi";
+import { resolveUserApiKey } from "@/lib/sunoapi";
 import { logger } from "@/lib/logger";
-import { CDN_URL_TTL_MS, CDN_REFRESH_THRESHOLD_MS } from "@/lib/cdn-constants";
+import { CDN_REFRESH_THRESHOLD_MS } from "@/lib/cdn-constants";
+import { refreshSongCdnUrls } from "@/lib/songs/asset-refresh";
 
 const BATCH_SIZE = process.env.CACHE_WARMUP_BATCH_SIZE
   ? parseInt(process.env.CACHE_WARMUP_BATCH_SIZE, 10)
@@ -72,40 +73,40 @@ export async function warmUpAudioCache(): Promise<void> {
       const stillNeedsAudio = !audioHit && !audioCache.has(song.id);
       const stillNeedsImage = !imageHit && !imageCache.has(song.id);
 
-      // Step 2: refresh via API only when direct download didn't suffice.
-      // Alternates must use the parent's sunoJobId (true task-id) since the
-      // alternate's own sunoJobId is a clip-UUID that record-info rejects.
+      // Step 2: refresh via the shared asset-heal seam only when direct
+      // download didn't suffice. Alternates must use the parent's sunoJobId
+      // (true task-id) since the alternate's own sunoJobId is a clip-UUID
+      // that record-info rejects.
       const refreshTaskId = song.parentSong?.sunoJobId ?? song.sunoJobId;
       if ((stillNeedsAudio || stillNeedsImage) && refreshTaskId) {
-        if (!userKeys.has(song.userId)) {
-          userKeys.set(song.userId, await resolveUserApiKey(song.userId));
-        }
-        const fresh = await fetchFreshUrls(
-          refreshTaskId,
-          userKeys.get(song.userId),
-          song.sunoAudioId ?? undefined,
+        const fresh = await refreshSongCdnUrls(
+          {
+            id: song.id,
+            sunoJobId: song.sunoJobId,
+            sunoAudioId: song.sunoAudioId,
+            imageUrlIsCustom: song.imageUrlIsCustom,
+            parentSunoJobId: song.parentSong?.sunoJobId ?? null,
+          },
+          {
+            resolveApiKey: async () => {
+              if (!userKeys.has(song.userId)) {
+                userKeys.set(song.userId, await resolveUserApiKey(song.userId));
+              }
+              return userKeys.get(song.userId);
+            },
+          },
         );
         didNetwork = true;
-        if (fresh?.audioUrl) {
+        if (fresh) {
           refreshed++;
-          const expiresAt = new Date(Date.now() + CDN_URL_TTL_MS);
-          await prisma.song.update({
-            where: { id: song.id },
-            data: {
-              audioUrl: fresh.audioUrl,
-              audioUrlExpiresAt: expiresAt,
-              ...(fresh.imageUrl && !song.imageUrlIsCustom
-                ? { imageUrl: fresh.imageUrl, imageUrlExpiresAt: expiresAt }
-                : {}),
-            },
-          });
-
-          if (stillNeedsAudio) {
+          if (stillNeedsAudio && fresh.audioUrl) {
             const ok = await audioCache.downloadAndPut(song.id, fresh.audioUrl);
             if (ok) audioCached++;
             else failed++;
           }
-          const coverUrl = fresh.imageUrl || song.imageUrl;
+          // fresh.imageUrl is absent for custom covers, so a custom cover is
+          // re-warmed from its own URL — never Suno's generated art.
+          const coverUrl = fresh.imageUrl ?? song.imageUrl;
           if (stillNeedsImage && coverUrl) {
             const ok = await imageCache.downloadAndPut(song.id, coverUrl);
             if (ok) imageCached++;

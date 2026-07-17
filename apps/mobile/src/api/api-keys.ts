@@ -1,3 +1,4 @@
+import { asBool, asRecord, asString, unwrapList } from "@sunoflow/core";
 import { apiGet, apiPost, apiPatch, apiDelete } from "./client";
 
 // API key settings, ported from the web's settings/api-key-sections.tsx. Two
@@ -34,8 +35,8 @@ interface SunoKeyResponse {
 export async function fetchSunoKey(): Promise<SunoKeyState> {
   const res = await apiGet<SunoKeyResponse>(`/api/profile/api-key`);
   return {
-    sunoApiKey: typeof res?.maskedKey === "string" ? res.maskedKey : null,
-    usePersonalApiKey: res?.usePersonalApiKey === true,
+    sunoApiKey: asString(res?.maskedKey),
+    usePersonalApiKey: asBool(res?.usePersonalApiKey),
   };
 }
 
@@ -58,23 +59,18 @@ export interface PersonalKey {
   name: string;
 }
 
-interface PersonalKeysResponse {
-  keys?: unknown[];
-}
-
 function mapPersonalKey(raw: unknown): PersonalKey | null {
-  if (typeof raw !== "object" || raw === null) return null;
-  const k = raw as Record<string, unknown>;
-  if (typeof k.id !== "string" || typeof k.name !== "string") return null;
-  return { id: k.id, name: k.name };
+  const k = asRecord(raw);
+  const id = k ? asString(k.id) : null;
+  const name = k ? asString(k.name) : null;
+  if (!id || !name) return null;
+  return { id, name };
 }
 
 /** List the user's active personal API keys. */
 export async function fetchPersonalKeys(): Promise<PersonalKey[]> {
-  const res = await apiGet<PersonalKeysResponse>(`/api/profile/api-keys`);
-  return (Array.isArray(res?.keys) ? res.keys : [])
-    .map(mapPersonalKey)
-    .filter((k): k is PersonalKey => k !== null);
+  const res = await apiGet<unknown>(`/api/profile/api-keys`);
+  return unwrapList(res, "keys", mapPersonalKey);
 }
 
 /**
@@ -83,7 +79,7 @@ export async function fetchPersonalKeys(): Promise<PersonalKey[]> {
  */
 export async function createPersonalKey(name: string): Promise<{ secret: string | null }> {
   const res = await apiPost<{ key?: unknown }>(`/api/profile/api-keys`, { name: name.trim() });
-  return { secret: typeof res?.key === "string" ? res.key : null };
+  return { secret: asString(res?.key) };
 }
 
 /** Revoke (delete) a personal API key. */

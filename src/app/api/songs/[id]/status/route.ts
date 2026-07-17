@@ -3,11 +3,12 @@ import { authRoute } from "@/lib/route-handler";
 import { requireOwnedSong } from "@/lib/songs/ownership";
 import { prisma } from "@/lib/prisma";
 import { resolveUserApiKey } from "@/lib/sunoapi";
-import { logServerError } from "@/lib/error-logger";
-import { broadcast } from "@/lib/event-bus";
-import { handleSongSuccess, handleSongFailure } from "@/lib/generation";
-import { pollOnce, MAX_POLL_ATTEMPTS } from "@/lib/generation/completion";
-import { markSongFailedSimple } from "@/lib/songs/lifecycle";
+import {
+  advancePendingSong,
+  pollOnce,
+  MAX_POLL_ATTEMPTS,
+  type AdvanceOutcome,
+} from "@/lib/generation/completion";
 
 export const GET = authRoute<{ id: string }>(
   async (_request, { auth, params }) => {
@@ -18,58 +19,31 @@ export const GET = authRoute<{ id: string }>(
       return NextResponse.json({ song });
     }
 
-    if (!song.sunoJobId) {
-      await markSongFailedSimple(params.id, "No Suno task ID");
-      const updated = await prisma.song.findUnique({ where: { id: params.id } });
-      broadcast(song.userId, {
-        type: "generation_update",
-        data: { songId: params.id, status: "failed", errorMessage: updated?.errorMessage },
-      });
-      return NextResponse.json({ song: updated });
-    }
-
     const newPollCount = song.pollCount + 1;
 
-    if (newPollCount > MAX_POLL_ATTEMPTS) {
-      await handleSongFailure(song, "Generation timed out");
-      const updated = await prisma.song.findUnique({ where: { id: params.id } });
-      return NextResponse.json({ song: updated });
+    let outcome: AdvanceOutcome;
+    if (!song.sunoJobId) {
+      outcome = { kind: "no_suno_job_id" };
+    } else if (newPollCount > MAX_POLL_ATTEMPTS) {
+      outcome = { kind: "timeout" };
+    } else {
+      const userApiKey = await resolveUserApiKey(auth.userId);
+      outcome = await pollOnce(song.sunoJobId, userApiKey);
     }
 
-    const userApiKey = await resolveUserApiKey(auth.userId);
-    const outcome = await pollOnce(song.sunoJobId, userApiKey);
+    const result = await advancePendingSong(song, outcome, {
+      pollErrorLog: {
+        source: "status-poll",
+        route: `/api/songs/${params.id}/status`,
+        params: { songId: params.id, sunoJobId: song.sunoJobId, pollCount: newPollCount },
+      },
+    });
 
-    switch (outcome.kind) {
-      case "ready": {
-        await handleSongSuccess(song, outcome.songs);
-        const updated = await prisma.song.findUnique({ where: { id: params.id } });
-        return NextResponse.json({ song: updated });
-      }
-      case "failed": {
-        await handleSongFailure(song, outcome.errorMessage);
-        const updated = await prisma.song.findUnique({ where: { id: params.id } });
-        return NextResponse.json({ song: updated });
-      }
-      case "poll_error": {
-        logServerError("status-poll", outcome.error, {
-          userId: auth.userId,
-          route: `/api/songs/${params.id}/status`,
-          params: { songId: params.id, sunoJobId: song.sunoJobId, pollCount: newPollCount },
-        });
-        const updated = await prisma.song.update({
-          where: { id: params.id },
-          data: { pollCount: newPollCount },
-        });
-        return NextResponse.json({ song: updated });
-      }
-      case "processing": {
-        const updated = await prisma.song.update({
-          where: { id: params.id },
-          data: { pollCount: newPollCount },
-        });
-        return NextResponse.json({ song: updated });
-      }
+    if (result.status === "processing") {
+      return NextResponse.json({ song: result.updatedSong });
     }
+    const updated = await prisma.song.findUnique({ where: { id: params.id } });
+    return NextResponse.json({ song: updated });
   },
   { route: "/api/songs/[id]/status" },
 );

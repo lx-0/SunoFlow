@@ -1,7 +1,7 @@
-import { useCallback, useRef, useState } from "react";
-import { View, FlatList, Pressable, ActivityIndicator, RefreshControl, StyleSheet } from "react-native";
+import { useCallback } from "react";
+import { View, FlatList, Pressable, ActivityIndicator, Alert, RefreshControl, StyleSheet } from "react-native";
 import { Text } from "@/components/Themed";
-import { Stack, useFocusEffect, router, type Href } from "expo-router";
+import { Stack, router, type Href } from "expo-router";
 import { Bell, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import {
@@ -11,6 +11,7 @@ import {
   notificationTarget,
   type AppNotification,
 } from "@/api/notifications";
+import { useListResource } from "@/hooks/useListResource";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
@@ -19,68 +20,61 @@ import { radii, type ThemeColors } from "@/theme/theme";
 // Notifications feed. Reloads on focus. Unread rows are brighter and carry an
 // accent dot; tapping a row marks it read (if unread) and navigates to its target
 // (song/playlist/profile/etc. via notificationTarget). A header action clears all.
+// Mark-read actions confirm server-side, then silently reload via the hook so the
+// dot + unread count reflect the fresh server state.
 export default function NotificationsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const [items, setItems] = useState<AppNotification[] | null>(null);
-  const [unread, setUnread] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  // Latest-data ref so the focus callback can check for existing data without
-  // depending on `items` (which would re-run the focus effect on every load).
-  const itemsRef = useRef(items);
-  itemsRef.current = items;
-
-  const load = useCallback((clear = true) => {
-    if (clear) setItems(null);
-    setError(null);
-    return fetchNotifications()
-      .then((res) => {
-        setItems(res.notifications);
-        setUnread(res.unreadCount);
-      })
-      .catch((e: unknown) => {
-        setError(
-          e instanceof HttpError
-            ? `Failed to load notifications (HTTP ${e.status})`
-            : "Network error",
-        );
-        console.error("[notifications] load failed", e);
-      });
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      // Stale-while-revalidate: only clear (→ spinner) when there's no data yet;
-      // with data already shown, revalidate silently and swap it in on success.
-      load(!itemsRef.current);
-    }, [load]),
+  const { data, refreshing, onRefresh, retry, revalidate, mutate, showError } = useListResource(
+    fetchNotifications,
+    {
+      errorMessage: (e) =>
+        e instanceof HttpError ? `Failed to load notifications (HTTP ${e.status})` : "Network error",
+      logTag: "notifications",
+    },
   );
+  const items = data?.notifications ?? null;
+  const unread = data?.unreadCount ?? 0;
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    load(false).finally(() => setRefreshing(false));
-  }, [load]);
-
+  // Optimistic mark-read: flip locally first (dot + unread count react
+  // immediately), confirm with the server, reconcile silently; on failure roll
+  // back visibly instead of leaving a silent dead tap.
   const onRowPress = useCallback((n: AppNotification) => {
     if (!n.read) {
-      setItems((prev) => prev?.map((x) => (x.id === n.id ? { ...x, read: true } : x)) ?? prev);
-      setUnread((u) => Math.max(0, u - 1));
-      markNotificationRead(n.id).catch((e: unknown) =>
-        console.error("[notifications] mark read failed", e),
+      mutate((prev) =>
+        prev
+          ? {
+              ...prev,
+              unreadCount: Math.max(0, prev.unreadCount - 1),
+              notifications: prev.notifications.map((x) => (x.id === n.id ? { ...x, read: true } : x)),
+            }
+          : prev,
       );
+      markNotificationRead(n.id)
+        .then(revalidate)
+        .catch((e: unknown) => {
+          console.error("[notifications] mark read failed", e);
+          revalidate(); // roll back to server truth
+        });
     }
     const target = notificationTarget(n);
     if (target) router.push(target as Href);
-  }, []);
+  }, [mutate, revalidate]);
 
   const onMarkAll = useCallback(() => {
-    setItems((prev) => prev?.map((x) => ({ ...x, read: true })) ?? prev);
-    setUnread(0);
-    markAllNotificationsRead().catch((e: unknown) =>
-      console.error("[notifications] mark all read failed", e),
+    mutate((prev) =>
+      prev
+        ? { ...prev, unreadCount: 0, notifications: prev.notifications.map((x) => ({ ...x, read: true })) }
+        : prev,
     );
-  }, []);
+    markAllNotificationsRead()
+      .then(revalidate)
+      .catch((e: unknown) => {
+        console.error("[notifications] mark all read failed", e);
+        Alert.alert("Couldn't mark all read", "Please try again.");
+        revalidate();
+      });
+  }, [mutate, revalidate]);
 
   return (
     <View style={styles.container}>
@@ -95,8 +89,15 @@ export default function NotificationsScreen() {
             ) : null,
         }}
       />
-      {error && !items ? (
-        <EmptyState tone="error" Icon={AlertCircle} title={error} />
+      {showError ? (
+        <EmptyState
+          tone="error"
+          Icon={AlertCircle}
+          title="Couldn't load notifications"
+          subtitle="Check your connection and try again."
+          ctaLabel="Retry"
+          onCta={retry}
+        />
       ) : !items ? (
         <View style={styles.centered}>
           <ActivityIndicator color={colors.text} />

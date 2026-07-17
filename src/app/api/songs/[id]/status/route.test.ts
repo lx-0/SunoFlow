@@ -70,21 +70,17 @@ vi.mock("@/lib/cache", () => ({
   invalidateByPrefix: vi.fn(),
 }));
 
-vi.mock("@/lib/generation", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/generation")>("@/lib/generation");
-  return {
-    ...actual,
-    handleSongSuccess: vi.fn().mockResolvedValue(undefined),
-    handleSongFailure: vi.fn().mockResolvedValue(undefined),
-  };
-});
+vi.mock("@/lib/generation/song-completion", () => ({
+  handleSongSuccess: vi.fn().mockResolvedValue(undefined),
+  handleSongFailure: vi.fn().mockResolvedValue(undefined),
+}));
 
 import { auth, resolveUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { resolveUserApiKey } from "@/lib/sunoapi";
 import { logServerError } from "@/lib/error-logger";
 import { pollOnce } from "@/lib/generation/completion";
-import { handleSongSuccess, handleSongFailure } from "@/lib/generation";
+import { handleSongSuccess, handleSongFailure } from "@/lib/generation/song-completion";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

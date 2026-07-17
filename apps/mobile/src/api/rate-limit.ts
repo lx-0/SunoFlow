@@ -1,3 +1,4 @@
+import { asNumber, asRecord, asString } from "@sunoflow/core";
 import { apiGet } from "./client";
 
 // Read-only rate-limit status. The web route `/api/rate-limit` returns a single
@@ -34,28 +35,20 @@ function labelFor(key: string): string {
   return words.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function readNumber(raw: unknown): number | null {
-  return typeof raw === "number" && Number.isFinite(raw) ? raw : null;
-}
-
-function readResetAt(raw: unknown): string | null {
-  return typeof raw === "string" && raw ? raw : null;
-}
-
 // Map one status-shaped object → a RateLimit row, or null if it's not usable
 // (missing the numeric limit/remaining pair).
 function mapRow(key: string, raw: unknown): RateLimit | null {
-  if (!raw || typeof raw !== "object") return null;
-  const r = raw as Record<string, unknown>;
-  const limit = readNumber(r.limit);
-  const remaining = readNumber(r.remaining);
+  const r = asRecord(raw);
+  if (!r) return null;
+  const limit = asNumber(r.limit);
+  const remaining = asNumber(r.remaining);
   if (limit === null || remaining === null) return null;
   return {
     key,
     label: labelFor(key),
     limit,
     remaining: Math.max(0, Math.min(remaining, limit)),
-    resetAt: readResetAt(r.resetAt),
+    resetAt: asString(r.resetAt),
   };
 }
 
@@ -67,18 +60,15 @@ export async function fetchRateLimits(): Promise<RateLimit[]> {
   if (Array.isArray(res)) {
     return res
       .map((raw, i) => {
-        const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
-        const key =
-          (typeof r.key === "string" && r.key) ||
-          (typeof r.action === "string" && r.action) ||
-          `limit_${i}`;
+        const r = asRecord(raw) ?? {};
+        const key = asString(r.key) ?? asString(r.action) ?? `limit_${i}`;
         return mapRow(key, raw);
       })
       .filter((row): row is RateLimit => row !== null);
   }
 
-  if (res && typeof res === "object") {
-    const obj = res as Record<string, unknown>;
+  const obj = asRecord(res);
+  if (obj) {
     // 2. the current single-object shape: { remaining, limit, resetAt }
     if ("limit" in obj && "remaining" in obj) {
       const row = mapRow("generate", obj);

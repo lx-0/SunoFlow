@@ -1,3 +1,4 @@
+import { asRecord, asString, unwrapList } from "@sunoflow/core";
 import { apiGet } from "./client";
 import { mapApiSong } from "./songs";
 import type { Song } from "@/types";
@@ -20,35 +21,23 @@ export interface Generation {
   song: Song | null;
 }
 
-interface GenerationsResponse {
-  songs: unknown[];
-  nextCursor: string | null;
-  total: number;
-}
-
-function str(v: unknown): string | null {
-  return typeof v === "string" && v.length > 0 ? v : null;
-}
-
 /** Defensive map of one raw generation row → narrowed Generation. */
 function mapGeneration(raw: unknown): Generation | null {
-  if (!raw || typeof raw !== "object") return null;
-  const g = raw as Record<string, unknown>;
-  const id = str(g.id);
-  if (!id) return null;
+  const g = asRecord(raw);
+  const id = g ? asString(g.id) : null;
+  if (!g || !id) return null;
   return {
     id,
-    status: str(g.generationStatus) ?? "unknown",
-    title: str(g.title),
-    prompt: str(g.prompt),
-    createdAt: str(g.createdAt),
+    status: asString(g.generationStatus) ?? "unknown",
+    title: asString(g.title),
+    prompt: asString(g.prompt),
+    createdAt: asString(g.createdAt),
     song: mapApiSong(raw),
   };
 }
 
 /** Fetch the first page of generation jobs (newest first). */
 export async function fetchGenerations(): Promise<Generation[]> {
-  const res = await apiGet<GenerationsResponse>("/api/generations");
-  const rows = Array.isArray(res?.songs) ? res.songs : [];
-  return rows.map(mapGeneration).filter((g): g is Generation => g !== null);
+  const res = await apiGet<unknown>("/api/generations");
+  return unwrapList(res, "songs", mapGeneration);
 }

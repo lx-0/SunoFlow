@@ -1,3 +1,4 @@
+import { asRecord, asString, unwrapList } from "@sunoflow/core";
 import { apiGet, apiPost } from "./client";
 
 // Comments on a public song. Shapes confirmed from the web handler:
@@ -13,25 +14,20 @@ export interface Comment {
   createdAt: string | null;
 }
 
-interface CommentListResponse {
-  comments?: unknown[];
-}
-
 /** Defensive map of one raw API comment → Comment. Returns null if unusable. */
 function mapApiComment(raw: unknown): Comment | null {
-  if (!raw || typeof raw !== "object") return null;
-  const c = raw as Record<string, unknown>;
-  const body = typeof c.body === "string" ? c.body : typeof c.text === "string" ? c.text : "";
+  const c = asRecord(raw);
+  if (!c) return null;
+  const body = asString(c.body) ?? asString(c.text);
   if (!body) return null;
-  const user = c.user && typeof c.user === "object" ? (c.user as Record<string, unknown>) : null;
   const author =
-    (user && typeof user.name === "string" && user.name) ||
-    (typeof c.author === "string" && c.author) ||
-    (typeof c.username === "string" && c.username) ||
+    asString(asRecord(c.user)?.name) ??
+    asString(c.author) ??
+    asString(c.username) ??
     "Anonymous";
-  const createdAt = typeof c.createdAt === "string" ? c.createdAt : null;
+  const createdAt = asString(c.createdAt);
   return {
-    id: typeof c.id === "string" ? c.id : `${author}:${createdAt ?? Math.random()}`,
+    id: asString(c.id) ?? `${author}:${createdAt ?? Math.random()}`,
     body,
     author,
     createdAt,
@@ -39,10 +35,8 @@ function mapApiComment(raw: unknown): Comment | null {
 }
 
 export async function fetchComments(songId: string): Promise<Comment[]> {
-  const res = await apiGet<CommentListResponse>(`/api/songs/${encodeURIComponent(songId)}/comments`);
-  return (Array.isArray(res.comments) ? res.comments : [])
-    .map(mapApiComment)
-    .filter((c): c is Comment => c !== null);
+  const res = await apiGet<unknown>(`/api/songs/${encodeURIComponent(songId)}/comments`);
+  return unwrapList(res, "comments", mapApiComment);
 }
 
 export async function addComment(songId: string, text: string): Promise<Comment | null> {

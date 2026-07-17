@@ -1,60 +1,38 @@
-import { useCallback, useState } from "react";
 import { View, FlatList, ActivityIndicator, StyleSheet, RefreshControl } from "react-native";
-import { router, useFocusEffect } from "expo-router";
+import { router } from "expo-router";
 import { goToSection } from "@/navigation";
 import { Heart, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchFavorites } from "@/api/favorites";
+import { useListResource } from "@/hooks/useListResource";
 import { playQueue } from "@/playback/controls";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { SongRow } from "@/components/SongRow";
 import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
-import type { Song } from "@/types";
 
 // Favorites: the user's liked songs. Reloads on focus so toggles made elsewhere
 // (player heart) are reflected. Tap to play the list from that index.
 export default function FavoritesScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const [songs, setSongs] = useState<Song[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-
-  // Stale-while-revalidate: keep the current list visible on refocus and refetch
-  // in the background. The spinner only shows on the very first load (songs null).
-  const load = useCallback(() => {
-    setError(null);
-    return fetchFavorites()
-      .then(setSongs)
-      .catch((e: unknown) => {
-        setError(e instanceof HttpError ? `Failed to load favorites (HTTP ${e.status})` : "Network error");
-        console.error("[favorites] load failed", e);
-      });
-  }, []);
-
-  useFocusEffect(useCallback(() => { load(); }, [load]));
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      await load();
-    } finally {
-      setRefreshing(false);
-    }
-  }, [load]);
+  const { data: songs, refreshing, onRefresh, retry, showError } = useListResource(fetchFavorites, {
+    errorMessage: (e) =>
+      e instanceof HttpError ? `Failed to load favorites (HTTP ${e.status})` : "Network error",
+    logTag: "favorites",
+  });
 
   return (
     <View style={styles.container}>
-      {error && !songs ? (
+      {showError ? (
         <EmptyState
           tone="error"
           Icon={AlertCircle}
           title="Couldn't load favorites"
           subtitle="Check your connection and try again."
           ctaLabel="Retry"
-          onCta={load}
+          onCta={retry}
         />
       ) : !songs ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>

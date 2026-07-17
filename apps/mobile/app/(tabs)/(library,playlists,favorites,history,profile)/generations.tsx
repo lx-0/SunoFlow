@@ -1,11 +1,11 @@
-import { useCallback, useRef, useState } from "react";
 import { View, FlatList, Pressable, ActivityIndicator, RefreshControl, StyleSheet } from "react-native";
 import { Text } from "@/components/Themed";
-import { Stack, router, useFocusEffect } from "expo-router";
+import { Stack, router } from "expo-router";
 import { goToSection } from "@/navigation";
 import { Sparkles, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
-import { fetchGenerations, type Generation } from "@/api/generations";
+import { fetchGenerations } from "@/api/generations";
+import { useListResource } from "@/hooks/useListResource";
 import { playQueue } from "@/playback/controls";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
@@ -46,45 +46,26 @@ function formatDate(iso: string | null): string {
 }
 
 export default function GenerationsScreen() {
-  const [items, setItems] = useState<Generation[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  // Latest-data ref so the focus callback can check for existing data without
-  // depending on `items` (which would re-run the focus effect on every load).
-  const itemsRef = useRef(items);
-  itemsRef.current = items;
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-
-  const load = useCallback(() => {
-    setError(null);
-    return fetchGenerations()
-      .then(setItems)
-      .catch((e: unknown) => {
-        setError(e instanceof HttpError ? `Failed to load generations (HTTP ${e.status})` : "Network error");
-        console.error("[generations] load failed", e);
-      });
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      // Stale-while-revalidate: with data already shown, revalidate silently and
-      // swap it in on success; only clear (→ spinner) on first load / after an error.
-      if (!itemsRef.current) setItems(null);
-      load();
-    }, [load]),
-  );
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    load().finally(() => setRefreshing(false));
-  }, [load]);
+  const { data: items, refreshing, onRefresh, retry, showError } = useListResource(fetchGenerations, {
+    errorMessage: (e) =>
+      e instanceof HttpError ? `Failed to load generations (HTTP ${e.status})` : "Network error",
+    logTag: "generations",
+  });
 
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Generations" }} />
-      {error && !items ? (
-        <EmptyState tone="error" Icon={AlertCircle} title={error} />
+      {showError ? (
+        <EmptyState
+          tone="error"
+          Icon={AlertCircle}
+          title="Couldn't load generations"
+          subtitle="Check your connection and try again."
+          ctaLabel="Retry"
+          onCta={retry}
+        />
       ) : !items ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : items.length === 0 ? (

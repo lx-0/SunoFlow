@@ -1,3 +1,4 @@
+import { asNumber, asRecord, asString, unwrapList } from "@sunoflow/core";
 import { apiGet } from "./client";
 import { mapApiSong } from "./songs";
 import type { Song } from "@/types";
@@ -20,10 +21,6 @@ interface SearchResponse {
   playlists?: unknown;
 }
 
-interface SongsResponse {
-  songs?: unknown;
-}
-
 export interface PlaylistHit {
   id: string;
   name: string;
@@ -40,9 +37,8 @@ function songHitIds(rows: unknown[]): string[] {
   const seen = new Set<string>();
   const ids: string[] = [];
   for (const raw of rows) {
-    if (!raw || typeof raw !== "object") continue;
-    const id = (raw as Record<string, unknown>).id;
-    if (typeof id !== "string" || !id || seen.has(id)) continue;
+    const id = asString(asRecord(raw)?.id);
+    if (!id || seen.has(id)) continue;
     seen.add(id);
     ids.push(id);
   }
@@ -51,20 +47,12 @@ function songHitIds(rows: unknown[]): string[] {
 
 /** Map a raw playlist hit defensively. Returns null if it lacks id+name. */
 function mapPlaylistHit(raw: unknown): PlaylistHit | null {
-  if (!raw || typeof raw !== "object") return null;
-  const p = raw as Record<string, unknown>;
-  const id = p.id;
-  const name = p.name;
-  if (typeof id !== "string" || !id) return null;
-  if (typeof name !== "string" || !name) return null;
+  const p = asRecord(raw);
+  const id = p ? asString(p.id) : null;
+  const name = p ? asString(p.name) : null;
+  if (!p || !id || !name) return null;
   // server projects `_count.songs`; tolerate either flattened or nested shape.
-  const count = p._count;
-  const songCount =
-    count && typeof count === "object" && typeof (count as Record<string, unknown>).songs === "number"
-      ? ((count as Record<string, unknown>).songs as number)
-      : typeof p.songCount === "number"
-        ? (p.songCount as number)
-        : undefined;
+  const songCount = asNumber(asRecord(p._count)?.songs) ?? asNumber(p.songCount) ?? undefined;
   return { id, name, songCount };
 }
 
@@ -75,19 +63,16 @@ export async function search(q: string): Promise<SearchResults> {
 
   const res = await apiGet<SearchResponse>(`/api/search?q=${encodeURIComponent(term)}`);
 
-  const playlists = (Array.isArray(res?.playlists) ? res.playlists : [])
-    .map(mapPlaylistHit)
-    .filter((p): p is PlaylistHit => p !== null);
+  const playlists = unwrapList(res, "playlists", mapPlaylistHit);
 
   const ids = songHitIds(Array.isArray(res?.songs) ? res.songs : []);
   if (ids.length === 0) return { songs: [], playlists };
 
   // Resolve playable streams from the user's library (audioUrl-bearing rows).
-  const lib = await apiGet<SongsResponse>(`/api/songs?q=${encodeURIComponent(term)}`);
+  const lib = await apiGet<unknown>(`/api/songs?q=${encodeURIComponent(term)}`);
   const byId = new Map<string, Song>();
-  for (const raw of Array.isArray(lib?.songs) ? lib.songs : []) {
-    const song = mapApiSong(raw);
-    if (song) byId.set(song.id, song);
+  for (const song of unwrapList(lib, "songs", mapApiSong)) {
+    byId.set(song.id, song);
   }
 
   // Preserve search order; drop hits we couldn't resolve to a stream.
