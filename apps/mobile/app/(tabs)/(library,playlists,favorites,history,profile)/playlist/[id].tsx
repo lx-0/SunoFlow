@@ -180,23 +180,23 @@ export default function PlaylistDetailScreen() {
           headerRight: () => (
             <View style={st.headerActions}>
               {songs.length > 0 ? (
-                <Pressable onPress={() => setEditing((v) => !v)} hitSlop={8}>
+                <Pressable accessibilityRole="button" onPress={() => setEditing((v) => !v)} hitSlop={8}>
                   <Text style={st.editBtn}>{editing ? "Done" : "Edit"}</Text>
                 </Pressable>
               ) : null}
-              <Pressable onPress={() => router.push(`/collaborators/${id}` as Href)} hitSlop={8}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Manage collaborators" onPress={() => router.push(`/collaborators/${id}` as Href)} hitSlop={8}>
                 <Users color={colors.accent} size={20} />
               </Pressable>
-              <Pressable onPress={() => void sharePlaylist({ id })} hitSlop={8}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Share playlist" onPress={() => void sharePlaylist({ id })} hitSlop={8}>
                 <Share2 color={colors.accent} size={20} />
               </Pressable>
-              <Pressable onPress={promptRename} hitSlop={8}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Rename playlist" onPress={promptRename} hitSlop={8}>
                 <Pencil color={colors.accent} size={20} />
               </Pressable>
-              <Pressable onPress={confirmDelete} hitSlop={8}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Delete playlist" onPress={confirmDelete} hitSlop={8}>
                 <Trash2 color={colors.danger} size={20} />
               </Pressable>
-              <Pressable onPress={openOverflow} hitSlop={8}>
+              <Pressable accessibilityRole="button" accessibilityLabel="More options" onPress={openOverflow} hitSlop={8}>
                 <MoreHorizontal color={colors.accent} size={20} />
               </Pressable>
             </View>
@@ -220,11 +220,11 @@ export default function PlaylistDetailScreen() {
             <Text style={st.heroMeta}>{songs.length} {songs.length === 1 ? "song" : "songs"}{isPublic ? " · Public" : ""}</Text>
             {songs.length > 0 ? (
               <View style={st.heroBtns}>
-                <Pressable style={st.playAll} onPress={() => playAll(false)}>
+                <Pressable accessibilityRole="button" style={st.playAll} onPress={() => playAll(false)}>
                   <Play color={colors.onAccent} fill={colors.onAccent} size={18} />
                   <Text style={st.playAllText}>Play all</Text>
                 </Pressable>
-                <Pressable style={st.shuffleBtn} onPress={() => playAll(true)}>
+                <Pressable accessibilityRole="button" style={st.shuffleBtn} onPress={() => playAll(true)}>
                   <Shuffle color={colors.accent} size={18} />
                   <Text style={st.shuffleText}>Shuffle</Text>
                 </Pressable>
@@ -248,10 +248,10 @@ export default function PlaylistDetailScreen() {
             right={
               editing ? (
                 <View style={st.arrows}>
-                  <Pressable style={st.arrowBtn} hitSlop={6} disabled={index === 0} onPress={() => void move(index, index - 1)}>
+                  <Pressable accessibilityRole="button" accessibilityLabel="Move up" style={st.arrowBtn} hitSlop={6} disabled={index === 0} onPress={() => void move(index, index - 1)}>
                     <ChevronUp color={index === 0 ? colors.textFaint : colors.accent} size={20} />
                   </Pressable>
-                  <Pressable style={st.arrowBtn} hitSlop={6} disabled={index === songs.length - 1} onPress={() => void move(index, index + 1)}>
+                  <Pressable accessibilityRole="button" accessibilityLabel="Move down" style={st.arrowBtn} hitSlop={6} disabled={index === songs.length - 1} onPress={() => void move(index, index + 1)}>
                     <ChevronDown color={index === songs.length - 1 ? colors.textFaint : colors.accent} size={20} />
                   </Pressable>
                 </View>

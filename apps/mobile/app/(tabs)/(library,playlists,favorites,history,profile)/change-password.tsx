@@ -8,12 +8,14 @@ import { Stack, router } from "expo-router";
 import { HttpError } from "@/api/client";
 import { changePassword } from "@/api/account";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
+import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
 export default function ChangePasswordScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const headerOffset = useHeaderOffset();
   const [currentPassword, setCurrent] = useState("");
   const [newPassword, setNew] = useState("");
   const [confirmPassword, setConfirm] = useState("");
@@ -47,7 +49,7 @@ export default function ChangePasswordScreen() {
   const canSubmit = currentPassword.length > 0 && newPassword.length >= 8 && confirmPassword.length > 0 && !busy;
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={headerOffset}>
       <Stack.Screen options={{ title: "Change Password" }} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>Current password</Text>

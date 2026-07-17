@@ -43,7 +43,7 @@ export function SidebarToggle() {
   const { openSidebar } = useSidebar();
   const { colors } = useTheme();
   return (
-    <Pressable hitSlop={12} onPress={openSidebar} style={styles.toggle}>
+    <Pressable hitSlop={12} onPress={openSidebar} style={styles.toggle} accessibilityRole="button" accessibilityLabel="Open menu">
       <Menu color={colors.text} size={24} />
     </Pressable>
   );
@@ -151,17 +151,17 @@ export function Sidebar() {
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, { opacity: backdropOpacity }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={closeSidebar} />
+        <Pressable style={StyleSheet.absoluteFill} onPress={closeSidebar} accessibilityRole="button" accessibilityLabel="Close menu" />
       </Animated.View>
 
-      <Animated.View style={[styles.panel, { backgroundColor: colors.surface, borderRightColor: colors.border, width: WIDTH, paddingTop: insets.top + 12, transform: [{ translateX }] }]}>
+      <Animated.View accessibilityViewIsModal={true} style={[styles.panel, { backgroundColor: colors.surface, borderRightColor: colors.border, width: WIDTH, paddingTop: insets.top + 12, transform: [{ translateX }] }]}>
         <Text style={[styles.brand, { color: colors.text }]}>SunoFlow</Text>
         <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
           {SECTIONS.map((section, si) => (
             <View key={si} style={styles.section}>
               {section.title ? <Text style={[styles.sectionTitle, { color: colors.textFaint }]}>{section.title}</Text> : null}
               {section.items.map((it) => (
-                <Pressable key={it.label} style={styles.row} onPress={() => go(it.route)}>
+                <Pressable key={it.label} style={styles.row} onPress={() => go(it.route)} accessibilityRole="button">
                   <it.Icon color={colors.textDim} size={20} />
                   <Text style={[styles.label, { color: colors.text }]}>{it.label}</Text>
                 </Pressable>

@@ -210,7 +210,12 @@ export default function ApiKeysScreen() {
               {/* Personal API keys */}
               <View style={styles.sectionHead}>
                 <Text style={styles.sectionTitle}>Personal API keys</Text>
-                <Pressable onPress={() => setCreating((v) => !v)} hitSlop={8}>
+                <Pressable
+                  onPress={() => setCreating((v) => !v)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={creating ? "Close new key form" : "Create API key"}
+                >
                   {creating ? <X color={colors.accent} size={22} /> : <Plus color={colors.accent} size={22} />}
                 </Pressable>
               </View>
@@ -243,7 +248,13 @@ export default function ApiKeysScreen() {
           renderItem={({ item }) => (
             <View style={styles.row}>
               <Text style={styles.rowTitle} numberOfLines={1}>{item.name}</Text>
-              <Pressable onPress={() => confirmDelete(item)} hitSlop={10} style={styles.deleteBtn}>
+              <Pressable
+                onPress={() => confirmDelete(item)}
+                hitSlop={10}
+                style={styles.deleteBtn}
+                accessibilityRole="button"
+                accessibilityLabel={`Revoke API key ${item.name}`}
+              >
                 <X color={colors.danger} size={20} />
               </Pressable>
             </View>

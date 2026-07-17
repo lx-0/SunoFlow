@@ -89,7 +89,7 @@ export default function NotificationsScreen() {
           title: "Notifications",
           headerRight: () =>
             unread > 0 ? (
-              <Pressable onPress={onMarkAll} hitSlop={8}>
+              <Pressable onPress={onMarkAll} hitSlop={8} accessibilityRole="button" accessibilityLabel="Mark all notifications read">
                 <Text style={styles.headerAction}>Mark all read</Text>
               </Pressable>
             ) : null,

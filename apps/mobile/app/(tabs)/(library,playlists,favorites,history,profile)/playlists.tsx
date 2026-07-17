@@ -150,10 +150,22 @@ export default function PlaylistsScreen() {
             </Pressable>
             {item.songCount > 0 ? (
               <View style={st.actions}>
-                <Pressable style={st.actBtn} hitSlop={6} onPress={() => void playPlaylist(item, false)}>
+                <Pressable
+                  style={st.actBtn}
+                  hitSlop={6}
+                  onPress={() => void playPlaylist(item, false)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Play playlist"
+                >
                   <Play color={colors.accent} fill={colors.accent} size={18} />
                 </Pressable>
-                <Pressable style={st.actBtn} hitSlop={6} onPress={() => void playPlaylist(item, true)}>
+                <Pressable
+                  style={st.actBtn}
+                  hitSlop={6}
+                  onPress={() => void playPlaylist(item, true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Shuffle playlist"
+                >
                   <Shuffle color={colors.accent} size={18} />
                 </Pressable>
               </View>

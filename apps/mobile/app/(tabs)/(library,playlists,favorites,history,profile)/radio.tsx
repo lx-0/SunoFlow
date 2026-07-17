@@ -120,6 +120,8 @@ export default function RadioScreen() {
           <Pressable
             style={[styles.chip, mood === null && styles.chipActive]}
             onPress={() => setMood(null)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: mood === null }}
           >
             <Text style={[styles.chipText, mood === null && styles.chipTextActive]}>Any mood</Text>
           </Pressable>
@@ -130,6 +132,8 @@ export default function RadioScreen() {
                 key={m}
                 style={[styles.chip, active && styles.chipActive]}
                 onPress={() => toggleMood(m)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
               >
                 <Text style={[styles.chipText, active && styles.chipTextActive]}>
                   {capitalize(m)}

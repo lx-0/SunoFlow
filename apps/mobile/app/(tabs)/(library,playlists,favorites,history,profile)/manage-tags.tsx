@@ -98,7 +98,12 @@ export default function ManageTagsScreen() {
         options={{
           title: "Manage Tags",
           headerRight: () => (
-            <Pressable onPress={() => setCreating((v) => !v)} hitSlop={8}>
+            <Pressable
+              onPress={() => setCreating((v) => !v)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={creating ? "Close new tag form" : "Create tag"}
+            >
               {creating ? <X color={colors.accent} size={22} /> : <Plus color={colors.accent} size={22} />}
             </Pressable>
           ),
@@ -144,7 +149,7 @@ export default function ManageTagsScreen() {
           contentContainerStyle={styles.listContent}
           keyExtractor={(t) => t.id}
           renderItem={({ item }) => (
-            <Pressable style={styles.row} onPress={() => rowActions(item)}>
+            <Pressable style={styles.row} onPress={() => rowActions(item)} accessibilityRole="button" accessibilityLabel={`Open tag options for ${item.name}`}>
               <View style={styles.meta}>
                 <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
               </View>

@@ -14,6 +14,7 @@ import { SendIcon, MessageCircle, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchComments, addComment, type Comment } from "@/api/comments";
 import { EmptyState } from "@/components/EmptyState";
+import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -23,6 +24,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function CommentsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const headerOffset = useHeaderOffset();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [comments, setComments] = useState<Comment[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +80,7 @@ export default function CommentsScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={headerOffset}
     >
       <Stack.Screen options={{ title: "Comments" }} />
       {error ? (
@@ -121,6 +124,8 @@ export default function CommentsScreen() {
           style={[styles.send, (!text.trim() || sending) && styles.sendDisabled]}
           onPress={() => void onSend()}
           disabled={!text.trim() || sending}
+          accessibilityRole="button"
+          accessibilityLabel="Send comment"
         >
           {sending ? <ActivityIndicator color={colors.onAccent} size="small" /> : <SendIcon color={colors.onAccent} size={18} />}
         </Pressable>

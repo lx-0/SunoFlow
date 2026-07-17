@@ -172,6 +172,8 @@ export default function CollaboratorsScreen() {
                     return (
                       <Pressable
                         key={r}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: active }}
                         style={[styles.roleItem, active && { backgroundColor: colors.accentStrong }]}
                         onPress={() => setRole(r)}
                       >
@@ -193,6 +195,8 @@ export default function CollaboratorsScreen() {
                     autoCorrect={false}
                   />
                   <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Invite"
                     style={[styles.inviteBtn, (!username.trim() || inviting) && styles.btnDisabled]}
                     onPress={onInvite}
                     disabled={!username.trim() || inviting}
@@ -201,7 +205,7 @@ export default function CollaboratorsScreen() {
                   </Pressable>
                 </View>
                 {inviteMsg ? <Text style={styles.dim}>{inviteMsg}</Text> : null}
-                <Pressable style={styles.linkBtn} onPress={onShareLink}>
+                <Pressable accessibilityRole="button" style={styles.linkBtn} onPress={onShareLink}>
                   <Link2 color={colors.accent} size={16} />
                   <Text style={styles.linkText}>Share invite link</Text>
                 </Pressable>
@@ -237,7 +241,7 @@ export default function CollaboratorsScreen() {
               </Text>
             </View>
             {isOwner ? (
-              <Pressable hitSlop={8} onPress={() => onRemove(item)}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Remove collaborator" hitSlop={12} onPress={() => onRemove(item)}>
                 <X color={colors.danger} size={20} />
               </Pressable>
             ) : null}

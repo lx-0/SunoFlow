@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { View, Pressable, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Pressable, ScrollView, ActivityIndicator, StyleSheet, KeyboardAvoidingView } from "react-native";
 import { Text, TextInput } from "@/components/Themed";
 import { Stack, router, useFocusEffect, useNavigation, type Href } from "expo-router";
 import { Upload, AlertCircle } from "lucide-react-native";
@@ -9,6 +9,7 @@ import { startUpload } from "@/api/upload";
 import { pollStatus, GenerationError } from "@/api/generate";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -20,6 +21,7 @@ const MAX_POLLS = 75;
 export default function UploadScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const headerOffset = useHeaderOffset();
   const [mode, setMode] = useState<"cover" | "extend">("cover");
   const [fileName, setFileName] = useState<string | null>(null);
   const [base64, setBase64] = useState<string | null>(null);
@@ -129,7 +131,7 @@ export default function UploadScreen() {
         <AlertCircle color={colors.danger} size={40} />
         <Text style={styles.statusTitle}>Upload failed</Text>
         <Text style={styles.dim}>{error}</Text>
-        <Pressable style={styles.primaryBtn} onPress={() => { setError(null); setPhase("form"); }}>
+        <Pressable style={styles.primaryBtn} onPress={() => { setError(null); setPhase("form"); }} accessibilityRole="button">
           <Text style={styles.primaryBtnText}>Try again</Text>
         </Pressable>
       </View>
@@ -139,12 +141,20 @@ export default function UploadScreen() {
   const canSubmit = !!base64 || fileUrl.trim().length > 0;
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={headerOffset}>
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: "Upload" }} />
 
       <View style={styles.segment}>
         {(["cover", "extend"] as const).map((m) => (
-          <Pressable key={m} style={[styles.segmentItem, mode === m && styles.segmentActive]} onPress={() => setMode(m)}>
+          <Pressable
+            key={m}
+            style={[styles.segmentItem, mode === m && styles.segmentActive]}
+            onPress={() => setMode(m)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: mode === m }}
+            hitSlop={{ top: 4, bottom: 4 }}
+          >
             <Text style={[styles.segmentText, mode === m && styles.segmentActiveText]}>{m === "cover" ? "Cover" : "Extend"}</Text>
           </Pressable>
         ))}
@@ -153,7 +163,7 @@ export default function UploadScreen() {
         {mode === "cover" ? "Re-sing your audio in a new style." : "Continue your audio into a longer track."}
       </Text>
 
-      <Pressable style={styles.pickBtn} onPress={pickFile}>
+      <Pressable style={styles.pickBtn} onPress={pickFile} accessibilityRole="button">
         <Upload color={colors.accent} size={18} />
         <Text style={styles.pickText} numberOfLines={1}>{fileName ?? "Pick an audio file"}</Text>
       </Pressable>
@@ -173,10 +183,11 @@ export default function UploadScreen() {
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <Pressable style={[styles.primaryBtn, !canSubmit && styles.btnDisabled]} disabled={!canSubmit} onPress={onSubmit}>
+      <Pressable style={[styles.primaryBtn, !canSubmit && styles.btnDisabled]} disabled={!canSubmit} onPress={onSubmit} accessibilityRole="button">
         <Text style={styles.primaryBtnText}>{mode === "cover" ? "Create cover" : "Extend"}</Text>
       </Pressable>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

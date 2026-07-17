@@ -53,7 +53,7 @@ export function RatingButton({ songId }: { songId: string }) {
 
   const rated = rating !== null && rating > 0;
   return (
-    <Pressable style={styles.btn} hitSlop={6} onPress={open} accessibilityLabel="Rate this song">
+    <Pressable style={styles.btn} hitSlop={6} onPress={open} accessibilityRole="button" accessibilityLabel="Rate this song" accessibilityState={{ selected: rated }}>
       <Star size={20} color={rated ? colors.star : colors.textFaint} fill={rated ? colors.star : "transparent"} />
       <Text style={[styles.label, rated && styles.labelRated]}>{rated ? String(rating) : "Rate"}</Text>
     </Pressable>

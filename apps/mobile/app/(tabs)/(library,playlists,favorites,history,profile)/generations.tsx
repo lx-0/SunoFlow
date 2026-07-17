@@ -124,6 +124,8 @@ export default function GenerationsScreen() {
             if (!playable) return Row;
             return (
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Play ${label}`}
                 onPress={async () => {
                   try {
                     await playQueue([playable], 0);

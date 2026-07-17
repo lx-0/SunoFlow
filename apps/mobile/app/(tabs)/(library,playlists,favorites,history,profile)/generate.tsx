@@ -33,6 +33,7 @@ import { fetchPersonas, type Persona } from "@/api/personas";
 import { HttpError } from "@/api/client";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { usePrompt } from "@/components/PromptSheet";
+import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
 import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
@@ -55,6 +56,7 @@ export default function GenerateScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const prompt = usePrompt();
+  const headerOffset = useHeaderOffset();
   const params = useLocalSearchParams<{ prompt?: string; style?: string; tags?: string; lyricsprompt?: string; personaId?: string; parentSongId?: string }>();
   // Inspire hands over the full article as `lyricsprompt` (basis for the AI lyrics
   // generator) plus `tags` (style). suggestedPrompt-style flows still use `prompt`.
@@ -372,7 +374,7 @@ export default function GenerateScreen() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Generate" }} />
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={headerOffset}>
         <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
             <Sparkles color={colors.accent} size={22} />
@@ -426,6 +428,8 @@ export default function GenerateScreen() {
                 <Pressable
                   style={[styles.presetChip, !personaId && styles.chipActive]}
                   onPress={() => setPersonaId(undefined)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: !personaId }}
                 >
                   <Text style={[styles.presetText, !personaId && styles.chipActiveText]}>None</Text>
                 </Pressable>
@@ -437,6 +441,8 @@ export default function GenerateScreen() {
                       key={p.id}
                       style={[styles.presetChip, active && styles.chipActive]}
                       onPress={() => setPersonaId(pid)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
                     >
                       <Text style={[styles.presetText, active && styles.chipActiveText]} numberOfLines={1}>{p.name}</Text>
                     </Pressable>
@@ -456,11 +462,11 @@ export default function GenerateScreen() {
             maxLength={GENERATION_STYLE_MAX_LENGTH}
           />
           <View style={styles.miniRow}>
-            <Pressable style={[styles.miniBtn, (!style.trim() || boosting) && styles.btnDisabled]} disabled={!style.trim() || boosting} onPress={onBoost}>
+            <Pressable style={[styles.miniBtn, (!style.trim() || boosting) && styles.btnDisabled]} disabled={!style.trim() || boosting} onPress={onBoost} hitSlop={{ top: 4, bottom: 4 }}>
               {boosting ? <ActivityIndicator color={colors.accent} size="small" /> : <Wand2 color={colors.accent} size={15} />}
               <Text style={styles.miniText}>{boosting ? "Boosting…" : "Boost"}</Text>
             </Pressable>
-            <Pressable style={[styles.miniBtn, (!(style.trim() || lyrics.trim()) || autoFilling) && styles.btnDisabled]} disabled={!(style.trim() || lyrics.trim()) || autoFilling} onPress={onAutoFill}>
+            <Pressable style={[styles.miniBtn, (!(style.trim() || lyrics.trim()) || autoFilling) && styles.btnDisabled]} disabled={!(style.trim() || lyrics.trim()) || autoFilling} onPress={onAutoFill} hitSlop={{ top: 4, bottom: 4 }}>
               {autoFilling ? <ActivityIndicator color={colors.accent} size="small" /> : <Sparkles color={colors.accent} size={15} />}
               <Text style={styles.miniText}>{autoFilling ? "Filling…" : "Auto-fill"}</Text>
             </Pressable>
@@ -496,6 +502,8 @@ export default function GenerateScreen() {
                     key={s.id}
                     style={[styles.presetChip, style === s.stylePrompt && styles.chipActive]}
                     onPress={() => applySuggestion(s)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: style === s.stylePrompt }}
                   >
                     {s.source === "personal" ? <Star color={colors.star} size={12} fill={colors.star} /> : null}
                     <Text style={[styles.presetText, style === s.stylePrompt && styles.chipActiveText]} numberOfLines={1}>{s.label}</Text>
@@ -515,6 +523,8 @@ export default function GenerateScreen() {
                     key={c.id}
                     style={[styles.presetChip, style === c.stylePrompt && styles.chipActive]}
                     onPress={() => applyTrending(c)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: style === c.stylePrompt }}
                   >
                     <Text style={[styles.presetText, style === c.stylePrompt && styles.chipActiveText]} numberOfLines={1}>{c.label}</Text>
                     {c.displayScore ? <Text style={styles.badge}>{c.displayScore}</Text> : null}
@@ -536,7 +546,7 @@ export default function GenerateScreen() {
             <>
               <View style={styles.lyricsHeader}>
                 <Text style={styles.label}>Lyrics</Text>
-                <Pressable style={[styles.miniBtn, (!(style.trim() || title.trim()) || genningLyrics) && styles.btnDisabled]} disabled={!(style.trim() || title.trim()) || genningLyrics} onPress={onGenLyrics}>
+                <Pressable style={[styles.miniBtn, (!(style.trim() || title.trim()) || genningLyrics) && styles.btnDisabled]} disabled={!(style.trim() || title.trim()) || genningLyrics} onPress={onGenLyrics} hitSlop={{ top: 4, bottom: 4 }}>
                   {genningLyrics ? <ActivityIndicator color={colors.accent} size="small" /> : <Wand2 color={colors.accent} size={15} />}
                   <Text style={styles.miniText}>{genningLyrics ? "Writing…" : "Generate lyrics"}</Text>
                 </Pressable>
@@ -582,6 +592,10 @@ export default function GenerateScreen() {
                       key={n}
                       style={[styles.countChip, active && styles.chipActive]}
                       onPress={() => setCount(n)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${n} variation${n === 1 ? "" : "s"}`}
+                      accessibilityState={{ selected: active }}
+                      hitSlop={{ top: 2, bottom: 2 }}
                     >
                       <Text style={[styles.countText, active && styles.chipActiveText]}>{n}</Text>
                     </Pressable>

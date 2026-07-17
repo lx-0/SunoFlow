@@ -9,6 +9,7 @@ import { Star, CheckCircle2 } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { sendFeedback, type FeedbackCategory } from "@/api/feedback";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
+import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -23,6 +24,7 @@ const CATEGORIES: { key: FeedbackCategory; label: string }[] = [
 export default function FeedbackScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const headerOffset = useHeaderOffset();
   const [category, setCategory] = useState<FeedbackCategory>("general");
   const [comment, setComment] = useState("");
   const [score, setScore] = useState(0);
@@ -64,7 +66,7 @@ export default function FeedbackScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={headerOffset}>
       <Stack.Screen options={{ title: "Send Feedback" }} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>Category</Text>
@@ -76,6 +78,8 @@ export default function FeedbackScreen() {
                 key={cat.key}
                 style={[styles.segmentItem, active && styles.segmentItemActive]}
                 onPress={() => setCategory(cat.key)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
               >
                 <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{cat.label}</Text>
               </Pressable>
@@ -97,7 +101,14 @@ export default function FeedbackScreen() {
         <Text style={styles.label}>Rating (optional)</Text>
         <View style={styles.starRow}>
           {[1, 2, 3, 4, 5].map((n) => (
-            <Pressable key={n} onPress={() => setScore(score === n ? 0 : n)} hitSlop={8}>
+            <Pressable
+              key={n}
+              onPress={() => setScore(score === n ? 0 : n)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`Rate ${n} ${n === 1 ? "star" : "stars"}`}
+              accessibilityState={{ selected: n <= score }}
+            >
               <Star
                 size={32}
                 color={colors.star}

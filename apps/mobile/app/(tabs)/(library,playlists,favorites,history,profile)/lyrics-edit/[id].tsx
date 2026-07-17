@@ -8,6 +8,7 @@ import { Stack, router, useLocalSearchParams, useFocusEffect } from "expo-router
 import { HttpError } from "@/api/client";
 import { fetchRawLyrics, updateLyrics } from "@/api/lyrics";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
+import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
 import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
@@ -19,6 +20,7 @@ export default function LyricsEditScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const headerOffset = useHeaderOffset();
 
   const [original, setOriginal] = useState("");
   const [draft, setDraft] = useState("");
@@ -105,6 +107,7 @@ export default function LyricsEditScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={headerOffset}
     >
       <Stack.Screen
         options={{

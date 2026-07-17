@@ -148,7 +148,12 @@ export default function PromptTemplatesScreen() {
         options={{
           title: "Prompt Templates",
           headerRight: () => (
-            <Pressable onPress={() => setCreating((v) => !v)} hitSlop={8}>
+            <Pressable
+              onPress={() => setCreating((v) => !v)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={creating ? "Close new template form" : "New template"}
+            >
               {creating ? <X color={colors.accent} size={22} /> : <Plus color={colors.accent} size={22} />}
             </Pressable>
           ),

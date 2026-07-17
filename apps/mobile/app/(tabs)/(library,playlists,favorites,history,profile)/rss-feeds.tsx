@@ -85,7 +85,12 @@ export default function RssFeedsScreen() {
         options={{
           title: "RSS Feeds",
           headerRight: () => (
-            <Pressable onPress={() => setAdding((v) => !v)} hitSlop={8}>
+            <Pressable
+              onPress={() => setAdding((v) => !v)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={adding ? "Cancel adding feed" : "Add feed"}
+            >
               {adding ? <X color={colors.accent} size={22} /> : <Plus color={colors.accent} size={22} />}
             </Pressable>
           ),

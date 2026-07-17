@@ -35,6 +35,8 @@ export function MiniPlayer({ tabBarHeight = 0 }: { tabBarHeight?: number }) {
     <Pressable
       style={[styles.bar, { backgroundColor: colors.surfaceAlt, bottom: insets.bottom + tabBarHeight + BOTTOM_GAP }]}
       onPress={openPlayer}
+      accessibilityRole="button"
+      accessibilityLabel={`Open player, now playing ${current.title}`}
     >
       {current.artworkUrl ? (
         <Image source={{ uri: current.artworkUrl }} style={styles.thumb} />

@@ -5,6 +5,7 @@ import {
   ScrollView,
   ActivityIndicator,
   ActionSheetIOS,
+  KeyboardAvoidingView,
   RefreshControl,
   StyleSheet,
 } from "react-native";
@@ -27,6 +28,7 @@ import {
 } from "@/api/profile";
 import { fetchSongsPage } from "@/api/songs";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
+import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import type { Song } from "@/types";
 import { useTheme } from "@/theme/ThemeContext";
 import { fonts, type ThemeColors } from "@/theme/theme";
@@ -45,6 +47,7 @@ interface Streak {
 export default function ProfileScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const headerOffset = useHeaderOffset();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [stats, setStats] = useState<ProfileStats | null>(null);
@@ -285,209 +288,226 @@ export default function ProfileScreen() {
           <ActivityIndicator color={colors.text} />
         </View>
       ) : (
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
-          }
-        >
-          {/* Stats — top of profile */}
-          {stats ? (
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Stats</Text>
-              <View style={styles.statRow}>
-                <StatItem label="songs" value={String(stats.totalSongs)} styles={styles} />
-                <StatItem label="favorites" value={String(stats.totalFavorites)} styles={styles} />
-                <StatItem label="playlists" value={String(stats.totalPlaylists)} styles={styles} />
-                <StatItem label="followers" value={String(stats.followersCount)} styles={styles} />
-                <StatItem label="following" value={String(stats.followingCount)} styles={styles} />
-              </View>
-              <Text style={styles.memberSince}>
-                Member since {stats.memberSince ? new Date(stats.memberSince).toLocaleDateString() : "–"}
-              </Text>
-            </View>
-          ) : null}
-
-          {/* Streak */}
-          {streak ? (
-            <View style={styles.card}>
-              <View style={styles.streakRow}>
-                <Flame color={colors.warnFg ?? colors.accent} size={16} />
-                <Text style={styles.streakText}>
-                  {streak.currentStreak} day streak · longest {streak.longestStreak}
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={headerOffset}>
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            keyboardShouldPersistTaps="handled"
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
+            }
+          >
+            {/* Stats — top of profile */}
+            {stats ? (
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>Stats</Text>
+                <View style={styles.statRow}>
+                  <StatItem label="songs" value={String(stats.totalSongs)} styles={styles} />
+                  <StatItem label="favorites" value={String(stats.totalFavorites)} styles={styles} />
+                  <StatItem label="playlists" value={String(stats.totalPlaylists)} styles={styles} />
+                  <StatItem label="followers" value={String(stats.followersCount)} styles={styles} />
+                  <StatItem label="following" value={String(stats.followingCount)} styles={styles} />
+                </View>
+                <Text style={styles.memberSince}>
+                  Member since {stats.memberSince ? new Date(stats.memberSince).toLocaleDateString() : "–"}
                 </Text>
               </View>
-            </View>
-          ) : null}
+            ) : null}
 
-          {secondaryError ? (
-            <Text style={styles.secondaryError}>Couldn&apos;t load some stats. Pull back later to retry.</Text>
-          ) : null}
+            {/* Streak */}
+            {streak ? (
+              <View style={styles.card}>
+                <View style={styles.streakRow}>
+                  <Flame color={colors.warnFg ?? colors.accent} size={16} />
+                  <Text style={styles.streakText}>
+                    {streak.currentStreak} day streak · longest {streak.longestStreak}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
 
-          {/* Editable identity */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Profile</Text>
+            {secondaryError ? (
+              <Text style={styles.secondaryError}>Couldn&apos;t load some stats. Pull back later to retry.</Text>
+            ) : null}
 
-            <Text style={styles.label}>Display name</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={(t) => {
-                setName(t);
-                setSaved(false);
-              }}
-              placeholder="Your name"
-              placeholderTextColor={colors.textFaint}
-              maxLength={100}
-            />
-
-            <Text style={styles.label}>Username</Text>
-            <TextInput
-              style={styles.input}
-              value={username}
-              onChangeText={(t) => {
-                setUsername(t);
-                setSaved(false);
-              }}
-              placeholder="optional"
-              placeholderTextColor={colors.textFaint}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-
-            <Text style={styles.label}>Bio</Text>
-            <TextInput
-              style={[styles.input, styles.bioInput]}
-              value={bio}
-              onChangeText={(t) => {
-                setBio(t);
-                setSaved(false);
-              }}
-              placeholder="Tell people about your music"
-              placeholderTextColor={colors.textFaint}
-              multiline
-              textAlignVertical="top"
-            />
-
-            <Text style={styles.label}>Avatar URL</Text>
-            <TextInput
-              style={styles.input}
-              value={avatarUrl}
-              onChangeText={(t) => {
-                setAvatarUrl(t);
-                setSaved(false);
-              }}
-              placeholder="https://…/avatar.jpg"
-              placeholderTextColor={colors.textFaint}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-            />
-
-            <Text style={styles.label}>Banner URL</Text>
-            <TextInput
-              style={styles.input}
-              value={bannerUrl}
-              onChangeText={(t) => {
-                setBannerUrl(t);
-                setSaved(false);
-              }}
-              placeholder="https://…/banner.jpg"
-              placeholderTextColor={colors.textFaint}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-            />
-
-            <Text style={styles.label}>Featured song</Text>
-            <Pressable style={styles.picker} onPress={pickFeaturedSong}>
-              <Text style={styles.pickerText} numberOfLines={1}>
-                {featuredTitle}
-              </Text>
-              <ChevronDown color={colors.textDim} size={18} />
-            </Pressable>
-
-            {saveError ? <Text style={styles.error}>{saveError}</Text> : null}
-
-            <View style={styles.saveRow}>
-              <Pressable style={[styles.btn, !canSave && styles.btnDisabled]} disabled={!canSave} onPress={save}>
-                {busy ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.btnText}>Save</Text>}
-              </Pressable>
-              {saved && !busy ? <Text style={styles.savedText}>Saved</Text> : null}
-            </View>
-          </View>
-
-          {/* Preferences */}
-          {prefs ? (
+            {/* Editable identity */}
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Preferences</Text>
+              <Text style={styles.cardTitle}>Profile</Text>
 
-              <Text style={styles.label}>Default style</Text>
+              <Text style={styles.label}>Display name</Text>
               <TextInput
                 style={styles.input}
-                value={defaultStyle}
+                value={name}
                 onChangeText={(t) => {
-                  setDefaultStyle(t);
-                  setPrefsSaved(false);
+                  setName(t);
+                  setSaved(false);
                 }}
-                placeholder="e.g. lo-fi, mellow"
+                placeholder="Your name"
+                placeholderTextColor={colors.textFaint}
+                maxLength={100}
+              />
+
+              <Text style={styles.label}>Username</Text>
+              <TextInput
+                style={styles.input}
+                value={username}
+                onChangeText={(t) => {
+                  setUsername(t);
+                  setSaved(false);
+                }}
+                placeholder="optional"
                 placeholderTextColor={colors.textFaint}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
 
-              <Text style={styles.label}>Preferred genres</Text>
+              <Text style={styles.label}>Bio</Text>
+              <TextInput
+                style={[styles.input, styles.bioInput]}
+                value={bio}
+                onChangeText={(t) => {
+                  setBio(t);
+                  setSaved(false);
+                }}
+                placeholder="Tell people about your music"
+                placeholderTextColor={colors.textFaint}
+                multiline
+                textAlignVertical="top"
+              />
+
+              <Text style={styles.label}>Avatar URL</Text>
               <TextInput
                 style={styles.input}
-                value={genresText}
+                value={avatarUrl}
                 onChangeText={(t) => {
-                  setGenresText(t);
-                  setPrefsSaved(false);
+                  setAvatarUrl(t);
+                  setSaved(false);
                 }}
-                placeholder="comma-separated, e.g. pop, jazz"
+                placeholder="https://…/avatar.jpg"
                 placeholderTextColor={colors.textFaint}
                 autoCapitalize="none"
                 autoCorrect={false}
+                keyboardType="url"
               />
 
-              {prefsError ? <Text style={styles.error}>{prefsError}</Text> : null}
+              <Text style={styles.label}>Banner URL</Text>
+              <TextInput
+                style={styles.input}
+                value={bannerUrl}
+                onChangeText={(t) => {
+                  setBannerUrl(t);
+                  setSaved(false);
+                }}
+                placeholder="https://…/banner.jpg"
+                placeholderTextColor={colors.textFaint}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+              />
+
+              <Text style={styles.label}>Featured song</Text>
+              <Pressable
+                style={styles.picker}
+                onPress={pickFeaturedSong}
+                accessibilityRole="button"
+                accessibilityLabel="Choose featured song"
+                accessibilityValue={{ text: featuredTitle }}
+                hitSlop={{ top: 2, bottom: 2 }}
+              >
+                <Text style={styles.pickerText} numberOfLines={1}>
+                  {featuredTitle}
+                </Text>
+                <ChevronDown color={colors.textDim} size={18} />
+              </Pressable>
+
+              {saveError ? <Text style={styles.error}>{saveError}</Text> : null}
 
               <View style={styles.saveRow}>
                 <Pressable
-                  style={[styles.btn, prefsBusy && styles.btnDisabled]}
-                  disabled={prefsBusy}
-                  onPress={savePreferences}
+                  style={[styles.btn, !canSave && styles.btnDisabled]}
+                  disabled={!canSave}
+                  onPress={save}
+                  accessibilityRole="button"
+                  accessibilityLabel="Save profile"
                 >
-                  {prefsBusy ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.btnText}>Save preferences</Text>}
+                  {busy ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.btnText}>Save</Text>}
                 </Pressable>
-                {prefsSaved && !prefsBusy ? <Text style={styles.savedText}>Saved</Text> : null}
+                {saved && !busy ? <Text style={styles.savedText}>Saved</Text> : null}
               </View>
             </View>
-          ) : null}
 
-          {/* Milestones */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Milestones</Text>
-            {milestones.length === 0 ? (
-              <Text style={styles.dim}>No milestones yet</Text>
-            ) : (
-              milestones.map((m) => (
-                <View key={`${m.type}-${m.earnedAt}`} style={styles.milestone}>
-                  <Text style={styles.milestoneTag} numberOfLines={1}>{m.type}</Text>
-                  <View style={styles.milestoneMeta}>
-                    <Text style={styles.milestoneLabel} numberOfLines={1}>
-                      {m.label}
-                    </Text>
-                    <Text style={styles.dim} numberOfLines={2}>
-                      {m.description}
-                    </Text>
-                  </View>
+            {/* Preferences */}
+            {prefs ? (
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>Preferences</Text>
+
+                <Text style={styles.label}>Default style</Text>
+                <TextInput
+                  style={styles.input}
+                  value={defaultStyle}
+                  onChangeText={(t) => {
+                    setDefaultStyle(t);
+                    setPrefsSaved(false);
+                  }}
+                  placeholder="e.g. lo-fi, mellow"
+                  placeholderTextColor={colors.textFaint}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+
+                <Text style={styles.label}>Preferred genres</Text>
+                <TextInput
+                  style={styles.input}
+                  value={genresText}
+                  onChangeText={(t) => {
+                    setGenresText(t);
+                    setPrefsSaved(false);
+                  }}
+                  placeholder="comma-separated, e.g. pop, jazz"
+                  placeholderTextColor={colors.textFaint}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+
+                {prefsError ? <Text style={styles.error}>{prefsError}</Text> : null}
+
+                <View style={styles.saveRow}>
+                  <Pressable
+                    style={[styles.btn, prefsBusy && styles.btnDisabled]}
+                    disabled={prefsBusy}
+                    onPress={savePreferences}
+                    accessibilityRole="button"
+                    accessibilityLabel="Save preferences"
+                  >
+                    {prefsBusy ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.btnText}>Save preferences</Text>}
+                  </Pressable>
+                  {prefsSaved && !prefsBusy ? <Text style={styles.savedText}>Saved</Text> : null}
                 </View>
-              ))
-            )}
-          </View>
-        </ScrollView>
+              </View>
+            ) : null}
+
+            {/* Milestones */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Milestones</Text>
+              {milestones.length === 0 ? (
+                <Text style={styles.dim}>No milestones yet</Text>
+              ) : (
+                milestones.map((m) => (
+                  <View key={`${m.type}-${m.earnedAt}`} style={styles.milestone}>
+                    <Text style={styles.milestoneTag} numberOfLines={1}>{m.type}</Text>
+                    <View style={styles.milestoneMeta}>
+                      <Text style={styles.milestoneLabel} numberOfLines={1}>
+                        {m.label}
+                      </Text>
+                      <Text style={styles.dim} numberOfLines={2}>
+                        {m.description}
+                      </Text>
+                    </View>
+                  </View>
+                ))
+              )}
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       )}
     </View>
   );

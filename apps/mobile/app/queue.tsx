@@ -63,6 +63,7 @@ export default function QueueScreen() {
                     disabled={i === 0}
                     onPress={() => reorderQueue(i, i - 1)}
                     style={styles.actBtn}
+                    accessibilityRole="button"
                     accessibilityLabel="Move up"
                   >
                     <ChevronUp color={i === 0 ? colors.textFaint : colors.textDim} size={20} />
@@ -72,6 +73,7 @@ export default function QueueScreen() {
                     disabled={i === last}
                     onPress={() => reorderQueue(i, i + 1)}
                     style={styles.actBtn}
+                    accessibilityRole="button"
                     accessibilityLabel="Move down"
                   >
                     <ChevronDown color={i === last ? colors.textFaint : colors.textDim} size={20} />
@@ -80,6 +82,7 @@ export default function QueueScreen() {
                     hitSlop={HIT}
                     onPress={() => void removeFromQueue(i)}
                     style={styles.actBtn}
+                    accessibilityRole="button"
                     accessibilityLabel="Remove from queue"
                   >
                     <X color={colors.textDim} size={18} />

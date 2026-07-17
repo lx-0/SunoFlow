@@ -83,7 +83,12 @@ export default function AddToPlaylistScreen() {
             const isAdded = added.has(item.id);
             const isFailed = failed.has(item.id);
             return (
-              <Pressable style={styles.row} onPress={() => void add(item.id)}>
+              <Pressable
+                style={styles.row}
+                onPress={() => void add(item.id)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isAdded }}
+              >
                 <View style={styles.meta}>
                   <Text style={[styles.title, isAdded && styles.titleActive]} numberOfLines={1}>{item.name}</Text>
                   <Text style={[styles.sub, isFailed && styles.subFailed]}>

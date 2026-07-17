@@ -72,6 +72,8 @@ export default function SettingsScreen() {
               key={m.key}
               style={[styles.segmentItem, active && { backgroundColor: colors.accentStrong }]}
               onPress={() => setMode(m.key)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
             >
               <Text style={[styles.segmentText, { color: active ? colors.onAccent : colors.textDim }]}>{m.label}</Text>
             </Pressable>
@@ -89,6 +91,8 @@ export default function SettingsScreen() {
               key={name}
               style={[styles.themeChip, { backgroundColor: colors.surface, borderColor: active ? colors.accent : "transparent" }]}
               onPress={() => setThemeName(name)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
             >
               <View style={[styles.swatch, { backgroundColor: swatch }]} />
               <Text style={[styles.themeText, { color: colors.text }]}>{THEME_LABELS[name]}</Text>

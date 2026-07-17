@@ -372,7 +372,14 @@ export default function SongDetailScreen() {
           <Play color={colors.onAccent} fill={colors.onAccent} size={20} />
           <Text style={styles.playText}>Play</Text>
         </Pressable>
-        <Pressable style={styles.circleBtn} onPress={onToggleFavorite} hitSlop={6}>
+        <Pressable
+          style={styles.circleBtn}
+          onPress={onToggleFavorite}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={favorite ? "Remove from favorites" : "Add to favorites"}
+          accessibilityState={{ selected: favorite }}
+        >
           <HeartIcon color={favorite ? colors.danger : colors.text} filled={favorite} size={22} />
           {favCount > 0 ? <Text style={styles.circleCount}>{favCount}</Text> : null}
         </Pressable>
@@ -380,6 +387,8 @@ export default function SongDetailScreen() {
           style={styles.circleBtn}
           hitSlop={6}
           onPress={() => void shareSong({ id: song.id, title: song.title, publicSlug: song.publicSlug })}
+          accessibilityRole="button"
+          accessibilityLabel="Share song"
         >
           <Share2 color={colors.text} size={20} />
         </Pressable>
@@ -417,7 +426,9 @@ export default function SongDetailScreen() {
             style={[styles.thumbBtn, thumbs === "thumbs_up" && styles.thumbActive]}
             onPress={() => void onThumbs("thumbs_up")}
             hitSlop={6}
+            accessibilityRole="button"
             accessibilityLabel="Thumbs up"
+            accessibilityState={{ selected: thumbs === "thumbs_up" }}
           >
             <ThumbsUp color={thumbs === "thumbs_up" ? colors.onAccent : colors.text} size={18} />
           </Pressable>
@@ -425,7 +436,9 @@ export default function SongDetailScreen() {
             style={[styles.thumbBtn, thumbs === "thumbs_down" && styles.thumbActiveDown]}
             onPress={() => void onThumbs("thumbs_down")}
             hitSlop={6}
+            accessibilityRole="button"
             accessibilityLabel="Thumbs down"
+            accessibilityState={{ selected: thumbs === "thumbs_down" }}
           >
             <ThumbsDown color={thumbs === "thumbs_down" ? colors.onAccent : colors.text} size={18} />
           </Pressable>

@@ -73,7 +73,7 @@ export default function PlaylistInviteScreen() {
 
           {acceptError ? <Text style={styles.error}>{acceptError}</Text> : null}
 
-          <Pressable style={[styles.btn, busy && styles.btnDisabled]} disabled={busy} onPress={() => void accept()}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Accept invite" style={[styles.btn, busy && styles.btnDisabled]} disabled={busy} onPress={() => void accept()}>
             {busy ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.btnText}>Accept invite</Text>}
           </Pressable>
         </View>

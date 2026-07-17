@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Pressable, ActivityIndicator, KeyboardAvoidingView, StyleSheet } from "react-native";
 import { Text, TextInput } from "@/components/Themed";
 import { router } from "expo-router";
 import { API_BASE_URL } from "@/api/client";
@@ -42,30 +42,38 @@ export default function LoginScreen() {
   }
 
   return (
-    <View style={styles.c}>
-      <Text style={styles.h}>SunoFlow</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor={colors.textFaint}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor={colors.textFaint}
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-      {error ? <Text style={styles.err}>{error}</Text> : null}
-      <Pressable style={styles.btn} disabled={busy} onPress={submit}>
-        {busy ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.btnText}>Sign in</Text>}
-      </Pressable>
-    </View>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={0}>
+      <View style={styles.c}>
+        <Text style={styles.h}>SunoFlow</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor={colors.textFaint}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          placeholderTextColor={colors.textFaint}
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+        {error ? <Text style={styles.err}>{error}</Text> : null}
+        <Pressable
+          style={styles.btn}
+          disabled={busy}
+          onPress={submit}
+          accessibilityRole="button"
+          accessibilityLabel="Sign in"
+        >
+          {busy ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.btnText}>Sign in</Text>}
+        </Pressable>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 

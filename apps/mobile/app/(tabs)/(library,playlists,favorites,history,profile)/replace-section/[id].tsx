@@ -8,6 +8,7 @@ import { Stack, router, useLocalSearchParams } from "expo-router";
 import { HttpError } from "@/api/client";
 import { replaceSection } from "@/api/song-studio";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
+import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
 import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
@@ -19,6 +20,7 @@ export default function ReplaceSectionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const headerOffset = useHeaderOffset();
   const [prompt, setPrompt] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
@@ -54,7 +56,7 @@ export default function ReplaceSectionScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={headerOffset}>
       <Stack.Screen options={{ title: "Replace Section" }} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.help}>
@@ -90,7 +92,7 @@ export default function ReplaceSectionScreen() {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <Pressable style={[styles.btn, !canSubmit && styles.btnDisabled]} disabled={!canSubmit} onPress={submit}>
+        <Pressable style={[styles.btn, !canSubmit && styles.btnDisabled]} disabled={!canSubmit} onPress={submit} accessibilityRole="button" accessibilityLabel="Replace section">
           {busy ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.btnText}>Replace section</Text>}
         </Pressable>
       </ScrollView>

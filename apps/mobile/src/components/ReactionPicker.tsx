@@ -37,6 +37,8 @@ export function ReactionPicker({
               key={e}
               hitSlop={4}
               style={styles.emojiBtn}
+              accessibilityRole="button"
+              accessibilityLabel={`React with ${e}`}
               onPress={() => {
                 onReact(e);
                 setOpen(false);
@@ -47,7 +49,14 @@ export function ReactionPicker({
           ))}
         </View>
       ) : null}
-      <Pressable hitSlop={10} style={styles.trigger} onPress={toggle}>
+      <Pressable
+        hitSlop={10}
+        style={styles.trigger}
+        onPress={toggle}
+        accessibilityRole="button"
+        accessibilityLabel="Add reaction"
+        accessibilityState={{ expanded: open }}
+      >
         <ReactIcon color={open ? colors.accent : colors.textDim} size={24} />
       </Pressable>
     </View>

@@ -50,6 +50,7 @@ export default function CollectionsScreen() {
           contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
           renderItem={({ item }) => (
             <Pressable
+              accessibilityRole="button"
               style={styles.row}
               onPress={() => router.push(`/collection/${item.id}`)}
             >

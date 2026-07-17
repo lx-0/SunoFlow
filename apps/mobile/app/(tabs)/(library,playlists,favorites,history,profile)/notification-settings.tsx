@@ -129,6 +129,9 @@ export default function NotificationSettingsScreen() {
                   key={freq}
                   style={[styles.segmentItem, active && { backgroundColor: colors.accentStrong }]}
                   onPress={() => patchEmail({ emailDigestFrequency: freq })}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Set digest frequency to ${freq}`}
+                  accessibilityState={{ selected: active }}
                 >
                   <Text style={[styles.segmentText, { color: active ? colors.onAccent : colors.textDim }]}>
                     {capitalize(freq)}
@@ -148,6 +151,8 @@ export default function NotificationSettingsScreen() {
                   <Pressable
                     style={styles.hourChip}
                     onPress={() => pickHour("Quiet hours start", email.quietHoursStart, (h) => patchEmail({ quietHoursStart: h }))}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Change quiet hours start, currently ${formatHour(email.quietHoursStart)}`}
                   >
                     <Text style={styles.hourText}>{formatHour(email.quietHoursStart)}</Text>
                   </Pressable>
@@ -158,6 +163,8 @@ export default function NotificationSettingsScreen() {
                   <Pressable
                     style={styles.hourChip}
                     onPress={() => pickHour("Quiet hours end", email.quietHoursEnd, (h) => patchEmail({ quietHoursEnd: h }))}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Change quiet hours end, currently ${formatHour(email.quietHoursEnd)}`}
                   >
                     <Text style={styles.hourText}>{formatHour(email.quietHoursEnd)}</Text>
                   </Pressable>

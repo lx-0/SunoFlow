@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { View, Pressable, Switch, FlatList, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Pressable, Switch, FlatList, ActivityIndicator, StyleSheet, KeyboardAvoidingView } from "react-native";
 import { Text, TextInput } from "@/components/Themed";
 import { Stack, router, useFocusEffect, useNavigation, type Href } from "expo-router";
 import { Check, AlertCircle } from "lucide-react-native";
@@ -10,6 +10,7 @@ import { pollStatus, GenerationError } from "@/api/generate";
 import { SongRow } from "@/components/SongRow";
 import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
+import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
@@ -22,6 +23,7 @@ const MAX_POLLS = 75;
 export default function MashupScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const headerOffset = useHeaderOffset();
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [selected, setSelected] = useState<string[]>([]); // ordered: [A, B]
   const [title, setTitle] = useState("");
@@ -166,7 +168,7 @@ export default function MashupScreen() {
         <AlertCircle color={colors.danger} size={40} />
         <Text style={styles.statusTitle}>Mashup failed</Text>
         <Text style={styles.dim}>{error}</Text>
-        <Pressable style={styles.primaryBtn} onPress={() => { setError(null); setPhase("form"); }}>
+        <Pressable style={styles.primaryBtn} onPress={() => { setError(null); setPhase("form"); }} accessibilityRole="button">
           <Text style={styles.primaryBtnText}>Try again</Text>
         </Pressable>
       </View>
@@ -192,6 +194,7 @@ export default function MashupScreen() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Mashup" }} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={headerOffset}>
       <FlatList
         data={songs ?? []}
         keyExtractor={(s) => s.id}
@@ -205,9 +208,9 @@ export default function MashupScreen() {
             <TextInput style={styles.input} value={style} onChangeText={setStyle} placeholder="Style / tags (optional)" placeholderTextColor={colors.textFaint} />
             <View style={styles.switchRow}>
               <Text style={styles.switchLabel}>Instrumental</Text>
-              <Switch value={instrumental} onValueChange={setInstrumental} trackColor={{ false: colors.surfaceAlt, true: colors.accentStrong }} thumbColor={colors.onAccent} />
+              <Switch value={instrumental} onValueChange={setInstrumental} trackColor={{ false: colors.surfaceAlt, true: colors.accentStrong }} thumbColor={colors.onAccent} accessibilityLabel="Instrumental" />
             </View>
-            <Pressable style={[styles.primaryBtn, selected.length !== 2 && styles.btnDisabled]} disabled={selected.length !== 2} onPress={onSubmit}>
+            <Pressable style={[styles.primaryBtn, selected.length !== 2 && styles.btnDisabled]} disabled={selected.length !== 2} onPress={onSubmit} accessibilityRole="button">
               <Text style={styles.primaryBtnText}>Create Mashup</Text>
             </Pressable>
             <Text style={[styles.dim, styles.listLabel]}>Your songs</Text>
@@ -226,6 +229,7 @@ export default function MashupScreen() {
           />
         )}
       />
+      </KeyboardAvoidingView>
     </View>
   );
 }

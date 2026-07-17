@@ -189,6 +189,8 @@ export default function DiscoverScreen() {
                 key={chip.key}
                 onPress={() => selectMood(chip.value)}
                 style={[styles.chip, active && styles.chipActive]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
               >
                 <Text style={[styles.chipText, active && styles.chipTextActive]}>
                   {chip.label}

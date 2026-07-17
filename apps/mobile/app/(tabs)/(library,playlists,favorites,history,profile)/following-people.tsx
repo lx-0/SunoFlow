@@ -112,7 +112,13 @@ export default function FollowingPeopleScreen() {
                 <Text style={styles.name} numberOfLines={1}>{item.displayName}</Text>
                 <Text style={styles.dim} numberOfLines={1}>@{item.username}</Text>
               </View>
-              <Pressable onPress={() => rowActions(item)} hitSlop={12} style={styles.moreBtn}>
+              <Pressable
+                onPress={() => rowActions(item)}
+                hitSlop={12}
+                style={styles.moreBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Open profile options"
+              >
                 <MoreHorizontal color={colors.textDim} size={22} />
               </Pressable>
             </Pressable>

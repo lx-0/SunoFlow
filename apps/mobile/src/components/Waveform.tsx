@@ -107,7 +107,7 @@ export function Waveform({
         ))}
       </View>
 
-      <Pressable style={styles.bars} onPress={handlePress} onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)}>
+      <Pressable style={styles.bars} onPress={handlePress} accessibilityRole="adjustable" accessibilityLabel="Seek within song" onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)}>
         {bars.map((amp, i) => (
           <View
             key={i}

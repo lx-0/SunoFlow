@@ -172,6 +172,8 @@ function ProfileContent({
           <Stat colors={colors} value={profile.songsCount} label="songs" />
         </View>
         <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected: following }}
           style={[styles.followBtn, following && styles.followingBtn]}
           onPress={() => void onToggleFollow()}
           disabled={!profile.id || followBusy}
@@ -185,6 +187,8 @@ function ProfileContent({
         {TABS.map((t) => (
           <Pressable
             key={t.key}
+            accessibilityRole="button"
+            accessibilityState={{ selected: tab === t.key }}
             style={[styles.segmentItem, tab === t.key && styles.segmentItemActive]}
             onPress={() => onTab(t.key)}
           >
@@ -208,7 +212,7 @@ function ProfileContent({
           <EmptyState Icon={ListMusic} title="No public playlists yet" />
         }
         renderItem={({ item }) => (
-          <Pressable style={styles.row} onPress={() => router.push(`/playlist/${item.id}`)}>
+          <Pressable accessibilityRole="button" style={styles.row} onPress={() => router.push(`/playlist/${item.id}`)}>
             <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
             <Text style={styles.dim} numberOfLines={1}>
               {item.songCount} {item.songCount === 1 ? "song" : "songs"}
@@ -231,6 +235,8 @@ function ProfileContent({
       ListEmptyComponent={<EmptyState Icon={EmptyIcon} title={emptyText} />}
       renderItem={({ item, index }) => (
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Play ${item.title}`}
           style={styles.row}
           onPress={async () => {
             try {

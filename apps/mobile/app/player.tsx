@@ -160,7 +160,7 @@ export default function PlayerScreen() {
 
         {/* Rating (context menu) + reactions + shuffle-versions + details — one row */}
         <View style={styles.emojiRow}>
-          <Pressable style={styles.secBtn} hitSlop={8} onPress={onToggleFavorite} accessibilityRole="button" accessibilityLabel={favorite ? "Unfavorite" : "Favorite"}>
+          <Pressable style={styles.secBtn} hitSlop={8} onPress={onToggleFavorite} accessibilityRole="button" accessibilityLabel={favorite ? "Unfavorite" : "Favorite"} accessibilityState={{ selected: favorite }}>
             <HeartIcon color={favorite ? colors.danger : colors.textDim} filled={favorite} size={20} />
           </Pressable>
           {songId ? <RatingButton songId={songId} /> : null}
@@ -171,7 +171,7 @@ export default function PlayerScreen() {
         <View style={styles.row}>
           {/* One combined shuffle button: off → shuffle → shuffle + versions → off.
               In versions mode the shuffle icon gets a tiny Boxes badge. */}
-          <Pressable hitSlop={10} style={styles.btnSmall} onPress={cycleShuffle} accessibilityRole="button" accessibilityLabel="Toggle shuffle">
+          <Pressable hitSlop={10} style={styles.btnSmall} onPress={cycleShuffle} accessibilityRole="button" accessibilityLabel="Toggle shuffle" accessibilityState={{ selected: shuffle || shuffleVersions }}>
             <View>
               <ShuffleIcon color={shuffle ? colors.accent : colors.textFaint} size={22} />
               {shuffleVersions ? (
@@ -197,7 +197,7 @@ export default function PlayerScreen() {
           <Pressable hitSlop={12} style={styles.btn} onPress={() => skipToNext()} accessibilityRole="button" accessibilityLabel="Next track">
             <SkipNextIcon color={colors.text} size={28} />
           </Pressable>
-          <Pressable hitSlop={10} style={styles.btnSmall} onPress={toggleRepeat} accessibilityRole="button" accessibilityLabel="Toggle repeat">
+          <Pressable hitSlop={10} style={styles.btnSmall} onPress={toggleRepeat} accessibilityRole="button" accessibilityLabel="Toggle repeat" accessibilityState={{ selected: repeat !== "off" }}>
             <RepeatIcon color={repeat !== "off" ? colors.accent : colors.textFaint} one={repeat === "one"} size={22} />
           </Pressable>
         </View>

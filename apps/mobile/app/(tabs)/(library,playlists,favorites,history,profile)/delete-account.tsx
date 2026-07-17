@@ -65,7 +65,7 @@ export default function DeleteAccountScreen() {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Pressable style={[styles.btn, !canSubmit && styles.btnDisabled]} disabled={!canSubmit} onPress={confirmDelete}>
+      <Pressable style={[styles.btn, !canSubmit && styles.btnDisabled]} disabled={!canSubmit} onPress={confirmDelete} accessibilityRole="button" accessibilityLabel="Delete my account">
         {busy ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.btnText}>Delete my account</Text>}
       </Pressable>
     </View>

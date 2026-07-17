@@ -71,7 +71,12 @@ export function PromptProvider({ children }: { children: ReactNode }) {
         animationType="slide"
         onRequestClose={() => finish(null)}
       >
-        <Pressable style={styles.backdrop} onPress={() => finish(null)} />
+        <Pressable
+          style={styles.backdrop}
+          onPress={() => finish(null)}
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss"
+        />
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.kav}

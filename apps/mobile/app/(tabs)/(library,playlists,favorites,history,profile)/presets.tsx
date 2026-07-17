@@ -95,7 +95,7 @@ export default function PresetsScreen() {
           contentContainerStyle={styles.listContent}
           keyExtractor={(p) => p.id}
           renderItem={({ item }) => (
-            <Pressable style={styles.row} onPress={() => rowActions(item)}>
+            <Pressable style={styles.row} onPress={() => rowActions(item)} accessibilityRole="button" accessibilityLabel={`Open preset options for ${item.name}`}>
               <View style={styles.icon}>
                 <SlidersHorizontal color={colors.accent} size={18} />
               </View>

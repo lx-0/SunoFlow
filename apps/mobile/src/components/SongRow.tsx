@@ -24,7 +24,7 @@ export function SongRow({
     .join("  ·  ");
 
   return (
-    <Pressable style={[styles.row, { borderBottomColor: colors.border }]} onPress={onPress}>
+    <Pressable style={[styles.row, { borderBottomColor: colors.border }]} onPress={onPress} accessibilityRole="button">
       {song.artworkUrl ? (
         <Image source={{ uri: song.artworkUrl }} style={[styles.thumb, { backgroundColor: colors.surfaceAlt }]} />
       ) : (

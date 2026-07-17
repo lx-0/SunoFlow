@@ -110,7 +110,13 @@ export default function InspireScreen() {
           title: "Inspire",
           headerRight: () =>
             picks ? (
-              <Pressable onPress={generate} disabled={generating} hitSlop={8}>
+              <Pressable
+                onPress={generate}
+                disabled={generating}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Regenerate today's picks"
+              >
                 <RefreshCw color={colors.accent} size={20} />
               </Pressable>
             ) : null,

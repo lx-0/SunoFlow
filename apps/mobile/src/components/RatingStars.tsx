@@ -46,6 +46,9 @@ export function RatingStars({ songId, size = 28 }: { songId: string; size?: numb
             onPress={() => onTap(star)}
             hitSlop={6}
             style={styles.star}
+            accessibilityRole="button"
+            accessibilityLabel={`Rate ${star} ${star === 1 ? "star" : "stars"}`}
+            accessibilityState={{ selected: active }}
           >
             <Star
               size={28}

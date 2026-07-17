@@ -21,6 +21,7 @@ import {
 } from "@/api/tags";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
+import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -32,6 +33,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function SongTagsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const headerOffset = useHeaderOffset();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [tags, setTags] = useState<SongTag[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -103,6 +105,7 @@ export default function SongTagsScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={headerOffset}
     >
       <Stack.Screen options={{ title: "Edit Tags" }} />
 
@@ -123,6 +126,8 @@ export default function SongTagsScreen() {
           style={[styles.addBtn, !canAdd && styles.btnDisabled]}
           onPress={() => void onAdd()}
           disabled={!canAdd}
+          accessibilityRole="button"
+          accessibilityLabel="Add tag"
         >
           {busy ? (
             <ActivityIndicator color={colors.onAccent} size="small" />
@@ -155,6 +160,7 @@ export default function SongTagsScreen() {
                 onPress={() => void onRemove(tag)}
                 hitSlop={8}
                 style={styles.chipRemove}
+                accessibilityRole="button"
                 accessibilityLabel={`Remove tag ${tag.name}`}
               >
                 <X color={colors.textDim} size={15} />

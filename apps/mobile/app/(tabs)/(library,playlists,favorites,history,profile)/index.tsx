@@ -231,6 +231,8 @@ export default function LibraryScreen() {
           <Pressable
             style={[styles.sortBtn, hasFilters && styles.filterBtnActive]}
             onPress={openFilters}
+            accessibilityRole="button"
+            accessibilityState={{ selected: hasFilters }}
           >
             <SlidersHorizontal color={hasFilters ? colors.accent : colors.textDim} size={16} />
             <Text style={[styles.sortText, hasFilters && styles.filterTextActive]}>
@@ -238,7 +240,13 @@ export default function LibraryScreen() {
             </Text>
           </Pressable>
         </View>
-        <Pressable style={styles.viewBtn} onPress={() => setView((v) => (v === "list" ? "grid" : "list"))}>
+        <Pressable
+          style={styles.viewBtn}
+          onPress={() => setView((v) => (v === "list" ? "grid" : "list"))}
+          hitSlop={4}
+          accessibilityRole="button"
+          accessibilityLabel={view === "list" ? "Switch to grid view" : "Switch to list view"}
+        >
           {view === "list" ? <LayoutGrid color={colors.textDim} size={18} /> : <List color={colors.textDim} size={18} />}
         </Pressable>
       </View>
