@@ -5,7 +5,7 @@ import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Check, ListPlus } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import { fetchPlaylists, addSongToPlaylist, type PlaylistSummary } from "@/api/playlists";
-import { usePlayback } from "@/playback/usePlayback";
+import { usePlaybackSelector } from "@/playback/usePlayback";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
@@ -18,7 +18,8 @@ import type { ThemeColors } from "@/theme/theme";
 export default function AddToPlaylistScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { current } = usePlayback();
+  // Selector: only the current song id matters here — no per-tick re-renders.
+  const current = usePlaybackSelector((s) => s.current);
   const params = useLocalSearchParams<{ songId?: string; title?: string }>();
   const songId = params.songId ?? current?.id;
   const [playlists, setPlaylists] = useState<PlaylistSummary[] | null>(null);

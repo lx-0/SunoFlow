@@ -109,7 +109,17 @@ function startPolling() {
     const dur = typeof p.duration === "number" ? p.duration : 0;
     const pos = typeof p.currentTime === "number" ? p.currentTime : 0;
     const playing = Boolean(p.playing);
-    patch({ playing, positionSeconds: pos, durationSeconds: dur });
+    // Emit only when something actually changed: while paused every tick used
+    // to publish an identical-but-new snapshot, re-rendering every subscriber
+    // (mini-player, player, lyrics) at 700ms for nothing. The end-detection
+    // below intentionally keeps running off local vars either way.
+    if (
+      snapshot.playing !== playing ||
+      snapshot.positionSeconds !== pos ||
+      snapshot.durationSeconds !== dur
+    ) {
+      patch({ playing, positionSeconds: pos, durationSeconds: dur });
+    }
 
     const justStopped = lastPlaying && !playing;
     // Track ended if: position reached the end, OR playback just stopped AND the

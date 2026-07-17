@@ -2,7 +2,7 @@ import { View, FlatList, Pressable, StyleSheet } from "react-native";
 import { Text } from "@/components/Themed";
 import { Stack } from "expo-router";
 import { ListMusic, ChevronUp, ChevronDown, X } from "lucide-react-native";
-import { usePlayback } from "@/playback/usePlayback";
+import { usePlaybackSelector } from "@/playback/usePlayback";
 import { jumpTo } from "@/playback/audio";
 import { reorderQueue, removeFromQueue } from "@/playback/controls";
 import { PlayIcon } from "@/components/Icons";
@@ -19,7 +19,9 @@ const HIT = { top: 10, bottom: 10, left: 10, right: 10 };
 export default function QueueScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { queue, index } = usePlayback();
+  // Selector: the queue sheet doesn't render playback position, so it must
+  // not re-render on every 700ms progress tick while a track plays.
+  const { queue, index } = usePlaybackSelector((s) => ({ queue: s.queue, index: s.index }));
   const last = queue.length - 1;
 
   return (
