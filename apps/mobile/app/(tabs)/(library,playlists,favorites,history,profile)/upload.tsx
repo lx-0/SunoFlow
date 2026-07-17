@@ -85,6 +85,7 @@ export default function UploadScreen() {
       for (let attempt = 0; attempt < MAX_POLLS; attempt++) {
         if (!aliveRef.current) return;
         await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+        if (!aliveRef.current) return;
         let res;
         try {
           res = await pollStatus(job.songId);
