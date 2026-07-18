@@ -15,11 +15,13 @@ import { logger } from "@/lib/logger";
  * once; only its SHA-256 hash is stored. Sign-out = revoke via
  * DELETE /api/profile/api-keys/:id.
  *
- * Brute-force: covered by the edge IP rate limiter (middleware
- * `applyRequestRateLimits`). A dedicated per-email login cap is a future
- * hardening, and must use the ANONYMOUS slot (`acquireAnonRateLimitSlot`) — NOT
- * the user-keyed `rateLimitCheck`, whose `RateLimitEntry.userId` FK rejects
- * synthetic (ip/email) keys and 500'd this route. Failures are generic 401s.
+ * Brute-force: per-IP via the middleware "auth" bucket — this path is listed
+ * in AUTH_PATHS (sliding-window.ts); it was silently UNCOVERED between the
+ * per-email-cap rollback and 2026-07-18. A dedicated per-email login cap is
+ * still future hardening, and must use the ANONYMOUS slot
+ * (`acquireAnonRateLimitSlot`) — NOT the user-keyed `rateLimitCheck`, whose
+ * `RateLimitEntry.userId` FK rejects synthetic (ip/email) keys and 500'd this
+ * route. Failures are generic 401s.
  */
 const tokenBody = z.object({
   email: z.string().email(),

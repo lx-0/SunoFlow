@@ -110,6 +110,10 @@ const AUTH_PATHS = new Set([
   "/api/auth/reset-password",
   "/api/auth/signin",
   "/api/auth/callback/credentials",
+  // Native-client login (email+password -> API key). Was UNCOVERED after the
+  // per-email cap was rolled back (FK 500s) — the route comment claimed the
+  // middleware protected it, but no bucket matched /api/v1/* (found 2026-07-18).
+  "/api/v1/auth/token",
 ]);
 
 const IP_BUCKETS: IpBucket[] = [
