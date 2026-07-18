@@ -4,7 +4,8 @@
     "strict": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@sunoflow/core": ["../../packages/core/index.ts"]
+      "@sunoflow/core": ["../../packages/core/index.ts"],
+      "zod": ["./node_modules/zod"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts", "../../packages/core/**/*.ts"],

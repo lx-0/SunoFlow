@@ -35,9 +35,12 @@ test.describe("Settings Page", () => {
     await page.getByRole("button", { name: "Preferences" }).click();
 
     await expect(page.getByText("Appearance")).toBeVisible({ timeout: 3000 });
-    await expect(page.getByRole("button", { name: "Light" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Dark" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "System" }).first()).toBeVisible();
+    // Filter on visible text: since the dark-first flip, the AppShell's
+    // icon-only theme toggle carries aria-label "Dark"/"Light" too — the
+    // settings segment buttons are the ones with the label as TEXT.
+    await expect(themeButton(page, "Light")).toBeVisible();
+    await expect(themeButton(page, "Dark")).toBeVisible();
+    await expect(themeButton(page, "System")).toBeVisible();
   });
 });
 
@@ -200,6 +203,13 @@ test.describe("Settings — Export Data", () => {
 
 // ─── Theme Switching ────────────────────────────────────────────────────────
 
+// The settings segment buttons carry their label as visible TEXT; the
+// AppShell's icon-only toggle only has the aria-label (dark-first flip made
+// both resolve to the same accessible name — filter disambiguates).
+function themeButton(page: import("@playwright/test").Page, label: string) {
+  return page.getByRole("button", { name: label }).filter({ hasText: label }).first();
+}
+
 test.describe("Settings — Theme", () => {
   test("clicking Dark theme button changes theme", async ({ page }) => {
     await loginViaUI(page, testEmail, TEST_PASSWORD);
@@ -208,7 +218,11 @@ test.describe("Settings — Theme", () => {
     // Switch to Preferences tab
     await page.getByRole("button", { name: "Preferences" }).click();
 
-    await page.getByRole("button", { name: "Dark" }).click();
+    // Ensure a known non-dark starting point (dark is the default now).
+    await themeButton(page, "Light").click();
+    await expect(page.locator("html")).not.toHaveClass(/dark/, { timeout: 3000 });
+
+    await themeButton(page, "Dark").click();
 
     // The html element should have dark class or data attribute
     await expect(page.locator("html")).toHaveClass(/dark/, { timeout: 3000 });
@@ -222,11 +236,11 @@ test.describe("Settings — Theme", () => {
     await page.getByRole("button", { name: "Preferences" }).click();
 
     // Switch to dark first
-    await page.getByRole("button", { name: "Dark" }).click();
+    await themeButton(page, "Dark").click();
     await expect(page.locator("html")).toHaveClass(/dark/, { timeout: 3000 });
 
     // Switch back to light
-    await page.getByRole("button", { name: "Light" }).click();
+    await themeButton(page, "Light").click();
     await expect(page.locator("html")).not.toHaveClass(/dark/, {
       timeout: 3000,
     });
