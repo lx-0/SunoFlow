@@ -10,6 +10,13 @@ const geistSans = localFont({
   weight: "100 900",
 });
 
+const geistMono = localFont({
+  src: "../fonts/GeistMonoVF.woff",
+  variable: "--font-geist-mono",
+  weight: "100 900",
+  preload: false,
+});
+
 const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
@@ -18,7 +25,7 @@ export const metadata: Metadata = {
 
 export default function PublicPlaylistLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -26,7 +33,7 @@ export default function PublicPlaylistLayout({ children }: { children: React.Rea
           }}
         />
       </head>
-      <body className={`${geistSans.variable} antialiased bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white min-h-screen`}>
+      <body className="antialiased bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white min-h-screen">
         <PublicProviders>
           {children}
         </PublicProviders>

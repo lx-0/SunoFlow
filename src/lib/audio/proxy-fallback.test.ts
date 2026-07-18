@@ -13,9 +13,11 @@ vi.mock("@/lib/sunoapi", () => ({
 vi.mock("@/lib/logger", () => ({
   logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
+vi.mock("@/lib/error-logger", () => ({ logServerError: vi.fn() }));
 
 import { prisma } from "@/lib/prisma";
 import { fetchFreshUrls } from "@/lib/sunoapi";
+import { logServerError } from "@/lib/error-logger";
 import { proxyAudio } from "@/lib/audio";
 
 const DEAD_URL = "https://tempfile.aiquickdraw.com/x/dead.mp3";
@@ -85,6 +87,47 @@ describe("proxyAudio derived-cdn fallback", () => {
     expect(fetchMock).toHaveBeenCalledWith(DEAD_URL);
     expect(prisma.song.update).not.toHaveBeenCalled();
   });
+
+  it("emits the countable fallback event when the derived cdn answers", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        if (String(url) === DERIVED) return new Response(MP3, { status: 200 });
+        return new Response("gone", { status: 404 });
+      }),
+    );
+
+    await proxyAudio(baseParams());
+
+    expect(logServerError).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(logServerError).mock.calls[0][0]).toBe("audio-derived-cdn-fallback");
+  });
+
+  it.each([
+    { name: "a null expiry", audioUrlExpiresAt: null },
+    {
+      name: "a stale synthetic TTL",
+      audioUrlExpiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    },
+  ])(
+    "skips the pre-refresh for a permanent cdn1 audioUrl with $name",
+    async ({ audioUrlExpiresAt }) => {
+      const fetchMock = vi.fn(async () => new Response(MP3, { status: 200 }));
+      vi.stubGlobal("fetch", fetchMock);
+
+      const res = await proxyAudio({
+        ...baseParams(),
+        audioUrl: DERIVED,
+        audioUrlExpiresAt,
+      });
+
+      expect(res.status).toBe(200);
+      expect(fetchFreshUrls).not.toHaveBeenCalled();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith(DERIVED);
+      expect(prisma.song.update).not.toHaveBeenCalled();
+    },
+  );
 
   it("still serves the audio when the heal write fails", async () => {
     vi.mocked(prisma.song.update).mockRejectedValue(new Error("db down"));

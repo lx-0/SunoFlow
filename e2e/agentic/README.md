@@ -55,9 +55,15 @@ LLM_BASE_URL=http://192.168.2.42:11434/v1 LLM_MODEL=phi4:14b \
 
 Reports land in `test-results/agentic/<persona>.md` and as Playwright attachments.
 
-Env knobs (all optional, defaults → on-network Ollama):
-`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`. Gateway alternative:
+Env knobs: `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`. Gateway alternative:
 `LLM_BASE_URL=https://llm.yester.cloud/v1 LLM_API_KEY=<virtual-key> LLM_MODEL=default`.
+
+**Skip semantics:** with neither `LLM_BASE_URL` nor `LLM_MODEL` set (e.g. in CI,
+which provides no LLM endpoint), the spec skips explicitly with a visible reason
+in the Playwright report. Once either var IS set, an unreachable endpoint is a
+hard failure — not a skip — so the harness cannot bit-rot silently. Base-URL /
+model defaults (on-network Ollama, `phi4:14b`) still apply once you opt in, e.g.
+`LLM_MODEL=phi4:14b pnpm exec playwright test e2e/agentic`.
 
 The test **skips cleanly** (does not fail) if no LLM endpoint is reachable.
 

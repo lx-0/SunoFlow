@@ -9,9 +9,11 @@ vi.mock("@/lib/sunoapi", () => ({
 vi.mock("@/lib/logger", () => ({
   logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
+vi.mock("@/lib/error-logger", () => ({ logServerError: vi.fn() }));
 
 import { prisma } from "@/lib/prisma";
 import { fetchFreshUrls } from "@/lib/sunoapi";
+import { logServerError } from "@/lib/error-logger";
 import { CDN_URL_TTL_MS } from "@/lib/cdn-constants";
 import {
   refreshSongCdnUrls,
@@ -99,6 +101,31 @@ describe("refreshSongCdnUrls", () => {
     expect(arg.data.audioUrlExpiresAt.getTime()).toBeGreaterThanOrEqual(before + CDN_URL_TTL_MS);
   });
 
+  it("stamps audioUrlExpiresAt as null (permanent) when the fresh URL is on cdn1", async () => {
+    vi.mocked(fetchFreshUrls).mockResolvedValue({ audioUrl: DERIVED });
+
+    const result = await refreshSongCdnUrls(baseSong(), deps);
+
+    expect(result).toEqual({ audioUrl: DERIVED });
+    const arg = vi.mocked(prisma.song.update).mock.calls[0][0] as {
+      data: Record<string, unknown>;
+    };
+    expect(arg.data.audioUrl).toBe(DERIVED);
+    expect(arg.data.audioUrlExpiresAt).toBeNull();
+  });
+
+  it("emits one countable heal event with songId + host on a successful heal", async () => {
+    vi.mocked(fetchFreshUrls).mockResolvedValue({ audioUrl: FRESH_AUDIO });
+
+    await refreshSongCdnUrls(baseSong(), deps);
+
+    expect(logServerError).toHaveBeenCalledTimes(1);
+    const [source, , context] = vi.mocked(logServerError).mock.calls[0];
+    expect(source).toBe("song-cdn-heal");
+    expect(context.params?.songId).toBe("song1");
+    expect(context.tags?.host).toBe("tempfile.aiquickdraw.com");
+  });
+
   it("keys the lookup by the parent task-id for alternates", async () => {
     vi.mocked(fetchFreshUrls).mockResolvedValue({ audioUrl: FRESH_AUDIO });
 
@@ -139,6 +166,7 @@ describe("refreshSongCdnUrls", () => {
 
     expect(result).toBeNull();
     expect(prisma.song.update).not.toHaveBeenCalled();
+    expect(logServerError).not.toHaveBeenCalled();
     expect(vi.mocked(fetchFreshUrls).mock.calls.length > 0).toBe(fetchCalled);
   });
 
@@ -197,11 +225,14 @@ describe("fetchDerivedCdnAudio", () => {
     vi.mocked(prisma.song.update).mockResolvedValue({} as never);
   });
 
-  it("returns the derived cdn response and heals the row", async () => {
+  it("returns the derived cdn response and heals the row as permanent (null expiry)", async () => {
     const fetchMock = vi.fn(async () => new Response(MP3, { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await fetchDerivedCdnAudio({ id: "song1", sunoAudioId: CLIP_ID });
+    const result = await fetchDerivedCdnAudio(
+      { id: "song1", sunoAudioId: CLIP_ID },
+      "https://tempfile.aiquickdraw.com/x/dead.mp3",
+    );
 
     expect(result?.url).toBe(DERIVED);
     expect(result?.response.ok).toBe(true);
@@ -209,9 +240,25 @@ describe("fetchDerivedCdnAudio", () => {
     expect(prisma.song.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "song1" },
-        data: expect.objectContaining({ audioUrl: DERIVED }),
+        data: { audioUrl: DERIVED, audioUrlExpiresAt: null },
       }),
     );
+  });
+
+  it("emits one countable fallback event with songId + hosts when the fallback fires", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(MP3, { status: 200 })));
+
+    await fetchDerivedCdnAudio(
+      { id: "song1", sunoAudioId: CLIP_ID },
+      "https://tempfile.aiquickdraw.com/x/dead.mp3",
+    );
+
+    expect(logServerError).toHaveBeenCalledTimes(1);
+    const [source, , context] = vi.mocked(logServerError).mock.calls[0];
+    expect(source).toBe("audio-derived-cdn-fallback");
+    expect(context.params?.songId).toBe("song1");
+    expect(context.tags?.host).toBe("cdn1.suno.ai");
+    expect(context.tags?.deadHost).toBe("tempfile.aiquickdraw.com");
   });
 
   it("still returns the audio when the heal write fails", async () => {
@@ -262,6 +309,7 @@ describe("fetchDerivedCdnAudio", () => {
 
     expect(result).toBeNull();
     expect(prisma.song.update).not.toHaveBeenCalled();
+    expect(logServerError).not.toHaveBeenCalled();
     expect(fetchMock.mock.calls.length > 0).toBe(fetchCalled);
   });
 });

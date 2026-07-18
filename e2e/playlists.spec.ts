@@ -1,13 +1,10 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import {
   DEFAULT_PASSWORD,
   loginViaUI,
   getSharedUser,
-  mockSong,
-  mockPlaylist,
-  mockSongsAPI,
-  gotoLibraryWithMock,
   createPlaylistViaUI,
+  isRemote,
 } from "./helpers";
 
 const TEST_PASSWORD = DEFAULT_PASSWORD;
@@ -107,97 +104,142 @@ test.describe("Playlists — Detail & Edit", () => {
   });
 });
 
+// ─── Persistence round-trips ────────────────────────────────────────────────
+//
+// These tests intentionally use NO route mocks for the playlist mutations —
+// the point is to prove a song actually enters and leaves a playlist in the
+// database (reload → still true), not just that the UI fires a request.
+//
+// Seeding: on a server WITHOUT a Suno API key (CI's qa job by construction),
+// POST /api/generate falls back to persisting an instantly-"ready" mock song —
+// a real Song row, zero paid calls. Against a server that HAS a real key the
+// same request would start a real paid generation, so seeding only runs when
+// the environment is known-keyless:
+//   - CI (non-remote): always runs.
+//   - locally: start a keyless server (throwaway-DB recipe, no SUNOAPI_KEY)
+//     and set E2E_SEED_SONGS=true.
+//   - remote staging: always skipped (server key state unknown).
+const canSeedSongs =
+  !isRemote && (!!process.env.CI || process.env.E2E_SEED_SONGS === "true");
+
+async function seedReadySong(page: Page): Promise<{ id: string; title: string }> {
+  const res = await page.request.post("/api/generate", {
+    data: { prompt: "e2e playlist persistence seed", tags: "test" },
+  });
+  const body = (await res.json().catch(() => ({}))) as {
+    songs?: { id: string; title: string | null; generationStatus: string }[];
+    error?: string;
+  };
+  const song = body.songs?.[0];
+  if (res.status() !== 201 || !song || body.error) {
+    throw new Error(
+      `seedReadySong: /api/generate returned ${res.status()} — ${JSON.stringify(body)}`,
+    );
+  }
+  // Only the keyless mock fallback returns an instantly-ready song. Anything
+  // else means the server holds a real Suno key and may have started a real
+  // (paid) generation — abort loudly so this is never silently repeated.
+  if (song.generationStatus !== "ready") {
+    throw new Error(
+      `seedReadySong: song came back "${song.generationStatus}" instead of "ready" — ` +
+        "the server appears to have a real Suno API key; do not run the persistence tests against it",
+    );
+  }
+  return { id: song.id, title: song.title ?? "Untitled" };
+}
+
 test.describe("Playlists — Song Management", () => {
-  test("add a song to a playlist from library", async ({ page }) => {
+  test.skip(
+    () => !canSeedSongs,
+    "Persistence round-trip needs a keyless server (mock-generate seeding). " +
+      "Runs in CI; locally set E2E_SEED_SONGS=true against a server without SUNOAPI_KEY. " +
+      "Skipped on remote staging — an unmocked generate could start a real paid generation.",
+  );
+
+  test("add a song to a playlist from library — persists after reload", async ({ page }) => {
     await loginViaUI(page, testEmail, TEST_PASSWORD);
 
-    // First create a playlist
+    const song = await seedReadySong(page);
+    // Unique name so retries never produce ambiguous duplicates
+    const playlistName = `Songs Test ${Date.now()}`;
+
     await page.goto("/playlists");
-    await createPlaylistViaUI(page, "Songs Test Playlist");
+    await createPlaylistViaUI(page, playlistName);
 
-    // Set up mocks before navigating to library
-    const songs = [mockSong({ id: "add-to-pl-1", title: "Playlist Song" })];
-    await mockSongsAPI(page, songs);
+    // Add through the UI with NO route mocks — the POST must hit the real API.
+    await page.goto("/library");
+    await expect(page.getByText(song.title).first()).toBeVisible({ timeout: 10000 });
 
-    // Mock playlists list for the "Add to playlist" picker
-    await page.route("**/api/playlists", async (route) => {
-      if (route.request().method() === "GET") {
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({
-            playlists: [
-              mockPlaylist({ id: "pl-test-1", name: "Songs Test Playlist" }),
-            ],
-          }),
-        });
-      } else {
-        await route.continue();
-      }
-    });
-
-    // Mock add song to playlist endpoint
-    await page.route("**/api/playlists/*/songs", async (route) => {
-      if (route.request().method() === "POST") {
-        await route.fulfill({
-          status: 201,
-          contentType: "application/json",
-          body: JSON.stringify({ id: "ps-1", playlistId: "pl-test-1", songId: "add-to-pl-1", position: 0 }),
-        });
-      } else {
-        await route.continue();
-      }
-    });
-
-    // Navigate to library with mock active — wait for client refetch
-    await gotoLibraryWithMock(page);
-    await expect(page.getByText("Playlist Song")).toBeVisible({ timeout: 8000 });
-
-    // Click "Add to playlist" — use getByRole to match aria-label on button elements
     const addBtn = page.getByRole("button", { name: "Add to playlist" }).first();
     await expect(addBtn).toBeVisible({ timeout: 8000 });
     await addBtn.click();
 
-    // Click the playlist in the dropdown
-    await page.getByText("Songs Test Playlist").click();
+    const addResponse = page.waitForResponse(
+      (res) =>
+        res.request().method() === "POST" &&
+        /\/api\/playlists\/[^/]+\/songs$/.test(res.url()),
+      { timeout: 15000 },
+    );
+    await page.getByText(playlistName).click();
+    expect((await addResponse).status()).toBe(201);
 
-    // Should show success toast
     await expect(
-      page.getByText(/added to playlist/i).or(page.getByRole("alert")).first()
+      page.getByText(/added to playlist/i).first()
     ).toBeVisible({ timeout: 5000 });
+
+    // Persistence: fresh navigation + hard reload — the song must come back
+    // from the database, not from client state.
+    await page.goto("/playlists");
+    await page.locator("a").filter({ hasText: playlistName }).first().click();
+    await expect(page).toHaveURL(/\/playlists\//, { timeout: 10000 });
+    await expect(page.getByText(song.title).first()).toBeVisible({ timeout: 10000 });
+
+    await page.reload();
+    await expect(page.getByText(song.title).first()).toBeVisible({ timeout: 10000 });
   });
 
-  test("remove a song from playlist detail view", async ({ page }) => {
+  test("remove a song from playlist detail view — persists after reload", async ({ page }) => {
     await loginViaUI(page, testEmail, TEST_PASSWORD);
 
-    // Create a playlist with a song already in it
+    const song = await seedReadySong(page);
+    const playlistName = `Remove Song ${Date.now()}`;
+
     await page.goto("/playlists");
-    await createPlaylistViaUI(page, "Remove Song Playlist");
+    await createPlaylistViaUI(page, playlistName);
 
-    // Navigate to the playlist detail
-    await page.getByText("Remove Song Playlist").click();
-    await expect(page).toHaveURL(/\/playlists\//, { timeout: 5000 });
-
-    // The playlist is empty since we just created it — mock the page to show a song
-    // We need to reload with mocked data
+    await page.locator("a").filter({ hasText: playlistName }).first().click();
+    await expect(page).toHaveURL(/\/playlists\//, { timeout: 10000 });
     const playlistId = page.url().split("/playlists/")[1];
 
-    await page.route(`**/api/playlists/${playlistId}/songs/*`, async (route) => {
-      if (route.request().method() === "DELETE") {
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({ success: true }),
-        });
-      } else {
-        await route.continue();
-      }
+    // Put the seeded song into the playlist via the real API, then confirm the
+    // UI sees it after a reload — the playlist is genuinely non-empty.
+    const addRes = await page.request.post(`/api/playlists/${playlistId}/songs`, {
+      data: { songId: song.id },
     });
+    expect(addRes.status()).toBe(201);
 
-    // Since real playlist is empty, verify the empty state message instead
-    await expect(
-      page.getByText("No songs yet")
-    ).toBeVisible({ timeout: 5000 });
+    await page.reload();
+    await expect(page.getByText(song.title).first()).toBeVisible({ timeout: 10000 });
+
+    // Remove through the UI with NO route mocks. Two buttons share this label
+    // (swipe background action + row action); the row action is last in DOM
+    // order and the visible one at desktop viewport.
+    const deleteResponse = page.waitForResponse(
+      (res) =>
+        res.request().method() === "DELETE" &&
+        res.url().includes(`/api/playlists/${playlistId}/songs/`),
+      { timeout: 15000 },
+    );
+    await page.locator('button[aria-label="Remove from playlist"]').last().click();
+    expect((await deleteResponse).status()).toBe(200);
+
+    await expect(page.getByText(song.title)).not.toBeVisible({ timeout: 5000 });
+
+    // Persistence: reload — the song must STAY gone. Only now is the empty
+    // state assertion meaningful: it appears because a real removal happened.
+    await page.reload();
+    await expect(page.getByText("No songs yet")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(song.title)).not.toBeVisible();
   });
 });
 

@@ -41,7 +41,8 @@ interface PersistedSong {
 }
 
 interface PersistedPlaybackState {
-  song?: PersistedSong;
+  // Null when the cued song was deleted (FK is SetNull, not Cascade).
+  song?: PersistedSong | null;
   position?: number;
   queue?: QueueSong[];
   volume?: number;
@@ -136,7 +137,7 @@ export async function loadPlaybackState(): Promise<RestoredPlaybackState | null>
   const data = await apiGet<PlaybackStateResponse>("/api/user/playback-state");
   const state = data.state;
 
-  if (!state?.song?.id) {
+  if (!state) {
     return null;
   }
 
@@ -145,7 +146,11 @@ export async function loadPlaybackState(): Promise<RestoredPlaybackState | null>
     return null;
   }
 
-  const queueIndex = queue.findIndex((song) => song.id === state.song?.id);
+  // A null song means the cued track was deleted (songId is SetNull): fall
+  // back to the start of the surviving queue instead of dropping everything.
+  const queueIndex = state.song?.id
+    ? queue.findIndex((song) => song.id === state.song?.id)
+    : -1;
   const currentIndex = queueIndex >= 0 ? queueIndex : 0;
   const currentSong = queue[currentIndex];
 
@@ -154,7 +159,7 @@ export async function loadPlaybackState(): Promise<RestoredPlaybackState | null>
     currentIndex,
     duration: currentSong.duration ?? 0,
     initialSrc: proxiedAudioUrl(currentSong.id),
-    position: typeof state.position === "number" ? state.position : 0,
+    position: state.song?.id && typeof state.position === "number" ? state.position : 0,
     volume: typeof state.volume === "number" ? state.volume : 1,
     shuffleVersions: state.shuffleVersions === true,
     shuffle: state.shuffle === true,

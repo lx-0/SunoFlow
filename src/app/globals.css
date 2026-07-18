@@ -18,9 +18,9 @@
   /* Border */
   --border: #e5e7eb;
 
-  /* Accent */
-  --accent: #7c3aed;
-  --accent-hover: #6d28d9;
+  /* Accent — Electric Magenta (DESIGN.md, oklch 62% 0.27 350) */
+  --accent: #ef009c;
+  --accent-hover: #cc0085;
 
   /* Player bar */
   --player-bg: #111827;
@@ -52,9 +52,9 @@
   /* Border */
   --border: #1f2937;
 
-  /* Accent */
-  --accent: #7c3aed;
-  --accent-hover: #8b5cf6;
+  /* Accent — Electric Magenta (DESIGN.md, oklch 62% 0.27 350) */
+  --accent: #ef009c;
+  --accent-hover: #fb40ad;
 
   /* Player bar */
   --player-bg: #1f2937;
@@ -73,7 +73,6 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
   overflow-x: hidden;
 }
 
@@ -112,8 +111,10 @@ html.theme-transition *::after {
   height: auto;
   overflow: visible;
   padding: 0.75rem 1.5rem;
-  background: #7c3aed;
-  color: white;
+  /* Electric Magenta fill + surface-deep text (DESIGN.md button-primary):
+     white on #ef009c is only 4.1:1 and fails AA for small text. */
+  background: #ef009c;
+  color: #0f090c;
   font-weight: 600;
   font-size: 0.875rem;
   border-radius: 0.75rem;
@@ -125,7 +126,7 @@ html.theme-transition *::after {
 /* ─── Focus-visible ring for all interactive elements ──────────────────────── */
 
 *:focus-visible {
-  outline: 2px solid #7c3aed;
+  outline: 2px solid #ef009c;
   outline-offset: 2px;
   border-radius: 4px;
 }

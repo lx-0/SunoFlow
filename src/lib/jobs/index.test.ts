@@ -14,7 +14,7 @@ describe("registerAllJobs", () => {
   it("registers all jobs with the expected schedules", () => {
     registerAllJobs();
 
-    expect(vi.mocked(registerJob)).toHaveBeenCalledTimes(5);
+    expect(vi.mocked(registerJob)).toHaveBeenCalledTimes(6);
     expect(vi.mocked(registerJob)).toHaveBeenNthCalledWith(
       1,
       "smart-playlist-refresh",
@@ -43,6 +43,12 @@ describe("registerAllJobs", () => {
       5,
       "rate-limit-cleanup",
       "30 2 * * *",
+      expect.any(Function)
+    );
+    expect(vi.mocked(registerJob)).toHaveBeenNthCalledWith(
+      6,
+      "retention-cleanup",
+      "45 2 * * *",
       expect.any(Function)
     );
   });

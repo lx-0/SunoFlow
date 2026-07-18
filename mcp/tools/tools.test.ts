@@ -52,6 +52,7 @@ vi.mock("@/lib/credits", () => ({
 
 vi.mock("@/lib/sunoapi", () => ({
   generateSong: vi.fn(),
+  extendMusic: vi.fn(),
   resolveUserApiKeyWithMode: vi.fn(),
   SunoApiError: class SunoApiError extends Error {},
 }));
@@ -64,12 +65,13 @@ vi.mock("@/lib/sanitize", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { getMonthlyCreditUsage, recordCreditUsage, checkCredits, deductCredits } from "@/lib/credits";
-import { generateSong } from "@/lib/sunoapi";
+import { generateSong, extendMusic } from "@/lib/sunoapi";
 import { resolveUserApiKeyWithMode } from "@/lib/sunoapi";
 import { getTool } from "../registry";
 
 // Load tools (side-effects register them)
 import "./generate_song";
+import "./extend_song";
 import "./list_songs";
 import "./get_song";
 import "./playlist";
@@ -153,6 +155,94 @@ describe("generate_song tool", () => {
     const tool = getTool("generate_song")!;
     await expect(tool.handler({ prompt: "rock ballad" }, USER_ID)).rejects.toThrow(
       "Insufficient credits"
+    );
+  });
+});
+
+// ── extend_song ───────────────────────────────────────────────────────────────
+
+describe("extend_song tool", () => {
+  const PARENT = {
+    id: "song-parent",
+    userId: USER_ID,
+    parentSongId: null,
+    sunoAudioId: "suno-audio-1",
+    title: "Original Song",
+    prompt: "original prompt",
+    tags: "pop",
+    isInstrumental: false,
+  };
+
+  function mockHappyPath(parent: Record<string, unknown> = PARENT) {
+    vi.mocked(prisma.song.findFirst).mockResolvedValue(parent as never);
+    vi.mocked(resolveUserApiKeyWithMode).mockResolvedValue({
+      apiKey: "sk-test",
+      usingPersonalKey: false,
+    });
+    vi.mocked(checkCredits).mockResolvedValue({ ok: true, creditCost: 10, creditsRemaining: 100 });
+    vi.mocked(extendMusic).mockResolvedValue({ taskId: "task-ext" });
+    vi.mocked(prisma.song.create).mockResolvedValue({ id: "song-ext" } as never);
+    vi.mocked(deductCredits).mockResolvedValue(undefined);
+  }
+
+  it("is registered", () => {
+    expect(getTool("extend_song")).toBeDefined();
+  });
+
+  it("stores the caller-supplied title (regression: precedence bug discarded it)", async () => {
+    mockHappyPath();
+
+    const tool = getTool("extend_song")!;
+    const result = await tool.handler(
+      { songId: "song-parent", title: "My Extension" },
+      USER_ID
+    ) as { songId: string; generationStatus: string };
+
+    expect(prisma.song.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ title: "My Extension" }),
+      })
+    );
+    expect(result.songId).toBe("song-ext");
+    expect(result.generationStatus).toBe("pending");
+  });
+
+  it("stores the caller title even when the parent is untitled (regression: 'null (extended)')", async () => {
+    mockHappyPath({ ...PARENT, title: null });
+
+    const tool = getTool("extend_song")!;
+    await tool.handler({ songId: "song-parent", title: "Named Extension" }, USER_ID);
+
+    expect(prisma.song.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ title: "Named Extension" }),
+      })
+    );
+  });
+
+  it("falls back to '<parent title> (extended)' when the caller passes no title", async () => {
+    mockHappyPath();
+
+    const tool = getTool("extend_song")!;
+    await tool.handler({ songId: "song-parent" }, USER_ID);
+
+    expect(prisma.song.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ title: "Original Song (extended)" }),
+      })
+    );
+  });
+
+  it("stores null (not 'null (extended)') when neither caller nor parent has a title", async () => {
+    mockHappyPath({ ...PARENT, title: null });
+
+    const tool = getTool("extend_song")!;
+    await tool.handler({ songId: "song-parent" }, USER_ID);
+
+    expect(prisma.song.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ title: null }),
+      })
     );
   });
 });

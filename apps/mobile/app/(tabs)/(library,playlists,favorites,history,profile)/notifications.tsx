@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { View, FlatList, Pressable, ActivityIndicator, Alert, RefreshControl, StyleSheet } from "react-native";
 import { Text } from "@/components/Themed";
-import { Stack, router, type Href } from "expo-router";
+import { Stack, type Href } from "expo-router";
 import { Bell, AlertCircle } from "lucide-react-native";
 import { HttpError } from "@/api/client";
 import {
@@ -12,6 +12,7 @@ import {
   type AppNotification,
 } from "@/api/notifications";
 import { useListResource } from "@/hooks/useListResource";
+import { pushInActiveTab } from "@/navigation";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
@@ -57,8 +58,10 @@ export default function NotificationsScreen() {
           revalidate(); // roll back to server truth
         });
     }
+    // Group-qualified push: notifications is reachable from ANY tab, and a bare
+    // shared-group href would resolve into the Library tab, orphaning Back.
     const target = notificationTarget(n);
-    if (target) router.push(target as Href);
+    if (target) pushInActiveTab(target as Href);
   }, [mutate, revalidate]);
 
   const onMarkAll = useCallback(() => {

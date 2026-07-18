@@ -9,11 +9,20 @@
  * Safety: Suno generation and credits are mocked, so a bot run NEVER triggers
  * a real paid generation. Auth uses the existing PLAYWRIGHT_TEST bypass.
  *
+ * CI: this spec is SKIPPED there by design — CI provides no LLM endpoint.
+ * The skip is explicit (env-gated, reason surfaced in the report), not a
+ * silent network-probe fallback. When LLM_BASE_URL/LLM_MODEL ARE set but the
+ * endpoint is unreachable, the run FAILS loudly instead of skipping, so the
+ * harness cannot bit-rot unnoticed.
+ *
  * Run:
  *   pnpm dev                       # terminal 1 (PLAYWRIGHT_TEST server)
  *   # terminal 2 — point at any OpenAI-compatible LLM:
  *   LLM_BASE_URL=http://192.168.2.42:11434/v1 LLM_MODEL=phi4:14b \
  *     pnpm exec playwright test e2e/agentic --headed
+ *   # gateway alternative:
+ *   LLM_BASE_URL=https://llm.yester.cloud/v1 LLM_API_KEY=<key> LLM_MODEL=quality \
+ *     pnpm exec playwright test e2e/agentic
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -48,18 +57,30 @@ const LIBRARY = [
   mockSong({ title: "Hyperspeed", tags: "drum and bass", generationStatus: "ready" }),
 ];
 
+// ── Explicit opt-in gate ────────────────────────────────────────────────────
+// No LLM env configured (the CI case) → skip up-front with a visible reason,
+// instead of collecting the tests and silently skipping on a failed ping.
+const llmConfigured = !!(process.env.LLM_BASE_URL || process.env.LLM_MODEL);
+test.skip(
+  () => !llmConfigured,
+  "Agentic UX smoke needs an LLM endpoint — set LLM_BASE_URL/LLM_MODEL (not configured in CI). " +
+    "See the spec header / e2e/agentic/README.md for how to run it.",
+);
+
 test.beforeAll(async () => {
-  // Preflight: skip cleanly (not fail) if no LLM endpoint is reachable.
+  if (!llmConfigured) return; // all tests skipped via the gate above
+
+  // Preflight: the endpoint was explicitly configured, so unreachable is a
+  // FAILURE (visible), not a skip — a skip here would let the harness bit-rot.
   try {
     const ping = await fetch(`${cfg.baseUrl}/models`, {
       headers: { Authorization: `Bearer ${cfg.apiKey}` },
     });
     if (!ping.ok && ping.status !== 404) throw new Error(`status ${ping.status}`);
   } catch (err) {
-    test.skip(
-      true,
-      `No LLM endpoint at ${cfg.baseUrl} (${(err as Error).message}). ` +
-        `Set LLM_BASE_URL / LLM_MODEL (e.g. local Ollama or llm.yester.cloud).`,
+    throw new Error(
+      `LLM endpoint at ${cfg.baseUrl} is configured but unreachable (${(err as Error).message}). ` +
+        `Fix LLM_BASE_URL / LLM_API_KEY / LLM_MODEL, or unset them to skip this spec.`,
     );
   }
 });

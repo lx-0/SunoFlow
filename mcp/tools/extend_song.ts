@@ -150,7 +150,7 @@ registerTool({
           userId,
           parentSongId: rootId,
           sunoJobId: result.taskId,
-          title: cleanTitle ?? parentSong.title ? `${parentSong.title} (extended)` : null,
+          title: cleanTitle ?? (parentSong.title ? `${parentSong.title} (extended)` : null),
           prompt: cleanPrompt ?? parentSong.prompt ?? "",
           tags: cleanStyle ?? parentSong.tags ?? null,
           isInstrumental: parentSong.isInstrumental,

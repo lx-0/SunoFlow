@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { audioCache, imageCache } from "./file";
 import { resolveUserApiKey } from "@/lib/sunoapi";
 import { logger } from "@/lib/logger";
-import { CDN_REFRESH_THRESHOLD_MS } from "@/lib/cdn-constants";
+import { CDN_REFRESH_THRESHOLD_MS, isPermanentCdnUrl } from "@/lib/cdn-constants";
 import { refreshSongCdnUrls } from "@/lib/songs/asset-refresh";
 
 const BATCH_SIZE = process.env.CACHE_WARMUP_BATCH_SIZE
@@ -10,7 +10,12 @@ const BATCH_SIZE = process.env.CACHE_WARMUP_BATCH_SIZE
   : undefined;
 const DELAY_MS = 1000;
 
-function isFresh(expiresAt: Date | null): boolean {
+function isFresh(expiresAt: Date | null, url?: string | null): boolean {
+  // Permanent-host (cdn1) URLs never expire — null/stale TTL stamps on those
+  // rows are meaningless; without this, every boot re-refreshed ~80% of the
+  // catalog against the flaky aggregator (and now would emit a heal event per
+  // song — pure noise).
+  if (url && isPermanentCdnUrl(url)) return true;
   if (!expiresAt) return false;
   return expiresAt.getTime() - Date.now() > CDN_REFRESH_THRESHOLD_MS;
 }
@@ -59,7 +64,7 @@ export async function warmUpAudioCache(): Promise<void> {
       // Step 1: try downloading existing DB URLs if still fresh. This avoids
       // a record-info round-trip and works for alternates whose `sunoJobId`
       // is a clip-UUID (record-info would 404).
-      if (!audioHit && song.audioUrl && isFresh(song.audioUrlExpiresAt)) {
+      if (!audioHit && song.audioUrl && isFresh(song.audioUrlExpiresAt, song.audioUrl)) {
         const ok = await audioCache.downloadAndPut(song.id, song.audioUrl);
         didNetwork = true;
         if (ok) audioCached++;

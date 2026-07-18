@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { countActiveUsers } from "@/lib/active-users";
 import { emailDigestSend } from "@/lib/jobs/email-digest";
+import { retentionCleanup } from "@/lib/jobs/retention-cleanup";
 
 import type { JobDefinition } from "@/lib/jobs/types";
 
@@ -62,4 +63,5 @@ export const JOB_DEFINITIONS: JobDefinition[] = [
   { name: "analytics-aggregation", cron: "0 * * * *", run: analyticsSnapshot },
   { name: "session-cleanup", cron: "0 2 * * *", run: sessionCleanup },
   { name: "rate-limit-cleanup", cron: "30 2 * * *", run: rateLimitEntryCleanup },
+  { name: "retention-cleanup", cron: "45 2 * * *", run: retentionCleanup },
 ];

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { audioCache, imageCache } from "@/lib/cache";
 import { logger } from "@/lib/logger";
-import { CDN_REFRESH_THRESHOLD_MS } from "@/lib/cdn-constants";
+import { CDN_REFRESH_THRESHOLD_MS, isPermanentCdnUrl } from "@/lib/cdn-constants";
 import { refreshSongCdnUrls, fetchDerivedCdnAudio } from "@/lib/songs/asset-refresh";
 
 export interface AudioProxyParams {
@@ -63,9 +63,14 @@ export async function proxyAudio(params: AudioProxyParams): Promise<Response> {
     return true;
   };
 
+  // Permanent-host (cdn1) URLs never expire — skip the aggregator
+  // pre-refresh no matter what the TTL column says (legacy rows carry a
+  // meaningless null or synthetic stamp; a dead cdn1 file is handled by the
+  // on-failure refresh + fallback below).
   const isExpired =
-    !audioUrlExpiresAt ||
-    audioUrlExpiresAt.getTime() - now < CDN_REFRESH_THRESHOLD_MS;
+    !isPermanentCdnUrl(audioUrl) &&
+    (!audioUrlExpiresAt ||
+      audioUrlExpiresAt.getTime() - now < CDN_REFRESH_THRESHOLD_MS);
   if (isExpired) {
     await tryRefresh();
   }

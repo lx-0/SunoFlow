@@ -25,9 +25,20 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+// Routine rejects (401/403/429) must NOT become GlitchTip exceptions — mock the
+// error logger so the tests can assert it stays untouched on those paths.
+vi.mock("@/lib/error-logger/server", () => ({
+  logServerError: vi.fn(() => "test-correlation-id"),
+  extractErrorInfo: vi.fn(() => ({ message: "", name: "Error" })),
+}));
+
 import { prisma } from "@/lib/prisma";
+import { logServerError } from "@/lib/error-logger/server";
+import { logger } from "@/lib/logger";
 import { POST } from "./route";
 import { _resetMcpRateLimit } from "@/lib/mcp/rate-limit";
+
+const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
 
 const COMMON_HEADERS = {
   "content-type": "application/json",
@@ -59,6 +70,8 @@ describe("POST /api/mcp", () => {
     vi.mocked(prisma.apiKey.findFirst).mockReset();
     vi.mocked(prisma.apiKey.update).mockReset();
     vi.mocked(prisma.apiKey.update).mockResolvedValue({} as never);
+    vi.mocked(logServerError).mockClear();
+    warnSpy.mockClear();
     _resetMcpRateLimit();
   });
 
@@ -67,6 +80,12 @@ describe("POST /api/mcp", () => {
     expect(res.status).toBe(401);
     expect(res.headers.get("www-authenticate")).toMatch(/^Bearer/);
     expect(prisma.apiKey.findFirst).not.toHaveBeenCalled();
+    // Routine auth reject: structured warn only, never a GlitchTip exception.
+    expect(logServerError).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ source: "mcp.auth.rejected" }),
+      "mcp request rejected",
+    );
   });
 
   it("returns 401 when scheme is not Bearer", async () => {
@@ -218,6 +237,15 @@ describe("POST /api/mcp", () => {
     expect(body.reason).toBe("origin blocked");
     // Origin check runs before auth, so no DB lookup happened.
     expect(prisma.apiKey.findFirst).not.toHaveBeenCalled();
+    // Routine origin reject: structured warn only, never a GlitchTip exception.
+    expect(logServerError).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: "mcp.origin.rejected",
+        origin: "https://evil.example.com",
+      }),
+      "mcp request rejected",
+    );
   });
 
   it("accepts allow-listed Origin (https://claude.ai)", async () => {
@@ -267,6 +295,16 @@ describe("POST /api/mcp", () => {
       expect(blocked.status).toBe(429);
       expect(blocked.headers.get("retry-after")).toMatch(/^\d+$/);
       expect(blocked.headers.get("x-ratelimit-limit")).toBe("3");
+      // Routine rate-limit reject: structured warn only, never a GlitchTip exception.
+      expect(logServerError).not.toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source: "mcp.rate_limit.exceeded",
+          userId: "user-rl",
+          limit: 3,
+        }),
+        "mcp request rejected",
+      );
     } finally {
       if (originalRpm !== undefined) {
         process.env.MCP_RATE_LIMIT_RPM = originalRpm;

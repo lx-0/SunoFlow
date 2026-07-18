@@ -2,7 +2,22 @@ import { prisma } from "@/lib/prisma";
 import { fetchFreshUrls } from "@/lib/sunoapi";
 import { sunoCdnAudioUrl } from "@/lib/sunoapi/mappers";
 import { logger } from "@/lib/logger";
-import { CDN_URL_TTL_MS } from "@/lib/cdn-constants";
+import { logServerError } from "@/lib/error-logger";
+import {
+  CDN_URL_TTL_MS,
+  PERMANENT_CDN_HOST,
+  isPermanentCdnUrl,
+} from "@/lib/cdn-constants";
+
+/** Hostname of a URL for event tags; undefined when unparsable/absent. */
+function urlHost(url: string | null | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * Minimal song projection needed to refresh its CDN assets. Matches the
@@ -104,12 +119,32 @@ export async function refreshSongCdnUrls(
       where: { id: song.id },
       data: {
         ...(healAudio && fresh?.audioUrl
-          ? { audioUrl: fresh.audioUrl, audioUrlExpiresAt: expiresAt }
+          ? {
+              audioUrl: fresh.audioUrl,
+              // Permanent-host (cdn1) URLs never expire — stamp null so the
+              // TTL column says "permanent" instead of a synthetic deadline.
+              audioUrlExpiresAt: isPermanentCdnUrl(fresh.audioUrl) ? null : expiresAt,
+            }
           : {}),
         ...(freshImageUrl
           ? { imageUrl: freshImageUrl, imageUrlExpiresAt: expiresAt }
           : {}),
       },
+    });
+
+    // Countable heal signal: every successful heal means a stored CDN URL had
+    // gone stale/dead — N heals per day in GlitchTip is the early warning for
+    // the next aggregator host death (incident 2026-07-17: 114 silent heals).
+    const healedAudioUrl = healAudio ? fresh?.audioUrl || undefined : undefined;
+    logServerError("song-cdn-heal", new Error("song cdn urls healed"), {
+      route: "lib/songs/asset-refresh",
+      params: {
+        songId: song.id,
+        sunoJobId: refreshTaskId,
+        healedAudio: !!healedAudioUrl,
+        healedImage: !!freshImageUrl,
+      },
+      tags: { host: urlHost(healedAudioUrl ?? freshImageUrl) },
     });
 
     return {
@@ -151,12 +186,25 @@ export async function fetchDerivedCdnAudio(
   try {
     const response = await fetch(derived);
     if (!response.ok) return null;
+    // Countable fallback signal: the stored origin is dead and only the
+    // derived permanent URL answered — the exact event that spiked during
+    // incident 2026-07-17, now visible in GlitchTip instead of stdout-only.
+    logServerError(
+      "audio-derived-cdn-fallback",
+      new Error("audio derived-cdn fallback fired"),
+      {
+        route: "lib/songs/asset-refresh",
+        params: { songId: song.id, deadUrl: currentUrl ?? undefined },
+        tags: { host: PERMANENT_CDN_HOST, deadHost: urlHost(currentUrl) },
+      },
+    );
     await prisma.song
       .update({
         where: { id: song.id },
         data: {
           audioUrl: derived,
-          audioUrlExpiresAt: new Date(Date.now() + CDN_URL_TTL_MS),
+          // Derived URL is on the permanent host — null marks it never-expiring.
+          audioUrlExpiresAt: null,
         },
       })
       .catch((err: unknown) => {

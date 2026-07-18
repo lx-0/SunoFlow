@@ -815,7 +815,7 @@ model LyricTimestamp {
 model PlaybackState {
   id        String   @id @default(cuid())
   userId    String   @unique
-  songId    String
+  songId    String?
   position  Float    @default(0)
   queue     Json     @default("[]")
   volume          Float    @default(1)
@@ -828,8 +828,8 @@ model PlaybackState {
   eqPitch         Float    @default(0)
   updatedAt       DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song Song? @relation(fields: [songId], references: [id], onDelete: SetNull)
 
   @@index([userId])
 }

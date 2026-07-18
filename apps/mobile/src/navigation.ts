@@ -126,6 +126,20 @@ export function closePlayerThen(href: Href) {
 }
 
 /**
+ * Drill-down push for deep-link-style targets (notification rows, future
+ * cold-start deep links). Detail screens live in the shared 5-way route group,
+ * so a bare "/song/[id]" always resolves into the FIRST group — the Library
+ * tab — orphaning Back. Qualify with the ACTIVE tab's group (same idiom as
+ * closePlayerThen) so the target lands on the current tab's stack and Back
+ * returns to the screen the user tapped from.
+ */
+export function pushInActiveTab(href: Href) {
+  const qualified =
+    typeof href === "string" ? (`/(tabs)/${activeTabGroup()}${href}` as Href) : href;
+  router.push(qualified);
+}
+
+/**
  * In-view jump to a section (e.g. "Use in Generate", "Browse library",
  * "Manage RSS feeds"). Pushes onto the current tab's stack — Back returns to
  * the screen the user came from. Params on an object Href are preserved.

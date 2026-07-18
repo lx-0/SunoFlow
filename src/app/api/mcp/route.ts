@@ -9,8 +9,10 @@
  *      overflow.
  *   4. Per-request fresh Server with the full registry wired via
  *      `registerMcpHandlers` (shared with stdio).
- *   5. Tool errors and reject paths emit GlitchTip events via
- *      `logServerError`.
+ *   5. Routine reject paths (origin/auth/rate-limit) are expected control
+ *      flow on a public bearer-only endpoint — they log a structured
+ *      `logger.warn` only. Genuine handler failures (500) emit GlitchTip
+ *      events via `logServerError`.
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -21,6 +23,7 @@ import "@/lib/mcp/registry-bootstrap";
 import { checkOrigin } from "@/lib/mcp/origin-guard";
 import { checkMcpRateLimit } from "@/lib/mcp/rate-limit";
 import { logServerError } from "@/lib/error-logger/server";
+import { logger } from "@/lib/logger";
 import { resolveApiKeyFromHeader } from "@mcp/auth";
 
 export const runtime = "nodejs";
@@ -77,13 +80,15 @@ async function handleRequest(req: Request): Promise<Response> {
   // 1. Origin
   const originCheck = checkOrigin(req);
   if (!originCheck.ok) {
-    logServerError("mcp.origin.rejected", new Error(`origin ${originCheck.reason}`), {
-      route: ROUTE,
-      tags: {
+    logger.warn(
+      {
+        source: "mcp.origin.rejected",
+        route: ROUTE,
         reason: originCheck.reason,
         origin: originCheck.origin ?? "missing",
       },
-    });
+      "mcp request rejected",
+    );
     return forbidden(`origin ${originCheck.reason}`);
   }
 
@@ -91,10 +96,14 @@ async function handleRequest(req: Request): Promise<Response> {
   const authHeader = req.headers.get("authorization");
   const userId = await resolveApiKeyFromHeader(authHeader);
   if (!userId) {
-    logServerError("mcp.auth.rejected", new Error("invalid or missing bearer"), {
-      route: ROUTE,
-      tags: { origin: originCheck.origin ?? "none" },
-    });
+    logger.warn(
+      {
+        source: "mcp.auth.rejected",
+        route: ROUTE,
+        origin: originCheck.origin ?? "none",
+      },
+      "mcp request rejected",
+    );
     return unauthorized();
   }
 
@@ -104,11 +113,15 @@ async function handleRequest(req: Request): Promise<Response> {
   if (rawKey) {
     const rl = checkMcpRateLimit(rawKey);
     if (!rl.allowed) {
-      logServerError("mcp.rate_limit.exceeded", new Error("rate limit exceeded"), {
-        userId,
-        route: ROUTE,
-        tags: { limit: String(rl.limit) },
-      });
+      logger.warn(
+        {
+          source: "mcp.rate_limit.exceeded",
+          route: ROUTE,
+          userId,
+          limit: rl.limit,
+        },
+        "mcp request rejected",
+      );
       return tooManyRequests(rl.retryAfterSec, rl.limit);
     }
   }

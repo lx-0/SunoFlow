@@ -22,6 +22,13 @@ const geistSans = localFont({
   preload: false,
 });
 
+const geistMono = localFont({
+  src: "../fonts/GeistMonoVF.woff",
+  variable: "--font-geist-mono",
+  weight: "100 900",
+  preload: false,
+});
+
 const siteUrl = getSiteUrl();
 
 export async function generateMetadata({
@@ -86,7 +93,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#7c3aed",
+  themeColor: "#ef009c",
 };
 
 // Force dynamic rendering — SSG causes hydration mismatches because
@@ -116,7 +123,10 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    // Font variables live on <html>: Tailwind's preflight sets font-family
+    // via var(--font-geist-sans) on the html element, and an undefined CSS
+    // variable would invalidate that whole declaration.
+    <html lang={locale} className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -129,7 +139,7 @@ export default async function LocaleLayout({
         <link rel="alternate" hrefLang="ja" href={`${siteUrl}/ja`} />
         <link rel="alternate" hrefLang="x-default" href={siteUrl} />
       </head>
-      <body className={`${geistSans.variable} antialiased bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white min-h-screen`}>
+      <body className="antialiased bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white min-h-screen">
         <NextIntlClientProvider messages={messages}>
           <QueryProvider>
             <PostHogProvider>
