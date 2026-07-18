@@ -69,4 +69,36 @@ if [ "$found" -ne 0 ]; then
 fi
 
 echo "PASS: no unapproved destructive SQL patterns detected"
+
+# 4) Schema-vs-migrations drift check (needs a real Postgres as shadow DB).
+# Gated on SHADOW_DATABASE_URL: CI's qa job provides one; the deploy workflow
+# runs this script with a dummy database URL and must skip the diff.
+if [ -n "${SHADOW_DATABASE_URL:-}" ]; then
+  set +e
+  pnpm exec prisma migrate diff \
+    --from-migrations "$MIGRATIONS_DIR" \
+    --to-schema-datamodel "$SCHEMA_PATH" \
+    --shadow-database-url "$SHADOW_DATABASE_URL" \
+    --exit-code >/tmp/prisma-drift.out 2>&1
+  drift_status=$?
+  set -e
+  case "$drift_status" in
+    0)
+      echo "PASS: schema matches migration history (no drift)"
+      ;;
+    2)
+      echo "FAIL: schema.prisma and $MIGRATIONS_DIR have diverged — generate a migration" >&2
+      sed -n '1,120p' /tmp/prisma-drift.out >&2 || true
+      exit 1
+      ;;
+    *)
+      echo "FAIL: prisma migrate diff errored (exit $drift_status)" >&2
+      sed -n '1,120p' /tmp/prisma-drift.out >&2 || true
+      exit 1
+      ;;
+  esac
+else
+  echo "SKIP: schema drift check (SHADOW_DATABASE_URL not set)"
+fi
+
 echo "Migration safety checks passed."

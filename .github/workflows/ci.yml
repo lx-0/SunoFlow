@@ -64,8 +64,15 @@ jobs:
       - name: Apply DB migrations
         run: pnpm exec prisma migrate deploy
 
+      - name: Create shadow database for drift check
+        # prisma migrate diff resets the shadow DB, so it must not be the
+        # service DB that later steps (unit tests, E2E) depend on.
+        run: PGPASSWORD=projects psql -h localhost -U projects -d sunoflow -c 'CREATE DATABASE sunoflow_shadow'
+
       - name: Migration safety check
         run: bash scripts/check-migration-safety.sh
+        env:
+          SHADOW_DATABASE_URL: postgres://projects:projects@localhost:5432/sunoflow_shadow
 
       - name: Lint
         run: pnpm lint

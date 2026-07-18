@@ -43,6 +43,8 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.0",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "^57.0.0",
     "typescript": "~5.9.2"
   },
   "comment": "Versions pinned to Expo SDK 56 (from expo/bundledNativeModules.json sdk-56) so a plain `pnpm install` gets the right tree without `expo install --fix`. Audio = expo-audio (free, New-Arch). reanimated 4 needs react-native-worklets (0.8.3). UNTESTED scaffold."

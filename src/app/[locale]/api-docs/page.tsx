@@ -19,7 +19,7 @@ export default function ApiDocsPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white">
+      <div className="flex items-center justify-center min-h-screen bg-gray-900 text-gray-50">
         <p>Error loading API docs: {error}</p>
       </div>
     );
@@ -27,14 +27,17 @@ export default function ApiDocsPage() {
 
   if (!spec) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white">
+      <div className="flex items-center justify-center min-h-screen bg-gray-900 text-gray-50">
         <p>Loading API documentation...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    // SwaggerUI ships light-only CSS (swagger-ui.css), so this surface stays
+    // deliberately light in both modes — bg-gray-50 is the tinted near-white
+    // (DESIGN.md bans pure #fff), not a missing dark: variant.
+    <div className="min-h-screen bg-gray-50">
       <SwaggerUI spec={spec} />
     </div>
   );

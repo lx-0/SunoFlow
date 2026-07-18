@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { TIER_LIMITS } from "@/lib/billing";
@@ -49,6 +50,20 @@ export interface RawMonthlyUsage {
   dailyBreakdown: Array<{ date: string; credits: bigint; count: bigint }>;
 }
 
+export interface TopUpPool {
+  /** SUM(credits) over unexpired top-ups (gross purchased). */
+  purchased: number;
+  /** SUM(credits - consumedCredits) over unexpired top-ups — the lifetime net pool. */
+  remaining: number;
+}
+
+export interface TopUpDebit {
+  id: string;
+  amount: number;
+  /** Highest consumedCredits value the row may hold for this debit to still fit. */
+  guardMax: number;
+}
+
 // --- Pure calculations ---
 
 export function buildDailyChart(
@@ -75,24 +90,30 @@ export function buildDailyChart(
 
 export function analyzeUsage(
   subscriptionBudget: number,
-  topUpCredits: number,
+  topUpPool: TopUpPool,
   raw: RawMonthlyUsage,
   now: Date
 ): MonthlyCreditUsage {
-  const budget = subscriptionBudget + topUpCredits;
   const creditsUsedThisMonth = raw.monthlyCredits;
-  const creditsRemaining = Math.max(0, budget - creditsUsedThisMonth);
-  const usagePercent = budget > 0 ? creditsUsedThisMonth / budget : 0;
-  const isLow = usagePercent >= 1 - LOW_CREDIT_THRESHOLD;
 
+  // Two pools: the subscription allowance resets with the calendar month; the
+  // top-up pool is lifetime and only shrinks (consumedCredits is debited FIFO
+  // at spend time and never resets — see deductCredits).
   const subscriptionCreditsRemaining = Math.max(0, subscriptionBudget - creditsUsedThisMonth);
-  const topUpCreditsConsumed = Math.max(0, creditsUsedThisMonth - subscriptionBudget);
-  const topUpCreditsRemaining = Math.max(0, topUpCredits - topUpCreditsConsumed);
+  const topUpCreditsRemaining = topUpPool.remaining;
+  const creditsRemaining = subscriptionCreditsRemaining + topUpCreditsRemaining;
+
+  // budget = the currently claimable ceiling (this month's allowance + live
+  // top-up pool), so "creditsRemaining out of budget" stays coherent across
+  // month boundaries even after top-ups were partially consumed.
+  const budget = subscriptionBudget + topUpCreditsRemaining;
+  const usagePercent = budget > 0 ? (budget - creditsRemaining) / budget : 0;
+  const isLow = usagePercent >= 1 - LOW_CREDIT_THRESHOLD;
 
   return {
     budget,
     subscriptionBudget,
-    topUpCredits,
+    topUpCredits: topUpPool.purchased,
     topUpCreditsRemaining,
     subscriptionCreditsRemaining,
     creditsUsedThisMonth,
@@ -108,6 +129,46 @@ export function analyzeUsage(
 
 export function getCreditCost(action: string): number {
   return CREDIT_COSTS[action] ?? CREDIT_COSTS.generate;
+}
+
+/**
+ * How much of THIS spend must be drawn from the top-up pool: the growth of the
+ * month's subscription overflow caused by this spend. Earlier overflow was
+ * already debited at its own spend time, so only the delta is charged here.
+ */
+export function computeTopUpDebit(
+  creditCost: number,
+  monthlyUsedAfter: number,
+  subscriptionBudget: number
+): number {
+  const overflowAfter = Math.max(0, monthlyUsedAfter - subscriptionBudget);
+  const overflowBefore = Math.max(0, monthlyUsedAfter - creditCost - subscriptionBudget);
+  return overflowAfter - overflowBefore;
+}
+
+/**
+ * Plan FIFO debits across top-up rows (caller orders them earliest-expiring
+ * first). Each debit is capped at the row's unconsumed remainder; guardMax
+ * carries the conditional-update bound that prevents over-debit under
+ * concurrency (row is only debited while consumedCredits <= guardMax).
+ */
+export function planTopUpDebits(
+  topUps: Array<{ id: string; credits: number; consumedCredits: number }>,
+  amount: number
+): TopUpDebit[] {
+  const debits: TopUpDebit[] = [];
+  let remaining = amount;
+
+  for (const topUp of topUps) {
+    if (remaining <= 0) break;
+    const available = topUp.credits - topUp.consumedCredits;
+    if (available <= 0) continue;
+    const take = Math.min(available, remaining);
+    debits.push({ id: topUp.id, amount: take, guardMax: topUp.credits - take });
+    remaining -= take;
+  }
+
+  return debits;
 }
 
 // --- Data access ---
@@ -134,25 +195,29 @@ export async function recordCreditUsage(
   return record;
 }
 
-async function getTopUpCreditsRemaining(userId: string): Promise<number> {
+type DbClient = Prisma.TransactionClient;
+
+async function getTopUpPool(userId: string): Promise<TopUpPool> {
   const now = new Date();
   const result = await prisma.creditTopUp.aggregate({
     where: {
       userId,
       OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
     },
-    _sum: { credits: true },
+    _sum: { credits: true, consumedCredits: true },
   });
-  return result._sum.credits ?? 0;
+  const purchased = result._sum.credits ?? 0;
+  const consumed = result._sum.consumedCredits ?? 0;
+  return { purchased, remaining: Math.max(0, purchased - consumed) };
 }
 
-async function getSubscriptionBudget(userId: string): Promise<number> {
+async function getSubscriptionBudget(userId: string, db: DbClient = prisma): Promise<number> {
   const gracePeriodEnd = new Date(
     GRACE_PERIOD_CUTOFF.getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000
   );
 
   if (new Date() < gracePeriodEnd) {
-    const user = await prisma.user.findUnique({
+    const user = await db.user.findUnique({
       where: { id: userId },
       select: { createdAt: true },
     });
@@ -161,7 +226,7 @@ async function getSubscriptionBudget(userId: string): Promise<number> {
     }
   }
 
-  const sub = await prisma.subscription.findUnique({
+  const sub = await db.subscription.findUnique({
     where: { userId },
     select: { tier: true, status: true },
   });
@@ -215,13 +280,13 @@ export async function getMonthlyCreditUsage(userId: string): Promise<MonthlyCred
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const [subscriptionBudget, topUpCredits, raw] = await Promise.all([
+  const [subscriptionBudget, topUpPool, raw] = await Promise.all([
     getSubscriptionBudget(userId),
-    getTopUpCreditsRemaining(userId),
+    getTopUpPool(userId),
     fetchMonthlyUsage(userId, startOfMonth),
   ]);
 
-  return analyzeUsage(subscriptionBudget, topUpCredits, raw, now);
+  return analyzeUsage(subscriptionBudget, topUpPool, raw, now);
 }
 
 export async function checkCredits(
@@ -237,17 +302,88 @@ export async function checkCredits(
   };
 }
 
+async function debitTopUpsFifo(
+  tx: DbClient,
+  userId: string,
+  amount: number,
+  now: Date
+): Promise<void> {
+  const topUps = await tx.creditTopUp.findMany({
+    where: {
+      userId,
+      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+    },
+    orderBy: [{ expiresAt: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }],
+    select: { id: true, credits: true, consumedCredits: true },
+  });
+
+  let undebited = amount;
+  for (const debit of planTopUpDebits(topUps, amount)) {
+    // Conditional debit: only applies while the row still has room for this
+    // amount, so concurrent spends can never drive consumedCredits > credits.
+    const result = await tx.creditTopUp.updateMany({
+      where: { id: debit.id, consumedCredits: { lte: debit.guardMax } },
+      data: { consumedCredits: { increment: debit.amount } },
+    });
+    if (result.count === 1) {
+      undebited -= debit.amount;
+    }
+  }
+
+  if (undebited > 0) {
+    // A concurrent spend consumed part of the planned rows between the read
+    // and the conditional update, or the pool is exhausted. Never over-debit;
+    // the shortfall favors the user and the checkCredits gate still blocks
+    // once both pools are drained.
+    logger.warn(
+      { userId, amount, undebited },
+      "credits: top-up debit shortfall (concurrent spend or drained pool)"
+    );
+  }
+}
+
 export async function deductCredits(
   userId: string,
   action: string,
   opts?: { songId?: string; description?: string }
 ): Promise<void> {
   const creditCost = getCreditCost(action);
-  await recordCreditUsage(userId, action, {
-    creditCost,
-    songId: opts?.songId,
-    description: opts?.description,
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.creditUsage.create({
+      data: {
+        userId,
+        action,
+        creditCost,
+        songId: opts?.songId,
+        description: opts?.description,
+      },
+    });
+
+    const [subscriptionBudget, monthly] = await Promise.all([
+      getSubscriptionBudget(userId, tx),
+      tx.creditUsage.aggregate({
+        where: { userId, createdAt: { gte: startOfMonth } },
+        _sum: { creditCost: true },
+      }),
+    ]);
+
+    const debit = computeTopUpDebit(
+      creditCost,
+      monthly._sum.creditCost ?? 0,
+      subscriptionBudget
+    );
+    if (debit > 0) {
+      await debitTopUpsFifo(tx, userId, debit, now);
+    }
   });
+
+  logger.info(
+    { userId, action, creditCost, songId: opts?.songId ?? null },
+    "credits: usage recorded"
+  );
 
   try {
     const usage = await getMonthlyCreditUsage(userId);

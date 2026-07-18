@@ -2,72 +2,101 @@
 @tailwind components;
 @tailwind utilities;
 
+/* DESIGN.md "Late-Night Studio Console" token stack, both modes. Every value
+   is the OKLCH spec converted to sRGB hex — the same conversions already
+   shipped in apps/mobile/src/theme/theme.ts (darkBase/lightBase). Tinted
+   neutrals only (hue 350): no pure #000/#fff anywhere. Light mode is the
+   deferred comfort fallback; dark is the product. */
 :root {
-  --background: #f9fafb;
-  --foreground: #171717;
+  --background: #faf8f9; /* light-surface oklch(98% 0.003 350) */
+  --foreground: #151012; /* light-text-primary oklch(18% 0.01 350) */
 
-  /* Surface colors */
-  --surface: #ffffff;
-  --surface-hover: #f3f4f6;
+  /* Surface planes (light: raised sits ABOVE bg, panels recess below it) */
+  --surface-deep: #faf8f9;
+  --surface: #f1edef;
+  --surface-raised: #fdfbfc; /* light-surface-raised oklch(99% 0.003 350) */
+  --surface-hover: #e9e3e6;
 
   /* Text colors */
-  --text-primary: #111827;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
+  --text-primary: #151012;
+  --text-secondary: #5a5356;
+  --text-muted: #8a8487;
 
-  /* Border */
-  --border: #e5e7eb;
+  /* Borders */
+  --border: #e1ddde; /* light-border oklch(90% 0.005 350) */
+  --border-strong: #c3bbbe;
 
   /* Accent — Electric Magenta (DESIGN.md, oklch 62% 0.27 350) */
   --accent: #ef009c;
   --accent-hover: #cc0085;
 
-  /* Player bar */
-  --player-bg: #111827;
-  --player-border: #374151;
+  /* Status hues (fg / badge-bg pairs; darker fg variants for light bg) */
+  --status-ready: #097f23;
+  --status-ready-bg: #d7f5d7;
+  --status-generating: #a07100;
+  --status-generating-bg: #fbe9c6;
+  --status-error: #d40924;
+  --status-error-bg: #ffdfda;
+  --status-info: #00669b;
+
+  /* Player bar (always-dark chrome per DESIGN.md, both modes) */
+  --player-bg: #151012;
+  --player-border: #2f262a;
 
   /* Cards */
-  --card-bg: #ffffff;
-  --card-border: #e5e7eb;
+  --card-bg: #fdfbfc;
+  --card-border: #e1ddde;
 
   /* Inputs */
-  --input-bg: #ffffff;
-  --input-border: #d1d5db;
-  --input-text: #111827;
+  --input-bg: #fdfbfc;
+  --input-border: #c3bbbe;
+  --input-text: #151012;
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #0f090c; /* surface-deep oklch(15% 0.01 350) */
+  --foreground: #f5f0f2; /* text-primary oklch(96% 0.005 350) */
 
-  /* Surface colors */
-  --surface: #111827;
-  --surface-hover: #1f2937;
+  /* Surface planes */
+  --surface-deep: #0f090c;
+  --surface: #151012; /* surface oklch(18% 0.01 350) */
+  --surface-raised: #20181c; /* surface-raised oklch(22% 0.015 350) */
+  --surface-hover: #2a2125; /* surface-hover oklch(26% 0.015 350) */
 
   /* Text colors */
-  --text-primary: #f9fafb;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
+  --text-primary: #f5f0f2;
+  --text-secondary: #aaa2a5; /* text-secondary oklch(72% 0.01 350) */
+  --text-muted: #686164; /* text-muted oklch(50% 0.01 350) */
 
-  /* Border */
-  --border: #1f2937;
+  /* Borders */
+  --border: #2f262a; /* border oklch(28% 0.015 350) */
+  --border-strong: #514349; /* border-strong oklch(40% 0.02 350) */
 
   /* Accent — Electric Magenta (DESIGN.md, oklch 62% 0.27 350) */
   --accent: #ef009c;
   --accent-hover: #fb40ad;
 
+  /* Status hues (fg / badge-bg pairs) */
+  --status-ready: #4cc157; /* status-ready oklch(72% 0.18 145) */
+  --status-ready-bg: #0e2510;
+  --status-generating: #ebab00; /* status-generating oklch(78% 0.18 85) */
+  --status-generating-bg: #291d03;
+  --status-error: #f94144; /* status-error oklch(65% 0.22 25) */
+  --status-error-bg: #371210;
+  --status-info: #12b2f4; /* status-info oklch(72% 0.15 235) */
+
   /* Player bar */
-  --player-bg: #1f2937;
-  --player-border: #374151;
+  --player-bg: #151012;
+  --player-border: #2f262a;
 
   /* Cards */
-  --card-bg: #111827;
-  --card-border: #1f2937;
+  --card-bg: #20181c;
+  --card-border: #2f262a;
 
   /* Inputs */
-  --input-bg: #1f2937;
-  --input-border: #374151;
-  --input-text: #f9fafb;
+  --input-bg: #20181c;
+  --input-border: #514349;
+  --input-text: #f5f0f2;
 }
 
 body {

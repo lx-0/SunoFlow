@@ -6,7 +6,7 @@ describe("registerJobs", () => {
   it("registers all jobs in order", () => {
     const registerJob = vi.fn();
     const jobs: JobDefinition[] = [
-      { name: "job-a", cron: "0 * * * *", run: () => {} },
+      { name: "job-a", cron: "0 * * * *", run: () => {}, expectedMaxAgeMs: 1000 },
       { name: "job-b", cron: "30 * * * *", run: () => {} },
     ];
 
@@ -17,13 +17,15 @@ describe("registerJobs", () => {
       1,
       "job-a",
       "0 * * * *",
-      expect.any(Function)
+      expect.any(Function),
+      { expectedMaxAgeMs: 1000 }
     );
     expect(registerJob).toHaveBeenNthCalledWith(
       2,
       "job-b",
       "30 * * * *",
-      expect.any(Function)
+      expect.any(Function),
+      { expectedMaxAgeMs: undefined }
     );
   });
 

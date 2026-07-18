@@ -68,17 +68,6 @@ prepare_cache_dir "$AUDIO_CACHE_DIR" "Audio cache dir"
 prepare_cache_dir "$IMAGE_CACHE_DIR" "Image cache dir"
 
 echo "Running database migrations..."
-# Clear a known historical drift marker before normal deploys.
-# This is safe if the migration never failed on this environment; Prisma
-# returns a non-zero and we continue to the standard migrate deploy path.
-KNOWN_DRIFT_MIGRATION="20260322200000_add_missing_schema_objects"
-echo "Resolving known drift migration (best-effort): $KNOWN_DRIFT_MIGRATION"
-if su-exec nextjs:nodejs node node_modules/prisma/build/index.js migrate resolve --rolled-back "$KNOWN_DRIFT_MIGRATION" --schema=./prisma/schema.prisma; then
-  echo "Drift migration resolved: $KNOWN_DRIFT_MIGRATION"
-else
-  echo "No rolled-back resolve applied for $KNOWN_DRIFT_MIGRATION (continuing)"
-fi
-
 if su-exec nextjs:nodejs node node_modules/prisma/build/index.js migrate deploy --schema=./prisma/schema.prisma; then
   echo "Migrations complete."
 else

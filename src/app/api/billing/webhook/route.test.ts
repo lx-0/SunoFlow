@@ -61,6 +61,7 @@ const mockSubscriptionUpdateMany = vi.fn();
 const mockNotificationCreate = vi.fn();
 const mockCreditTopUpFindUnique = vi.fn();
 const mockCreditTopUpCreate = vi.fn();
+const mockCreditTopUpUpdateMany = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -80,6 +81,7 @@ vi.mock("@/lib/prisma", () => ({
     creditTopUp: {
       findUnique: (...args: unknown[]) => mockCreditTopUpFindUnique(...args),
       create: (...args: unknown[]) => mockCreditTopUpCreate(...args),
+      updateMany: (...args: unknown[]) => mockCreditTopUpUpdateMany(...args),
     },
   },
 }));
@@ -335,6 +337,71 @@ describe("POST /api/billing/webhook", () => {
     const res = await POST(makeRequest("{}", "valid-sig") as never);
     expect(res.status).toBe(200);
     expect(mockCreditTopUpCreate).not.toHaveBeenCalled();
+  });
+
+  it("records a PaymentEvent for processed checkout events (event-id dedup)", async () => {
+    const session = makeCheckoutSession({
+      mode: "payment",
+      metadata: { userId: "user_abc", topupCredits: "25" },
+    });
+    mockConstructEvent.mockReturnValue(
+      makeStripeEvent("checkout.session.completed", session, "evt_checkout_1")
+    );
+
+    const res = await POST(makeRequest("{}", "valid-sig") as never);
+    expect(res.status).toBe(200);
+    expect(mockPaymentEventCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          stripeEventId: "evt_checkout_1",
+          type: "checkout.session.completed",
+          status: "processed",
+          userId: "user_abc",
+        }),
+      })
+    );
+  });
+
+  it("short-circuits a redelivered checkout event by event id", async () => {
+    const session = makeCheckoutSession({
+      mode: "payment",
+      metadata: { userId: "user_abc", topupCredits: "25" },
+    });
+    mockConstructEvent.mockReturnValue(
+      makeStripeEvent("checkout.session.completed", session, "evt_checkout_dup")
+    );
+    mockPaymentEventFindUnique.mockResolvedValue({ id: "pe_existing" });
+
+    const res = await POST(makeRequest("{}", "valid-sig") as never);
+    expect(res.status).toBe(200);
+    expect(mockCreditTopUpCreate).not.toHaveBeenCalled();
+    expect(mockPaymentEventCreate).not.toHaveBeenCalled();
+  });
+
+  it("REGRESSION: delivering checkout.session.completed twice yields exactly one CreditTopUp and untouched consumedCredits", async () => {
+    const session = makeCheckoutSession({
+      mode: "payment",
+      metadata: { userId: "user_abc", topupCredits: "25" },
+    });
+
+    mockConstructEvent.mockReturnValueOnce(
+      makeStripeEvent("checkout.session.completed", session, "evt_first")
+    );
+    const first = await POST(makeRequest("{}", "valid-sig") as never);
+    expect(first.status).toBe(200);
+
+    // Redelivery under a NEW event id (e.g. manual resend) — the
+    // stripeSessionId unique guard must still hold on its own.
+    mockConstructEvent.mockReturnValueOnce(
+      makeStripeEvent("checkout.session.completed", session, "evt_second")
+    );
+    mockCreditTopUpFindUnique.mockResolvedValue({ id: "topup_existing" });
+    const second = await POST(makeRequest("{}", "valid-sig") as never);
+    expect(second.status).toBe(200);
+
+    expect(mockCreditTopUpCreate).toHaveBeenCalledTimes(1);
+    // The grant path must never touch the consumption counter.
+    expect(mockCreditTopUpUpdateMany).not.toHaveBeenCalled();
   });
 
   // ── customer.subscription.updated ──────────────────────────────────────────

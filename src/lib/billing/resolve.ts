@@ -169,6 +169,40 @@ export async function recordPaymentEvent(
   });
 }
 
+/**
+ * Record a PaymentEvent for a processed checkout.session.completed so the
+ * event-id dedup in hasProcessedStripeEvent short-circuits redeliveries.
+ * Without this the checkout path relied solely on the CreditTopUp
+ * stripeSessionId unique guard. Failures are swallowed: the grant path stays
+ * independently idempotent, and a concurrent delivery may have recorded the
+ * same event id first (unique stripeEventId).
+ */
+export async function recordCheckoutProcessed(
+  event: Stripe.Event,
+  session: Stripe.Checkout.Session
+): Promise<void> {
+  try {
+    await prisma.paymentEvent.create({
+      data: {
+        stripeEventId: event.id,
+        type: event.type,
+        userId: session.metadata?.userId ?? null,
+        amount: session.amount_total ?? null,
+        currency: session.currency ?? null,
+        status: "processed",
+        stripeCustomerId:
+          typeof session.customer === "string" ? session.customer : session.customer?.id ?? null,
+        metadata: { sessionId: session.id, mode: session.mode },
+      },
+    });
+  } catch (error) {
+    logger.warn(
+      { err: error, eventId: event.id, sessionId: session.id },
+      "billing-webhook: failed to record checkout payment event"
+    );
+  }
+}
+
 // ── Audit recording for unhandled events ────────────────────────────
 
 export async function recordUnhandledEvent(event: Stripe.Event): Promise<void> {

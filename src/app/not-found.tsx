@@ -10,18 +10,26 @@ import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 export default function NotFound() {
   return (
     <html lang="en">
-      <head />
-      <body className="bg-gray-50 text-gray-900 min-h-screen">
+      <head>
+        {/* Same dark-first no-flash script as the root layouts: this file owns
+            its own <html>, so without it the 404 renders light-only. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("sunoflow_theme");var d=t==="system"?window.matchMedia("(prefers-color-scheme: dark)").matches:t!=="light";if(d)document.documentElement.classList.add("dark")}catch(e){document.documentElement.classList.add("dark")}})()`,
+          }}
+        />
+      </head>
+      <body className="bg-surface-deep text-primary min-h-screen">
         <div className="flex flex-col min-h-screen max-w-md mx-auto">
-          <header className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3">
+          <header className="sticky top-0 z-10 bg-surface border-b border-border px-4 py-3">
             <span className="text-violet-400 font-bold text-lg tracking-tight">SunoFlow</span>
           </header>
 
           <main className="flex-1 flex items-center justify-center p-4">
             <div className="text-center max-w-sm space-y-4">
-              <p className="text-6xl font-bold text-gray-300">404</p>
+              <p className="text-6xl font-bold text-muted">404</p>
               <h1 className="text-xl font-bold">Page not found</h1>
-              <p className="text-gray-500 text-sm">
+              <p className="text-secondary text-sm">
                 The page you&apos;re looking for doesn&apos;t exist or has been moved.
               </p>
               <div className="flex flex-col gap-2">
@@ -34,7 +42,7 @@ export default function NotFound() {
                 </Link>
                 <Link
                   href="/"
-                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 text-sm font-medium rounded-lg transition-colors text-center"
+                  className="px-4 py-2 bg-surface-hover hover:bg-border text-primary text-sm font-medium rounded-lg transition-colors text-center"
                 >
                   Go Home
                 </Link>

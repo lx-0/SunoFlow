@@ -8,6 +8,7 @@ vi.mock("@/lib/prisma", () => ({
     songView: { deleteMany: vi.fn() },
     activity: { deleteMany: vi.fn() },
     playHistory: { deleteMany: vi.fn() },
+    jobRun: { deleteMany: vi.fn() },
   },
 }));
 
@@ -26,6 +27,7 @@ import {
   ANALYTICS_EVENT_RETENTION_DAYS,
   ACTIVITY_RETENTION_DAYS,
   PLAY_HISTORY_RETENTION_DAYS,
+  JOB_RUN_RETENTION_DAYS,
 } from "./retention-cleanup";
 
 const NOW = new Date("2026-07-18T12:00:00.000Z");
@@ -44,6 +46,7 @@ beforeEach(() => {
   vi.mocked(prisma.songView.deleteMany).mockResolvedValue({ count: 0 });
   vi.mocked(prisma.activity.deleteMany).mockResolvedValue({ count: 0 });
   vi.mocked(prisma.playHistory.deleteMany).mockResolvedValue({ count: 0 });
+  vi.mocked(prisma.jobRun.deleteMany).mockResolvedValue({ count: 0 });
 });
 
 afterEach(() => {
@@ -92,6 +95,14 @@ describe("retentionCleanup", () => {
     });
   });
 
+  it("prunes job run history with the short window", async () => {
+    await retentionCleanup();
+
+    expect(vi.mocked(prisma.jobRun.deleteMany)).toHaveBeenCalledWith({
+      where: { startedAt: { lt: daysAgo(JOB_RUN_RETENTION_DAYS) } },
+    });
+  });
+
   it("logs deleted counts per table", async () => {
     vi.mocked(prisma.errorReport.deleteMany).mockResolvedValue({ count: 1 });
     vi.mocked(prisma.notification.deleteMany).mockResolvedValue({ count: 2 });
@@ -99,6 +110,7 @@ describe("retentionCleanup", () => {
     vi.mocked(prisma.songView.deleteMany).mockResolvedValue({ count: 4 });
     vi.mocked(prisma.activity.deleteMany).mockResolvedValue({ count: 5 });
     vi.mocked(prisma.playHistory.deleteMany).mockResolvedValue({ count: 6 });
+    vi.mocked(prisma.jobRun.deleteMany).mockResolvedValue({ count: 7 });
 
     await retentionCleanup();
 
@@ -110,6 +122,7 @@ describe("retentionCleanup", () => {
         deletedSongViews: 4,
         deletedActivities: 5,
         deletedPlayHistory: 6,
+        deletedJobRuns: 7,
       },
       "jobs: retention-cleanup done"
     );

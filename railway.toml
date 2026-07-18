@@ -13,3 +13,9 @@ restartPolicyMaxRetries = 3
 #   Volume 1 → Mount Path: /data/audio-cache  (set AUDIO_CACHE_DIR=/data/audio-cache)
 #   Volume 2 → Mount Path: /data/image-cache   (set IMAGE_CACHE_DIR=/data/image-cache)
 # This ensures cached files survive redeployments.
+#
+# The caches are capped (defaults: 2 GB audio, 500 MB image; override via
+# AUDIO_CACHE_MAX_BYTES / IMAGE_CACHE_MAX_BYTES env vars, 0 disables). An
+# hourly in-process job evicts least-recently-written files down to 90% of
+# the cap so the volumes can't fill up. Size the volumes >= the caps.
+# Current usage is reported under `cache` in /api/health.

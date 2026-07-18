@@ -17,7 +17,7 @@ export function registerJobs(
 ): void {
   assertUniqueJobNames(jobs);
 
-  for (const { name, cron, run } of jobs) {
-    registerJob(name, cron, run);
+  for (const { name, cron, run, expectedMaxAgeMs } of jobs) {
+    registerJob(name, cron, run, { expectedMaxAgeMs });
   }
 }

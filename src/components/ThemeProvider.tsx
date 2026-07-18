@@ -20,14 +20,16 @@ function getSystemTheme(): "light" | "dark" {
 }
 
 function getStoredTheme(): Theme {
-  if (typeof window === "undefined") return "system";
+  // Dark-first (DESIGN.md): an absent or unreadable stored pref resolves to
+  // dark. "system" only follows the OS when the user explicitly picked it.
+  if (typeof window === "undefined") return "dark";
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === "light" || stored === "dark" || stored === "system") return stored;
   } catch {
     // ignore
   }
-  return "system";
+  return "dark";
 }
 
 function applyTheme(resolved: "light" | "dark") {
@@ -46,7 +48,7 @@ export function useTheme(): ThemeContextValue {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("system");
+  const [theme, setThemeState] = useState<Theme>("dark");
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("dark");
 
   // Initialize from localStorage

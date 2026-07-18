@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, createReadStream, promises as fsp } from "fs";
+import { existsSync, mkdirSync, openSync, readFileSync, readdirSync, statSync, unlinkSync, createReadStream, promises as fsp } from "fs";
 import { join } from "path";
 
 // Convert a Node Readable stream to a Web ReadableStream WITHOUT importing
@@ -44,7 +44,34 @@ interface FileCacheConfig {
   defaultSubdir: string;
   extensions: string[];
   contentTypes: Record<string, string>;
+  /** Env var holding the byte cap for this cache. "0" disables eviction. */
+  maxBytesEnvVar?: string;
+  /** Fallback byte cap when the env var is unset. 0/undefined disables eviction. */
+  defaultMaxBytes?: number;
+  /**
+   * Bytes written between opportunistic eviction checks (default 100 MB).
+   * Bounds growth during a write burst between scheduled sweeps.
+   */
+  opportunisticEvictBytes?: number;
 }
+
+export interface FileCacheStats {
+  count: number;
+  totalBytes: number;
+  maxBytes: number;
+}
+
+export interface EvictionResult {
+  evicted: number;
+  freedBytes: number;
+}
+
+// Evict down to 90% of the cap (hysteresis so a sweep doesn't re-trigger on
+// the very next put) and never touch files younger than 60 s — a file that
+// was just written (or is mid-download) always has the newest mtime.
+const LOW_WATER_RATIO = 0.9;
+const MIN_AGE_MS = 60_000;
+const DEFAULT_OPPORTUNISTIC_EVICT_BYTES = 100_000_000;
 
 export interface FileCache {
   get(id: string): CachedFile | null;
@@ -63,11 +90,64 @@ export interface FileCache {
   has(id: string): boolean;
   downloadAndPut(id: string, url: string): Promise<Buffer | null>;
   count(): number;
+  /**
+   * Full-directory scan (readdir + stat per file). Cheap at hundreds of
+   * files but keep it off the request path — call only from the eviction
+   * sweep and /api/health.
+   */
+  getStats(): FileCacheStats;
+  /**
+   * Evict least-recently-written files (mtime LRU — atime is unreliable on
+   * noatime volumes) until the cache is at or below LOW_WATER_RATIO * cap.
+   * No-op when eviction is disabled (cap <= 0), the cache is under the cap,
+   * or an eviction is already in flight (single-flight guard).
+   *
+   * Evicting a file that is currently being streamed is safe on POSIX:
+   * unlink only removes the directory entry; open fds keep reading the
+   * inode until they close. New lookups miss and re-download.
+   */
+  evictToCap(): EvictionResult;
 }
 
-function createFileCache(config: FileCacheConfig): FileCache {
+// Exported for tests — production code must use the audioCache/imageCache
+// singletons below.
+export function createFileCache(config: FileCacheConfig): FileCache {
   const cacheDir = process.env[config.envVar] || join(process.cwd(), config.defaultSubdir);
+  const maxBytes = resolveMaxBytes(config);
+  const opportunisticEvictBytes =
+    config.opportunisticEvictBytes ?? DEFAULT_OPPORTUNISTIC_EVICT_BYTES;
   let dirReady = false;
+  let evicting = false;
+  let bytesWrittenSinceEvictCheck = 0;
+
+  function resolveMaxBytes(cfg: FileCacheConfig): number {
+    const raw = cfg.maxBytesEnvVar ? process.env[cfg.maxBytesEnvVar] : undefined;
+    if (raw !== undefined && raw !== "") {
+      const parsed = Number(raw);
+      if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+      logger.warn(
+        { envVar: cfg.maxBytesEnvVar, raw },
+        "file-cache: invalid max-bytes env value ignored"
+      );
+    }
+    return cfg.defaultMaxBytes ?? 0;
+  }
+
+  function listFiles(): { path: string; size: number; mtimeMs: number }[] {
+    ensureDir();
+    const files: { path: string; size: number; mtimeMs: number }[] = [];
+    for (const name of readdirSync(cacheDir)) {
+      if (!config.extensions.some((ext) => name.endsWith(ext))) continue;
+      const p = join(cacheDir, name);
+      try {
+        const st = statSync(p);
+        files.push({ path: p, size: st.size, mtimeMs: st.mtimeMs });
+      } catch {
+        // raced deletion — skip
+      }
+    }
+    return files;
+  }
 
   function ensureDir() {
     if (dirReady) return;
@@ -121,12 +201,18 @@ function createFileCache(config: FileCacheConfig): FileCache {
       const p = findFile(id);
       if (!p) return null;
       let size: number;
+      let fd: number;
       try {
         size = statSync(p).size;
+        // Open the fd eagerly (createReadStream opens lazily) so a returned
+        // stream can never race eviction: once the fd is open, a POSIX
+        // unlink only removes the directory entry and reads keep working.
+        fd = openSync(p, "r");
       } catch {
         return null;
       }
       const nodeStream: NodeReadable = createReadStream(p, {
+        fd,
         start: start ?? 0,
         end: end ?? size - 1,
       });
@@ -152,9 +238,22 @@ function createFileCache(config: FileCacheConfig): FileCache {
         // callers but avoids blocking the event loop on a multi-MB flush.
         // Errors are logged; no caller reads the file back synchronously
         // after put, so the brief delay is tolerable.
-        fsp.writeFile(fp, data).catch((err) => {
-          logger.warn({ id, cacheDir, err }, "file-cache: put failed");
-        });
+        fsp
+          .writeFile(fp, data)
+          .then(() => {
+            // Opportunistic eviction: bound growth between scheduled sweeps
+            // when a burst of writes lands. Runs off the caller's sync path
+            // (post-write callback) and is single-flighted via `evicting`.
+            if (maxBytes <= 0) return;
+            bytesWrittenSinceEvictCheck += data.length;
+            if (bytesWrittenSinceEvictCheck >= opportunisticEvictBytes) {
+              bytesWrittenSinceEvictCheck = 0;
+              cache.evictToCap();
+            }
+          })
+          .catch((err) => {
+            logger.warn({ id, cacheDir, err }, "file-cache: put failed");
+          });
       } catch (err) {
         logger.warn({ id, cacheDir, err }, "file-cache: put setup failed");
       }
@@ -192,6 +291,63 @@ function createFileCache(config: FileCacheConfig): FileCache {
         return 0;
       }
     },
+
+    getStats() {
+      try {
+        const files = listFiles();
+        return {
+          count: files.length,
+          totalBytes: files.reduce((sum, f) => sum + f.size, 0),
+          maxBytes,
+        };
+      } catch {
+        return { count: 0, totalBytes: 0, maxBytes };
+      }
+    },
+
+    evictToCap() {
+      const none: EvictionResult = { evicted: 0, freedBytes: 0 };
+      if (maxBytes <= 0 || evicting) return none;
+      evicting = true;
+      try {
+        const files = listFiles();
+        let totalBytes = files.reduce((sum, f) => sum + f.size, 0);
+        if (totalBytes <= maxBytes) return none;
+
+        const target = maxBytes * LOW_WATER_RATIO;
+        const minAgeCutoff = Date.now() - MIN_AGE_MS;
+        let evicted = 0;
+        let freedBytes = 0;
+
+        // Oldest mtime first; skip anything younger than MIN_AGE_MS so a
+        // file mid-write/mid-download is never a target.
+        for (const file of [...files].sort((a, b) => a.mtimeMs - b.mtimeMs)) {
+          if (totalBytes <= target) break;
+          if (file.mtimeMs > minAgeCutoff) continue;
+          try {
+            unlinkSync(file.path);
+          } catch {
+            continue; // raced deletion / transient fs error — move on
+          }
+          totalBytes -= file.size;
+          evicted++;
+          freedBytes += file.size;
+        }
+
+        if (evicted > 0) {
+          logger.info(
+            { cacheDir, evicted, freedBytes, totalBytes, maxBytes },
+            "file-cache: evicted to cap"
+          );
+        }
+        return { evicted, freedBytes };
+      } catch (err) {
+        logger.warn({ cacheDir, err }, "file-cache: eviction failed");
+        return none;
+      } finally {
+        evicting = false;
+      }
+    },
   };
 
   return cache;
@@ -202,6 +358,8 @@ export const audioCache = createFileCache({
   defaultSubdir: ".audio-cache",
   extensions: [".mp3"],
   contentTypes: { ".mp3": "audio/mpeg" },
+  maxBytesEnvVar: "AUDIO_CACHE_MAX_BYTES",
+  defaultMaxBytes: 2_000_000_000, // 2 GB ≈ 400 tracks at ~5 MB
 });
 
 export const imageCache = createFileCache({
@@ -209,4 +367,6 @@ export const imageCache = createFileCache({
   defaultSubdir: ".image-cache",
   extensions: [".jpg", ".png", ".webp"],
   contentTypes: { ".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" },
+  maxBytesEnvVar: "IMAGE_CACHE_MAX_BYTES",
+  defaultMaxBytes: 500_000_000, // 500 MB
 });

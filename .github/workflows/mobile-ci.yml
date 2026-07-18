@@ -1,0 +1,29 @@
+name: Mobile CI
+on:
+  push:
+    branches: [main]
+    paths: ["apps/mobile/**", "packages/core/**", ".github/workflows/mobile-ci.yml"]
+  pull_request:
+    branches: [main]
+    paths: ["apps/mobile/**", "packages/core/**", ".github/workflows/mobile-ci.yml"]
+jobs:
+  mobile-qa:
+    name: Mobile QA (tsc + lint)
+    runs-on: ubuntu-latest # tsc + lint need no macOS/simulator
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: apps/mobile/pnpm-lock.yaml
+      - name: Install (standalone mobile root)
+        run: pnpm install --frozen-lockfile
+      - name: Type check
+        run: pnpm typecheck # tsc --noEmit
+      - name: Lint
+        run: pnpm lint # expo lint

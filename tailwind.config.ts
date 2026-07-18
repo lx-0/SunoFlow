@@ -23,6 +23,29 @@ const magenta = {
   950: "#4f0031",
 };
 
+// A0 neutral retint (DESIGN.md Tinted-Neutrals rule: no untinted gray, no pure
+// black/white): the stock blue-gray ramp re-tinted to hue 350, parallel to the
+// violet bridge above. The dark end lands exactly on the DESIGN.md surface
+// stack (950→surface-deep, 900→surface, 800→surface-raised, 700→surface-hover,
+// 600→border-strong, 500→text-muted, 400→text-secondary) so every existing
+// dark:bg-gray-N utility becomes a Late-Night-Studio-Console plane; the light
+// end (50-300) keeps each stock step's OKLCH lightness so light mode stays
+// near-white and per-step contrast survives. Hex source: DESIGN.md OKLCH →
+// sRGB, matching apps/mobile/src/theme/theme.ts.
+const gray = {
+  50: "#faf8f9",
+  100: "#f1edef",
+  200: "#eae5e7",
+  300: "#d8d3d5",
+  400: "#aaa2a5",
+  500: "#686164",
+  600: "#514349",
+  700: "#2a2125",
+  800: "#20181c",
+  900: "#151012",
+  950: "#0f090c",
+};
+
 const config: Config = {
   darkMode: "class",
   content: [
@@ -36,6 +59,33 @@ const config: Config = {
         background: "var(--background)",
         foreground: "var(--foreground)",
         violet: magenta,
+        gray,
+        // Semantic tokens backed by the globals.css vars (they flip with the
+        // `.dark` class): write `bg-surface-raised text-primary border-border`
+        // instead of paired light/dark gray literals. Migrate on touch.
+        surface: {
+          DEFAULT: "var(--surface)",
+          deep: "var(--surface-deep)",
+          raised: "var(--surface-raised)",
+          hover: "var(--surface-hover)",
+        },
+        border: {
+          DEFAULT: "var(--border)",
+          strong: "var(--border-strong)",
+        },
+        primary: "var(--text-primary)",
+        secondary: "var(--text-secondary)",
+        muted: "var(--text-muted)",
+        status: {
+          ready: "var(--status-ready)",
+          generating: "var(--status-generating)",
+          error: "var(--status-error)",
+          info: "var(--status-info)",
+        },
+        accent: {
+          DEFAULT: "var(--accent)",
+          hover: "var(--accent-hover)",
+        },
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)", ...defaultTheme.fontFamily.sans],

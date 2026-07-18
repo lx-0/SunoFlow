@@ -29,11 +29,11 @@ export default function PublicSongByIdLayout({ children }: { children: React.Rea
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("sunoflow_theme");var d=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(d)document.documentElement.classList.add("dark")}catch(e){}})()`,
+            __html: `(function(){try{var t=localStorage.getItem("sunoflow_theme");var d=t==="system"?window.matchMedia("(prefers-color-scheme: dark)").matches:t!=="light";if(d)document.documentElement.classList.add("dark")}catch(e){document.documentElement.classList.add("dark")}})()`,
           }}
         />
       </head>
-      <body className="antialiased bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white min-h-screen">
+      <body className="antialiased bg-surface-deep text-primary min-h-screen">
         <PublicProviders>
           {children}
         </PublicProviders>

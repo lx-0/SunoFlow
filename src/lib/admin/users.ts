@@ -54,6 +54,10 @@ export async function getAdminUserDetail(
         where: { createdAt: { gte: monthStart } },
         select: { creditCost: true },
       },
+      creditTopUps: {
+        where: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+        select: { credits: true, consumedCredits: true },
+      },
     },
   });
 
@@ -66,6 +70,12 @@ export async function getAdminUserDetail(
   );
   const creditBudget =
     TIER_LIMITS[tier]?.creditsPerMonth ?? TIER_LIMITS.free.creditsPerMonth;
+  // Lifetime top-up pool net of consumption — includes admin grants, which
+  // are durable CreditTopUp rows (see adjustUserCredits).
+  const topUpRemaining = user.creditTopUps.reduce(
+    (sum, t) => sum + Math.max(0, t.credits - t.consumedCredits),
+    0,
+  );
 
   return success({
     id: user.id,
@@ -81,7 +91,7 @@ export async function getAdminUserDetail(
     favoriteCount: user._count.favorites,
     planTier: tier,
     subscriptionStatus: user.subscription?.status ?? null,
-    creditBalance: Math.max(0, creditBudget - creditsUsed),
+    creditBalance: Math.max(0, creditBudget - creditsUsed) + topUpRemaining,
     creditBudget,
   });
 }
@@ -101,14 +111,30 @@ export async function adjustUserCredits(
   });
   if (!user) return Err.notFound("User not found");
 
-  await prisma.creditUsage.create({
-    data: {
-      userId,
-      action: "admin_adjustment",
-      creditCost: -truncated,
-      description: reason,
-    },
-  });
+  if (truncated > 0) {
+    // Positive grants go through the durable top-up ledger (no expiry) so they
+    // persist across month boundaries and debit FIFO like purchased credits.
+    // A negative CreditUsage row would silently evaporate at the next month
+    // boundary because the usage window is month-scoped.
+    await prisma.creditTopUp.create({
+      data: {
+        userId,
+        credits: truncated,
+        amountCents: 0,
+        stripeSessionId: `admin_grant_${userId}_${Date.now()}`,
+        expiresAt: null,
+      },
+    });
+  } else {
+    await prisma.creditUsage.create({
+      data: {
+        userId,
+        action: "admin_adjustment",
+        creditCost: -truncated,
+        description: reason,
+      },
+    });
+  }
 
   await logAdminAction(
     adminId,

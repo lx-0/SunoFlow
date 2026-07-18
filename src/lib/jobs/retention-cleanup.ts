@@ -17,6 +17,7 @@ export const READ_NOTIFICATION_RETENTION_DAYS = 90;
 export const ANALYTICS_EVENT_RETENTION_DAYS = 180; // PlayEvent + SongView
 export const ACTIVITY_RETENTION_DAYS = 365;
 export const PLAY_HISTORY_RETENTION_DAYS = 365;
+export const JOB_RUN_RETENTION_DAYS = 30; // scheduler/cron run history
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -48,6 +49,9 @@ export async function retentionCleanup(): Promise<void> {
   const { count: playHistory } = await prisma.playHistory.deleteMany({
     where: { playedAt: { lt: cutoff(now, PLAY_HISTORY_RETENTION_DAYS) } },
   });
+  const { count: jobRuns } = await prisma.jobRun.deleteMany({
+    where: { startedAt: { lt: cutoff(now, JOB_RUN_RETENTION_DAYS) } },
+  });
 
   logger.info(
     {
@@ -57,6 +61,7 @@ export async function retentionCleanup(): Promise<void> {
       deletedSongViews: songViews,
       deletedActivities: activities,
       deletedPlayHistory: playHistory,
+      deletedJobRuns: jobRuns,
     },
     "jobs: retention-cleanup done"
   );

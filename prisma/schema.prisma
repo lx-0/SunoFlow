@@ -900,6 +900,7 @@ model CreditTopUp {
   stripeSessionId       String    @unique
   stripePaymentIntentId String?
   expiresAt             DateTime? // null = no expiry; set to 1 year on creation
+  consumedCredits       Int       @default(0) // lifetime credits debited from this top-up (FIFO at spend time)
   createdAt             DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1025,4 +1026,22 @@ model StyleTemplate {
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([sourceSongId])
+}
+
+// Persistent history of scheduled/cron job executions. Written by
+// src/lib/jobs/job-run.ts (withJobRun), read by /api/health for staleness
+// detection, pruned by the retention-cleanup job.
+model JobRun {
+  id         String    @id @default(cuid())
+  name       String
+  status     String // "running" | "ok" | "failed"
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  durationMs Int?
+  counts     Json?
+  error      String?
+  createdAt  DateTime  @default(now())
+
+  @@index([name, startedAt])
+  @@index([status, startedAt])
 }

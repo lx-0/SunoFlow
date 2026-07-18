@@ -18,6 +18,7 @@
 
 import { schedule, type ScheduledTask } from "node-cron";
 import { logger } from "@/lib/logger";
+import { withJobRun } from "@/lib/jobs/job-run";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -37,6 +38,12 @@ export interface JobStatus {
   lastRun?: JobRunRecord;
   nextRun?: string | null;
   running: boolean;
+  /** Staleness threshold for /api/health (see JobDefinition.expectedMaxAgeMs). */
+  expectedMaxAgeMs?: number;
+}
+
+export interface RegisterJobOptions {
+  expectedMaxAgeMs?: number;
 }
 
 interface JobEntry {
@@ -46,6 +53,7 @@ interface JobEntry {
   task?: ScheduledTask;
   lastRun?: JobRunRecord;
   running: boolean;
+  expectedMaxAgeMs?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -78,7 +86,8 @@ function getState() {
 export function registerJob(
   name: string,
   cronExpression: string,
-  handler: () => Promise<unknown> | void
+  handler: () => Promise<unknown> | void,
+  options?: RegisterJobOptions
 ): void {
   const state = getState();
   const existing = state.jobs.get(name);
@@ -97,6 +106,7 @@ export function registerJob(
     expression: cronExpression,
     handler,
     running: false,
+    expectedMaxAgeMs: options?.expectedMaxAgeMs,
   };
   state.jobs.set(name, entry);
 
@@ -165,6 +175,7 @@ export function getSchedulerStatus(): JobStatus[] {
     lastRun: entry.lastRun,
     nextRun: entry.task ? entry.task.getNextRun()?.toISOString() ?? null : null,
     running: entry.running,
+    expectedMaxAgeMs: entry.expectedMaxAgeMs,
   }));
 }
 
@@ -183,7 +194,9 @@ async function runJob(entry: JobEntry): Promise<void> {
   logger.info({ job: entry.name }, "scheduler: job started");
 
   try {
-    await entry.handler();
+    // withJobRun persists a JobRun row (running → ok/failed) so run history
+    // survives deploys; the in-memory lastRun below stays as a fast mirror.
+    await withJobRun(entry.name, async () => entry.handler());
     const finishedAt = new Date();
     const durationMs = finishedAt.getTime() - startedAt.getTime();
     entry.lastRun = { startedAt, finishedAt, durationMs, success: true };

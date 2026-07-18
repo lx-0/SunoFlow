@@ -8,6 +8,7 @@ import {
   resolveSubscriptionDetails,
   resolveInvoiceContext,
   recordPaymentEvent,
+  recordCheckoutProcessed,
   recordUnhandledEvent,
   userIdFromSubscriptionId,
 } from "./resolve";
@@ -254,9 +255,14 @@ async function handleInvoicePaymentFailed(event: Stripe.Event) {
 
 export async function handleBillingEvent(event: Stripe.Event): Promise<void> {
   switch (event.type) {
-    case "checkout.session.completed":
-      await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+    case "checkout.session.completed": {
+      const session = event.data.object as Stripe.Checkout.Session;
+      await handleCheckoutCompleted(session);
+      // Recorded only after the handler completed, so a mid-handling failure
+      // still triggers a Stripe retry instead of being masked as processed.
+      await recordCheckoutProcessed(event, session);
       break;
+    }
     case "customer.subscription.created":
     case "customer.subscription.updated":
       await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);

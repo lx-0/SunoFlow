@@ -31,6 +31,7 @@ vi.mock("node-cron", () => {
 import { registerJob, startScheduler, stopScheduler, getSchedulerStatus } from "@/lib/scheduler";
 import { schedule } from "node-cron";
 import { logger } from "@/lib/logger";
+import { withJobRun } from "@/lib/jobs/job-run";
 
 vi.mock("@/lib/logger", () => ({
   logger: {
@@ -38,6 +39,12 @@ vi.mock("@/lib/logger", () => ({
     warn: vi.fn(),
     error: vi.fn(),
   },
+}));
+
+// Persistence seam — the scheduler must work without a DB; the wrapper is
+// tested in src/lib/jobs/job-run.test.ts. Pass the handler straight through.
+vi.mock("@/lib/jobs/job-run", () => ({
+  withJobRun: vi.fn(async (_name: string, fn: () => Promise<unknown>) => fn()),
 }));
 
 describe("registerJob", () => {
@@ -59,6 +66,13 @@ describe("registerJob", () => {
     registerJob("dup-job", "0 * * * *", handler);
 
     expect(getSchedulerStatus()).toHaveLength(1);
+  });
+
+  it("carries expectedMaxAgeMs into the status snapshot", () => {
+    registerJob("aged-job", "0 * * * *", vi.fn(), { expectedMaxAgeMs: 7200_000 });
+
+    const [status] = getSchedulerStatus();
+    expect(status.expectedMaxAgeMs).toBe(7200_000);
   });
 
   it("warns on duplicate registration with conflicting config", () => {
@@ -120,6 +134,22 @@ describe("job execution", () => {
     expect(status.lastRun!.success).toBe(true);
     expect(status.lastRun!.durationMs).toBeGreaterThanOrEqual(0);
     expect(status.lastRun!.error).toBeUndefined();
+  });
+
+  it("wraps every run in withJobRun for persistent history", async () => {
+    const handler = vi.fn().mockResolvedValue(undefined);
+    registerJob("persisted-job", "0 * * * *", handler);
+    await startScheduler();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mockTask = (schedule as any).mock.results[0].value;
+    await mockTask._trigger();
+
+    expect(vi.mocked(withJobRun)).toHaveBeenCalledWith(
+      "persisted-job",
+      expect.any(Function)
+    );
+    expect(handler).toHaveBeenCalledTimes(1);
   });
 
   it("records failed run without rethrowing", async () => {

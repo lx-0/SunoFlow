@@ -87,14 +87,17 @@ const nextConfig = {
       )
     );
 
-    // node-cron and crypto use Node.js built-ins that are not available in
-    // the edge runtime. Mark them as external so webpack skips bundling;
-    // they are resolved at runtime by the Node.js server.
+    // node-cron, crypto and web-push use Node.js built-ins that are not
+    // available in the edge runtime. Mark them as external so webpack skips
+    // bundling; they are resolved at runtime by the Node.js server. (web-push
+    // joined the always-bundled jobs graph when feed-auto-generate became an
+    // in-process job — its agent-base dep requires http/https/net.)
     if (isServer) {
       config.externals = [
         ...(Array.isArray(config.externals) ? config.externals : [config.externals]),
         "node-cron",
         "crypto",
+        "web-push",
       ];
     }
     return config;

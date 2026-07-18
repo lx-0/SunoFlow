@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { SignalSlashIcon } from "@heroicons/react/24/outline";
+import { WifiOff } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 
 export function OfflineIndicator() {
   const [isOffline, setIsOffline] = useState(false);
@@ -55,7 +56,7 @@ export function OfflineIndicator() {
       aria-live="polite"
       className="fixed top-0 left-0 right-0 z-50 bg-amber-500 text-white text-center text-sm py-1.5 px-4 flex items-center justify-center gap-2"
     >
-      <SignalSlashIcon className="w-4 h-4" aria-hidden="true" />
+      <Icon icon={WifiOff} className="w-4 h-4" aria-hidden="true" />
       <span>
         You are offline
         {queueCount > 0 && ` — ${queueCount} queued request${queueCount > 1 ? "s" : ""}`}
