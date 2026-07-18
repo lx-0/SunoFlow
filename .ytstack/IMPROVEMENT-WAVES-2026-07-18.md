@@ -89,10 +89,35 @@ but nothing behind it), useListResource v2 (pagination + nullable-success →
 absorbs index/discover/search/inspire), store-readiness gaps (splash,
 mic-permission workaround, privacy manifest).
 
-## PENDING lenses
+## Security + Web-Performance (re-run complete)
 
-- **Security** and **Web-Performance** hit the session usage limit; re-run
-  scheduled. Their findings append here when available.
+**Security** (full findings in appendix): fundamentals are solid (7/227 raw
+routes, all self-enforcing; lib-layer ownership checks; no public-payload
+leaks) — but the native login endpoint `/api/v1/auth/token` had ZERO
+brute-force throttling (per-email cap rolled back after FK 500s, route comment
+claimed coverage no bucket matched). **HOTFIXED 2026-07-18 (`7872a8f4`)**:
+path added to the shared auth bucket + regression tests. Remaining: per-user
+rate limits are cookie-keyed (Bearer/API-key traffic bypasses them — M),
+only /api/generate gets the tight credit bucket (~13 other credit endpoints on
+the generic one — S), rate-limit state resets per deploy (L), CSP allows
+unsafe-inline/eval (L), upload validates neither content-type nor consistent
+size (L).
+
+**Web-Performance** (full findings in appendix): hot list endpoints are
+properly cursored — the real items: FileCache has NO eviction/size cap on the
+fixed Railway volume (H/M — pairs with the Wave-C disk-monitoring item),
+react-query `refetchOnWindowFocus: "always"` refetches every loaded page on
+each tab focus (M/S), the cover self-heal reaches only 7 of 33 image render
+sites (26 point next/image at 12-day-expiry CDN URLs — M/M), fonts served as
+.woff not .woff2 (L), full COUNT recomputed on every infinite-scroll page
+(L).
+
+**Data layer second pass** (new findings): CreditTopUp has no consumption
+ledger — one-time purchased credits silently replenish monthly (M/M, billing
+correctness!); the live /discover collections depend on a runtime-read model
+with no automated seed/refresh and a broken npm-script (M/S); bare String song
+ids leave dangling pointers on hard delete (L); generationStatus vocabulary
+drift (L); leftover search indexes after full-text removal (L).
 
 ## Suggested sequence
 
@@ -631,4 +656,179 @@ _Files:_ `.github/workflows/ci.yml`
 **Impact:** Local docker build speed and disk: developers building the image locally pay a multi-hundred-MB context copy for files the web image discards.
 
 _Files:_ `.dockerignore`, `Dockerfile`
+
+
+## Lens: Web Performance
+
+Web performance in SunoFlow is in good shape where it counts: the hot list endpoints (library, discover, feed, dashboard) are cursor-paginated or cached with bounded pools and no N+1, the Song table carries 22 indexes, the audio hot path already streams (honoring the KNOWLEDGE readFileSync rule), and the client bundle is disciplined — all heavy deps (swagger-ui-react, recharts, wavesurfer) are code-split and there are zero raw <img> tags. The genuine risks are on the storage/refetch axis rather than query shape. The single highest-leverage move is to bound the server FileCache: it has no eviction, size cap, or prune cron, songs are never hard-deleted, so the Railway persistent volume grows monotonically and will silently degrade every play once full — while the client offline cache already caps at 500 MB, exposing the asymmetry. Secondary wins: dial back refetchOnWindowFocus from "always" to true (it currently re-fetches every loaded infinite-library page on each tab focus), and extend the cover self-heal from 7 of 33 image sites to the remaining 26 that render expiring CDN URLs raw.
+
+### [HIGH/M] FileCache has no eviction or size cap — the Railway volume grows monotonically forever
+
+src/lib/cache/file.ts exposes get/getStream/put/has/downloadAndPut/count but NO delete/evict/prune — put() writes audio (.mp3) and cover (.jpg/.png/.webp) files to the Railway persistent volumes mounted at /data/audio-cache and /data/image-cache (railway.toml:11-15) and nothing ever removes them. A repo-wide grep for unlink/rmSync/rm -rf across src returns zero hits. Songs are soft-archived (Song.archivedAt) and never hard-deleted (the /api/songs/[id] route has no DELETE handler), so a deleted/archived song's cached files are orphaned permanently. warmUpAudioCache (warmup.ts) and songs/[id]/refresh only ADD to the cache. The scheduler runs cleanup crons for sessions, rate-limit entries, and admin logs (src/lib/jobs/job-definitions.ts:60-64) but there is NO cache-prune job. The feed-auto-generate cron continuously creates new songs, so growth is unbounded. Tellingly, the client-side offline cache DOES cap at 500 MB with auto-eviction (src/lib/cache/offline.ts:11,133) — the server side was simply overlooked. At ~480 songs and ~3-7 MB/audio that is already ~2 GB and climbing; when the volume fills, put()'s writeFile rejects and is swallowed as a warn (file.ts:155-157), silently degrading every audio/image request to a live Suno-CDN proxy round-trip. The admin mirror-health route already sums totalBytes via a synchronous readdirSync+statSync walk of the whole dir (src/app/api/admin/mirror-health/route.ts:26-32) — operators can SEE the size but have no lever to bound it.
+
+**Proposal:** Add an LRU/size-capped eviction to FileCache (lru-cache is already a dependency) keyed on a byte budget derived from the volume size, evicting least-recently-accessed files on put; and register a nightly prune cron that deletes cache files whose songId is archived/deleted or absent from the DB. Change put() to surface ENOSPC distinctly so the operator gets an alert instead of a silent warn.
+
+**Impact:** Operator: prevents the Railway volume from filling and silently turning every play/cover into a slow CDN proxy (or a hard failure). Users: preserves fast, self-healed local playback as the library grows.
+
+_Files:_ src/lib/cache/file.ts`, src/lib/cache/warmup.ts`, src/lib/jobs/job-definitions.ts`, railway.toml`, src/app/api/admin/mirror-health/route.ts`
+
+### [MEDIUM/S] react-query refetchOnWindowFocus:"always" refetches every query (incl. all loaded library pages) on each tab focus
+
+src/components/QueryProvider.tsx:19-21 sets refetchOnWindowFocus:"always" and refetchOnReconnect:"always". "always" is stronger than the default true: it ignores the 30s staleTime and forces a refetch of EVERY active query every time the window/tab regains focus. For a music workbench where users constantly tab out to Suno/browser and back, each focus triggers a burst of refetches across library, feed, credits, notifications, dashboard, etc. Worse, the library is a useInfiniteQuery (src/hooks/useSongsList.ts:76) — a react-query infinite refetch re-fetches ALL currently loaded pages sequentially, so a user who scrolled through 200 songs re-hits /api/songs ~10 times per focus. Each /api/songs GET also fires an unconditional extra stale-pending recovery DB query (src/app/api/songs/route.ts:12 → stale-pending-recovery.ts:41) even when nothing is pending, and each library page runs findMany + count (library.ts:187-196), so one focus can fan out to dozens of DB round-trips for no new data.
+
+**Proposal:** Set refetchOnWindowFocus back to true (respect the 30s staleTime) rather than "always", or scope "always" to only the credits/generation-status queries that truly need it. Consider a longer staleTime on the library query.
+
+**Impact:** Users on mobile/PWA and poor connections: far less redundant data transfer and battery drain on tab-switches. Operator: cuts a multiplicative source of DB/API load as usage grows.
+
+_Files:_ src/components/QueryProvider.tsx`, src/hooks/useSongsList.ts`
+
+### [MEDIUM/M] Cover self-heal is wired into only 7 of 33 image render sites — 26 surfaces point next/image directly at 12-day-expiry CDN URLs
+
+CoverArtImage (src/components/CoverArtImage.tsx) implements the full self-heal chain on image error: refreshCoverUrl → /api/images/[songId] proxy (served from imageCache) → fallback. But it is used in only 7 components, while 26 other render sites pass song.imageUrl straight into a raw next/image <Image> with no recovery (counted via grep: DashboardView, RecentlyPlayed, HistoryView, PlayHistoryView, UpNextPanel, RelatedSongs, SongRecommendations, the /feed, /discover, /inspire pages, and the public /s/[slug], /p/[slug], /u/[username], /embed share pages). Suno CDN URLs carry a 12-day TTL (src/lib/cdn-constants.ts: CDN_URL_TTL_MS). When a URL expires before the warmup/refresh path renews it, all 26 surfaces show a permanently broken cover, and the Next image optimizer keeps re-fetching the dead URL (its ephemeral .next/image-cache is wiped on every Railway redeploy, forcing a full re-optimization of every visible cover from the CDN after each deploy). This is most damaging on the public share/OG surfaces where a broken cover is the first impression.
+
+**Proposal:** Replace raw <Image src={song.imageUrl}> with CoverArtImage (or route those covers through the /api/images/[songId] proxy) across the remaining 26 sites so every surface gets URL-refresh + local-cache fallback, and the optimizer resolves against the stable proxy instead of an expiring CDN URL.
+
+**Impact:** Users: no broken covers on dashboard/history/feed/discover or public share pages. Server: the image optimizer stops re-fetching expiring URLs and caches against a stable proxy key.
+
+_Files:_ src/components/CoverArtImage.tsx`, src/components/DashboardView.tsx`, src/components/RecentlyPlayed.tsx`, src/components/HistoryView.tsx`, src/app/s/[slug]/PublicSongView.tsx`, src/app/p/[slug]/PublicPlaylistView.tsx`
+
+### [LOW/S] Brand fonts are served as .woff (not .woff2) with preload:false
+
+The Geist variable fonts are loaded via next/font/local from GeistVF.woff (66 KB) and GeistMonoVF.woff (68 KB) — src/app/[locale]/layout.tsx:18-23 and the parallel songs/u/s layouts. Only .woff exists in src/app/fonts (no .woff2). woff2 uses Brotli and is typically ~30-45% smaller, so shipping woff2 would cut ~50 KB off the critical font payload for the same glyphs. The config also sets preload:false, so the variable font arrives after first paint (FOUT / late text swap on the locked Geist brand type).
+
+**Proposal:** Add GeistVF.woff2 / GeistMonoVF.woff2 and point next/font/local at them (it will pick the smaller format automatically); reconsider preload:false for the primary sans face to reduce the flash of fallback text.
+
+**Impact:** Users: ~50 KB less on first load and less text reflow, mainly felt on mobile/first-visit. Cheap, self-contained change.
+
+_Files:_ src/app/[locale]/layout.tsx`, src/app/fonts/GeistVF.woff`, src/app/songs/layout.tsx`, src/app/u/layout.tsx`
+
+### [LOW/S] querySongLibrary recomputes a full COUNT on every page fetch, including every infinite-scroll page
+
+src/lib/songs/library.ts:187-196 runs prisma.song.findMany + prisma.song.count in a Promise.all unconditionally on every call, regardless of whether a cursor was supplied. Cursor pagination means the count re-scans the entire filtered set on every page — so paging through the library is 2 queries per page instead of 1, and because the count depends on the (possibly FTS/tag/date) filter it cannot use a covering index shortcut. This compounds with the refetchOnWindowFocus:"always" behavior above: each focus re-fetches all loaded pages, each of which re-issues the count. Negligible at 480 rows but a clear scaling smell the brief flagged as growing.
+
+**Proposal:** Only compute total on the first page (when cursor is undefined) and omit it on subsequent cursor fetches — the client already has the total from page 1. Alternatively cache the count briefly per filter key.
+
+**Impact:** Operator: roughly halves the query volume for library pagination as the Song table and user count grow.
+
+_Files:_ src/lib/songs/library.ts`, src/hooks/useSongsList.ts`
+
+
+## Lens: Security
+
+SunoFlow's security fundamentals are stronger than the route count suggests: of 227 API routes only 7 use fully raw handlers, and all 7 self-enforce (MCP bearer+origin+rate-limit, Stripe/Suno webhooks with fail-closed signature/token checks, NextAuth, and recommendation factories that wrap authRoute/publicRoute). Ownership is enforced in the lib layer for song/playlist mutations, visibility filters are correct on public routes, all 21 raw SQL calls are parameterized tagged templates (no injection surface), secrets are not logged (only userId/emailDomain on failures), env is validated at import, CI runs `pnpm audit --audit-level=high` as a gate, and CSP/HSTS/security headers are present. The single highest-leverage move is fixing rate limiting: it is entirely middleware-based and keyed on the JWT cookie, which means (a) the mobile login endpoint /api/v1/auth/token has NO brute-force throttle despite a comment claiming otherwise, and (b) every Bearer/API-key request — the whole mobile app and power-user REST surface — bypasses the per-user limiter completely. Routing the security-critical buckets (auth, generate) through the already-existing DB-backed limiter would close both gaps at once and also survive Railway redeploys.
+
+### [HIGH/S] Mobile login endpoint /api/v1/auth/token has zero brute-force throttling — and its own comment falsely claims it is covered
+
+src/app/api/v1/auth/token/route.ts is a publicRoute that verifies email+password and mints a long-lived sk- API key. Its header comment (lines 18-22) asserts "Brute-force: covered by the edge IP rate limiter (middleware applyRequestRateLimits)." That is not true. The middleware IP rate limiter (src/lib/rate-limit/sliding-window.ts) only applies its 10/min auth bucket to the exact paths in AUTH_PATHS (lines 107-113): /api/register, /api/auth/forgot-password, /api/auth/reset-password, /api/auth/signin, /api/auth/callback/credentials. Neither /api/v1/auth/token nor its rewrite target /api/auth/token is in that set, and the other IP buckets only match /s/,/p/,/u/,/songs/,/embed/ page prefixes. Because the request carries no JWT cookie and no Bearer yet, resolveContext leaves userId undefined (src/middleware.ts:110-128), so the per-user limiter block (sliding-window.ts:225-231) is skipped too. Net result: unlimited password guesses per IP against any known email on the public sunoflow.app host, bounded only by password-hash cost. By contrast the web NextAuth login (/api/auth/callback/credentials) IS throttled at 10/min.
+
+**Proposal:** Add an explicit anonymous rate-limit slot in the route before verifyPassword — the comment already prescribes the correct primitive: acquireAnonRateLimitSlot(ip, "login", ...) keyed on client IP (and ideally also on the submitted email) — NOT the user-keyed rateLimitCheck whose FK rejects synthetic keys. Alternatively add /api/v1/auth/token (and /api/auth/token) to AUTH_PATHS with a v1-aware matcher. Then correct the misleading comment so future readers don't re-trust it.
+
+**Impact:** Any account with a guessable/reused password is exposed to unlimited automated credential-stuffing on the production host; the false 'we're covered' comment means the gap is unlikely to be noticed in review.
+
+_Files:_ `src/app/api/v1/auth/token/route.ts`, `src/lib/rate-limit/sliding-window.ts`, `src/middleware.ts`
+
+### [MEDIUM/M] Entire per-user rate-limit layer is keyed on the JWT cookie, so every Bearer/API-key request (all of mobile, power-user REST, MCP alias) bypasses it
+
+The per-user rate limiter lives only in middleware and reads userId from getToken (the JWT cookie): src/middleware.ts:96-128 sets userId = token?.id. API-key requests authenticate via Authorization: Bearer sk- (resolveApiKeyUser in src/lib/auth/index.ts) and carry NO JWT cookie, so token is null and userId is undefined. The per-user block in sliding-window.ts:225-231 is gated on `if (userId && ...)`, so it is skipped entirely for Bearer requests. The route wrappers do not compensate: authRoute/authDataRoute apply no rate limit (src/lib/route-handler/index.ts:40-110); only anonRoute wires a RateLimitConfig (index.ts:186-204, preflight.ts:55-77). Only three routes call the DB-backed rateLimitCheck at handler level (songs/[id]/retry, songs/[id]/download, generate/auto). Everything else — /api/generate, /api/upload, /api/songs/[id]/extend, comments, playlist mutations — has no rate limit at all for API-key clients. The mobile app sends Bearer for 100% of its traffic, so effectively none of its requests are throttled; a leaked key or a client stuck in a retry loop can hammer credit-consuming endpoints with only the credit balance as a backstop.
+
+**Proposal:** Move rate limiting into the shared route pipeline (authPreflight/route-handler) so it runs regardless of auth transport, keyed on the resolved userId (works for both cookie and API-key). Reuse the DB-backed acquireRateLimitSlot so limits survive restarts and multiple instances. At minimum, extend the middleware to resolve the API-key userId (or apply a key-scoped limiter like the MCP route's checkMcpRateLimit) for /api/* Bearer requests.
+
+**Impact:** Mobile clients and API-key power users are unthrottled on every endpoint including expensive Suno operations; a buggy loop or abused key burns credits and can spam comments/mutations with no server-side ceiling.
+
+_Files:_ `src/middleware.ts`, `src/lib/rate-limit/sliding-window.ts`, `src/lib/route-handler/index.ts`, `src/app/api/upload/route.ts`
+
+### [MEDIUM/S] Only the exact path /api/generate gets the tight 10/min generation bucket; ~13 other credit-consuming endpoints fall under the generic 100/min catch-all
+
+matchUserBuckets (src/lib/rate-limit/sliding-window.ts:149-164) applies the 10/min generate bucket only when `pathname === "/api/generate" && method === "POST"`. Every other Suno-credit-spending POST route falls through to the 100/min api catch-all: /api/songs/[id]/extend, /cover-art/generate, /music-video, /separate-vocals, /convert-wav, /generate-midi, /add-instrumental, /add-vocals, /replace-section, /variations, /api/songs/batch-generate, /api/mashup, /api/style-boost. So even a cookie-authenticated web user can trigger up to 100 credit operations per minute through these siblings, versus 10 for the primary path. (For Bearer clients even this ceiling is absent — see the JWT-keying finding.) The generate route itself also never calls the DB-backed rateLimitCheck, unlike the cheaper /retry and /download routes, so its only server-side ceiling is this middleware bucket plus credit balance.
+
+**Proposal:** Replace the exact-match with a prefix/allowlist of credit-consuming operations that all share the generate bucket (or give each its own bucket), and centralize the mapping so new expensive routes inherit a tight limit by default rather than silently landing in the 100/min pool.
+
+**Impact:** A single web user (or a bug) can drive 10x the intended generation rate through the non-/api/generate endpoints, accelerating credit burn and Suno API cost/abuse.
+
+_Files:_ `src/lib/rate-limit/sliding-window.ts`, `src/app/api/generate/route.ts`
+
+### [LOW/M] Rate-limit state is process-local in-memory Maps, so every Railway redeploy resets the login brute-force counter
+
+The middleware limiter stores hits in module-level Maps (src/lib/rate-limit/sliding-window.ts:24-27) with a documented caveat that multi-instance deployments should move to Redis. Two concrete consequences on the current Railway single-instance PROD: (1) every redeploy (frequent during this active-development beta) wipes ipHits/userHits, so the 10/min auth IP bucket — the one anti-brute-force control that does fire for web login — resets to zero on each ship; an attacker can also simply outlast it. (2) If the service is ever scaled to >1 replica, each replica keeps its own counters, silently multiplying every limit by the replica count. Note the DB-backed acquireRateLimitSlot layer (used by password_reset, verification_email, download, rss_fetch) does NOT share this weakness, which is exactly why the login/generation paths should route through it.
+
+**Proposal:** Back the middleware sliding-window with the existing DB-backed limiter (or Redis) for the security-critical buckets (auth, generate) so counters survive deploys and are shared across instances; keep in-memory only for cheap page-view throttles where reset-on-deploy is acceptable.
+
+**Impact:** The web login throttle is effectively defeated by redeploy timing today and would silently weaken further on horizontal scale-out, undermining the primary defense against password guessing.
+
+_Files:_ `src/lib/rate-limit/sliding-window.ts`
+
+### [LOW/M] CSP script-src permits 'unsafe-inline' and 'unsafe-eval', neutralizing script-injection protection
+
+The CSP set in next.config.mjs:189 uses `script-src 'self' 'unsafe-inline' 'unsafe-eval'`. 'unsafe-inline' means any injected inline <script> or event-handler attribute executes, and 'unsafe-eval' allows eval/new Function — together these remove most of the XSS mitigation a CSP is meant to provide. The rest of the policy is well constructed (frame-ancestors 'none', base-uri 'self', form-action 'self', scoped connect-src). This is a common Next.js compromise, but with img-src allowing all https: and user-generated content (song titles, lyrics, comments, usernames) rendered throughout, a single missed escape becomes fully exploitable rather than blocked.
+
+**Proposal:** Adopt Next.js nonce-based CSP (generate a per-request nonce in middleware, add it to script-src, drop 'unsafe-inline'/'unsafe-eval'). If a full migration is too costly now, at least drop 'unsafe-eval' (rarely needed by app code) and track removing 'unsafe-inline' as hardening before opening the beta wider.
+
+**Impact:** Reduces defense-in-depth: any XSS sink in user-generated content executes with no CSP backstop on the production host.
+
+_Files:_ `next.config.mjs`
+
+### [LOW/S] Upload endpoint validates neither content-type nor a consistent size limit — the documented 10MB base64 path is dead behind the 1MB middleware cap
+
+The upload contract (packages/core/upload.ts) enforces MAX_BASE64_SIZE = 10MB (line 7) but performs no file-type/mime/magic-byte validation — mode is checked ('cover'|'extend'), yet base64Data and fileUrl accept any bytes/any URL and are forwarded straight to Suno via /api/upload -> runUploadGenerationApiCall. Separately, the middleware body guard caps ALL /api/* bodies at MAX_BODY_BYTES = 1MB (src/middleware.ts:17,138), which fires before the schema runs — so any base64 audio larger than ~750KB raw is rejected with 413 regardless of the 10MB allowance. The result is a contradiction: the schema advertises and tests a 10MB base64 path that is unreachable in production, pushing all real audio through the fileUrl branch (which is the mobile cover/extend flow, device-pass pending). No server-side type check means the only content gate is Suno's own upstream validation.
+
+**Proposal:** Reconcile the limits: either raise the middleware cap for the upload route specifically or lower/remove the 10MB base64 branch and document fileUrl as the only supported large-file path. Add a lightweight content-type/extension allowlist (audio/mpeg, audio/wav, etc.) so obviously-wrong uploads are rejected before a credit-consuming Suno call.
+
+**Impact:** The mobile upload feature's base64 path silently fails at >1MB despite passing its own unit tests; absent type validation, malformed inputs reach the paid Suno API before being rejected.
+
+_Files:_ `packages/core/upload.ts`, `src/middleware.ts`, `src/app/api/upload/route.ts`
+
+
+## Lens: Data Layer (second pass — new findings only)
+
+The data layer is genuinely well-audited: the prior 2026-07-18 pass already nailed the highest-impact items (cdn1 permanent URLs stamped with a 12-day TTL causing per-boot aggregator storms, the PlaybackState cascade that wipes a user's whole session, the per-boot migrate-resolve drift hack with no CI drift detection, missing retention on append-only tables, Song over-indexing, and unguarded embedding JSON). My findings are the residual gaps not in that list. The single highest-leverage NEW move is fixing the credit accounting before monetization turns on: CreditTopUp has no consumption ledger, so purchased one-time credits silently replenish every calendar month and re-open the generation gate — a real revenue bug that is merely latent because the beta is free today. The cheapest user-visible fix is the Collections model, which backs a live /discover surface but is only ever populated by a hand-run seed script (whose referenced npm command doesn't even exist), so it is empty or permanently stale in prod. The remaining three are lower-bite hygiene: bare-String song pointers that dangle on delete (complementing the prior cascade finding), an unconstrained generationStatus String whose drifted vocabulary already produces a dead admin 'error' badge, and vestigial title/prompt btree indexes left behind when full-text search was ripped out.
+
+### [MEDIUM/M] CreditTopUp has no consumption ledger, so one-time purchased credits silently replenish every calendar month
+
+Credit accounting derives the top-up balance purely from the current month's CreditUsage rows. `getTopUpCreditsRemaining` (src/lib/credits/index.ts:137-147) sums ALL non-expired CreditTopUp.credits (no per-topup consumed/remaining field exists — schema.prisma:894-910), and `analyzeUsage` (src/lib/credits/index.ts:82-90) computes `topUpCreditsConsumed = max(0, creditsUsedThisMonth - subscriptionBudget)` where `creditsUsedThisMonth` is only summed from `startOfMonth` (src/lib/credits/index.ts:182,216). CreditUsage rows are never allocated against a specific top-up. So at the first of every month `creditsUsedThisMonth` resets to 0, `topUpCreditsConsumed` becomes 0, and the full top-up pool is available again. This feeds `checkCredits.ok` (src/lib/credits/index.ts:227-238), so it gates real generation, not just display. A user who buys 100 top-up credits once effectively gets 100 bonus credits every month until the ~1-year `expiresAt`.
+
+**Proposal:** Track top-up depletion in the ledger: either add a `creditsRemaining`/`consumedCredits` column to CreditTopUp and debit it FIFO at spend time, or tag each CreditUsage row with the source (subscription vs top-up) so lifetime top-up consumption can be summed. Then compute top-up remaining as (purchased - lifetime-consumed) instead of (purchased - this-month-consumed). Latent while the beta is 100% free with no purchases, but it is a revenue/correctness bug the moment top-ups are sold.
+
+**Impact:** Operator/revenue: purchased one-time credits behave like a recurring monthly grant, so paid top-up users can generate far beyond what they bought. Bites as soon as monetization is switched on.
+
+_Files:_ `src/lib/credits/index.ts`, `prisma/schema.prisma`
+
+### [MEDIUM/S] Collections is a runtime-read data model with no automated seed/refresh and a broken npm-script reference — the live /discover collections surface is empty or permanently stale in prod
+
+`Collection`/`CollectionSong` are read at runtime (listCollections, src/lib/collections/collections.ts:74; served at /api/collections and rendered by discover-view.cards.tsx:530 → /discover/collections/[id]), but application code NEVER writes them — grep for `collection.create|upsert|createMany` across src returns zero hits. The only writer is a manual script, prisma/seed-collections.ts, whose own docstring (line 7) tells you to run `npm run seed:collections` — a script that does not exist in package.json (confirmed: no `"seed*"` key). No cron in src/lib/jobs/job-definitions.ts:60-64 and no deploy/entrypoint step runs it. So unless someone hand-ran the ts-node one-liner against the prod DB, the two tables (plus 5 indexes) are empty; even if seeded once, theme buckets like 'New This Week' and 'Top Rated' are frozen snapshots that never update and can retain archived songs.
+
+**Proposal:** Decide whether Collections ships: if yes, turn the seed into an idempotent refresh job on the existing scheduler (like smart-playlist-refresh) and fix/add the `seed:collections` npm script; if no, drop the /discover collections surface and the two tables. Either way stop shipping a live UI backed by a hand-run script.
+
+**Impact:** Users: the Discover 'Collections' entry points render nothing (or stale content) because nothing keeps the tables populated. Operator: two dead/stale tables and a doc that references a non-existent command.
+
+_Files:_ `prisma/seed-collections.ts`, `src/lib/collections/collections.ts`, `src/lib/jobs/job-definitions.ts`, `package.json`
+
+### [LOW/S] Several song-referencing columns bypass Prisma relations (bare String ids), so hard-deleting a song leaves dangling pointers with no cleanup
+
+The prior pass flagged an over-aggressive cascade (PlaybackState). The complementary gap: four columns point at Song by plain String with NO relation/FK, so no cascade or SetNull ever cleans them — User.featuredSongId (schema.prisma:57), Notification.songId (schema.prisma:432), Persona.sourceSongId (schema.prisma:502), CreditUsage.songId (schema.prisma:568). Song hard-deletes are reachable (moderation `song.delete`, batch `song.deleteMany`), after which these ids dangle: a 'your song is ready' Notification links to a deleted song (dead href), a profile keeps a featuredSongId that no longer resolves, and CreditUsage.songId points at nothing (and is unindexed). featuredSongId is validated for ownership only at set-time (src/lib/profile/profile.ts:99), never re-checked on delete.
+
+**Proposal:** Where a real relation is intended, convert these to proper relations with `onDelete: SetNull` (featuredSongId, Notification.songId, Persona.sourceSongId, CreditUsage.songId) so deletes null the pointer automatically; keep genuinely denormalized/analytic ids (e.g. CreditUsage.songId as an audit snapshot) but document that intent. Low bite at 480 songs, but it is silent data rot that grows with every delete.
+
+**Impact:** Users: occasional dead links from notifications/profiles to deleted songs. Operator: orphaned pointers accumulate and are invisible until a query dereferences them.
+
+_Files:_ `prisma/schema.prisma`, `src/lib/profile/profile.ts`
+
+### [LOW/S] generationStatus is an unconstrained String with a drifted vocabulary — the admin 'error' status badge is a dead branch because writes only ever set 'failed'
+
+Song.generationStatus is a free-text String @default("pending") (schema.prisma:159) with an implicit enum enforced nowhere. The written vocabulary is ready/pending/failed/streaming/processing (grep of writes: 77 'ready', 24 'pending', 19 'failed', 1 each streaming/processing — zero 'error'). Yet the admin content table (src/app/[locale]/admin/content/page.tsx:141) and admin user detail (src/app/[locale]/admin/users/[id]/page.tsx:354) style the badge on `generationStatus === "error"`, a value that is never written — so failed songs render with the yellow 'in-progress' style instead of red. library/[id]/page.tsx:28 separately maps failed→error for a different type. There is no shared constant, so consumers have already drifted.
+
+**Proposal:** Promote generationStatus to a Prisma enum (or a single exported const union in src/lib/songs) covering ready|pending|processing|streaming|failed, and replace the admin `=== "error"` comparisons with `=== "failed"`. This makes the DB reject bad values and gives one source of truth for the vocabulary.
+
+**Impact:** Operator: admin moderation views mis-color failed songs (looks stuck, not errored); latent risk that any new status typo silently falls through since nothing validates the column.
+
+_Files:_ `prisma/schema.prisma`, `src/app/[locale]/admin/content/page.tsx`, `src/app/[locale]/admin/users/[id]/page.tsx`
+
+### [LOW/S] Full-text search was ripped out (searchVector column + GIN index dropped), leaving [userId, title] and [userId, prompt] btree indexes that can't serve the current ILIKE-substring search
+
+Migration 20260324000001_add_song_fts added a `searchVector` tsvector column, a GIN index, and a maintenance trigger; a later migration dropped the column (auto-dropping the GIN index) and 20260327090000_drop_orphaned_fts_trigger removed the orphaned trigger/function after it broke every Song INSERT (P2022). Search now runs as `contains` / ILIKE '%term%' (src/lib/songs/filters.ts:62-104, tags), which a btree index cannot accelerate. But Song still carries `@@index([userId, title])` and `@@index([userId, prompt])` (schema.prisma:206-207) — btree indexes over long free-text columns that only help exact/prefix matches, not the substring search actually performed. They are vestigial from the pre-FTS era: they add write cost on the hot Song write path (distinct from the tempo/downloadCount/etc. indexes the prior pass listed) and buy nothing for current search.
+
+**Proposal:** Drop the [userId, title] and [userId, prompt] btree indexes. If search relevance matters later, restore a proper tsvector+GIN (or pg_trgm GIN for substring) rather than plain btrees. Documents the FTS removal so the leftover indexes don't look intentional.
+
+**Impact:** Operator: two more indexes maintained on every Song insert/update for no query benefit; search is a full scan (fine at 480 rows, but the indexes imply otherwise).
+
+_Files:_ `prisma/schema.prisma`, `src/lib/songs/filters.ts`
 
