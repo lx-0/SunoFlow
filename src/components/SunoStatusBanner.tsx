@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ExclamationTriangleIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { TriangleAlert, X } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { fetchWithTimeout } from "@/lib/fetch-client";
 
 const POLL_INTERVAL_MS = 30_000; // check every 30 seconds
@@ -84,7 +85,7 @@ export function SunoStatusBanner() {
       className="flex items-center justify-between gap-3 rounded-none border-b border-orange-200 dark:border-orange-800/60 bg-orange-50 dark:bg-orange-900/20 px-4 py-3"
     >
       <div className="flex items-start gap-2.5 min-w-0">
-        <ExclamationTriangleIcon className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
+        <Icon icon={TriangleAlert} className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
         <p className="text-sm text-orange-800 dark:text-orange-200">
           <span className="font-semibold">
             {isHalfOpen
@@ -101,7 +102,7 @@ export function SunoStatusBanner() {
         className="flex-shrink-0 p-1 rounded-md text-orange-500 hover:text-orange-700 dark:hover:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-800/40 transition-colors"
         aria-label="Dismiss"
       >
-        <XMarkIcon className="w-4 h-4" />
+        <Icon icon={X} className="w-4 h-4" />
       </button>
     </div>
   );

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TicketIcon, ClipboardIcon, CheckIcon } from "@heroicons/react/24/outline";
+import { Ticket, Clipboard, Check } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { apiGet, apiPost } from "@/lib/api-client";
 import { HttpError } from "@/components/QueryProvider";
 
@@ -82,20 +83,20 @@ export default function InviteCodesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <TicketIcon className="w-6 h-6 text-violet-400" />
+        <Icon icon={Ticket} className="w-6 h-6 text-violet-400" />
         <h1 className="text-2xl font-bold">Invite Codes</h1>
       </div>
-      <p className="text-sm text-gray-400">
+      <p className="text-sm text-secondary">
         Single-use codes required for self-serve registration during closed beta. Admin emails bypass the gate.
       </p>
 
       {error && <p className="text-red-400 text-sm">{error}</p>}
 
-      <form onSubmit={handleGenerate} className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
+      <form onSubmit={handleGenerate} className="bg-surface border border-border rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-semibold">Generate codes</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label htmlFor="count" className="block text-sm text-gray-400 mb-1">Count</label>
+            <label htmlFor="count" className="block text-sm text-secondary mb-1">Count</label>
             <input
               id="count"
               type="number"
@@ -103,11 +104,11 @@ export default function InviteCodesPage() {
               max={50}
               value={count}
               onChange={(e) => setCount(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
-              className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-3 py-2 rounded-lg bg-surface-raised border border-border text-primary focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
           <div>
-            <label htmlFor="note" className="block text-sm text-gray-400 mb-1">Note (optional)</label>
+            <label htmlFor="note" className="block text-sm text-secondary mb-1">Note (optional)</label>
             <input
               id="note"
               type="text"
@@ -115,11 +116,11 @@ export default function InviteCodesPage() {
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="e.g. for @friend"
-              className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-3 py-2 rounded-lg bg-surface-raised border border-border text-primary focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
           <div>
-            <label htmlFor="expiresInDays" className="block text-sm text-gray-400 mb-1">Expires in (days, optional)</label>
+            <label htmlFor="expiresInDays" className="block text-sm text-secondary mb-1">Expires in (days, optional)</label>
             <input
               id="expiresInDays"
               type="number"
@@ -128,7 +129,7 @@ export default function InviteCodesPage() {
               value={expiresInDays}
               onChange={(e) => setExpiresInDays(e.target.value)}
               placeholder="never"
-              className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-3 py-2 rounded-lg bg-surface-raised border border-border text-primary focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
         </div>
@@ -141,17 +142,17 @@ export default function InviteCodesPage() {
         </button>
       </form>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+      <div className="bg-surface border border-border rounded-xl overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-32">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-violet-400" />
           </div>
         ) : codes.length === 0 ? (
-          <p className="text-gray-500 text-sm p-5">No invite codes yet. Generate one above.</p>
+          <p className="text-muted text-sm p-5">No invite codes yet. Generate one above.</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-gray-400 border-b border-gray-800">
+              <tr className="text-left text-secondary border-b border-border">
                 <th className="px-4 py-3 font-medium">Code</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Note</th>
@@ -168,25 +169,25 @@ export default function InviteCodesPage() {
                       <button
                         type="button"
                         onClick={() => copyCode(c.code)}
-                        className="inline-flex items-center gap-2 font-mono tracking-wider text-white hover:text-violet-300"
+                        className="inline-flex items-center gap-2 font-mono tracking-wider text-primary hover:text-violet-300"
                         title="Copy to clipboard"
                       >
                         {c.code}
                         {copied === c.code ? (
-                          <CheckIcon className="w-4 h-4 text-green-400" />
+                          <Icon icon={Check} className="w-4 h-4 text-green-400" />
                         ) : (
-                          <ClipboardIcon className="w-4 h-4 text-gray-500" />
+                          <Icon icon={Clipboard} className="w-4 h-4 text-muted" />
                         )}
                       </button>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs ${status.className}`}>{status.label}</span>
                     </td>
-                    <td className="px-4 py-3 text-gray-400">{c.note ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-400">
+                    <td className="px-4 py-3 text-secondary">{c.note ?? "—"}</td>
+                    <td className="px-4 py-3 text-secondary">
                       {c.usedByUser ? (c.usedByUser.email ?? c.usedByUser.name ?? "—") : "—"}
                     </td>
-                    <td className="px-4 py-3 text-gray-500">{new Date(c.createdAt).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-muted">{new Date(c.createdAt).toLocaleDateString()}</td>
                   </tr>
                 );
               })}

@@ -5,15 +5,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { AppShell } from "@/components/AppShell";
 import { PullToRefreshContainer } from "@/components/PullToRefreshContainer";
-import {
-  ArrowPathIcon,
-  SparklesIcon,
-  FunnelIcon,
-  CheckCircleIcon,
-  XMarkIcon,
-  RssIcon,
-  ClockIcon,
-} from "@heroicons/react/24/outline";
+import { RefreshCw, Sparkles, Funnel, CircleCheck, X, Rss, Clock } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useRssFeeds } from "@/hooks/useRssFeeds";
 import { useInstagramPosts } from "@/hooks/useInstagramPosts";
 import { usePendingGenerations } from "@/hooks/usePendingGenerations";
@@ -48,7 +41,7 @@ function SourceIcon({ type, className }: { type: SourceType; className?: string 
   const cn = className ?? "w-3.5 h-3.5";
   switch (type) {
     case "rss":
-      return <RssIcon className={cn} />;
+      return <Icon icon={Rss} className={cn} />;
     case "instagram":
       return (
         <svg className={cn} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -58,9 +51,9 @@ function SourceIcon({ type, className }: { type: SourceType; className?: string 
         </svg>
       );
     case "picks":
-      return <SparklesIcon className={cn} />;
+      return <Icon icon={Sparkles} className={cn} />;
     case "pending":
-      return <ClockIcon className={cn} />;
+      return <Icon icon={Clock} className={cn} />;
   }
 }
 
@@ -83,13 +76,13 @@ function UnifiedCard({
     : null;
 
   return (
-    <div className={`bg-white dark:bg-gray-900 border rounded-xl overflow-hidden ${
+    <div className={`bg-surface border rounded-xl overflow-hidden ${
       item.sourceType === "pending"
         ? "border-teal-400/60 dark:border-teal-500/40 ring-1 ring-teal-400/20"
-        : "border-gray-200 dark:border-gray-800"
+        : "border-border"
     }`}>
       {item.imageUrl && (
-        <div className="aspect-video relative overflow-hidden bg-gray-100 dark:bg-gray-800 max-h-48">
+        <div className="aspect-video relative overflow-hidden bg-surface-raised max-h-48">
           <Image
             src={item.imageUrl}
             alt={item.title || "Post image"}
@@ -109,8 +102,8 @@ function UnifiedCard({
           </span>
           {item.date && (
             <>
-              <span className="text-gray-400 dark:text-gray-500">·</span>
-              <span className="text-gray-400 dark:text-gray-500">
+              <span className="text-muted">·</span>
+              <span className="text-muted">
                 {item.date.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
               </span>
             </>
@@ -122,22 +115,22 @@ function UnifiedCard({
             href={item.link}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-semibold text-gray-900 dark:text-white leading-snug hover:text-violet-400 dark:hover:text-violet-400 transition-colors"
+            className="text-sm font-semibold text-primary leading-snug hover:text-violet-400 dark:hover:text-violet-400 transition-colors"
           >
             {item.title}
           </a>
         ) : (
-          <p className="text-sm font-semibold text-gray-900 dark:text-white leading-snug">
+          <p className="text-sm font-semibold text-primary leading-snug">
             {item.title}
           </p>
         )}
 
         {item.subtitle && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.subtitle}</p>
+          <p className="text-xs text-secondary mt-0.5">{item.subtitle}</p>
         )}
 
         {item.excerpt && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mt-2 line-clamp-3">
+          <p className="text-xs text-secondary leading-relaxed mt-2 line-clamp-3">
             {item.excerpt}
           </p>
         )}
@@ -172,7 +165,7 @@ function UnifiedCard({
                 onClick={() => onApprove(item)}
                 className="flex items-center gap-1.5 text-sm font-medium text-teal-400 hover:text-teal-300 transition-colors min-h-[44px]"
               >
-                <CheckCircleIcon className="w-4 h-4" />
+                <Icon icon={CircleCheck} className="w-4 h-4" />
                 Generate
               </button>
                 <button
@@ -181,7 +174,7 @@ function UnifiedCard({
                   className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-red-400 transition-colors min-h-[44px] ml-auto"
                   aria-label="Dismiss"
                 >
-                <XMarkIcon className="w-4 h-4" />
+                <Icon icon={X} className="w-4 h-4" />
                 Dismiss
               </button>
             </>
@@ -191,7 +184,7 @@ function UnifiedCard({
               onClick={() => onAction(item)}
               className="flex items-center gap-1.5 text-sm font-medium text-violet-400 hover:text-violet-300 transition-colors min-h-[44px]"
             >
-              <SparklesIcon className="w-4 h-4" />
+              <Icon icon={Sparkles} className="w-4 h-4" />
               Generate from this
             </button>
           )}
@@ -224,7 +217,7 @@ function SourceFilterChips({
             className={`flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${
               active
                 ? "bg-violet-600 text-white"
-                : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                : "bg-surface-raised text-secondary hover:text-primary"
             }`}
           >
             <SourceIcon type={source} className="w-3 h-3" />
@@ -248,13 +241,13 @@ function MoodFilterChips({
   if (moods.length === 0) return null;
   return (
     <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-      <FunnelIcon className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
+      <Icon icon={Funnel} className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
       <button
         onClick={() => onSelect(null)}
         className={`text-[11px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap transition-colors ${
           activeMood === null
             ? "bg-violet-600 text-white"
-            : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            : "bg-surface-raised text-secondary hover:text-primary"
         }`}
       >
         All moods
@@ -266,7 +259,7 @@ function MoodFilterChips({
           className={`text-[11px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap transition-colors ${
             activeMood === mood
               ? MOOD_COLORS[mood] ?? MOOD_COLORS.neutral
-              : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+              : "bg-surface-raised text-secondary hover:text-primary"
           }`}
         >
           {mood}
@@ -286,9 +279,9 @@ function GeneratePicksCTA({
   onGenerate: () => void;
 }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-5 text-center">
-      <SparklesIcon className="w-8 h-8 text-gray-400 dark:text-gray-600 mx-auto mb-2" />
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+    <div className="bg-surface border border-dashed border-border rounded-xl p-5 text-center">
+      <Icon icon={Sparkles} className="w-8 h-8 text-gray-400 dark:text-gray-600 mx-auto mb-2" />
+      <p className="text-sm text-secondary mb-3">
         Auto-curate today&apos;s top inspiration from your RSS feeds with diverse moods and sources.
       </p>
       <button
@@ -309,7 +302,7 @@ function SortToggle({ mode, onChange }: { mode: SortMode; onChange: (m: SortMode
   return (
     <button
       onClick={() => onChange(mode === "newest" ? "bestmatch" : "newest")}
-      className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors whitespace-nowrap"
+      className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-surface-raised text-secondary hover:text-primary transition-colors whitespace-nowrap"
     >
       {mode === "newest" ? "↓ Newest" : "★ Best match"}
     </button>
@@ -335,7 +328,7 @@ function TodaysPicksSection({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold text-amber-400 flex items-center gap-1.5">
-          <SparklesIcon className="w-4 h-4" />
+          <Icon icon={Sparkles} className="w-4 h-4" />
           {title}
         </span>
         <button
@@ -343,7 +336,7 @@ function TodaysPicksSection({
           disabled={refreshing}
           className="flex items-center gap-1 text-xs font-medium text-amber-400 hover:text-amber-300 transition-colors disabled:opacity-50"
         >
-          <ArrowPathIcon className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+          <Icon icon={RefreshCw} className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
           Refresh
         </button>
       </div>
@@ -406,10 +399,10 @@ function InspireContent() {
   if (rss.loaded && !hasAnySources) {
     return (
       <div className="px-4 py-6 space-y-4">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Inspire</h2>
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 text-center">
-          <SparklesIcon className="w-10 h-10 text-gray-400 dark:text-gray-600 mx-auto mb-3" />
-          <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
+        <h2 className="text-xl font-bold text-primary">Inspire</h2>
+        <div className="bg-surface border border-border rounded-xl p-6 text-center">
+          <Icon icon={Sparkles} className="w-10 h-10 text-gray-400 dark:text-gray-600 mx-auto mb-3" />
+          <p className="text-secondary text-sm mb-4">
             No inspiration sources added yet. Add RSS feeds or Instagram posts in Settings to get started.
           </p>
           <button
@@ -428,7 +421,7 @@ function InspireContent() {
       <div className="px-4 py-6 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Inspire</h2>
+            <h2 className="text-xl font-bold text-primary">Inspire</h2>
             {pending.items.length > 0 && (
               <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-bold text-teal-100 bg-teal-500 rounded-full">
                 {pending.items.length}
@@ -438,15 +431,15 @@ function InspireContent() {
           <button
             onClick={handleRefresh}
             disabled={isLoading}
-            className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 text-sm text-secondary hover:text-primary transition-colors disabled:opacity-50"
           >
-            <ArrowPathIcon className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+            <Icon icon={RefreshCw} className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
             Refresh
           </button>
         </div>
 
         {lastRefreshed && (
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-secondary">
             Updated {lastRefreshed.toLocaleTimeString()}
           </p>
         )}
@@ -481,8 +474,8 @@ function InspireContent() {
         )}
 
         {filters.filteredPicks.length > 0 && filters.filteredFeed.length > 0 && (
-          <div className="border-t border-gray-200 dark:border-gray-800 pt-2">
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+          <div className="border-t border-border pt-2">
+            <p className="text-xs font-medium text-secondary uppercase tracking-wide">
               More inspiration
             </p>
           </div>
@@ -493,7 +486,7 @@ function InspireContent() {
             {[...Array(5)].map((_, i) => (
               <div
                 key={i}
-                className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 animate-pulse"
+                className="bg-surface border border-border rounded-xl p-4 animate-pulse"
               >
                 <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-1/4 mb-3" />
                 <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4 mb-2" />
@@ -517,8 +510,8 @@ function InspireContent() {
         </div>
 
         {!isLoading && filters.filteredFeed.length === 0 && filters.filteredPicks.length === 0 && !showPicksCTA && (
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 text-center">
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
+          <div className="bg-surface border border-border rounded-xl p-6 text-center">
+            <p className="text-secondary text-sm">
               No items match your current filters. Try adjusting the source or mood filters.
             </p>
           </div>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { Plus, Trash2 } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { FieldError } from "./ui";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/api-client";
 
@@ -72,8 +73,8 @@ export function RssFeedsSection() {
   return (
     <section className="space-y-3">
       <div>
-        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">RSS Feeds</h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+        <h3 className="text-base font-semibold text-primary">RSS Feeds</h3>
+        <p className="text-xs text-secondary mt-0.5">
           Add RSS feed URLs to see inspiration on the Inspire page.
         </p>
       </div>
@@ -88,8 +89,8 @@ export function RssFeedsSection() {
           }}
           onKeyDown={handleKeyDown}
           placeholder="https://example.com/feed.xml"
-          className={`flex-1 bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
-            error ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+          className={`flex-1 bg-surface-raised border rounded-lg px-3 py-2 text-base text-primary placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
+            error ? "border-red-500" : "border-border"
           }`}
         />
         <button
@@ -97,7 +98,7 @@ export function RssFeedsSection() {
           disabled={adding}
           className="flex items-center gap-1 px-3 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
         >
-          <PlusIcon className="w-4 h-4" />
+          <Icon icon={Plus} className="w-4 h-4" />
           {adding ? "Adding..." : "Add"}
         </button>
       </div>
@@ -105,24 +106,24 @@ export function RssFeedsSection() {
       <FieldError error={error} />
 
       {loading ? (
-        <p className="text-sm text-gray-500 dark:text-gray-400">Loading feeds...</p>
+        <p className="text-sm text-secondary">Loading feeds...</p>
       ) : feeds.length === 0 ? (
-        <p className="text-sm text-gray-500 dark:text-gray-400">No feeds added yet.</p>
+        <p className="text-sm text-secondary">No feeds added yet.</p>
       ) : (
         <ul className="space-y-2">
           {feeds.map((feed) => (
             <li
               key={feed.id}
-              className="flex flex-col gap-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-3 py-2"
+              className="flex flex-col gap-1 bg-surface border border-border rounded-lg px-3 py-2"
             >
               <div className="flex items-center gap-2">
-                <span className="flex-1 text-xs text-gray-700 dark:text-gray-300 truncate">{feed.url}</span>
+                <span className="flex-1 text-xs text-secondary truncate">{feed.url}</span>
                 <button
                   onClick={() => removeFeed(feed.id)}
-                  className="text-gray-400 dark:text-gray-500 hover:text-red-400 transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  className="text-muted hover:text-red-400 transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
                   aria-label="Remove feed"
                 >
-                  <TrashIcon className="w-4 h-4" />
+                  <Icon icon={Trash2} className="w-4 h-4" />
                 </button>
               </div>
               <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -141,7 +142,7 @@ export function RssFeedsSection() {
                     }`}
                   />
                 </button>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-secondary">
                   Auto-generate when new items arrive
                 </span>
               </label>

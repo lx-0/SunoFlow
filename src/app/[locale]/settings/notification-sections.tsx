@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BellIcon } from "@heroicons/react/24/outline";
+import { Bell } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { usePushSubscription } from "@/hooks/usePushSubscription";
 import { apiGet, apiPatch } from "@/lib/api-client";
 import { EMAIL_BOOL_NOTIF_TYPES, DIGEST_FREQUENCY_OPTIONS, HOUR_OPTIONS, PUSH_NOTIF_TYPES } from "./constants";
@@ -61,40 +62,40 @@ export function EmailNotificationsSection() {
       {toast && <Toast message={toast.message} type={toast.type} />}
       <section className="space-y-3">
         <div>
-          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Email Notifications</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Choose which emails you want to receive. All emails include a one-click unsubscribe link.</p>
+          <h3 className="text-base font-semibold text-primary">Email Notifications</h3>
+          <p className="text-xs text-secondary mt-0.5">Choose which emails you want to receive. All emails include a one-click unsubscribe link.</p>
         </div>
         <div className="space-y-2">
           {EMAIL_BOOL_NOTIF_TYPES.map(({ key, label, description }) => (
             <label
               key={key}
-              className="flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-3 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-3 bg-surface border border-border rounded-lg px-3 py-3 cursor-pointer hover:bg-surface-hover transition-colors"
             >
               <input
                 type="checkbox"
                 checked={boolPrefs[key] === true}
                 onChange={() => !saving && toggle(key)}
                 disabled={saving}
-                className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-violet-600 focus:ring-violet-500 dark:bg-gray-800"
+                className="w-4 h-4 rounded border-border-strong text-violet-600 focus:ring-violet-500 dark:bg-gray-800"
               />
               <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-gray-900 dark:text-white">{label}</span>
-                <span className="block text-xs text-gray-500 dark:text-gray-400">{description}</span>
+                <span className="text-sm font-medium text-primary">{label}</span>
+                <span className="block text-xs text-secondary">{description}</span>
               </div>
-              <BellIcon className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+              <Icon icon={Bell} className="w-4 h-4 text-muted flex-shrink-0" />
             </label>
           ))}
 
-          <div className="flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-3 py-3">
+          <div className="flex items-center gap-3 bg-surface border border-border rounded-lg px-3 py-3">
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium text-gray-900 dark:text-white">Email digest</span>
-              <span className="block text-xs text-gray-500 dark:text-gray-400">A digest of your top songs and activity</span>
+              <span className="text-sm font-medium text-primary">Email digest</span>
+              <span className="block text-xs text-secondary">A digest of your top songs and activity</span>
             </div>
             <select
               value={digestFrequency}
               onChange={(e) => !saving && changeDigestFrequency(e.target.value)}
               disabled={saving}
-              className="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2 py-1 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
+              className="text-sm bg-surface-raised border border-border rounded-md px-2 py-1 text-primary focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
             >
               {DIGEST_FREQUENCY_OPTIONS.map(({ value, label }) => (
                 <option key={value} value={value}>{label}</option>
@@ -167,14 +168,14 @@ export function QuietHoursSection() {
       {toast && <Toast message={toast.message} type={toast.type} />}
       <section className="space-y-3">
         <div>
-          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Quiet Hours</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Suppress push notifications during a time window each day.</p>
+          <h3 className="text-base font-semibold text-primary">Quiet Hours</h3>
+          <p className="text-xs text-secondary mt-0.5">Suppress push notifications during a time window each day.</p>
         </div>
 
-        <div className="flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-3 py-3">
+        <div className="flex items-center justify-between bg-surface border border-border rounded-lg px-3 py-3">
           <div className="flex-1 min-w-0">
-            <span className="text-sm font-medium text-gray-900 dark:text-white">Enable quiet hours</span>
-            <span className="block text-xs text-gray-500 dark:text-gray-400">No push notifications during this window</span>
+            <span className="text-sm font-medium text-primary">Enable quiet hours</span>
+            <span className="block text-xs text-secondary">No push notifications during this window</span>
           </div>
           <button
             type="button"
@@ -195,25 +196,25 @@ export function QuietHoursSection() {
         </div>
 
         {enabled && (
-          <div className="flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-3 py-3">
+          <div className="flex items-center gap-3 bg-surface border border-border rounded-lg px-3 py-3">
             <div className="flex-1 flex items-center gap-2 flex-wrap">
-              <span className="text-sm text-gray-700 dark:text-gray-300">From</span>
+              <span className="text-sm text-secondary">From</span>
               <select
                 value={start}
                 onChange={(e) => !saving && changeStart(Number(e.target.value))}
                 disabled={saving}
-                className="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2 py-1 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
+                className="text-sm bg-surface-raised border border-border rounded-md px-2 py-1 text-primary focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
               >
                 {HOUR_OPTIONS.map(({ value, label }) => (
                   <option key={value} value={value}>{label}</option>
                 ))}
               </select>
-              <span className="text-sm text-gray-700 dark:text-gray-300">to</span>
+              <span className="text-sm text-secondary">to</span>
               <select
                 value={end}
                 onChange={(e) => !saving && changeEnd(Number(e.target.value))}
                 disabled={saving}
-                className="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2 py-1 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
+                className="text-sm bg-surface-raised border border-border rounded-md px-2 py-1 text-primary focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
               >
                 {HOUR_OPTIONS.map(({ value, label }) => (
                   <option key={value} value={value}>{label}</option>
@@ -273,17 +274,17 @@ export function PushNotificationsSection() {
       {toast && <Toast message={toast.message} type={toast.type} />}
       <section className="space-y-3">
         <div>
-          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Push Notifications</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          <h3 className="text-base font-semibold text-primary">Push Notifications</h3>
+          <p className="text-xs text-secondary mt-0.5">
             Receive notifications even when the app is in the background.
           </p>
         </div>
 
-        <div className="flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-3 py-3">
+        <div className="flex items-center justify-between bg-surface border border-border rounded-lg px-3 py-3">
           <div className="flex items-center gap-3">
-            <BellIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+            <Icon icon={Bell} className="w-4 h-4 text-muted" />
             <div>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
+              <span className="text-sm font-medium text-primary">
                 {state === "subscribed" ? "Push notifications enabled" : "Enable push notifications"}
               </span>
               {state === "denied" && (
@@ -292,7 +293,7 @@ export function PushNotificationsSection() {
                 </span>
               )}
               {state === "loading" && (
-                <span className="block text-xs text-gray-400">Checking…</span>
+                <span className="block text-xs text-secondary">Checking…</span>
               )}
             </div>
           </div>
@@ -319,18 +320,18 @@ export function PushNotificationsSection() {
             {PUSH_NOTIF_TYPES.map(({ key, label, description }) => (
               <label
                 key={key}
-                className="flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-3 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="flex items-center gap-3 bg-surface border border-border rounded-lg px-3 py-3 cursor-pointer hover:bg-surface-hover transition-colors"
               >
                 <input
                   type="checkbox"
                   checked={prefs[key] !== false}
                   onChange={() => !saving && toggle(key)}
                   disabled={saving}
-                  className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-violet-600 focus:ring-violet-500 dark:bg-gray-800"
+                  className="w-4 h-4 rounded border-border-strong text-violet-600 focus:ring-violet-500 dark:bg-gray-800"
                 />
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">{label}</span>
-                  <span className="block text-xs text-gray-500 dark:text-gray-400">{description}</span>
+                  <span className="text-sm font-medium text-primary">{label}</span>
+                  <span className="block text-xs text-secondary">{description}</span>
                 </div>
               </label>
             ))}

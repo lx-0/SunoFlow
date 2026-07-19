@@ -4,15 +4,17 @@ import { useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { AppShell } from "@/components/AppShell";
 import { apiGet } from "@/lib/api-client";
+import { Icon } from "@/components/ui/Icon";
 import {
-  MusicalNoteIcon,
-  HeartIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  SparklesIcon,
-  ChartBarIcon,
-  LightBulbIcon,
-} from "@heroicons/react/24/outline";
+  Music,
+  Heart,
+  CircleCheck,
+  Clock,
+  Sparkles,
+  ChartColumn,
+  Lightbulb,
+  type LucideIcon,
+} from "lucide-react";
 
 const GenreBarChart = dynamic(
   () =>
@@ -22,7 +24,7 @@ const GenreBarChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-[200px] animate-pulse bg-gray-100 dark:bg-gray-800 rounded" />
+      <div className="h-[200px] animate-pulse bg-surface-raised rounded" />
     ),
   }
 );
@@ -35,7 +37,7 @@ const WeeklyActivityChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-[200px] animate-pulse bg-gray-100 dark:bg-gray-800 rounded" />
+      <div className="h-[200px] animate-pulse bg-surface-raised rounded" />
     ),
   }
 );
@@ -64,26 +66,26 @@ function StatCard({
   label,
   value,
   sub,
-  icon: Icon,
+  icon: ItemIcon,
   iconColor,
 }: {
   label: string;
   value: string | number;
   sub?: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   iconColor: string;
 }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+    <div className="bg-surface border border-border rounded-xl p-4">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        <span className="text-xs font-medium uppercase tracking-wide text-secondary">
           {label}
         </span>
-        <Icon className={`w-4 h-4 ${iconColor}`} />
+        <Icon icon={ItemIcon} className={`w-4 h-4 ${iconColor}`} />
       </div>
-      <div className="text-2xl font-bold text-gray-900 dark:text-white">{value}</div>
+      <div className="text-2xl font-bold text-primary">{value}</div>
       {sub && (
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{sub}</p>
+        <p className="text-xs text-muted mt-0.5">{sub}</p>
       )}
     </div>
   );
@@ -112,7 +114,7 @@ export default function InsightsPage() {
     return (
       <AppShell>
         <div className="px-4 py-6">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+          <h1 className="text-xl font-bold text-primary mb-6">
             Generation Insights
           </h1>
           <div className="flex items-center justify-center h-64">
@@ -127,7 +129,7 @@ export default function InsightsPage() {
     return (
       <AppShell>
         <div className="px-4 py-6">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+          <h1 className="text-xl font-bold text-primary mb-6">
             Generation Insights
           </h1>
           <p className="text-red-400">Failed to load insights. Please try again.</p>
@@ -141,15 +143,15 @@ export default function InsightsPage() {
   return (
     <AppShell>
       <div className="px-4 py-6 space-y-6">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+        <h1 className="text-xl font-bold text-primary">
           Generation Insights
         </h1>
 
         {isEmpty ? (
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 text-center">
-            <ChartBarIcon className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" />
-            <p className="text-gray-500 dark:text-gray-400 font-medium">No generations yet</p>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+          <div className="bg-surface border border-border rounded-xl p-8 text-center">
+            <Icon icon={ChartColumn} className="w-12 h-12 mx-auto text-muted mb-3" />
+            <p className="text-secondary font-medium">No generations yet</p>
+            <p className="text-sm text-muted mt-1">
               Start generating songs to see your insights here.
             </p>
           </div>
@@ -160,39 +162,39 @@ export default function InsightsPage() {
               <StatCard
                 label="Songs Generated"
                 value={data.totalSongs}
-                icon={MusicalNoteIcon}
+                icon={Music}
                 iconColor="text-violet-400"
               />
               <StatCard
                 label="Success Rate"
                 value={data.successRate !== null ? `${data.successRate}%` : "—"}
                 sub={`${data.completedSongs} completed · ${data.failedSongs} failed`}
-                icon={CheckCircleIcon}
+                icon={CircleCheck}
                 iconColor="text-green-500"
               />
               <StatCard
                 label="Total Favorites"
                 value={data.totalFavorites}
-                icon={HeartIcon}
+                icon={Heart}
                 iconColor="text-pink-500"
               />
               <StatCard
                 label="Total Play Time"
                 value={formatPlayTime(data.totalPlayTimeSec)}
                 sub={`${data.completedSongs} completed songs`}
-                icon={ClockIcon}
+                icon={Clock}
                 iconColor="text-blue-400"
               />
             </div>
 
             {/* Success rate bar */}
             {data.successRate !== null && data.totalSongs > 0 && (
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+              <div className="bg-surface border border-border rounded-xl p-4">
                 <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="text-gray-600 dark:text-gray-400">
+                  <span className="text-secondary">
                     {data.completedSongs} completed · {data.failedSongs} failed
                   </span>
-                  <span className="font-medium text-gray-900 dark:text-white">
+                  <span className="font-medium text-primary">
                     {data.totalSongs} total
                   </span>
                 </div>
@@ -206,8 +208,8 @@ export default function InsightsPage() {
             )}
 
             {/* Generation activity over time */}
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
-              <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">
+            <div className="bg-surface border border-border rounded-xl p-5">
+              <h2 className="text-base font-semibold text-primary mb-4">
                 Activity (Last 12 Weeks)
               </h2>
               <WeeklyActivityChart data={data.weeklyActivity} />
@@ -215,8 +217,8 @@ export default function InsightsPage() {
 
             {/* Genre breakdown */}
             {data.genreBreakdown.length > 0 && (
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
-                <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">
+              <div className="bg-surface border border-border rounded-xl p-5">
+                <h2 className="text-base font-semibold text-primary mb-4">
                   Most-Used Genres
                 </h2>
                 <GenreBarChart data={data.genreBreakdown} />
@@ -225,14 +227,14 @@ export default function InsightsPage() {
 
             {/* Best prompts */}
             {data.bestPrompts.length > 0 ? (
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+              <div className="bg-surface border border-border rounded-xl p-5">
                 <div className="flex items-center gap-2 mb-1">
-                  <LightBulbIcon className="w-4 h-4 text-yellow-400" />
-                  <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+                  <Icon icon={Lightbulb} className="w-4 h-4 text-yellow-400" />
+                  <h2 className="text-base font-semibold text-primary">
                     Your Best Prompts
                   </h2>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                <p className="text-xs text-secondary mb-4">
                   Prompts that generated your most favorited and played songs
                 </p>
                 <div className="space-y-3">
@@ -245,10 +247,10 @@ export default function InsightsPage() {
                         {i + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-900 dark:text-white line-clamp-2">
+                        <p className="text-sm text-primary line-clamp-2">
                           {p.prompt}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <p className="text-xs text-secondary mt-1">
                           {p.favCount > 0 && `${p.favCount} favorite${p.favCount !== 1 ? "s" : ""}`}
                           {p.favCount > 0 && p.plays > 0 && " · "}
                           {p.plays > 0 && `${p.plays} play${p.plays !== 1 ? "s" : ""}`}
@@ -260,14 +262,14 @@ export default function InsightsPage() {
                 </div>
               </div>
             ) : (
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+              <div className="bg-surface border border-border rounded-xl p-5">
                 <div className="flex items-center gap-2 mb-2">
-                  <SparklesIcon className="w-4 h-4 text-violet-400" />
-                  <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+                  <Icon icon={Sparkles} className="w-4 h-4 text-violet-400" />
+                  <h2 className="text-base font-semibold text-primary">
                     Best Prompts
                   </h2>
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-secondary">
                   Favorite or play your songs to surface your best-performing prompts here.
                 </p>
               </div>

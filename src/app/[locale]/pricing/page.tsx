@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { CheckIcon, XMarkIcon } from "@heroicons/react/24/solid";
-import { SparklesIcon, ClockIcon } from "@heroicons/react/24/outline";
+import { Check, X, Sparkles, Clock } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { track } from "@/lib/analytics";
 import { apiGet, apiPost } from "@/lib/api-client";
 
@@ -155,43 +155,43 @@ function TierCard({
       className={`relative flex flex-col rounded-2xl border p-6 transition-shadow ${
         tier.featured
           ? "border-violet-500 shadow-lg shadow-violet-500/10 bg-violet-50 dark:bg-violet-950/20"
-          : "border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900"
+          : "border-border bg-surface"
       }`}
     >
       {tier.featured && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
           <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-violet-600 text-white shadow">
-            <SparklesIcon className="w-3.5 h-3.5" />
+            <Icon icon={Sparkles} className="w-3.5 h-3.5" />
             Most Popular
           </span>
         </div>
       )}
 
       <div className="mb-4">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white">{tier.name}</h3>
+        <h3 className="text-lg font-bold text-primary">{tier.name}</h3>
         <div className="mt-2 flex items-baseline gap-1">
-          <span className="text-3xl font-extrabold text-gray-900 dark:text-white">{price}</span>
-          <span className="text-sm text-gray-500 dark:text-gray-400">/{tier.priceNote}</span>
+          <span className="text-3xl font-extrabold text-primary">{price}</span>
+          <span className="text-sm text-secondary">/{tier.priceNote}</span>
         </div>
         {annual && tier.monthlyPrice !== null && (
           <p className="mt-0.5 text-xs text-green-600 dark:text-green-400 font-medium">
             Save ${((tier.monthlyPrice - tier.annualPrice!) * 12).toFixed(0)}/yr vs monthly
           </p>
         )}
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{tier.credits}</p>
+        <p className="mt-1 text-sm text-secondary">{tier.credits}</p>
       </div>
 
       <ul className="space-y-2.5 flex-1 mb-6">
         {tier.features.map((f) => (
           <li key={f.label} className="flex items-center gap-2.5 text-sm">
             {f.included ? (
-              <CheckIcon className="w-4 h-4 text-green-500 flex-shrink-0" />
+              <Icon icon={Check} className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" />
             ) : (
-              <XMarkIcon className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
+              <Icon icon={X} className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" fill="currentColor" />
             )}
             <span
               className={
-                f.included ? "text-gray-700 dark:text-gray-300" : "text-gray-400 dark:text-gray-600"
+                f.included ? "text-secondary" : "text-gray-400 dark:text-gray-600"
               }
             >
               {f.label}
@@ -201,22 +201,22 @@ function TierCard({
       </ul>
 
       {isCurrent ? (
-        <div className="w-full text-center py-2 px-4 rounded-xl text-sm font-semibold bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+        <div className="w-full text-center py-2 px-4 rounded-xl text-sm font-semibold bg-surface-raised text-secondary">
           Current plan
         </div>
       ) : tier.id === "free" ? (
         <Link
           href="/register"
-          className="w-full text-center py-2 px-4 rounded-xl text-sm font-semibold border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          className="w-full text-center py-2 px-4 rounded-xl text-sm font-semibold border border-border text-secondary hover:bg-surface-hover transition-colors"
         >
           {tier.cta}
         </Link>
       ) : !stripeConfigured ? (
         <div
-          className="w-full text-center py-2 px-4 rounded-xl text-sm font-semibold bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 flex items-center justify-center gap-1.5 cursor-default"
+          className="w-full text-center py-2 px-4 rounded-xl text-sm font-semibold bg-surface-raised text-muted flex items-center justify-center gap-1.5 cursor-default"
           title="Subscriptions are not yet available"
         >
-          <ClockIcon className="w-4 h-4" />
+          <Icon icon={Clock} className="w-4 h-4" />
           Coming soon
         </div>
       ) : (
@@ -239,12 +239,12 @@ function TierCard({
 function FeatureMatrixCell({ value }: { value: boolean | string }) {
   if (typeof value === "boolean") {
     return value ? (
-      <CheckIcon className="w-5 h-5 text-green-500 mx-auto" />
+      <Icon icon={Check} className="w-5 h-5 text-green-500 mx-auto" fill="currentColor" />
     ) : (
-      <XMarkIcon className="w-5 h-5 text-gray-300 dark:text-gray-600 mx-auto" />
+      <Icon icon={X} className="w-5 h-5 text-gray-300 dark:text-gray-600 mx-auto" fill="currentColor" />
     );
   }
-  return <span className="text-sm text-gray-700 dark:text-gray-300">{value}</span>;
+  return <span className="text-sm text-secondary">{value}</span>;
 }
 
 export default function PricingPage() {
@@ -273,14 +273,14 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen bg-surface-deep">
       <div className="max-w-6xl mx-auto px-4 py-16">
         {/* Header */}
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-3">
+          <h1 className="text-4xl font-extrabold text-primary mb-3">
             Simple, transparent pricing
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400">
+          <p className="text-lg text-secondary">
             Start free. Upgrade when you need more credits, speed, or features.
           </p>
         </div>
@@ -288,7 +288,7 @@ export default function PricingPage() {
         {/* Billing toggle */}
         <div className="flex items-center justify-center gap-3 mb-10">
           <span
-            className={`text-sm font-medium ${!annual ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-gray-500"}`}
+            className={`text-sm font-medium ${!annual ? "text-primary" : "text-muted"}`}
           >
             Monthly
           </span>
@@ -312,7 +312,7 @@ export default function PricingPage() {
             />
           </button>
           <span
-            className={`text-sm font-medium ${annual ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-gray-500"}`}
+            className={`text-sm font-medium ${annual ? "text-primary" : "text-muted"}`}
           >
             Annual
             <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
@@ -323,7 +323,7 @@ export default function PricingPage() {
 
         {!stripeConfigured && (
           <div className="mb-8 max-w-xl mx-auto p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm text-amber-700 dark:text-amber-400 text-center flex items-center justify-center gap-2">
-            <ClockIcon className="w-4 h-4 flex-shrink-0" />
+            <Icon icon={Clock} className="w-4 h-4 flex-shrink-0" />
             <span>
               <strong>Subscriptions coming soon.</strong> Paid plans are not yet available — check back shortly.
             </span>
@@ -352,14 +352,14 @@ export default function PricingPage() {
 
         {/* Feature comparison matrix */}
         <div className="mt-16">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">
+          <h2 className="text-2xl font-bold text-primary mb-6 text-center">
             Compare all features
           </h2>
-          <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-800">
+          <div className="overflow-x-auto rounded-2xl border border-border">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-500 dark:text-gray-400 w-1/3">
+                <tr className="border-b border-border bg-surface">
+                  <th className="px-6 py-4 text-sm font-semibold text-secondary w-1/3">
                     Feature
                   </th>
                   {TIERS.map((t) => (
@@ -368,7 +368,7 @@ export default function PricingPage() {
                       className={`px-6 py-4 text-sm font-bold text-center ${
                         t.featured
                           ? "text-violet-600 dark:text-violet-400"
-                          : "text-gray-900 dark:text-white"
+                          : "text-primary"
                       }`}
                     >
                       {t.name}
@@ -383,10 +383,10 @@ export default function PricingPage() {
                     className={`border-b border-gray-100 dark:border-gray-800/60 last:border-0 ${
                       i % 2 === 0
                         ? "bg-gray-50 dark:bg-gray-900/50"
-                        : "bg-white dark:bg-gray-900"
+                        : "bg-surface"
                     }`}
                   >
-                    <td className="px-6 py-3.5 text-sm text-gray-700 dark:text-gray-300 font-medium">
+                    <td className="px-6 py-3.5 text-sm text-secondary font-medium">
                       {row.label}
                     </td>
                     {row.values.map((v, vi) => (
@@ -402,7 +402,7 @@ export default function PricingPage() {
         </div>
 
         {/* Footer note */}
-        <p className="mt-10 text-center text-sm text-gray-500 dark:text-gray-400">
+        <p className="mt-10 text-center text-sm text-secondary">
           All plans include a 30-day grace period for existing users.{" "}
           <Link
             href="/settings/billing"

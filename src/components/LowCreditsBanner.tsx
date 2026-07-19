@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ExclamationTriangleIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { TriangleAlert, X } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { track } from "@/lib/analytics";
 import { useCredits } from "@/hooks/useCredits";
 
@@ -57,7 +58,7 @@ export function LowCreditsBanner() {
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 mb-4">
       <div className="flex items-start gap-2.5 min-w-0">
-        <ExclamationTriangleIcon className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+        <Icon icon={TriangleAlert} className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
         <p className="text-sm text-amber-800 dark:text-amber-200">
           <span className="font-semibold">
             {remaining === 0
@@ -79,7 +80,7 @@ export function LowCreditsBanner() {
         className="flex-shrink-0 p-1 rounded-md text-amber-500 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800/40 transition-colors"
         aria-label="Dismiss"
       >
-        <XMarkIcon className="w-4 h-4" />
+        <Icon icon={X} className="w-4 h-4" />
       </button>
     </div>
   );

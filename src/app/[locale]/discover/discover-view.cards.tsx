@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { MusicalNoteIcon, PauseIcon, PlayIcon } from "@heroicons/react/24/solid";
+import { Music, Pause, Play } from "lucide-react";
 
+import { Icon } from "@/components/ui/Icon";
 import { AddToPlaylistButton } from "@/components/AddToPlaylistButton";
 import { FollowButton } from "@/components/FollowButton";
 
@@ -54,7 +55,7 @@ export function FeedCard({
   const reasonStyle = REASON_STYLES[song.reason] ?? REASON_STYLES.new_release;
 
   return (
-    <div className="group relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden transition-shadow hover:shadow-lg hover:shadow-violet-500/10">
+    <div className="group relative bg-surface border border-border rounded-xl overflow-hidden transition-shadow hover:shadow-lg hover:shadow-violet-500/10">
       <Link href={href} className="block relative aspect-square">
         <Image
           src={coverUrl}
@@ -76,9 +77,9 @@ export function FeedCard({
               aria-label={isPlaying ? "Pause" : "Play preview"}
             >
               {isPlaying ? (
-                <PauseIcon className="w-7 h-7" />
+                <Icon icon={Pause} className="w-7 h-7" fill="currentColor" />
               ) : (
-                <PlayIcon className="w-7 h-7 ml-0.5" />
+                <Icon icon={Play} className="w-7 h-7 ml-0.5" fill="currentColor" />
               )}
             </button>
           )}
@@ -108,17 +109,17 @@ export function FeedCard({
 
       <div className="p-3">
         <Link href={href}>
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+          <h3 className="text-sm font-semibold text-primary truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
             {song.title || "Untitled"}
           </h3>
         </Link>
         <div className="flex items-center justify-between mt-0.5">
           {song.creatorUsername ? (
-            <Link href={`/u/${song.creatorUsername}`} className="text-xs text-gray-500 dark:text-gray-400 truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+            <Link href={`/u/${song.creatorUsername}`} className="text-xs text-secondary truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
               {song.creatorDisplayName}
             </Link>
           ) : (
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+            <p className="text-xs text-secondary truncate">
               {song.creatorDisplayName}
             </p>
           )}
@@ -153,7 +154,7 @@ export function FeedCard({
           </div>
         )}
 
-        <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-400 dark:text-gray-500">
+        <div className="flex items-center gap-2 mt-1.5 text-xs text-muted">
           {song.rating !== null && (
             <span className="flex items-center gap-0.5">
               <span className="text-yellow-500">&#9733;</span>
@@ -185,7 +186,7 @@ export function DiscoverCard({
   const { genres, moods } = parseSongTags(song.tags);
 
   return (
-    <div className="group relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden transition-shadow hover:shadow-lg hover:shadow-violet-500/10">
+    <div className="group relative bg-surface border border-border rounded-xl overflow-hidden transition-shadow hover:shadow-lg hover:shadow-violet-500/10">
       <Link href={href} className="block relative aspect-square">
         <Image
           src={coverUrl}
@@ -207,9 +208,9 @@ export function DiscoverCard({
               aria-label={isPlaying ? "Pause" : "Play preview"}
             >
               {isPlaying ? (
-                <PauseIcon className="w-7 h-7" />
+                <Icon icon={Pause} className="w-7 h-7" fill="currentColor" />
               ) : (
-                <PlayIcon className="w-7 h-7 ml-0.5" />
+                <Icon icon={Play} className="w-7 h-7 ml-0.5" fill="currentColor" />
               )}
             </button>
           )}
@@ -233,17 +234,17 @@ export function DiscoverCard({
 
       <div className="p-3">
         <Link href={href}>
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+          <h3 className="text-sm font-semibold text-primary truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
             {song.title || "Untitled"}
           </h3>
         </Link>
         <div className="flex items-center justify-between mt-0.5">
           {song.user.username ? (
-            <Link href={`/u/${song.user.username}`} className="text-xs text-gray-500 dark:text-gray-400 truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+            <Link href={`/u/${song.user.username}`} className="text-xs text-secondary truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
               {song.user.name || song.user.username}
             </Link>
           ) : (
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+            <p className="text-xs text-secondary truncate">
               {song.user.name || "Unknown Artist"}
             </p>
           )}
@@ -278,7 +279,7 @@ export function DiscoverCard({
           </div>
         )}
 
-        <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-400 dark:text-gray-500">
+        <div className="flex items-center gap-2 mt-1.5 text-xs text-muted">
           {song.rating !== null && (
             <span className="flex items-center gap-0.5">
               <span className="text-yellow-500">&#9733;</span>
@@ -306,7 +307,7 @@ export function SearchCard({
   const { genres, moods } = parseSongTags(song.genre);
 
   return (
-    <div className="group relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden transition-shadow hover:shadow-lg hover:shadow-violet-500/10">
+    <div className="group relative bg-surface border border-border rounded-xl overflow-hidden transition-shadow hover:shadow-lg hover:shadow-violet-500/10">
       <Link href={href} className="block relative aspect-square">
         <Image
           src={coverUrl}
@@ -328,9 +329,9 @@ export function SearchCard({
               aria-label={isPlaying ? "Pause" : "Play preview"}
             >
               {isPlaying ? (
-                <PauseIcon className="w-7 h-7" />
+                <Icon icon={Pause} className="w-7 h-7" fill="currentColor" />
               ) : (
-                <PlayIcon className="w-7 h-7 ml-0.5" />
+                <Icon icon={Play} className="w-7 h-7 ml-0.5" fill="currentColor" />
               )}
             </button>
           )}
@@ -354,16 +355,16 @@ export function SearchCard({
 
       <div className="p-3">
         <Link href={href}>
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+          <h3 className="text-sm font-semibold text-primary truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
             {song.title || "Untitled"}
           </h3>
         </Link>
         {song.creatorUsername ? (
-          <Link href={`/u/${song.creatorUsername}`} className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5 hover:text-violet-600 dark:hover:text-violet-400 transition-colors block">
+          <Link href={`/u/${song.creatorUsername}`} className="text-xs text-secondary truncate mt-0.5 hover:text-violet-600 dark:hover:text-violet-400 transition-colors block">
             {song.creatorDisplayName}
           </Link>
         ) : (
-          <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+          <p className="text-xs text-secondary truncate mt-0.5">
             {song.creatorDisplayName}
           </p>
         )}
@@ -390,7 +391,7 @@ export function SearchCard({
         )}
 
         {song.playCount > 0 && (
-          <div className="mt-1.5 text-xs text-gray-400 dark:text-gray-500">
+          <div className="mt-1.5 text-xs text-muted">
             {song.playCount} plays
           </div>
         )}
@@ -417,7 +418,7 @@ export function TrendingRow({
   const { genres } = parseSongTags(song.genre);
 
   return (
-    <div className="group flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl transition-shadow hover:shadow-md hover:shadow-violet-500/10">
+    <div className="group flex items-center gap-3 p-3 bg-surface border border-border rounded-xl transition-shadow hover:shadow-md hover:shadow-violet-500/10">
       <span
         className={`w-7 text-center text-sm font-bold shrink-0 ${
           rank <= 3
@@ -426,7 +427,7 @@ export function TrendingRow({
               : rank === 2
               ? "text-gray-400"
               : "text-amber-600"
-            : "text-gray-400 dark:text-gray-500"
+            : "text-muted"
         }`}
       >
         {rank <= 3 ? ["🥇", "🥈", "🥉"][rank - 1] : rank}
@@ -454,9 +455,9 @@ export function TrendingRow({
                 aria-label={isPlaying ? "Pause" : "Play preview"}
               >
                 {isPlaying ? (
-                  <PauseIcon className="w-4 h-4" />
+                  <Icon icon={Pause} className="w-4 h-4" fill="currentColor" />
                 ) : (
-                  <PlayIcon className="w-4 h-4 ml-0.5" />
+                  <Icon icon={Play} className="w-4 h-4 ml-0.5" fill="currentColor" />
                 )}
               </button>
             )}
@@ -475,16 +476,16 @@ export function TrendingRow({
 
       <div className="flex-1 min-w-0">
         <Link href={href}>
-          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+          <p className="text-sm font-semibold text-primary truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
             {song.title || "Untitled"}
           </p>
         </Link>
         {song.creatorUsername ? (
-          <Link href={`/u/${song.creatorUsername}`} className="text-xs text-gray-500 dark:text-gray-400 truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors block">
+          <Link href={`/u/${song.creatorUsername}`} className="text-xs text-secondary truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors block">
             {song.creatorDisplayName}
           </Link>
         ) : (
-          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+          <p className="text-xs text-secondary truncate">
             {song.creatorDisplayName}
           </p>
         )}
@@ -503,7 +504,7 @@ export function TrendingRow({
       </div>
 
       <div className="text-right shrink-0 space-y-0.5">
-        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+        <p className="text-xs font-medium text-secondary">
           {song.playCount.toLocaleString()} plays
         </p>
         {isTrending && (
@@ -512,7 +513,7 @@ export function TrendingRow({
           </p>
         )}
         {song.duration && (
-          <p className="text-[10px] text-gray-400 dark:text-gray-500">
+          <p className="text-[10px] text-muted">
             {formatDuration(song.duration)}
           </p>
         )}
@@ -522,15 +523,15 @@ export function TrendingRow({
 }
 
 export function CollectionCard({ collection }: { collection: CollectionPreview }) {
-  const FALLBACK_IMAGE = "https://placehold.co/400x400/1e1b4b/a78bfa?text=♪";
+  const FALLBACK_IMAGE = "https://placehold.co/400x400/1e1b4b/e873af?text=♪";
   const cover = collection.coverImage ?? collection.previewSongs[0]?.imageUrl ?? FALLBACK_IMAGE;
 
   return (
     <Link
       href={`/discover/collections/${collection.id}`}
-      className="group block bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden hover:border-violet-400 dark:hover:border-violet-600 transition-colors"
+      className="group block bg-surface border border-border rounded-xl overflow-hidden hover:border-violet-400 dark:hover:border-violet-600 transition-colors"
     >
-      <div className="relative aspect-video bg-gray-100 dark:bg-gray-800 overflow-hidden">
+      <div className="relative aspect-video bg-surface-raised overflow-hidden">
         {collection.previewSongs.length >= 4 ? (
           <div className="grid grid-cols-2 grid-rows-2 w-full h-full">
             {collection.previewSongs.slice(0, 4).map((s, i) => (
@@ -566,12 +567,12 @@ export function CollectionCard({ collection }: { collection: CollectionPreview }
 
       <div className="p-3">
         {collection.description && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-1.5">
+          <p className="text-xs text-secondary line-clamp-2 mb-1.5">
             {collection.description}
           </p>
         )}
         <div className="flex items-center gap-1 text-xs text-violet-600 dark:text-violet-400 font-medium">
-          <MusicalNoteIcon className="w-3.5 h-3.5" />
+          <Icon icon={Music} className="w-3.5 h-3.5" fill="currentColor" />
           {collection.songCount} song{collection.songCount !== 1 ? "s" : ""}
         </div>
       </div>
@@ -585,7 +586,7 @@ export function PlaylistCard({ playlist }: { playlist: DiscoverPlaylist }) {
   return (
     <Link
       href={href}
-      className="group block bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden hover:border-violet-400 dark:hover:border-violet-600 transition-colors"
+      className="group block bg-surface border border-border rounded-xl overflow-hidden hover:border-violet-400 dark:hover:border-violet-600 transition-colors"
     >
       <div className="relative h-24 bg-gradient-to-br from-violet-500 to-indigo-600 flex items-end p-3">
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
@@ -596,22 +597,22 @@ export function PlaylistCard({ playlist }: { playlist: DiscoverPlaylist }) {
 
       <div className="p-3 space-y-2">
         {playlist.description && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+          <p className="text-xs text-secondary line-clamp-2">
             {playlist.description}
           </p>
         )}
 
-        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex items-center gap-2 text-xs text-secondary">
           <span className="truncate">{playlist.creatorDisplayName}</span>
         </div>
 
-        <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex items-center gap-3 text-xs text-secondary">
           <span className="flex items-center gap-1">
-            <MusicalNoteIcon className="w-3.5 h-3.5" />
+            <Icon icon={Music} className="w-3.5 h-3.5" fill="currentColor" />
             {playlist.songCount} song{playlist.songCount !== 1 ? "s" : ""}
           </span>
           <span className="flex items-center gap-1">
-            <PlayIcon className="w-3.5 h-3.5" />
+            <Icon icon={Play} className="w-3.5 h-3.5" fill="currentColor" />
             {playlist.playCount.toLocaleString()} play{playlist.playCount !== 1 ? "s" : ""}
           </span>
         </div>

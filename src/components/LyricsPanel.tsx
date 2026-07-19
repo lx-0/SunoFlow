@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { XMarkIcon } from "@heroicons/react/24/solid";
+import { X } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 
 interface LyricsPanelProps {
   lyrics: string;
@@ -38,7 +39,7 @@ export function LyricsPanel({ lyrics, songTitle, onClose }: LyricsPanelProps) {
           aria-label="Close lyrics"
           className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white transition-colors rounded-full hover:bg-gray-800"
         >
-          <XMarkIcon className="w-5 h-5" />
+          <Icon icon={X} fill="currentColor" className="w-5 h-5" />
         </button>
       </div>
 

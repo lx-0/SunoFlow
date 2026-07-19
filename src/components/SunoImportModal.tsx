@@ -4,13 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  XMarkIcon,
-  CheckIcon,
-  ArrowPathIcon,
-  MusicalNoteIcon,
-  CloudArrowDownIcon,
-} from "@heroicons/react/24/solid";
+import { X, Check, RefreshCw, Music, CloudDownload } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "./Skeleton";
 import { useNotifications } from "./NotificationContext";
 import { apiGet, apiPost } from "@/lib/api-client";
@@ -53,7 +48,7 @@ interface SunoImportModalProps {
 
 function SongCardSkeleton() {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+    <div className="bg-surface border border-border rounded-xl overflow-hidden">
       <Skeleton className="aspect-square w-full" />
       <div className="p-3 space-y-2">
         <Skeleton className="h-4 w-3/4 rounded" />
@@ -88,18 +83,18 @@ function SongCard({ song, selected, onToggle }: SongCardProps) {
           onToggle(song.id);
         }
       }}
-      className={`relative bg-white dark:bg-gray-900 border rounded-xl overflow-hidden transition-all ${
+      className={`relative bg-surface border rounded-xl overflow-hidden transition-all ${
         isSelectable
           ? "cursor-pointer hover:shadow-md hover:border-violet-400 dark:hover:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
           : "opacity-70 cursor-default"
       } ${
         selected
           ? "border-violet-500 ring-2 ring-violet-400 dark:ring-violet-500"
-          : "border-gray-200 dark:border-gray-800"
+          : "border-border"
       }`}
     >
       {/* Cover art */}
-      <div className="relative aspect-square bg-gray-100 dark:bg-gray-800">
+      <div className="relative aspect-square bg-surface-raised">
         {song.imageUrl ? (
           <Image
             src={song.imageUrl}
@@ -111,7 +106,7 @@ function SongCard({ song, selected, onToggle }: SongCardProps) {
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <MusicalNoteIcon className="w-10 h-10 text-gray-300 dark:text-gray-600" />
+            <Icon icon={Music} className="w-10 h-10 text-muted" fill="currentColor" />
           </div>
         )}
 
@@ -119,7 +114,7 @@ function SongCard({ song, selected, onToggle }: SongCardProps) {
         {isSelectable && selected && (
           <div className="absolute inset-0 bg-violet-600/20 flex items-center justify-center">
             <div className="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center shadow-lg">
-              <CheckIcon className="w-5 h-5 text-white" />
+              <Icon icon={Check} className="w-5 h-5 text-white" fill="currentColor" />
             </div>
           </div>
         )}
@@ -134,11 +129,11 @@ function SongCard({ song, selected, onToggle }: SongCardProps) {
 
       {/* Info */}
       <div className="p-2.5 space-y-1">
-        <p className="text-sm font-medium text-gray-900 dark:text-white truncate leading-snug">
+        <p className="text-sm font-medium text-primary truncate leading-snug">
           {song.title || "Untitled"}
         </p>
         {song.tags && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{song.tags}</p>
+          <p className="text-xs text-secondary truncate">{song.tags}</p>
         )}
         {song.alreadyImported && (
           <span className="inline-block text-xs font-medium text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 rounded-full px-2 py-0.5 leading-none">
@@ -265,14 +260,14 @@ export function SunoImportModal({ onClose, onImportComplete }: SunoImportModalPr
         role="dialog"
         aria-modal="true"
         aria-label="Import from Suno"
-        className="w-full sm:max-w-2xl bg-white dark:bg-gray-950 rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[85vh] overflow-hidden"
+        className="w-full sm:max-w-2xl bg-surface-deep rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[85vh] overflow-hidden"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
+        <div className="flex items-center justify-between px-4 py-4 border-b border-border flex-shrink-0">
           <div>
-            <h2 className="text-base font-bold text-gray-900 dark:text-white">Import from Suno</h2>
+            <h2 className="text-base font-bold text-primary">Import from Suno</h2>
             {pagination && !loadingInitial && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              <p className="text-xs text-secondary mt-0.5">
                 {pagination.total} song{pagination.total !== 1 ? "s" : ""} in your Suno account
               </p>
             )}
@@ -280,9 +275,9 @@ export function SunoImportModal({ onClose, onImportComplete }: SunoImportModalPr
           <button
             onClick={onClose}
             aria-label="Close"
-            className="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-2 rounded-lg text-secondary hover:text-primary hover:bg-surface-hover transition-colors"
           >
-            <XMarkIcon className="w-5 h-5" />
+            <Icon icon={X} className="w-5 h-5" fill="currentColor" />
           </button>
         </div>
 
@@ -300,9 +295,9 @@ export function SunoImportModal({ onClose, onImportComplete }: SunoImportModalPr
           {/* Error: no API key */}
           {!loadingInitial && fetchError?.type === "no_key" && (
             <div className="text-center py-12 space-y-3">
-              <MusicalNoteIcon className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto" />
-              <p className="text-gray-900 dark:text-white font-medium">No Suno API key configured</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <Icon icon={Music} className="w-12 h-12 text-muted mx-auto" fill="currentColor" />
+              <p className="text-primary font-medium">No Suno API key configured</p>
+              <p className="text-sm text-secondary">
                 Add your API key in{" "}
                 <Link
                   href="/settings#suno-api-key"
@@ -319,8 +314,8 @@ export function SunoImportModal({ onClose, onImportComplete }: SunoImportModalPr
           {/* Error: Suno API or network */}
           {!loadingInitial && fetchError && fetchError.type !== "no_key" && (
             <div className="text-center py-12 space-y-3">
-              <ArrowPathIcon className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto" />
-              <p className="text-gray-900 dark:text-white font-medium">
+              <Icon icon={RefreshCw} className="w-10 h-10 text-muted mx-auto" fill="currentColor" />
+              <p className="text-primary font-medium">
                 {fetchError.message ?? "Failed to load songs"}
               </p>
               <button
@@ -335,9 +330,9 @@ export function SunoImportModal({ onClose, onImportComplete }: SunoImportModalPr
           {/* Empty state */}
           {!loadingInitial && !fetchError && songs.length === 0 && (
             <div className="text-center py-12 space-y-2">
-              <MusicalNoteIcon className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto" />
-              <p className="text-gray-900 dark:text-white font-medium">No songs found in your Suno account</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <Icon icon={Music} className="w-12 h-12 text-muted mx-auto" fill="currentColor" />
+              <p className="text-primary font-medium">No songs found in your Suno account</p>
+              <p className="text-sm text-secondary">
                 Generate songs on suno.com and they&apos;ll appear here.
               </p>
             </div>
@@ -363,11 +358,11 @@ export function SunoImportModal({ onClose, onImportComplete }: SunoImportModalPr
                   <button
                     onClick={() => fetchSongs(nextPage)}
                     disabled={loadingMore}
-                    className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+                    className="px-4 py-2 rounded-lg border border-border text-sm font-medium text-primary hover:bg-surface-hover transition-colors disabled:opacity-50"
                   >
                     {loadingMore ? (
                       <span className="flex items-center gap-2">
-                        <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                        <Icon icon={RefreshCw} className="w-4 h-4 animate-spin" fill="currentColor" />
                         Loading…
                       </span>
                     ) : (
@@ -382,17 +377,17 @@ export function SunoImportModal({ onClose, onImportComplete }: SunoImportModalPr
 
         {/* Footer */}
         {!loadingInitial && !fetchError && songs.length > 0 && (
-          <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-800 px-4 py-3 space-y-3">
+          <div className="flex-shrink-0 border-t border-border px-4 py-3 space-y-3">
             {/* Import result */}
             {importResult && (
-              <div className="text-sm rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 space-y-0.5">
+              <div className="text-sm rounded-lg px-3 py-2 bg-surface border border-border space-y-0.5">
                 {importResult.imported.length > 0 && (
                   <p className="text-green-700 dark:text-green-400">
                     ✓ Imported {importResult.imported.length} song{importResult.imported.length !== 1 ? "s" : ""}
                   </p>
                 )}
                 {importResult.skipped.length > 0 && (
-                  <p className="text-gray-500 dark:text-gray-400">
+                  <p className="text-secondary">
                     Skipped {importResult.skipped.length} (already in library)
                   </p>
                 )}
@@ -417,7 +412,7 @@ export function SunoImportModal({ onClose, onImportComplete }: SunoImportModalPr
                   </button>
                 )}
                 {selectedIds.size > 0 && (
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                  <span className="text-xs text-secondary">
                     {selectedIds.size} selected
                   </span>
                 )}
@@ -430,12 +425,12 @@ export function SunoImportModal({ onClose, onImportComplete }: SunoImportModalPr
               >
                 {importing ? (
                   <>
-                    <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                    <Icon icon={RefreshCw} className="w-4 h-4 animate-spin" fill="currentColor" />
                     Importing…
                   </>
                 ) : (
                   <>
-                    <CloudArrowDownIcon className="w-4 h-4" />
+                    <Icon icon={CloudDownload} className="w-4 h-4" fill="currentColor" />
                     {selectedIds.size > 0
                       ? `Import selected (${selectedIds.size})`
                       : "Import selected"}

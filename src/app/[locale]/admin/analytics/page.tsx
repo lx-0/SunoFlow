@@ -2,31 +2,27 @@
 
 import { useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
-import {
-  UsersIcon,
-  MusicalNoteIcon,
-  BoltIcon,
-  UserGroupIcon,
-} from "@heroicons/react/24/outline";
+import { Users, Music, Zap, UsersRound, type LucideIcon } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 
 const AdminGenerationsBarChart = dynamic(
   () => import("@/components/analytics/AdminAnalyticsCharts").then((mod) => mod.AdminGenerationsBarChart),
-  { ssr: false, loading: () => <div className="h-[250px] animate-pulse bg-gray-800 rounded" /> }
+  { ssr: false, loading: () => <div className="h-[250px] animate-pulse bg-surface-raised rounded" /> }
 );
 
 const DailyActiveUsersChart = dynamic(
   () => import("@/components/analytics/AdminAnalyticsCharts").then((mod) => mod.DailyActiveUsersChart),
-  { ssr: false, loading: () => <div className="h-[200px] animate-pulse bg-gray-800 rounded" /> }
+  { ssr: false, loading: () => <div className="h-[200px] animate-pulse bg-surface-raised rounded" /> }
 );
 
 const AdminGenrePieChart = dynamic(
   () => import("@/components/analytics/AdminAnalyticsCharts").then((mod) => mod.AdminGenrePieChart),
-  { ssr: false, loading: () => <div className="h-[200px] animate-pulse bg-gray-800 rounded" /> }
+  { ssr: false, loading: () => <div className="h-[200px] animate-pulse bg-surface-raised rounded" /> }
 );
 
 const QualityTrendChart = dynamic(
   () => import("@/components/analytics/AdminAnalyticsCharts").then((mod) => mod.QualityTrendChart),
-  { ssr: false, loading: () => <div className="h-[220px] animate-pulse bg-gray-800 rounded" /> }
+  { ssr: false, loading: () => <div className="h-[220px] animate-pulse bg-surface-raised rounded" /> }
 );
 
 interface AdminAnalytics {
@@ -82,17 +78,17 @@ const RANGE_OPTIONS = [
 function StatCard({
   label,
   value,
-  icon: Icon,
+  icon: ItemIcon,
 }: {
   label: string;
   value: number | string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
 }) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+    <div className="bg-surface border border-border rounded-xl p-5">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm text-gray-400">{label}</span>
-        <Icon className="w-5 h-5 text-gray-500" />
+        <span className="text-sm text-secondary">{label}</span>
+        <Icon icon={ItemIcon} className="w-5 h-5 text-muted" />
       </div>
       <div className="text-2xl font-bold">{value}</div>
     </div>
@@ -145,7 +141,7 @@ export default function AdminAnalyticsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold">Platform Analytics</h1>
-        <div className="flex gap-1 bg-gray-900 border border-gray-800 rounded-lg p-1">
+        <div className="flex gap-1 bg-surface border border-border rounded-lg p-1">
           {RANGE_OPTIONS.map((opt) => (
             <button
               key={opt.value}
@@ -153,7 +149,7 @@ export default function AdminAnalyticsPage() {
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 range === opt.value
                   ? "bg-violet-600 text-white"
-                  : "text-gray-400 hover:text-white"
+                  : "text-secondary hover:text-primary"
               }`}
             >
               {opt.label}
@@ -164,20 +160,20 @@ export default function AdminAnalyticsPage() {
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total Users" value={data.totalUsers} icon={UsersIcon} />
-        <StatCard label="Total Generations" value={data.totalGenerations} icon={MusicalNoteIcon} />
-        <StatCard label="Today" value={data.generationsToday} icon={BoltIcon} />
-        <StatCard label="Active (7d)" value={data.activeUsersWeek} icon={UserGroupIcon} />
+        <StatCard label="Total Users" value={data.totalUsers} icon={Users} />
+        <StatCard label="Total Generations" value={data.totalGenerations} icon={Music} />
+        <StatCard label="Today" value={data.generationsToday} icon={Zap} />
+        <StatCard label="Active (7d)" value={data.activeUsersWeek} icon={UsersRound} />
       </div>
 
       {/* Generations per day chart */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+      <div className="bg-surface border border-border rounded-xl p-5">
         <h2 className="text-lg font-semibold mb-4">Generations Per Day</h2>
         <AdminGenerationsBarChart data={data.dailyGenerations} />
       </div>
 
       {/* Daily Active Users chart */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+      <div className="bg-surface border border-border rounded-xl p-5">
         <h2 className="text-lg font-semibold mb-4">Daily Active Users</h2>
         <DailyActiveUsersChart data={data.dailyActiveUsers} />
       </div>
@@ -185,7 +181,7 @@ export default function AdminAnalyticsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Popular genres */}
         {data.popularGenres.length > 0 && (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <div className="bg-surface border border-border rounded-xl p-5">
             <h2 className="text-lg font-semibold mb-4">Popular Genres</h2>
             <AdminGenrePieChart data={data.popularGenres} />
           </div>
@@ -193,20 +189,20 @@ export default function AdminAnalyticsPage() {
 
         {/* Top creators */}
         {data.topCreators.length > 0 && (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <div className="bg-surface border border-border rounded-xl p-5">
             <h2 className="text-lg font-semibold mb-4">Top Creators</h2>
-            <div className="divide-y divide-gray-800">
+            <div className="divide-y divide-border">
               {data.topCreators.map((creator, i) => (
                 <div key={creator.userId} className="flex items-center gap-3 py-2.5">
-                  <span className="text-sm font-bold text-gray-500 w-5 text-right">
+                  <span className="text-sm font-bold text-muted w-5 text-right">
                     {i + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate">
+                    <p className="text-sm font-medium text-primary truncate">
                       {creator.name || creator.email || "Unknown"}
                     </p>
                     {creator.name && creator.email && (
-                      <p className="text-xs text-gray-500 truncate">{creator.email}</p>
+                      <p className="text-xs text-muted truncate">{creator.email}</p>
                     )}
                   </div>
                   <span className="text-sm font-semibold text-violet-400">
@@ -222,9 +218,9 @@ export default function AdminAnalyticsPage() {
       {/* Prompt Quality Insights */}
       {qualityData && (
         <>
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <div className="bg-surface border border-border rounded-xl p-5">
             <h2 className="text-lg font-semibold mb-1">Quality Score Over Time</h2>
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-secondary mb-4">
               Platform-wide thumbs-up ratio across all feedback (weekly, last 12 weeks)
             </p>
             <QualityTrendChart data={qualityData.qualityTrend} />
@@ -233,22 +229,22 @@ export default function AdminAnalyticsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Top 10 highest-rated combos */}
             {qualityData.topCombos.length > 0 && (
-              <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <div className="bg-surface border border-border rounded-xl p-5">
                 <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
                   <span className="text-green-400">▲</span> Top Performing Combos
                 </h2>
-                <p className="text-xs text-gray-500 mb-3">Highest satisfaction (min. 2 ratings)</p>
-                <div className="divide-y divide-gray-800">
+                <p className="text-xs text-muted mb-3">Highest satisfaction (min. 2 ratings)</p>
+                <div className="divide-y divide-border">
                   {qualityData.topCombos.map((combo, i) => (
                     <div key={combo.combo} className="flex items-start gap-3 py-2.5">
-                      <span className="text-sm font-bold text-gray-500 w-5 text-right shrink-0 mt-0.5">
+                      <span className="text-sm font-bold text-muted w-5 text-right shrink-0 mt-0.5">
                         {i + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate capitalize">
+                        <p className="text-sm font-medium text-primary truncate capitalize">
                           {combo.combo}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted">
                           {combo.likes}↑ {combo.dislikes}↓ · {combo.total} ratings
                         </p>
                       </div>
@@ -263,22 +259,22 @@ export default function AdminAnalyticsPage() {
 
             {/* Bottom 10 lowest-rated combos */}
             {qualityData.bottomCombos.length > 0 && (
-              <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <div className="bg-surface border border-border rounded-xl p-5">
                 <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
                   <span className="text-red-400">▼</span> Needs Improvement
                 </h2>
-                <p className="text-xs text-gray-500 mb-3">Lowest satisfaction — flag for investigation</p>
-                <div className="divide-y divide-gray-800">
+                <p className="text-xs text-muted mb-3">Lowest satisfaction — flag for investigation</p>
+                <div className="divide-y divide-border">
                   {qualityData.bottomCombos.map((combo, i) => (
                     <div key={combo.combo} className="flex items-start gap-3 py-2.5">
-                      <span className="text-sm font-bold text-gray-500 w-5 text-right shrink-0 mt-0.5">
+                      <span className="text-sm font-bold text-muted w-5 text-right shrink-0 mt-0.5">
                         {i + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate capitalize">
+                        <p className="text-sm font-medium text-primary truncate capitalize">
                           {combo.combo}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted">
                           {combo.likes}↑ {combo.dislikes}↓ · {combo.total} ratings
                         </p>
                       </div>

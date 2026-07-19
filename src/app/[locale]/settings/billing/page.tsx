@@ -5,16 +5,17 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import {
-  CreditCardIcon,
-  ArrowPathIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  ChevronRightIcon,
-  ArrowDownTrayIcon,
-  XMarkIcon,
-  PlusCircleIcon,
-  ClockIcon,
-} from "@heroicons/react/24/outline";
+  CreditCard,
+  RefreshCw,
+  CircleCheck,
+  TriangleAlert,
+  ChevronRight,
+  Download,
+  X,
+  CirclePlus,
+  Clock,
+} from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import {
   TIER_LABELS,
   TIER_BADGE_COLORS,
@@ -106,7 +107,7 @@ function StatusBadge({ status }: { status: string }) {
     unpaid: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
     paid: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
     open: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-    void: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+    void: "bg-surface-raised text-secondary",
     uncollectible: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
   };
   const label: Record<string, string> = {
@@ -123,7 +124,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-        colorMap[status] ?? "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+        colorMap[status] ?? "bg-surface-raised text-secondary"
       }`}
     >
       {label[status] ?? status}
@@ -147,33 +148,33 @@ function CancelDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
+      <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+            <h2 className="text-lg font-bold text-primary">
               Cancel subscription?
             </h2>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-sm text-secondary">
               Your access continues until the end of the current billing period. You can resubscribe
               at any time.
             </p>
           </div>
           <button
             onClick={onCancel}
-            className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+            className="p-1 rounded-lg text-secondary hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
           >
-            <XMarkIcon className="w-5 h-5" />
+            <Icon icon={X} className="w-5 h-5" />
           </button>
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label className="block text-sm font-medium text-secondary">
             Why are you cancelling?
           </label>
           <select
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+            className="w-full px-3 py-2 rounded-lg border border-border bg-surface-raised text-sm text-primary focus:outline-none focus:ring-2 focus:ring-violet-500"
           >
             {CANCELLATION_REASONS.map((r) => (
               <option key={r} value={r}>
@@ -188,7 +189,7 @@ function CancelDialog({
               placeholder="Tell us more (optional)"
               rows={3}
               maxLength={500}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
+              className="w-full px-3 py-2 rounded-lg border border-border bg-surface-raised text-sm text-primary focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
             />
           )}
         </div>
@@ -196,7 +197,7 @@ function CancelDialog({
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="flex-1 px-4 py-2 rounded-lg text-sm font-medium border border-border text-secondary hover:bg-surface-hover transition-colors"
           >
             Keep subscription
           </button>
@@ -205,7 +206,7 @@ function CancelDialog({
             disabled={loading}
             className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-60"
           >
-            {loading && <ArrowPathIcon className="w-4 h-4 animate-spin" />}
+            {loading && <Icon icon={RefreshCw} className="w-4 h-4 animate-spin" />}
             Confirm cancellation
           </button>
         </div>
@@ -315,15 +316,15 @@ export default function BillingPage() {
       )}
 
       <div className="px-4 py-6 max-w-2xl mx-auto space-y-6">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          <CreditCardIcon className="w-6 h-6 text-violet-500" />
+        <h1 className="text-xl font-bold text-primary flex items-center gap-2">
+          <Icon icon={CreditCard} className="w-6 h-6 text-violet-500" />
           Billing &amp; Subscription
         </h1>
 
         {/* Failed payment banner */}
         {isPastDue && (
           <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm">
-            <ExclamationTriangleIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <Icon icon={TriangleAlert} className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold">Payment failed</p>
               <p>
@@ -344,7 +345,7 @@ export default function BillingPage() {
         {/* Cancellation success */}
         {cancelSuccess && (
           <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-sm">
-            <CheckCircleIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <Icon icon={CircleCheck} className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <p>
               Cancellation confirmed. Your access continues until{" "}
               <strong>{formatDate(sub?.currentPeriodEnd ?? null)}</strong>.
@@ -355,7 +356,7 @@ export default function BillingPage() {
         {/* Success / cancel banners from Stripe checkout redirect */}
         {successParam && (
           <div className="flex items-start gap-3 p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm">
-            <CheckCircleIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <Icon icon={CircleCheck} className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold">Subscription activated!</p>
               <p>Your plan has been upgraded. It may take a moment for changes to reflect.</p>
@@ -364,13 +365,13 @@ export default function BillingPage() {
         )}
         {cancelledParam && (
           <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-sm">
-            <ExclamationTriangleIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <Icon icon={TriangleAlert} className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <p>Checkout was cancelled. Your plan was not changed.</p>
           </div>
         )}
         {topupSuccessParam && (
           <div className="flex items-start gap-3 p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm">
-            <CheckCircleIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <Icon icon={CircleCheck} className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold">Credits added!</p>
               <p>Your credits have been added to your account and are ready to use.</p>
@@ -379,7 +380,7 @@ export default function BillingPage() {
         )}
         {topupCancelledParam && (
           <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-sm">
-            <ExclamationTriangleIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <Icon icon={TriangleAlert} className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <p>Credit purchase was cancelled. No charge was made.</p>
           </div>
         )}
@@ -391,9 +392,9 @@ export default function BillingPage() {
         ) : (
           <>
             {/* Current plan card */}
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4">
+            <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+                <h2 className="text-base font-semibold text-primary">
                   Current Plan
                 </h2>
                 {sub && <StatusBadge status={sub.status} />}
@@ -406,7 +407,7 @@ export default function BillingPage() {
                   {TIER_LABELS[tier]}
                 </span>
                 {monthlyPrice !== null && (
-                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  <span className="text-sm font-semibold text-secondary">
                     ${monthlyPrice.toFixed(2)}/month
                   </span>
                 )}
@@ -419,31 +420,31 @@ export default function BillingPage() {
 
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400">Credits/month</p>
-                  <p className="font-semibold text-gray-900 dark:text-white">
+                  <p className="text-secondary">Credits/month</p>
+                  <p className="font-semibold text-primary">
                     {sub?.creditsPerMonth.toLocaleString() ?? "200"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400">Generations/hour</p>
-                  <p className="font-semibold text-gray-900 dark:text-white">
+                  <p className="text-secondary">Generations/hour</p>
+                  <p className="font-semibold text-primary">
                     {sub?.generationsPerHour ?? 5}
                   </p>
                 </div>
                 {sub?.currentPeriodStart && (
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400">Period start</p>
-                    <p className="font-semibold text-gray-900 dark:text-white">
+                    <p className="text-secondary">Period start</p>
+                    <p className="font-semibold text-primary">
                       {formatDate(sub.currentPeriodStart)}
                     </p>
                   </div>
                 )}
                 {sub?.currentPeriodEnd && (
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400">
+                    <p className="text-secondary">
                       {sub.cancelAtPeriodEnd ? "Expires" : "Renews"}
                     </p>
-                    <p className="font-semibold text-gray-900 dark:text-white">
+                    <p className="font-semibold text-primary">
                       {formatDate(sub.currentPeriodEnd)}
                     </p>
                   </div>
@@ -457,7 +458,7 @@ export default function BillingPage() {
                   <>
                     <Link
                       href="/pricing"
-                      className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-border text-secondary hover:bg-surface-hover transition-colors"
                     >
                       Change Plan
                     </Link>
@@ -468,18 +469,18 @@ export default function BillingPage() {
                         className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white transition-colors disabled:opacity-60"
                       >
                         {portalLoading ? (
-                          <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                          <Icon icon={RefreshCw} className="w-4 h-4 animate-spin" />
                         ) : (
-                          <CreditCardIcon className="w-4 h-4" />
+                          <Icon icon={CreditCard} className="w-4 h-4" />
                         )}
                         Manage subscription
                       </button>
                     ) : (
                       <div
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-default"
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-surface-raised text-muted cursor-default"
                         title="Billing portal is not yet available"
                       >
-                        <ClockIcon className="w-4 h-4" />
+                        <Icon icon={Clock} className="w-4 h-4" />
                         Billing portal coming soon
                       </div>
                     )}
@@ -498,7 +499,7 @@ export default function BillingPage() {
                     className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white transition-colors"
                   >
                     Upgrade plan
-                    <ChevronRightIcon className="w-4 h-4" />
+                    <Icon icon={ChevronRight} className="w-4 h-4" />
                   </Link>
                 )}
               </div>
@@ -506,22 +507,22 @@ export default function BillingPage() {
 
             {/* Credit usage card */}
             {credits && (
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4">
-                <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+              <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+                <h2 className="text-base font-semibold text-primary">
                   Credit Usage This Month
                 </h2>
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">
+                    <span className="text-secondary">
                       {credits.creditsUsedThisMonth.toLocaleString()} /{" "}
                       {credits.budget.toLocaleString()} used
                     </span>
-                    <span className="font-medium text-gray-900 dark:text-white">
+                    <span className="font-medium text-primary">
                       {credits.creditsRemaining.toLocaleString()} remaining
                     </span>
                   </div>
-                  <div className="w-full h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                  <div className="w-full h-2.5 bg-surface-raised rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all ${
                         credits.isLow
@@ -537,7 +538,7 @@ export default function BillingPage() {
 
                 {credits.isLow && !isPaid && (
                   <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm text-amber-700 dark:text-amber-400">
-                    <ExclamationTriangleIcon className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <Icon icon={TriangleAlert} className="w-4 h-4 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="font-semibold">Running low on credits</p>
                       <p>
@@ -551,7 +552,7 @@ export default function BillingPage() {
                 )}
 
                 {credits.topUpCreditsRemaining > 0 && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-secondary">
                     Includes {credits.topUpCreditsRemaining.toLocaleString()} top-up credits
                   </p>
                 )}
@@ -559,12 +560,12 @@ export default function BillingPage() {
             )}
 
             {/* Buy More Credits */}
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4">
-              <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                <PlusCircleIcon className="w-5 h-5 text-violet-500" />
+            <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+              <h2 className="text-base font-semibold text-primary flex items-center gap-2">
+                <Icon icon={CirclePlus} className="w-5 h-5 text-violet-500" />
                 Buy More Credits
               </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-secondary">
                 One-time credit purchase. Top-up credits are consumed after your monthly subscription
                 credits are depleted and are valid for 1 year.
               </p>
@@ -579,11 +580,11 @@ export default function BillingPage() {
                         className={`flex flex-col items-center gap-1 p-3 rounded-lg border text-sm transition-colors ${
                           selectedTopup === pkg.id
                             ? "border-violet-500 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300"
-                            : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-violet-300 dark:hover:border-violet-700"
+                            : "border-border text-secondary hover:border-violet-300 dark:hover:border-violet-700"
                         }`}
                       >
                         <span className="font-semibold">{pkg.label}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">{pkg.priceLabel}</span>
+                        <span className="text-xs text-secondary">{pkg.priceLabel}</span>
                       </button>
                     ))}
                   </div>
@@ -596,16 +597,16 @@ export default function BillingPage() {
                     className="inline-flex items-center justify-center gap-2 w-full px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white transition-colors disabled:opacity-60"
                   >
                     {topupLoading ? (
-                      <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                      <Icon icon={RefreshCw} className="w-4 h-4 animate-spin" />
                     ) : (
-                      <PlusCircleIcon className="w-4 h-4" />
+                      <Icon icon={CirclePlus} className="w-4 h-4" />
                     )}
                     {topupLoading ? "Redirecting…" : `Buy ${TOPUP_PACKAGES.find((p) => p.id === selectedTopup)?.label}`}
                   </button>
                 </>
               ) : (
-                <div className="flex items-center gap-2 p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
-                  <ClockIcon className="w-4 h-4 flex-shrink-0" />
+                <div className="flex items-center gap-2 p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-border text-sm text-secondary">
+                  <Icon icon={Clock} className="w-4 h-4 flex-shrink-0" />
                   Credit top-ups are coming soon.
                 </div>
               )}
@@ -613,27 +614,27 @@ export default function BillingPage() {
 
             {/* Invoice history */}
             {invoices.length > 0 && (
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4">
-                <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+              <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+                <h2 className="text-base font-semibold text-primary">
                   Invoice History
                 </h2>
                 <div className="overflow-x-auto -mx-1">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
+                      <tr className="text-left text-secondary border-b border-border">
                         <th className="pb-2 pr-4 font-medium">Date</th>
                         <th className="pb-2 pr-4 font-medium">Amount</th>
                         <th className="pb-2 pr-4 font-medium">Status</th>
                         <th className="pb-2 font-medium text-right">Receipt</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                    <tbody className="divide-y divide-border">
                       {invoices.map((inv) => (
                         <tr key={inv.id}>
-                          <td className="py-2.5 pr-4 text-gray-700 dark:text-gray-300">
+                          <td className="py-2.5 pr-4 text-secondary">
                             {formatDate(inv.date)}
                           </td>
-                          <td className="py-2.5 pr-4 font-medium text-gray-900 dark:text-white">
+                          <td className="py-2.5 pr-4 font-medium text-primary">
                             {formatAmount(inv.amount, inv.currency)}
                           </td>
                           <td className="py-2.5 pr-4">
@@ -648,7 +649,7 @@ export default function BillingPage() {
                                 className="inline-flex items-center gap-1 text-violet-600 dark:text-violet-400 hover:underline"
                                 aria-label="Download PDF invoice"
                               >
-                                <ArrowDownTrayIcon className="w-4 h-4" />
+                                <Icon icon={Download} className="w-4 h-4" />
                                 PDF
                               </a>
                             ) : inv.hostedInvoiceUrl ? (
@@ -661,7 +662,7 @@ export default function BillingPage() {
                                 View
                               </a>
                             ) : (
-                              <span className="text-gray-400">—</span>
+                              <span className="text-secondary">—</span>
                             )}
                           </td>
                         </tr>
@@ -680,7 +681,7 @@ export default function BillingPage() {
                   className="inline-flex items-center gap-1 text-sm text-violet-600 dark:text-violet-400 hover:underline font-medium"
                 >
                   View all plans &amp; features
-                  <ChevronRightIcon className="w-4 h-4" />
+                  <Icon icon={ChevronRight} className="w-4 h-4" />
                 </Link>
               </div>
             )}

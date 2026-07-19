@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { UserCircleIcon } from "@heroicons/react/24/outline";
+import { CircleUserRound } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { validateProfile } from "@/lib/settings/profile-validation";
 import { apiGet, apiPatch } from "@/lib/api-client";
 import { ConnectedAccountsSection, SubscriptionSummarySection } from "./account-info-sections";
@@ -90,7 +91,7 @@ export function ProfileTab() {
       {toast && <Toast message={toast.message} type={toast.type} />}
       <div className="space-y-6">
         <section className="space-y-3">
-          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Profile Picture</h3>
+          <h3 className="text-base font-semibold text-primary">Profile Picture</h3>
           <div className="flex items-center gap-4">
             {avatarUrl ? (
               <Image
@@ -98,7 +99,7 @@ export function ProfileTab() {
                 alt="Avatar"
                 width={64}
                 height={64}
-                className="rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
+                className="rounded-full object-cover border-2 border-border"
                 unoptimized
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = "none";
@@ -106,11 +107,11 @@ export function ProfileTab() {
               />
             ) : (
               <div className="w-16 h-16 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
-                <UserCircleIcon className="w-10 h-10 text-violet-400" />
+                <Icon icon={CircleUserRound} className="w-10 h-10 text-violet-400" />
               </div>
             )}
             <div className="flex-1 space-y-1">
-              <label className="text-xs text-gray-500 dark:text-gray-400">Avatar URL</label>
+              <label className="text-xs text-secondary">Avatar URL</label>
               <input
                 type="url"
                 value={avatarUrl}
@@ -119,8 +120,8 @@ export function ProfileTab() {
                   setErrors((p) => ({ ...p, avatarUrl: "" }));
                 }}
                 placeholder="https://example.com/avatar.jpg"
-                className={`w-full bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
-                  errors.avatarUrl ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                className={`w-full bg-surface-raised border rounded-lg px-3 py-2 text-sm text-primary placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
+                  errors.avatarUrl ? "border-red-500" : "border-border"
                 }`}
               />
               <FieldError error={errors.avatarUrl} />
@@ -128,10 +129,10 @@ export function ProfileTab() {
           </div>
         </section>
 
-        <div className="border-t border-gray-200 dark:border-gray-800" />
+        <div className="border-t border-border" />
 
         <section className="space-y-3">
-          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Display Name</h3>
+          <h3 className="text-base font-semibold text-primary">Display Name</h3>
           <div className="space-y-1">
             <input
               type="text"
@@ -141,21 +142,21 @@ export function ProfileTab() {
                 setErrors((p) => ({ ...p, displayName: "" }));
               }}
               placeholder="Your name"
-              className={`w-full bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
-                errors.displayName ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+              className={`w-full bg-surface-raised border rounded-lg px-3 py-2 text-base text-primary placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
+                errors.displayName ? "border-red-500" : "border-border"
               }`}
             />
             <FieldError error={errors.displayName} />
           </div>
         </section>
 
-        <div className="border-t border-gray-200 dark:border-gray-800" />
+        <div className="border-t border-border" />
 
         <section className="space-y-3">
-          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Username</h3>
+          <h3 className="text-base font-semibold text-primary">Username</h3>
           <div className="space-y-1">
             <div className="flex items-center gap-1">
-              <span className="text-sm text-gray-400 dark:text-gray-500 flex-shrink-0">/u/</span>
+              <span className="text-sm text-muted flex-shrink-0">/u/</span>
               <input
                 type="text"
                 value={username}
@@ -165,22 +166,22 @@ export function ProfileTab() {
                 }}
                 placeholder="yourhandle"
                 maxLength={30}
-                className={`flex-1 bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
-                  errors.username ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                className={`flex-1 bg-surface-raised border rounded-lg px-3 py-2 text-base text-primary placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
+                  errors.username ? "border-red-500" : "border-border"
                 }`}
               />
             </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500">Lowercase letters, numbers, and underscores only.</p>
+            <p className="text-xs text-muted">Lowercase letters, numbers, and underscores only.</p>
             <FieldError error={errors.username} />
           </div>
         </section>
 
-        <div className="border-t border-gray-200 dark:border-gray-800" />
+        <div className="border-t border-border" />
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Bio</h3>
-            <span className={`text-xs ${bio.length > 500 ? "text-red-500" : "text-gray-400 dark:text-gray-500"}`}>
+            <h3 className="text-base font-semibold text-primary">Bio</h3>
+            <span className={`text-xs ${bio.length > 500 ? "text-red-500" : "text-muted"}`}>
               {bio.length}/500
             </span>
           </div>
@@ -193,20 +194,20 @@ export function ProfileTab() {
               }}
               placeholder="Tell others about yourself..."
               rows={3}
-              className={`w-full bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none ${
-                errors.bio ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+              className={`w-full bg-surface-raised border rounded-lg px-3 py-2 text-base text-primary placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none ${
+                errors.bio ? "border-red-500" : "border-border"
               }`}
             />
             <FieldError error={errors.bio} />
           </div>
         </section>
 
-        <div className="border-t border-gray-200 dark:border-gray-800" />
+        <div className="border-t border-border" />
 
         <section className="space-y-3">
-          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Profile Banner</h3>
+          <h3 className="text-base font-semibold text-primary">Profile Banner</h3>
           {bannerUrl && (
-            <div className="w-full h-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+            <div className="w-full h-20 rounded-lg overflow-hidden bg-surface-raised">
               <Image
                 src={bannerUrl}
                 alt="Banner preview"
@@ -221,7 +222,7 @@ export function ProfileTab() {
             </div>
           )}
           <div className="space-y-1">
-            <label className="text-xs text-gray-500 dark:text-gray-400">Banner URL</label>
+            <label className="text-xs text-secondary">Banner URL</label>
             <input
               type="url"
               value={bannerUrl}
@@ -230,25 +231,25 @@ export function ProfileTab() {
                 setErrors((p) => ({ ...p, bannerUrl: "" }));
               }}
               placeholder="https://example.com/banner.jpg"
-              className={`w-full bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
-                errors.bannerUrl ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+              className={`w-full bg-surface-raised border rounded-lg px-3 py-2 text-sm text-primary placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
+                errors.bannerUrl ? "border-red-500" : "border-border"
               }`}
             />
             <FieldError error={errors.bannerUrl} />
           </div>
         </section>
 
-        <div className="border-t border-gray-200 dark:border-gray-800" />
+        <div className="border-t border-border" />
 
         {songs.length > 0 && (
           <>
             <section className="space-y-3">
-              <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Featured Song</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Pin one of your public songs to the top of your profile.</p>
+              <h3 className="text-base font-semibold text-primary">Featured Song</h3>
+              <p className="text-xs text-secondary">Pin one of your public songs to the top of your profile.</p>
               <select
                 value={featuredSongId}
                 onChange={(e) => setFeaturedSongId(e.target.value)}
-                className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                className="w-full bg-surface-raised border border-border rounded-lg px-3 py-2 text-base text-primary focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               >
                 <option value="">None</option>
                 {songs.map((s) => (
@@ -259,19 +260,19 @@ export function ProfileTab() {
               </select>
             </section>
 
-            <div className="border-t border-gray-200 dark:border-gray-800" />
+            <div className="border-t border-border" />
           </>
         )}
 
         <section className="space-y-3">
-          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Email</h3>
+          <h3 className="text-base font-semibold text-primary">Email</h3>
           <input
             type="email"
             value={session?.user?.email ?? ""}
             readOnly
-            className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-500 dark:text-gray-400 cursor-not-allowed"
+            className="w-full bg-surface-raised border border-border rounded-lg px-3 py-2 text-base text-secondary cursor-not-allowed"
           />
-          <p className="text-xs text-gray-400 dark:text-gray-500">Email cannot be changed.</p>
+          <p className="text-xs text-muted">Email cannot be changed.</p>
         </section>
 
         <button
@@ -290,11 +291,11 @@ export function ProfileTab() {
           </div>
         )}
 
-        <div className="border-t border-gray-200 dark:border-gray-800" />
+        <div className="border-t border-border" />
 
         <ConnectedAccountsSection />
 
-        <div className="border-t border-gray-200 dark:border-gray-800" />
+        <div className="border-t border-border" />
 
         <SubscriptionSummarySection />
       </div>

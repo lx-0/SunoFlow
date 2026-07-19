@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { fetchEffect } from "@/lib/fetch-effect";
 import Image from "next/image";
 import Link from "next/link";
-import { PlayIcon, MusicalNoteIcon } from "@heroicons/react/24/solid";
+import { Play, Music } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { formatDuration } from "@/lib/time-format";
 
 interface RelatedSong {
@@ -42,14 +43,14 @@ export function RelatedSongs({ songId }: RelatedSongsProps) {
   if (loading) {
     return (
       <div className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-secondary">
           You might also like
         </h2>
         <div className="grid grid-cols-2 gap-2">
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse h-24"
+              className="rounded-xl bg-surface-raised animate-pulse h-24"
             />
           ))}
         </div>
@@ -61,7 +62,7 @@ export function RelatedSongs({ songId }: RelatedSongsProps) {
 
   return (
     <div className="space-y-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+      <h2 className="text-sm font-semibold uppercase tracking-wider text-secondary">
         You might also like
       </h2>
       <div className="grid grid-cols-2 gap-2">
@@ -71,10 +72,10 @@ export function RelatedSongs({ songId }: RelatedSongsProps) {
             <Link
               key={song.id}
               href={href}
-              className="group relative flex flex-col rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 overflow-hidden hover:border-violet-400 dark:hover:border-violet-600 transition-colors"
+              className="group relative flex flex-col rounded-xl bg-surface border border-border overflow-hidden hover:border-violet-400 dark:hover:border-violet-600 transition-colors"
             >
               {/* Cover art */}
-              <div className="relative aspect-square w-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+              <div className="relative aspect-square w-full bg-surface-raised flex items-center justify-center">
                 {song.imageUrl ? (
                   <Image
                     src={song.imageUrl}
@@ -84,13 +85,13 @@ export function RelatedSongs({ songId }: RelatedSongsProps) {
                     sizes="(max-width: 384px) 50vw, 192px"
                   />
                 ) : (
-                  <MusicalNoteIcon className="w-8 h-8 text-gray-300 dark:text-gray-600" />
+                  <Icon icon={Music} className="w-8 h-8 text-muted" fill="currentColor" />
                 )}
                 {/* Play overlay */}
                 {song.audioUrl && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="w-10 h-10 rounded-full bg-violet-600/90 flex items-center justify-center">
-                      <PlayIcon className="w-5 h-5 text-white ml-0.5" />
+                      <Icon icon={Play} className="w-5 h-5 text-white ml-0.5" fill="currentColor" />
                     </div>
                   </div>
                 )}
@@ -104,11 +105,11 @@ export function RelatedSongs({ songId }: RelatedSongsProps) {
 
               {/* Info */}
               <div className="p-2 space-y-0.5 min-w-0">
-                <p className="text-xs font-semibold text-gray-900 dark:text-white truncate leading-tight">
+                <p className="text-xs font-semibold text-primary truncate leading-tight">
                   {song.title ?? "Untitled"}
                 </p>
                 {song.creatorName && (
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
+                  <p className="text-[10px] text-secondary truncate">
                     {song.creatorName}
                   </p>
                 )}

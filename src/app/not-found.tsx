@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { Search } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 
 // This component is rendered by the root layout (which intentionally omits
 // <html>/<body> so that [locale]/layout.tsx can provide them for locale-aware
@@ -37,7 +38,7 @@ export default function NotFound() {
                   href="/library"
                   className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-lg transition-colors"
                 >
-                  <MagnifyingGlassIcon className="w-4 h-4" />
+                  <Icon icon={Search} className="w-4 h-4" />
                   Search Your Library
                 </Link>
                 <Link

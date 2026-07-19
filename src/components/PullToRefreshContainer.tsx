@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowPathIcon } from "@heroicons/react/24/outline";
+import { RefreshCw } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
 interface PullToRefreshContainerProps {
@@ -33,7 +34,8 @@ export function PullToRefreshContainer({
           className="flex items-center justify-center overflow-hidden transition-all"
           style={{ height: refreshing ? 48 : pullDistance }}
         >
-          <ArrowPathIcon
+          <Icon
+            icon={RefreshCw}
             className={`w-5 h-5 text-violet-500 transition-transform ${
               refreshing ? "animate-spin" : ""
             } ${isPastThreshold ? "scale-110" : ""}`}
@@ -43,7 +45,7 @@ export function PullToRefreshContainer({
                 : `rotate(${Math.min(pullDistance * 3, 360)}deg)`,
             }}
           />
-          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+          <span className="ml-2 text-xs text-secondary">
             {refreshing
               ? "Refreshing…"
               : isPastThreshold

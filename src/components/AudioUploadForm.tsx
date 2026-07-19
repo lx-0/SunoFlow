@@ -1,12 +1,8 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import {
-  ArrowUpTrayIcon,
-  XMarkIcon,
-  MusicalNoteIcon,
-  SparklesIcon,
-} from "@heroicons/react/24/solid";
+import { Upload, X, Music, Sparkles } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useToast } from "./Toast";
 import { Spinner } from "./Spinner";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
@@ -214,7 +210,7 @@ export function AudioUploadForm() {
             className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-colors ${
               mode === "cover"
                 ? "bg-violet-600 text-white"
-                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                : "bg-surface-raised text-secondary hover:bg-surface-hover"
             }`}
           >
             Cover
@@ -225,7 +221,7 @@ export function AudioUploadForm() {
             className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-colors ${
               mode === "extend"
                 ? "bg-violet-600 text-white"
-                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                : "bg-surface-raised text-secondary hover:bg-surface-hover"
             }`}
           >
             Extend
@@ -235,7 +231,7 @@ export function AudioUploadForm() {
         {/* Upload zone / URL toggle */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium text-secondary">
               Audio source
             </label>
             <button
@@ -256,7 +252,7 @@ export function AudioUploadForm() {
               value={fileUrl}
               onChange={(e) => setFileUrl(e.target.value)}
               placeholder="https://example.com/song.mp3"
-              className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="w-full rounded-xl border border-border-strong bg-surface-raised px-4 py-3 text-sm text-primary placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
           ) : (
             <>
@@ -279,21 +275,23 @@ export function AudioUploadForm() {
                   className={`flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
                     isDragging
                       ? "border-violet-500 bg-violet-50 dark:bg-violet-900/20"
-                      : "border-gray-300 dark:border-gray-600 hover:border-violet-400 dark:hover:border-violet-500 bg-gray-50 dark:bg-gray-800/50"
+                      : "border-border-strong hover:border-violet-400 dark:hover:border-violet-500 bg-gray-50 dark:bg-gray-800/50"
                   }`}
                 >
-                  <ArrowUpTrayIcon
+                  <Icon
+                    icon={Upload}
+                    fill="currentColor"
                     className={`h-8 w-8 ${
                       isDragging
                         ? "text-violet-500"
-                        : "text-gray-400 dark:text-gray-500"
+                        : "text-muted"
                     }`}
                   />
                   <div className="text-center">
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <p className="text-sm font-medium text-secondary">
                       Drop audio file here or click to browse
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-xs text-secondary mt-1">
                       MP3, WAV, OGG, FLAC, M4A (max 10MB)
                     </p>
                   </div>
@@ -310,16 +308,16 @@ export function AudioUploadForm() {
                 </div>
               ) : (
                 /* File preview */
-                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
+                <div className="bg-surface-raised border border-border rounded-xl p-4 space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
-                      <MusicalNoteIcon className="h-5 w-5 text-violet-500" />
+                      <Icon icon={Music} className="h-5 w-5 text-violet-500" fill="currentColor" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      <p className="text-sm font-medium text-primary truncate">
                         {file.name}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="text-xs text-secondary">
                         {formatFileSize(file.size)}
                         {audioDuration != null &&
                           ` \u00B7 ${formatDuration(audioDuration)}`}
@@ -328,10 +326,10 @@ export function AudioUploadForm() {
                     <button
                       type="button"
                       onClick={clearFile}
-                      className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                      className="p-1 rounded-lg hover:bg-surface-hover"
                       aria-label="Remove selected file"
                     >
-                      <XMarkIcon className="h-4 w-4 text-gray-500" />
+                      <Icon icon={X} className="h-4 w-4 text-secondary" fill="currentColor" />
                     </button>
                   </div>
 
@@ -355,7 +353,7 @@ export function AudioUploadForm() {
         <div>
           <label
             htmlFor="upload-title"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            className="block text-sm font-medium text-secondary mb-1"
           >
             Title (optional)
           </label>
@@ -366,7 +364,7 @@ export function AudioUploadForm() {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Give your song a name"
             maxLength={200}
-            className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+            className="w-full rounded-xl border border-border-strong bg-surface-raised px-4 py-3 text-sm text-primary placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
           />
         </div>
 
@@ -374,7 +372,7 @@ export function AudioUploadForm() {
         <div>
           <label
             htmlFor="upload-style"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            className="block text-sm font-medium text-secondary mb-1"
           >
             Style / Genre
           </label>
@@ -389,7 +387,7 @@ export function AudioUploadForm() {
                 : 'e.g. "ambient outro", "rock crescendo"'
             }
             maxLength={200}
-            className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+            className="w-full rounded-xl border border-border-strong bg-surface-raised px-4 py-3 text-sm text-primary placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
           />
         </div>
 
@@ -397,7 +395,7 @@ export function AudioUploadForm() {
         <div>
           <label
             htmlFor="upload-prompt"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            className="block text-sm font-medium text-secondary mb-1"
           >
             Lyrics / Prompt (optional)
           </label>
@@ -411,7 +409,7 @@ export function AudioUploadForm() {
                 ? "Custom lyrics for the cover version"
                 : "Describe how the song should continue"
             }
-            className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
+            className="w-full rounded-xl border border-border-strong bg-surface-raised px-4 py-3 text-sm text-primary placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
           />
         </div>
 
@@ -420,7 +418,7 @@ export function AudioUploadForm() {
           <div>
             <label
               htmlFor="continue-at"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-medium text-secondary mb-1"
             >
               Continue at (seconds, optional)
             </label>
@@ -437,9 +435,9 @@ export function AudioUploadForm() {
               min={0}
               max={audioDuration ?? undefined}
               step={1}
-              className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="w-full rounded-xl border border-border-strong bg-surface-raised px-4 py-3 text-sm text-primary placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-xs text-secondary">
               Where in the track to start the extension. Leave empty for the
               end.
             </p>
@@ -454,7 +452,7 @@ export function AudioUploadForm() {
             onChange={(e) => setInstrumental(e.target.checked)}
             className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500"
           />
-          <span className="text-sm text-gray-700 dark:text-gray-300">
+          <span className="text-sm text-secondary">
             Instrumental (no vocals)
           </span>
         </label>
@@ -467,7 +465,7 @@ export function AudioUploadForm() {
                 ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
                 : rateLimit.remaining <= Math.ceil(rateLimit.limit * 0.2)
                   ? "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400"
-                  : "bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                  : "bg-surface-raised text-secondary"
             }`}
           >
             {rateLimitExhausted
@@ -484,7 +482,7 @@ export function AudioUploadForm() {
             !!rateLimitExhausted ||
             (!file && !fileUrl.trim())
           }
-          className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white font-medium py-3 px-6 rounded-xl transition-colors disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:bg-surface-raised text-white font-medium py-3 px-6 rounded-xl transition-colors disabled:cursor-not-allowed"
         >
           {isSubmitting ? (
             <>
@@ -493,7 +491,7 @@ export function AudioUploadForm() {
             </>
           ) : (
             <>
-              <SparklesIcon className="h-4 w-4" />
+              <Icon icon={Sparkles} className="h-4 w-4" fill="currentColor" />
               {mode === "cover"
                 ? "Generate Cover"
                 : "Generate Extension"}

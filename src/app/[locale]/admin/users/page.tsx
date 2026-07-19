@@ -3,11 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { apiGet, apiPost } from "@/lib/api-client";
 import Link from "next/link";
-import {
-  MagnifyingGlassIcon,
-  ChevronUpIcon,
-  ChevronDownIcon,
-} from "@heroicons/react/24/outline";
+import { Search, ChevronUp, ChevronDown } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 
 interface User {
   id: string;
@@ -82,9 +79,9 @@ export default function AdminUsersPage() {
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortBy !== field) return null;
     return order === "asc" ? (
-      <ChevronUpIcon className="w-4 h-4 inline ml-1" />
+      <Icon icon={ChevronUp} className="w-4 h-4 inline ml-1" />
     ) : (
-      <ChevronDownIcon className="w-4 h-4 inline ml-1" />
+      <Icon icon={ChevronDown} className="w-4 h-4 inline ml-1" />
     );
   };
 
@@ -93,7 +90,7 @@ export default function AdminUsersPage() {
       <h1 className="text-2xl font-bold">Users</h1>
 
       <div className="relative max-w-md">
-        <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+        <Icon icon={Search} className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
         <input
           type="text"
           placeholder="Search by name or email..."
@@ -102,17 +99,17 @@ export default function AdminUsersPage() {
             setSearch(e.target.value);
             setPage(1);
           }}
-          className="w-full pl-10 pr-4 py-2.5 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
+          className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-lg text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-violet-500"
         />
       </div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+      <div className="bg-surface border border-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-800 text-gray-400">
+              <tr className="border-b border-border text-secondary">
                 <th
-                  className="text-left px-4 py-3 cursor-pointer hover:text-white"
+                  className="text-left px-4 py-3 cursor-pointer hover:text-primary"
                   onClick={() => handleSort("name")}
                 >
                   User <SortIcon field="name" />
@@ -121,13 +118,13 @@ export default function AdminUsersPage() {
                 <th className="text-left px-4 py-3 hidden md:table-cell">Plan</th>
                 <th className="text-left px-4 py-3 hidden lg:table-cell">Credits</th>
                 <th
-                  className="text-left px-4 py-3 cursor-pointer hover:text-white"
+                  className="text-left px-4 py-3 cursor-pointer hover:text-primary"
                   onClick={() => handleSort("generationCount")}
                 >
                   Generations <SortIcon field="generationCount" />
                 </th>
                 <th
-                  className="text-left px-4 py-3 hidden md:table-cell cursor-pointer hover:text-white"
+                  className="text-left px-4 py-3 hidden md:table-cell cursor-pointer hover:text-primary"
                   onClick={() => handleSort("createdAt")}
                 >
                   Joined <SortIcon field="createdAt" />
@@ -138,13 +135,13 @@ export default function AdminUsersPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-gray-500">
+                  <td colSpan={7} className="text-center py-8 text-muted">
                     Loading...
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-gray-500">
+                  <td colSpan={7} className="text-center py-8 text-muted">
                     No users found
                   </td>
                 </tr>
@@ -167,7 +164,7 @@ export default function AdminUsersPage() {
                             </span>
                           )}
                         </div>
-                        <div className="text-gray-500 text-xs">{user.email}</div>
+                        <div className="text-muted text-xs">{user.email}</div>
                       </Link>
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
@@ -197,7 +194,7 @@ export default function AdminUsersPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">{user.generationCount}</td>
-                    <td className="px-4 py-3 hidden md:table-cell text-gray-400">
+                    <td className="px-4 py-3 hidden md:table-cell text-secondary">
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -227,21 +224,21 @@ export default function AdminUsersPage() {
         </div>
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-800">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border">
             <button
               onClick={() => setPage(Math.max(1, page - 1))}
               disabled={page === 1}
-              className="text-sm px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+              className="text-sm px-3 py-1.5 rounded-lg bg-surface-raised text-gray-300 hover:bg-surface-hover disabled:opacity-50"
             >
               Previous
             </button>
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-secondary">
               Page {page} of {totalPages}
             </span>
             <button
               onClick={() => setPage(Math.min(totalPages, page + 1))}
               disabled={page === totalPages}
-              className="text-sm px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+              className="text-sm px-3 py-1.5 rounded-lg bg-surface-raised text-gray-300 hover:bg-surface-hover disabled:opacity-50"
             >
               Next
             </button>

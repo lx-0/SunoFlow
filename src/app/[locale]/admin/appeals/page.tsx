@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/outline";
+import { CircleCheck, CircleX } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 
 interface Appeal {
   id: string;
@@ -70,7 +71,7 @@ export default function AdminAppealsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Appeals</h1>
-        <span className="text-sm text-gray-400">{total} total</span>
+        <span className="text-sm text-secondary">{total} total</span>
       </div>
 
       <div className="flex gap-2">
@@ -81,7 +82,7 @@ export default function AdminAppealsPage() {
             className={`text-sm px-4 py-2 rounded-lg transition-colors ${
               status === f.value
                 ? "bg-red-900/30 text-red-400"
-                : "bg-gray-800 text-gray-400 hover:text-white"
+                : "bg-surface-raised text-secondary hover:text-primary"
             }`}
           >
             {f.label}
@@ -90,20 +91,20 @@ export default function AdminAppealsPage() {
       </div>
 
       {loading ? (
-        <div className="text-gray-500 text-sm py-8 text-center">Loading…</div>
+        <div className="text-muted text-sm py-8 text-center">Loading…</div>
       ) : appeals.length === 0 ? (
-        <div className="text-gray-500 text-sm py-8 text-center">No appeals found.</div>
+        <div className="text-muted text-sm py-8 text-center">No appeals found.</div>
       ) : (
         <div className="space-y-4">
           {appeals.map((appeal) => (
-            <div key={appeal.id} className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
+            <div key={appeal.id} className="bg-surface border border-border rounded-xl p-4 space-y-3">
               {/* Header */}
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="font-medium text-white truncate">
+                  <p className="font-medium text-primary truncate">
                     {appeal.song.title ?? "Untitled"}
                   </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-xs text-secondary mt-0.5">
                     By {appeal.user.name ?? "Unknown"} ({appeal.user.email})
                   </p>
                 </div>
@@ -122,24 +123,24 @@ export default function AdminAppealsPage() {
 
               {/* Original flag reason */}
               {appeal.song.reports.length > 0 && (
-                <div className="text-xs text-gray-400 bg-gray-800 rounded-lg px-3 py-2">
+                <div className="text-xs text-secondary bg-surface-raised rounded-lg px-3 py-2">
                   <span className="font-medium text-gray-300">Original flag: </span>
                   {appeal.song.reports[0].reason}
                   {appeal.song.reports[0].adminNote && (
-                    <span className="ml-1 text-gray-500">— {appeal.song.reports[0].adminNote}</span>
+                    <span className="ml-1 text-muted">— {appeal.song.reports[0].adminNote}</span>
                   )}
                 </div>
               )}
 
               {/* Appeal reason */}
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Appeal reason</p>
+                <p className="text-xs text-muted uppercase tracking-wider mb-1">Appeal reason</p>
                 <p className="text-sm text-gray-300 whitespace-pre-line">{appeal.reason}</p>
               </div>
 
               {/* Admin note (resolved) */}
               {appeal.adminNote && (
-                <div className="text-xs text-gray-400 bg-gray-800 rounded-lg px-3 py-2">
+                <div className="text-xs text-secondary bg-surface-raised rounded-lg px-3 py-2">
                   <span className="font-medium text-gray-300">Admin note: </span>
                   {appeal.adminNote}
                 </div>
@@ -149,7 +150,7 @@ export default function AdminAppealsPage() {
               {appeal.status === "pending" && (
                 <div className="space-y-2 pt-1">
                   <textarea
-                    className="w-full rounded-lg border border-gray-700 bg-gray-800 text-gray-200 p-2 text-xs resize-none focus:outline-none focus:ring-1 focus:ring-violet-500"
+                    className="w-full rounded-lg border border-border bg-surface-raised text-gray-200 p-2 text-xs resize-none focus:outline-none focus:ring-1 focus:ring-violet-500"
                     rows={2}
                     placeholder="Admin note (optional, sent to user on rejection)…"
                     value={noteInputs[appeal.id] ?? ""}
@@ -163,7 +164,7 @@ export default function AdminAppealsPage() {
                       disabled={resolving === appeal.id}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-800 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-medium transition-colors"
                     >
-                      <CheckCircleIcon className="w-4 h-4" aria-hidden="true" />
+                      <Icon icon={CircleCheck} className="w-4 h-4" aria-hidden="true" />
                       Approve & restore
                     </button>
                     <button
@@ -171,7 +172,7 @@ export default function AdminAppealsPage() {
                       disabled={resolving === appeal.id}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-900 hover:bg-red-800 disabled:opacity-50 text-white text-xs font-medium transition-colors"
                     >
-                      <XCircleIcon className="w-4 h-4" aria-hidden="true" />
+                      <Icon icon={CircleX} className="w-4 h-4" aria-hidden="true" />
                       Reject
                     </button>
                   </div>
@@ -192,15 +193,15 @@ export default function AdminAppealsPage() {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-400 text-sm disabled:opacity-40 hover:text-white transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-surface-raised text-secondary text-sm disabled:opacity-40 hover:text-primary transition-colors"
           >
             Previous
           </button>
-          <span className="text-sm text-gray-500">{page} / {totalPages}</span>
+          <span className="text-sm text-muted">{page} / {totalPages}</span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-400 text-sm disabled:opacity-40 hover:text-white transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-surface-raised text-secondary text-sm disabled:opacity-40 hover:text-primary transition-colors"
           >
             Next
           </button>

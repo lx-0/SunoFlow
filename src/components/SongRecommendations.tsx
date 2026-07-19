@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { MusicalNoteIcon } from "@heroicons/react/24/solid";
+import { Music } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { formatDuration as formatTime } from "@/lib/time-format";
 import { firstTag } from "@sunoflow/core";
 import { apiGet } from "@/lib/api-client";
@@ -25,7 +26,7 @@ function SongRow({ song }: { song: RecommendedSong }) {
       href={`/library/${song.id}`}
       className="flex items-center gap-3 px-3 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
     >
-      <div className="relative w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden flex-shrink-0 flex items-center justify-center">
+      <div className="relative w-10 h-10 rounded-lg bg-surface-raised overflow-hidden flex-shrink-0 flex items-center justify-center">
         {song.imageUrl ? (
           <Image
             src={song.imageUrl}
@@ -36,21 +37,21 @@ function SongRow({ song }: { song: RecommendedSong }) {
             loading="lazy"
           />
         ) : (
-          <MusicalNoteIcon className="w-5 h-5 text-gray-400 dark:text-gray-600" />
+          <Icon icon={Music} className="w-5 h-5 text-muted" fill="currentColor" />
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+        <p className="text-sm font-medium text-primary truncate">
           {song.title ?? "Untitled"}
         </p>
         {song.tags && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+          <p className="text-xs text-secondary truncate">
             {firstTag(song.tags)}
           </p>
         )}
       </div>
       {song.duration != null && (
-        <span className="text-xs text-gray-400 flex-shrink-0">{formatTime(song.duration)}</span>
+        <span className="text-xs text-muted flex-shrink-0">{formatTime(song.duration)}</span>
       )}
     </Link>
   );
@@ -59,10 +60,10 @@ function SongRow({ song }: { song: RecommendedSong }) {
 function SongRowSkeleton() {
   return (
     <div className="flex items-center gap-3 px-3 py-3 animate-pulse">
-      <div className="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+      <div className="w-10 h-10 rounded-lg bg-surface-raised flex-shrink-0" />
       <div className="flex-1 space-y-1.5">
-        <div className="h-3.5 w-32 bg-gray-200 dark:bg-gray-700 rounded" />
-        <div className="h-3 w-20 bg-gray-200 dark:bg-gray-700 rounded" />
+        <div className="h-3.5 w-32 bg-surface-raised rounded" />
+        <div className="h-3 w-20 bg-surface-raised rounded" />
       </div>
     </div>
   );
@@ -95,9 +96,9 @@ export function RecommendationSection({ songId, type, title }: RecommendationSec
   if (!loading && (!songs || songs.length === 0)) return null;
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden transition-shadow duration-200 hover:shadow-md">
+    <div className="bg-surface border border-border rounded-xl overflow-hidden transition-shadow duration-200 hover:shadow-md">
       <div className="px-4 pt-4 pb-2">
-        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">
+        <h2 className="text-sm font-semibold text-secondary tracking-wide">
           {title}
         </h2>
       </div>

@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
-import { TrashIcon, PencilIcon, CheckIcon, XMarkIcon, ArrowDownTrayIcon, UserCircleIcon, Cog6ToothIcon, ShieldCheckIcon, ChartBarIcon, ExclamationTriangleIcon, CommandLineIcon, ClipboardDocumentIcon, LockClosedIcon } from "@heroicons/react/24/outline";
+import { Trash2, Pencil, Check, X, Download, CircleUserRound, Settings, ShieldCheck, ChartColumn, TriangleAlert, SquareTerminal, ClipboardCopy, Lock } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { canUseFeature, type SubscriptionTier } from "@/lib/feature-gates";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/api-client";
 import { Toast, FieldError } from "./ui";
@@ -24,15 +25,15 @@ function PersonalApiKeysSectionGated() {
   if (!allowed) {
     return (
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-          <LockClosedIcon className="w-4 h-4 text-violet-500" />
+        <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
+          <Icon icon={Lock} className="w-4 h-4 text-violet-500" />
           Personal API Keys
           <span className="ml-1 px-1.5 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Studio</span>
         </h3>
-        <div className="flex flex-col gap-3 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-sm">
-          <p className="text-gray-600 dark:text-gray-400">
+        <div className="flex flex-col gap-3 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-border text-sm">
+          <p className="text-secondary">
             Generate API keys to integrate SunoFlow into your own applications.
-            Available on the <span className="font-semibold text-gray-900 dark:text-white">Studio</span> plan.
+            Available on the <span className="font-semibold text-primary">Studio</span> plan.
           </p>
           <Link
             href="/pricing"
@@ -52,21 +53,21 @@ function AccountTab() {
   return (
     <div className="space-y-6">
       <PasswordSection />
-      <div className="border-t border-gray-200 dark:border-gray-800" />
+      <div className="border-t border-border" />
       <ApiKeySection />
-      <div className="border-t border-gray-200 dark:border-gray-800" />
+      <div className="border-t border-border" />
       <PersonalApiKeysSectionGated />
-      <div className="border-t border-gray-200 dark:border-gray-800" />
+      <div className="border-t border-border" />
       <AgentSkillSection />
-      <div className="border-t border-gray-200 dark:border-gray-800" />
+      <div className="border-t border-border" />
       <RateLimitSection />
-      <div className="border-t border-gray-200 dark:border-gray-800" />
+      <div className="border-t border-border" />
       <OnboardingSection />
-      <div className="border-t border-gray-200 dark:border-gray-800" />
+      <div className="border-t border-border" />
       <ExportDataSection />
-      <div className="border-t border-gray-200 dark:border-gray-800" />
+      <div className="border-t border-border" />
       <TagManagementSection />
-      <div className="border-t border-gray-200 dark:border-gray-800" />
+      <div className="border-t border-border" />
       <DeleteAccountSection />
     </div>
   );
@@ -111,8 +112,8 @@ function PasswordSection() {
       {toast && <Toast message={toast.message} type={toast.type} />}
       <section className="space-y-3">
         <div>
-          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Change Password</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Update your account password.</p>
+          <h3 className="text-base font-semibold text-primary">Change Password</h3>
+          <p className="text-xs text-secondary mt-0.5">Update your account password.</p>
         </div>
         <form onSubmit={handlePasswordChange} className="space-y-2">
           <div>
@@ -122,8 +123,8 @@ function PasswordSection() {
               onChange={(e) => { setCurrentPassword(e.target.value); setErrors((p) => ({ ...p, currentPassword: "" })); }}
               placeholder="Current password"
               autoComplete="current-password"
-              className={`w-full bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
-                errors.currentPassword ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+              className={`w-full bg-surface-raised border rounded-lg px-3 py-2 text-base text-primary placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
+                errors.currentPassword ? "border-red-500" : "border-border"
               }`}
             />
             <FieldError error={errors.currentPassword} />
@@ -135,8 +136,8 @@ function PasswordSection() {
               onChange={(e) => { setNewPassword(e.target.value); setErrors((p) => ({ ...p, newPassword: "" })); }}
               placeholder="New password (min 8 chars)"
               autoComplete="new-password"
-              className={`w-full bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
-                errors.newPassword ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+              className={`w-full bg-surface-raised border rounded-lg px-3 py-2 text-base text-primary placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
+                errors.newPassword ? "border-red-500" : "border-border"
               }`}
             />
             <FieldError error={errors.newPassword} />
@@ -148,8 +149,8 @@ function PasswordSection() {
               onChange={(e) => { setConfirmPassword(e.target.value); setErrors((p) => ({ ...p, confirmPassword: "" })); }}
               placeholder="Confirm new password"
               autoComplete="new-password"
-              className={`w-full bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
-                errors.confirmPassword ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+              className={`w-full bg-surface-raised border rounded-lg px-3 py-2 text-base text-primary placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
+                errors.confirmPassword ? "border-red-500" : "border-border"
               }`}
             />
             <FieldError error={errors.confirmPassword} />
@@ -189,45 +190,45 @@ function AgentSkillSection() {
   return (
     <section className="space-y-3">
       <div>
-        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-          <CommandLineIcon className="w-5 h-5 text-violet-500" />
+        <h3 className="text-base font-semibold text-primary flex items-center gap-2">
+          <Icon icon={SquareTerminal} className="w-5 h-5 text-violet-500" />
           Connect Your Agent
         </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+        <p className="text-xs text-secondary mt-0.5">
           Let AI agents (like Claude Code) manage your music library, generate songs, and organize playlists using the SunoFlow API.
         </p>
       </div>
 
-      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 space-y-3 border border-gray-200 dark:border-gray-700">
+      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 space-y-3 border border-border">
         <div>
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">1. Download the Claude Code skill file</p>
+          <p className="text-sm font-medium text-secondary mb-2">1. Download the Claude Code skill file</p>
           <button
             onClick={handleDownload}
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors min-h-[44px]"
           >
-            <ArrowDownTrayIcon className="w-4 h-4" />
+            <Icon icon={Download} className="w-4 h-4" />
             Download Claude Skill
           </button>
         </div>
 
         <div>
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">2. Or install directly via CLI</p>
+          <p className="text-sm font-medium text-secondary mb-2">2. Or install directly via CLI</p>
           <div className="flex items-center gap-2">
             <code className="flex-1 bg-gray-900 dark:bg-gray-950 text-green-400 text-xs px-3 py-2.5 rounded-lg font-mono overflow-x-auto">
               {installCommand}
             </code>
             <button
               onClick={handleCopy}
-              className="flex items-center gap-1 px-3 py-2.5 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors min-h-[44px]"
+              className="flex items-center gap-1 px-3 py-2.5 rounded-lg text-sm font-medium border border-border-strong bg-surface-raised text-secondary hover:bg-surface-hover transition-colors min-h-[44px]"
             >
               {copied ? (
                 <>
-                  <CheckIcon className="w-4 h-4 text-green-500" />
+                  <Icon icon={Check} className="w-4 h-4 text-green-500" />
                   Copied
                 </>
               ) : (
                 <>
-                  <ClipboardDocumentIcon className="w-4 h-4" />
+                  <Icon icon={ClipboardCopy} className="w-4 h-4" />
                   Copy
                 </>
               )}
@@ -235,7 +236,7 @@ function AgentSkillSection() {
           </div>
         </div>
 
-        <p className="text-xs text-gray-500 dark:text-gray-400">
+        <p className="text-xs text-secondary">
           Make sure you have an API key created above. See the{" "}
           <a
             href="https://docs.anthropic.com/en/docs/claude-code"
@@ -286,17 +287,17 @@ function RateLimitSection() {
   return (
     <section className="space-y-3">
       <div>
-        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Rate Limits</h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Your current API usage and limits.</p>
+        <h3 className="text-base font-semibold text-primary">Rate Limits</h3>
+        <p className="text-xs text-secondary mt-0.5">Your current API usage and limits.</p>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4 space-y-3">
+      <div className="bg-surface border border-border rounded-lg p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ChartBarIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-            <span className="text-sm font-medium text-gray-900 dark:text-white">Generations</span>
+            <Icon icon={ChartColumn} className="w-4 h-4 text-muted" />
+            <span className="text-sm font-medium text-primary">Generations</span>
           </div>
-          <span className="text-sm text-gray-600 dark:text-gray-300">
+          <span className="text-sm text-secondary">
             {data.used} / {data.limit}
           </span>
         </div>
@@ -309,7 +310,7 @@ function RateLimitSection() {
           />
         </div>
 
-        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex items-center justify-between text-xs text-secondary">
           <span>{data.remaining} remaining</span>
           {resetDate && (
             <span>Resets {resetDate.toLocaleDateString()} {resetDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
@@ -318,7 +319,7 @@ function RateLimitSection() {
 
         {data.percentUsed >= 90 && (
           <div className="flex items-center gap-2 text-xs text-red-500 dark:text-red-400">
-            <ExclamationTriangleIcon className="w-4 h-4 flex-shrink-0" />
+            <Icon icon={TriangleAlert} className="w-4 h-4 flex-shrink-0" />
             <span>You&apos;re running low on generations. Consider waiting for the reset.</span>
           </div>
         )}
@@ -363,7 +364,7 @@ function DeleteAccountSection() {
       <section className="space-y-3">
         <div>
           <h3 className="text-base font-semibold text-red-600 dark:text-red-400">Delete Account</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          <p className="text-xs text-secondary mt-0.5">
             Permanently delete your account and all associated data. This cannot be undone.
           </p>
         </div>
@@ -378,7 +379,7 @@ function DeleteAccountSection() {
         ) : (
           <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm text-red-700 dark:text-red-300 font-medium">
-              <ExclamationTriangleIcon className="w-5 h-5 flex-shrink-0" />
+              <Icon icon={TriangleAlert} className="w-5 h-5 flex-shrink-0" />
               This will permanently delete all your songs, playlists, and data.
             </div>
             <form onSubmit={handleDelete} className="space-y-2">
@@ -389,8 +390,8 @@ function DeleteAccountSection() {
                   onChange={(e) => { setConfirmEmail(e.target.value); setErrors((p) => ({ ...p, confirmEmail: "" })); }}
                   placeholder="Type your email to confirm"
                   autoComplete="off"
-                  className={`w-full bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                    errors.confirmEmail ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                  className={`w-full bg-surface-raised border rounded-lg px-3 py-2 text-base text-primary placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                    errors.confirmEmail ? "border-red-500" : "border-border"
                   }`}
                 />
                 <FieldError error={errors.confirmEmail} />
@@ -402,8 +403,8 @@ function DeleteAccountSection() {
                   onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: "" })); }}
                   placeholder="Enter your password"
                   autoComplete="current-password"
-                  className={`w-full bg-white dark:bg-gray-900 border rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                    errors.password ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                  className={`w-full bg-surface-raised border rounded-lg px-3 py-2 text-base text-primary placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                    errors.password ? "border-red-500" : "border-border"
                   }`}
                 />
                 <FieldError error={errors.password} />
@@ -419,7 +420,7 @@ function DeleteAccountSection() {
                 <button
                   type="button"
                   onClick={() => { setShowForm(false); setPassword(""); setConfirmEmail(""); setErrors({}); }}
-                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-secondary text-sm font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                 >
                   Cancel
                 </button>
@@ -488,22 +489,22 @@ function TagManagementSection() {
       {toast && <Toast message={toast.message} type={toast.type} />}
       <section className="space-y-3">
         <div>
-          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Tags</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          <h3 className="text-base font-semibold text-primary">Tags</h3>
+          <p className="text-xs text-secondary mt-0.5">
             Manage your song tags. Rename, recolor, or delete tags here.
           </p>
         </div>
 
         {loading ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+          <p className="text-sm text-secondary">Loading...</p>
         ) : tags.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">No tags yet. Add tags from any song detail page.</p>
+          <p className="text-sm text-secondary">No tags yet. Add tags from any song detail page.</p>
         ) : (
           <ul className="space-y-2">
             {tags.map((tag) => (
               <li
                 key={tag.id}
-                className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-3 py-2"
+                className="flex items-center gap-2 bg-surface border border-border rounded-lg px-3 py-2"
               >
                 {editingId === tag.id ? (
                   <>
@@ -518,32 +519,32 @@ function TagManagementSection() {
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") saveEdit(tag.id); if (e.key === "Escape") setEditingId(null); }}
-                      className="flex-1 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-2 py-1 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-violet-500"
+                      className="flex-1 bg-surface-raised border border-border rounded px-2 py-1 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-violet-500"
                       autoFocus
                     />
                     <button onClick={() => saveEdit(tag.id)} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-green-500 hover:text-green-400" aria-label="Save">
-                      <CheckIcon className="w-4 h-4" />
+                      <Icon icon={Check} className="w-4 h-4" />
                     </button>
-                    <button onClick={() => setEditingId(null)} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300" aria-label="Cancel">
-                      <XMarkIcon className="w-4 h-4" />
+                    <button onClick={() => setEditingId(null)} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-muted hover:text-gray-600 dark:hover:text-gray-300" aria-label="Cancel">
+                      <Icon icon={X} className="w-4 h-4" />
                     </button>
                   </>
                 ) : (
                   <>
                     <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: tag.color }} />
-                    <span className="flex-1 text-sm text-gray-900 dark:text-white">{tag.name}</span>
-                    <span className="text-xs text-gray-400 dark:text-gray-500">{tag._count.songTags} song{tag._count.songTags !== 1 ? "s" : ""}</span>
-                    <button onClick={() => startEdit(tag)} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-violet-400 transition-colors" aria-label="Edit tag">
-                      <PencilIcon className="w-4 h-4" />
+                    <span className="flex-1 text-sm text-primary">{tag.name}</span>
+                    <span className="text-xs text-muted">{tag._count.songTags} song{tag._count.songTags !== 1 ? "s" : ""}</span>
+                    <button onClick={() => startEdit(tag)} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-secondary hover:text-violet-400 transition-colors" aria-label="Edit tag">
+                      <Icon icon={Pencil} className="w-4 h-4" />
                     </button>
                     {deleteConfirm === tag.id ? (
                       <div className="flex items-center gap-1">
                         <button onClick={() => deleteTag(tag.id)} className="text-xs text-red-500 hover:text-red-400 min-h-[44px] px-2">Delete</button>
-                        <button onClick={() => setDeleteConfirm(null)} className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 min-h-[44px] px-2">Cancel</button>
+                        <button onClick={() => setDeleteConfirm(null)} className="text-xs text-secondary hover:text-gray-700 dark:hover:text-gray-300 min-h-[44px] px-2">Cancel</button>
                       </div>
                     ) : (
-                      <button onClick={() => setDeleteConfirm(tag.id)} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-red-400 transition-colors" aria-label="Delete tag">
-                        <TrashIcon className="w-4 h-4" />
+                      <button onClick={() => setDeleteConfirm(tag.id)} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-secondary hover:text-red-400 transition-colors" aria-label="Delete tag">
+                        <Icon icon={Trash2} className="w-4 h-4" />
                       </button>
                     )}
                   </>
@@ -559,10 +560,10 @@ function TagManagementSection() {
 
 // ─── Main Settings Page ───
 
-const tabs: { key: Tab; label: string; icon: typeof UserCircleIcon }[] = [
-  { key: "profile", label: "Profile", icon: UserCircleIcon },
-  { key: "preferences", label: "Preferences", icon: Cog6ToothIcon },
-  { key: "account", label: "Account", icon: ShieldCheckIcon },
+const tabs: { key: Tab; label: string; icon: typeof CircleUserRound }[] = [
+  { key: "profile", label: "Profile", icon: CircleUserRound },
+  { key: "preferences", label: "Preferences", icon: Settings },
+  { key: "account", label: "Account", icon: ShieldCheck },
 ];
 
 function SettingsContent() {
@@ -570,21 +571,21 @@ function SettingsContent() {
 
   return (
     <div className="px-4 py-6 space-y-6">
-      <h2 className="text-xl font-bold text-gray-900 dark:text-white">Settings</h2>
+      <h2 className="text-xl font-bold text-primary">Settings</h2>
 
       {/* Tab navigation */}
-      <div className="flex border-b border-gray-200 dark:border-gray-800 overflow-x-auto">
-        {tabs.map(({ key, label, icon: Icon }) => (
+      <div className="flex border-b border-border overflow-x-auto">
+        {tabs.map(({ key, label, icon: ItemIcon }) => (
           <button
             key={key}
             onClick={() => setActiveTab(key)}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors min-h-[44px] ${
               activeTab === key
                 ? "border-violet-600 text-violet-600 dark:text-violet-400 dark:border-violet-400"
-                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
+                : "border-transparent text-secondary hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
             }`}
           >
-            <Icon className="w-4 h-4" />
+            <Icon icon={ItemIcon} className="w-4 h-4" />
             {label}
           </button>
         ))}

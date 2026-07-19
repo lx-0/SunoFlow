@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { FlagIcon } from "@heroicons/react/24/outline";
-import { FlagIcon as FlagSolidIcon } from "@heroicons/react/24/solid";
+import { Flag } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 
 interface Song {
   id: string;
@@ -58,7 +58,7 @@ export default function AdminContentPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Content</h1>
-        <span className="text-sm text-gray-400">{total} items</span>
+        <span className="text-sm text-secondary">{total} items</span>
       </div>
 
       <div className="flex gap-2">
@@ -72,7 +72,7 @@ export default function AdminContentPage() {
             className={`text-sm px-4 py-2 rounded-lg transition-colors ${
               filter === f.value
                 ? "bg-red-900/30 text-red-400"
-                : "bg-gray-800 text-gray-400 hover:text-white"
+                : "bg-surface-raised text-secondary hover:text-primary"
             }`}
           >
             {f.label}
@@ -80,11 +80,11 @@ export default function AdminContentPage() {
         ))}
       </div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+      <div className="bg-surface border border-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-800 text-gray-400">
+              <tr className="border-b border-border text-secondary">
                 <th className="text-left px-4 py-3">Title</th>
                 <th className="text-left px-4 py-3 hidden sm:table-cell">Creator</th>
                 <th className="text-left px-4 py-3 hidden md:table-cell">Status</th>
@@ -96,13 +96,13 @@ export default function AdminContentPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-gray-500">
+                  <td colSpan={6} className="text-center py-8 text-muted">
                     Loading...
                   </td>
                 </tr>
               ) : songs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-gray-500">
+                  <td colSpan={6} className="text-center py-8 text-muted">
                     No content found
                   </td>
                 </tr>
@@ -129,7 +129,7 @@ export default function AdminContentPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 hidden sm:table-cell text-gray-400 text-xs">
+                    <td className="px-4 py-3 hidden sm:table-cell text-secondary text-xs">
                       <div>{song.creator.name || "Unnamed"}</div>
                       <div className="text-gray-600">{song.creator.email}</div>
                     </td>
@@ -155,7 +155,7 @@ export default function AdminContentPage() {
                         <span className="text-gray-600">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 hidden md:table-cell text-gray-400">
+                    <td className="px-4 py-3 hidden md:table-cell text-secondary">
                       {new Date(song.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -166,13 +166,13 @@ export default function AdminContentPage() {
                         className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${
                           song.isHidden
                             ? "text-red-400 hover:bg-red-900/20"
-                            : "text-gray-500 hover:text-red-400 hover:bg-red-900/20"
+                            : "text-muted hover:text-red-400 hover:bg-red-900/20"
                         }`}
                       >
                         {song.isHidden ? (
-                          <FlagSolidIcon className="w-4 h-4" />
+                          <Icon icon={Flag} className="w-4 h-4" fill="currentColor" />
                         ) : (
-                          <FlagIcon className="w-4 h-4" />
+                          <Icon icon={Flag} className="w-4 h-4" />
                         )}
                       </button>
                     </td>
@@ -184,21 +184,21 @@ export default function AdminContentPage() {
         </div>
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-800">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border">
             <button
               onClick={() => setPage(Math.max(1, page - 1))}
               disabled={page === 1}
-              className="text-sm px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+              className="text-sm px-3 py-1.5 rounded-lg bg-surface-raised text-gray-300 hover:bg-surface-hover disabled:opacity-50"
             >
               Previous
             </button>
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-secondary">
               Page {page} of {totalPages}
             </span>
             <button
               onClick={() => setPage(Math.min(totalPages, page + 1))}
               disabled={page === totalPages}
-              className="text-sm px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+              className="text-sm px-3 py-1.5 rounded-lg bg-surface-raised text-gray-300 hover:bg-surface-hover disabled:opacity-50"
             >
               Next
             </button>

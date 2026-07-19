@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowPathIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { RefreshCw, X } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 
 const UPDATE_CHECK_INTERVAL_MS = 60_000;
 const SAFE_AUTO_RELOAD_DELAY_MS = 5_000;
@@ -115,7 +116,7 @@ export default function ServiceWorkerRegistrar() {
         onClick={() => window.location.reload()}
         className="flex items-center gap-1.5 font-semibold underline underline-offset-2 hover:no-underline whitespace-nowrap"
       >
-        <ArrowPathIcon className="w-4 h-4" aria-hidden="true" />
+        <Icon icon={RefreshCw} className="w-4 h-4" aria-hidden="true" />
         Refresh
       </button>
       {autoReloadIn !== null && autoReloadIn > 0 && (
@@ -124,7 +125,7 @@ export default function ServiceWorkerRegistrar() {
           aria-label="Cancel auto refresh"
           className="opacity-70 hover:opacity-100 transition-opacity"
         >
-          <XMarkIcon className="w-4 h-4" aria-hidden="true" />
+          <Icon icon={X} className="w-4 h-4" aria-hidden="true" />
         </button>
       )}
     </div>

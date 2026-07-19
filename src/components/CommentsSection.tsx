@@ -5,8 +5,8 @@ import { useAsyncForm } from "@/hooks/useAsyncForm";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { ChatBubbleLeftIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { ClockIcon } from "@heroicons/react/24/solid";
+import { MessageSquare, Trash2, Clock } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useComments } from "@/hooks/useComments";
 import type { Comment, CommentUser } from "@/hooks/useComments";
 
@@ -95,8 +95,8 @@ export function CommentsSection({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <ChatBubbleLeftIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+        <Icon icon={MessageSquare} className="w-4 h-4 text-secondary" />
+        <h2 className="text-sm font-semibold text-secondary">
           Comments{pagination ? ` (${pagination.total})` : ""}
         </h2>
       </div>
@@ -110,13 +110,13 @@ export function CommentsSection({
             placeholder="Add a comment…"
             rows={2}
             maxLength={500}
-            className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
+            className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-sm text-primary placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
           />
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2">
               {pendingTimestamp !== null ? (
                 <span className="flex items-center gap-1 text-xs bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-full">
-                  <ClockIcon className="w-3 h-3" />
+                  <Icon icon={Clock} className="w-3 h-3" fill="currentColor" />
                   {fmtTimestamp(pendingTimestamp)}
                   <button
                     type="button"
@@ -131,13 +131,13 @@ export function CommentsSection({
                 <button
                   type="button"
                   onClick={captureTimestamp}
-                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-violet-500 dark:hover:text-violet-400 transition-colors"
+                  className="flex items-center gap-1 text-xs text-muted hover:text-violet-500 dark:hover:text-violet-400 transition-colors"
                 >
-                  <ClockIcon className="w-3 h-3" />
+                  <Icon icon={Clock} className="w-3 h-3" fill="currentColor" />
                   {currentTime! > 0 ? `@ ${fmtTimestamp(currentTime!)}` : "Attach timestamp"}
                 </button>
               ) : null}
-              <span className="text-xs text-gray-400 dark:text-gray-600">{draft.length}/500</span>
+              <span className="text-xs text-muted">{draft.length}/500</span>
             </div>
             {error && <p className="text-xs text-red-500 flex-1">{error}</p>}
             <button
@@ -150,7 +150,7 @@ export function CommentsSection({
           </div>
         </form>
       ) : (
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-secondary">
           <Link href="/login" className="text-violet-500 hover:underline">Sign in</Link> to leave a comment.
         </p>
       )}
@@ -160,16 +160,16 @@ export function CommentsSection({
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="flex gap-3 animate-pulse">
-              <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+              <div className="w-8 h-8 rounded-full bg-surface-raised flex-shrink-0" />
               <div className="flex-1 space-y-1.5">
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-24" />
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-full" />
+                <div className="h-3 bg-surface-raised rounded w-24" />
+                <div className="h-3 bg-surface-raised rounded w-full" />
               </div>
             </div>
           ))}
         </div>
       ) : comments.length === 0 ? (
-        <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">No comments yet. Be the first!</p>
+        <p className="text-sm text-muted text-center py-4">No comments yet. Be the first!</p>
       ) : (
         <ul className="space-y-4">
           {comments.map((comment) => (
@@ -177,7 +177,7 @@ export function CommentsSection({
               <Avatar user={comment.user} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2 flex-wrap">
-                  <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                  <span className="text-xs font-semibold text-primary">
                     {comment.user.name ?? "Anonymous"}
                   </span>
                   {comment.timestamp !== null && (
@@ -187,15 +187,15 @@ export function CommentsSection({
                       className="flex items-center gap-0.5 text-xs text-violet-500 hover:text-violet-400 font-medium transition-colors"
                       title="Jump to this moment"
                     >
-                      <ClockIcon className="w-3 h-3" />
+                      <Icon icon={Clock} className="w-3 h-3" fill="currentColor" />
                       {fmtTimestamp(comment.timestamp)}
                     </button>
                   )}
-                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                  <span className="text-xs text-muted">
                     {formatRelativeTime(comment.createdAt)}
                   </span>
                 </div>
-                <p className="text-sm text-gray-700 dark:text-gray-300 mt-0.5 break-words">
+                <p className="text-sm text-secondary mt-0.5 break-words">
                   {comment.body}
                 </p>
               </div>
@@ -203,10 +203,10 @@ export function CommentsSection({
                 <button
                   type="button"
                   onClick={() => handleDelete(comment.id)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500 flex-shrink-0 self-start mt-0.5"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-muted hover:text-red-500 flex-shrink-0 self-start mt-0.5"
                   aria-label="Delete comment"
                 >
-                  <TrashIcon className="w-3.5 h-3.5" />
+                  <Icon icon={Trash2} className="w-3.5 h-3.5" />
                 </button>
               )}
             </li>

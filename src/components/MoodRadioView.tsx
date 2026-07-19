@@ -1,13 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import {
-  StopIcon,
-  MusicalNoteIcon,
-  HandThumbDownIcon,
-  ForwardIcon,
-} from "@heroicons/react/24/outline";
-import { PlayIcon } from "@heroicons/react/24/solid";
+import { Square, Music, ThumbsDown, FastForward, Play } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useQueue, type RadioParams } from "./QueueContext";
 import { CoverArtImage } from "./CoverArtImage";
 import { AddToPlaylistButton } from "./AddToPlaylistButton";
@@ -101,7 +96,7 @@ export function MoodRadioView() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-purple-500/20 text-purple-400 animate-pulse">
-              <MusicalNoteIcon className="w-5 h-5" />
+              <Icon icon={Music} className="w-5 h-5" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">
@@ -116,7 +111,7 @@ export function MoodRadioView() {
             onClick={handleStop}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg transition-colors"
           >
-            <StopIcon className="w-4 h-4" />
+            <Icon icon={Square} className="w-4 h-4" />
             Stop Radio
           </button>
         </div>
@@ -168,7 +163,7 @@ export function MoodRadioView() {
                 title="Skip and exclude this song"
                 className="p-2 text-gray-500 hover:text-red-400 transition-colors"
               >
-                <HandThumbDownIcon className="w-5 h-5" />
+                <Icon icon={ThumbsDown} className="w-5 h-5" />
               </button>
               <button
                 onClick={() => togglePlay()}
@@ -180,7 +175,7 @@ export function MoodRadioView() {
                     <rect x="14" y="4" width="4" height="16" rx="1" />
                   </svg>
                 ) : (
-                  <PlayIcon className="w-5 h-5 text-white ml-0.5" />
+                  <Icon icon={Play} fill="currentColor" className="w-5 h-5 text-white ml-0.5" />
                 )}
               </button>
               <button
@@ -188,7 +183,7 @@ export function MoodRadioView() {
                 title="Skip to next song"
                 className="p-2 text-gray-500 hover:text-white transition-colors"
               >
-                <ForwardIcon className="w-5 h-5" />
+                <Icon icon={FastForward} className="w-5 h-5" />
               </button>
               <AddToPlaylistButton songId={currentSong.id} songTitle={currentSong.title ?? undefined} />
             </div>
@@ -321,7 +316,7 @@ export function MoodRadioView() {
           </>
         ) : (
           <>
-            <PlayIcon className="w-5 h-5" />
+            <Icon icon={Play} fill="currentColor" className="w-5 h-5" />
             Start Radio
             {selectedMood && (
               <span className="opacity-70 font-normal">
@@ -382,7 +377,7 @@ export function PlayMoreLikeThisButton({
       {busy ? (
         <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
       ) : (
-        <MusicalNoteIcon className="w-4 h-4" />
+        <Icon icon={Music} className="w-4 h-4" />
       )}
       <span>Play more like this</span>
     </button>

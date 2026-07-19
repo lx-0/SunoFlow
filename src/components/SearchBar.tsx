@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { MusicalNoteIcon, QueueListIcon } from "@heroicons/react/24/outline";
+import { Search, X, Music, ListMusic } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import Image from "next/image";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
 import { fetchWithTimeout } from "@/lib/fetch-client";
@@ -174,7 +174,7 @@ export function SearchBar() {
     <div ref={containerRef} className="relative w-full max-w-md">
       {/* Search input */}
       <div className="relative">
-        <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Icon icon={Search} className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
         <input
           ref={inputRef}
           type="search"
@@ -194,7 +194,7 @@ export function SearchBar() {
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
-          className="w-full pl-9 pr-8 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition-colors"
+          className="w-full pl-9 pr-8 py-2 text-sm rounded-lg border border-border bg-surface-raised text-primary placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition-colors"
         />
         {query && (
           <button
@@ -203,9 +203,9 @@ export function SearchBar() {
               inputRef.current?.focus();
             }}
             aria-label="Clear search"
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-muted hover:text-secondary"
           >
-            <XMarkIcon className="w-4 h-4" />
+            <Icon icon={X} className="w-4 h-4" />
           </button>
         )}
       </div>
@@ -215,12 +215,12 @@ export function SearchBar() {
         <div
           id="search-results"
           role="listbox"
-          className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-80 overflow-y-auto z-50"
+          className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-lg shadow-lg max-h-80 overflow-y-auto z-50"
         >
           {/* Recent searches (when no query) */}
           {!query.trim() && recentSearches.length > 0 && (
             <div className="p-2">
-              <p className="text-xs font-medium text-gray-400 dark:text-gray-500 px-2 py-1">
+              <p className="text-xs font-medium text-muted px-2 py-1">
                 Recent searches
               </p>
               {recentSearches.map((term) => (
@@ -230,7 +230,7 @@ export function SearchBar() {
                     setQuery(term);
                     setOpen(true);
                   }}
-                  className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                  className="w-full text-left px-3 py-2 text-sm text-secondary hover:bg-surface-hover rounded-md transition-colors"
                 >
                   {term}
                 </button>
@@ -240,7 +240,7 @@ export function SearchBar() {
 
           {/* Loading */}
           {query.trim() && loading && (
-            <p className="px-4 py-3 text-sm text-gray-400">Searching…</p>
+            <p className="px-4 py-3 text-sm text-muted">Searching…</p>
           )}
 
           {/* Results */}
@@ -248,7 +248,7 @@ export function SearchBar() {
             <>
               {songs.length > 0 && (
                 <div className="p-2">
-                  <p className="text-xs font-medium text-gray-400 dark:text-gray-500 px-2 py-1">
+                  <p className="text-xs font-medium text-muted px-2 py-1">
                     Songs
                   </p>
                   {songs.map((song, i) => (
@@ -263,7 +263,7 @@ export function SearchBar() {
                       className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
                         selectedIndex === i
                           ? "bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300"
-                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          : "text-secondary hover:bg-surface-hover"
                       }`}
                     >
                       {song.imageUrl ? (
@@ -276,14 +276,14 @@ export function SearchBar() {
                           loading="lazy"
                         />
                       ) : (
-                        <MusicalNoteIcon className="w-8 h-8 p-1.5 text-gray-400 bg-gray-100 dark:bg-gray-800 rounded flex-shrink-0" />
+                        <Icon icon={Music} className="w-8 h-8 p-1.5 text-muted bg-surface-raised rounded flex-shrink-0" />
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium">
                           {song.title || "Untitled"}
                         </p>
                         {song.prompt && (
-                          <p className="truncate text-xs text-gray-400">
+                          <p className="truncate text-xs text-muted">
                             {song.prompt}
                           </p>
                         )}
@@ -304,7 +304,7 @@ export function SearchBar() {
 
               {playlists.length > 0 && (
                 <div className="p-2">
-                  <p className="text-xs font-medium text-gray-400 dark:text-gray-500 px-2 py-1">
+                  <p className="text-xs font-medium text-muted px-2 py-1">
                     Playlists
                   </p>
                   {playlists.map((pl, i) => {
@@ -321,13 +321,13 @@ export function SearchBar() {
                         className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
                           selectedIndex === idx
                             ? "bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300"
-                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            : "text-secondary hover:bg-surface-hover"
                         }`}
                       >
-                        <QueueListIcon className="w-8 h-8 p-1.5 text-gray-400 bg-gray-100 dark:bg-gray-800 rounded flex-shrink-0" />
+                        <Icon icon={ListMusic} className="w-8 h-8 p-1.5 text-muted bg-surface-raised rounded flex-shrink-0" />
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-medium">{pl.name}</p>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-muted">
                             {pl._count.songs} song{pl._count.songs !== 1 ? "s" : ""}
                           </p>
                         </div>
@@ -341,7 +341,7 @@ export function SearchBar() {
 
           {/* Empty state */}
           {query.trim() && !loading && !hasResults && (
-            <p className="px-4 py-3 text-sm text-gray-400">
+            <p className="px-4 py-3 text-sm text-muted">
               No results for &ldquo;{query}&rdquo;
             </p>
           )}

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { KeyIcon, ArrowRightIcon, XMarkIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
+import { Key, ArrowRight, X, CircleCheck } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { apiPatch } from "@/lib/api-client";
 
 export function ApiKeyWizard() {
@@ -65,15 +66,15 @@ export function ApiKeyWizard() {
 
       {/* Modal */}
       <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-md overflow-hidden">
+        <div className="bg-surface rounded-2xl shadow-2xl border border-border w-full max-w-md overflow-hidden">
           {/* Close button */}
           <div className="flex justify-end p-3 pb-0">
             <button
               onClick={handleDismiss}
-              className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center text-muted hover:text-secondary transition-colors rounded-lg hover:bg-surface-hover"
               aria-label="Dismiss wizard"
             >
-              <XMarkIcon className="w-5 h-5" />
+              <Icon icon={X} className="w-5 h-5" />
             </button>
           </div>
 
@@ -81,12 +82,12 @@ export function ApiKeyWizard() {
             {step === 0 && (
               <div className="text-center space-y-4">
                 <div className="w-16 h-16 mx-auto rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
-                  <KeyIcon className="w-8 h-8 text-violet-600 dark:text-violet-400" />
+                  <Icon icon={Key} className="w-8 h-8 text-violet-600 dark:text-violet-400" />
                 </div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                <h2 className="text-xl font-bold text-primary">
                   Set Up Your API Key
                 </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                <p className="text-sm text-secondary leading-relaxed">
                   To generate AI music, you need an API key from{" "}
                   <a
                     href="https://sunoapi.org"
@@ -101,7 +102,7 @@ export function ApiKeyWizard() {
                 <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 text-left space-y-2.5">
                   <div className="flex items-start gap-3">
                     <span className="flex-shrink-0 w-6 h-6 rounded-full bg-violet-600 text-white text-xs font-bold flex items-center justify-center mt-0.5">1</span>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <p className="text-sm text-secondary">
                       Visit{" "}
                       <a href="https://sunoapi.org" target="_blank" rel="noopener noreferrer" className="text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 underline font-medium">
                         sunoapi.org
@@ -111,13 +112,13 @@ export function ApiKeyWizard() {
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="flex-shrink-0 w-6 h-6 rounded-full bg-violet-600 text-white text-xs font-bold flex items-center justify-center mt-0.5">2</span>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <p className="text-sm text-secondary">
                       Generate an API key from your dashboard
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="flex-shrink-0 w-6 h-6 rounded-full bg-violet-600 text-white text-xs font-bold flex items-center justify-center mt-0.5">3</span>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <p className="text-sm text-secondary">
                       Paste it here and start creating music
                     </p>
                   </div>
@@ -125,7 +126,7 @@ export function ApiKeyWizard() {
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={handleDismiss}
-                    className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                    className="flex-1 px-4 py-2.5 text-sm font-medium text-secondary hover:bg-surface-hover rounded-xl transition-colors"
                   >
                     Skip for now
                   </button>
@@ -134,7 +135,7 @@ export function ApiKeyWizard() {
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-xl transition-colors"
                   >
                     I have a key
-                    <ArrowRightIcon className="w-4 h-4" />
+                    <Icon icon={ArrowRight} className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -143,10 +144,10 @@ export function ApiKeyWizard() {
             {step === 1 && (
               <div className="space-y-4">
                 <div className="text-center">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                  <h2 className="text-xl font-bold text-primary mb-1">
                     Paste Your API Key
                   </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm text-secondary">
                     Your key is encrypted and stored securely.
                   </p>
                 </div>
@@ -158,7 +159,7 @@ export function ApiKeyWizard() {
                     placeholder="Paste your sunoapi.org API key"
                     autoComplete="off"
                     autoFocus
-                    className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                    className="w-full bg-surface-raised border border-border rounded-xl px-4 py-3 text-base text-primary placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   />
                   {error && (
                     <p className="mt-2 text-sm text-red-500">{error}</p>
@@ -167,7 +168,7 @@ export function ApiKeyWizard() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => { setStep(0); setError(null); }}
-                    className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                    className="flex-1 px-4 py-2.5 text-sm font-medium text-secondary hover:bg-surface-hover rounded-xl transition-colors"
                   >
                     Back
                   </button>
@@ -185,12 +186,12 @@ export function ApiKeyWizard() {
             {step === 2 && (
               <div className="text-center space-y-4">
                 <div className="w-16 h-16 mx-auto rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                  <CheckCircleIcon className="w-8 h-8 text-green-600 dark:text-green-400" />
+                  <Icon icon={CircleCheck} className="w-8 h-8 text-green-600 dark:text-green-400" />
                 </div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                <h2 className="text-xl font-bold text-primary">
                   You&apos;re All Set!
                 </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-secondary">
                   Your API key is saved. Head to the Generate page to create your first song.
                 </p>
                 <button

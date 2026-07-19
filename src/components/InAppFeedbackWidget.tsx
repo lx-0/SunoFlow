@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
-import { XMarkIcon, HandThumbUpIcon, HandThumbDownIcon } from "@heroicons/react/24/outline";
-import { HandThumbUpIcon as ThumbUpSolid, HandThumbDownIcon as ThumbDownSolid } from "@heroicons/react/24/solid";
+import { X, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { track } from "@/lib/analytics";
 import { apiPost } from "@/lib/api-client";
 import { fetchWithTimeout } from "@/lib/fetch-client";
@@ -113,24 +113,24 @@ export function InAppFeedbackWidget({ source, entityId, onClose }: InAppFeedback
     <div
       role="region"
       aria-label="Feedback widget"
-      className="fixed bottom-4 right-4 z-40 w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl animate-slide-in"
+      className="fixed bottom-4 right-4 z-40 w-72 bg-surface border border-border rounded-xl shadow-xl animate-slide-in"
     >
       {submitted ? (
         <div className="flex items-center gap-2 px-4 py-4">
           <span className="text-green-500 text-lg" aria-hidden="true">✓</span>
-          <p className="text-sm font-medium text-gray-900 dark:text-white">Thanks for your feedback!</p>
+          <p className="text-sm font-medium text-primary">Thanks for your feedback!</p>
         </div>
       ) : (
         <form onSubmit={handleSubmit}>
           <div className="flex items-start justify-between px-4 pt-4 pb-2">
-            <p className="text-sm font-medium text-gray-900 dark:text-white">{question}</p>
+            <p className="text-sm font-medium text-primary">{question}</p>
             <button
               type="button"
               onClick={handleDismiss}
               aria-label="Dismiss feedback"
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0 ml-2 min-w-[32px] min-h-[32px] flex items-center justify-center"
             >
-              <XMarkIcon className="w-4 h-4" />
+              <Icon icon={X} className="w-4 h-4" />
             </button>
           </div>
 
@@ -143,13 +143,13 @@ export function InAppFeedbackWidget({ source, entityId, onClose }: InAppFeedback
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors min-h-[40px] ${
                 rating === "thumbs_up"
                   ? "bg-green-50 dark:bg-green-900/30 border-green-400 text-green-700 dark:text-green-300"
-                  : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
+                  : "border-border text-secondary hover:border-border-strong"
               }`}
             >
               {rating === "thumbs_up" ? (
-                <ThumbUpSolid className="w-4 h-4" aria-hidden="true" />
+                <Icon icon={ThumbsUp} fill="currentColor" className="w-4 h-4" aria-hidden="true" />
               ) : (
-                <HandThumbUpIcon className="w-4 h-4" aria-hidden="true" />
+                <Icon icon={ThumbsUp} className="w-4 h-4" aria-hidden="true" />
               )}
               Good
             </button>
@@ -161,13 +161,13 @@ export function InAppFeedbackWidget({ source, entityId, onClose }: InAppFeedback
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors min-h-[40px] ${
                 rating === "thumbs_down"
                   ? "bg-red-50 dark:bg-red-900/30 border-red-400 text-red-700 dark:text-red-300"
-                  : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
+                  : "border-border text-secondary hover:border-border-strong"
               }`}
             >
               {rating === "thumbs_down" ? (
-                <ThumbDownSolid className="w-4 h-4" aria-hidden="true" />
+                <Icon icon={ThumbsDown} fill="currentColor" className="w-4 h-4" aria-hidden="true" />
               ) : (
-                <HandThumbDownIcon className="w-4 h-4" aria-hidden="true" />
+                <Icon icon={ThumbsDown} className="w-4 h-4" aria-hidden="true" />
               )}
               Poor
             </button>
@@ -182,13 +182,13 @@ export function InAppFeedbackWidget({ source, entityId, onClose }: InAppFeedback
                 rows={2}
                 maxLength={500}
                 aria-label="Additional feedback"
-                className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none focus:outline-none focus:border-violet-500"
+                className="w-full bg-surface-raised border border-border rounded-lg px-3 py-2 text-sm text-primary placeholder-muted resize-none focus:outline-none focus:border-violet-500"
               />
               <div className="flex justify-end">
                 <button
                   type="submit"
                   disabled={!rating || submitting}
-                  className="px-3 py-1.5 text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 rounded-lg transition-colors min-h-[36px]"
+                  className="px-3 py-1.5 text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:bg-surface-hover disabled:text-gray-500 rounded-lg transition-colors min-h-[36px]"
                 >
                   {submitting ? "Sending…" : "Send"}
                 </button>

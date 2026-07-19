@@ -4,19 +4,21 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  BellIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  ClockIcon,
-  MegaphoneIcon,
-  ArrowDownTrayIcon,
-  CurrencyDollarIcon,
-  CreditCardIcon,
-  ChatBubbleLeftIcon,
-  UserPlusIcon,
-  MusicalNoteIcon,
-} from "@heroicons/react/24/outline";
-import { BellAlertIcon } from "@heroicons/react/24/solid";
+  Bell,
+  CircleCheck,
+  CircleAlert,
+  Clock,
+  Megaphone,
+  Download,
+  CircleDollarSign,
+  CreditCard,
+  MessageSquare,
+  UserPlus,
+  Music,
+  BellRing,
+  type LucideIcon,
+} from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import {
   useNotifications,
   type NotificationType,
@@ -37,18 +39,18 @@ function relativeTime(iso: string): string {
   return `${days}d ago`;
 }
 
-const typeIcons: Record<NotificationType, typeof CheckCircleIcon> = {
-  generation_complete: CheckCircleIcon,
-  generation_failed: ExclamationCircleIcon,
-  import_complete: ArrowDownTrayIcon,
-  error: ExclamationCircleIcon,
-  rate_limit_reset: ClockIcon,
-  announcement: MegaphoneIcon,
-  credit_update: CurrencyDollarIcon,
-  payment_failed: CreditCardIcon,
-  song_comment: ChatBubbleLeftIcon,
-  new_follower: UserPlusIcon,
-  playlist_invite: MusicalNoteIcon,
+const typeIcons: Record<NotificationType, LucideIcon> = {
+  generation_complete: CircleCheck,
+  generation_failed: CircleAlert,
+  import_complete: Download,
+  error: CircleAlert,
+  rate_limit_reset: Clock,
+  announcement: Megaphone,
+  credit_update: CircleDollarSign,
+  payment_failed: CreditCard,
+  song_comment: MessageSquare,
+  new_follower: UserPlus,
+  playlist_invite: Music,
 };
 
 const typeColors: Record<NotificationType, string> = {
@@ -107,12 +109,12 @@ export function NotificationBell() {
         onClick={() => setOpen((v) => !v)}
         aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
         aria-expanded={open}
-        className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors relative"
+        className="min-w-[44px] min-h-[44px] flex items-center justify-center text-secondary hover:text-primary transition-colors relative"
       >
         {unreadCount > 0 ? (
-          <BellAlertIcon className="w-5 h-5 text-violet-500" />
+          <Icon icon={BellRing} fill="currentColor" className="w-5 h-5 text-violet-500" />
         ) : (
-          <BellIcon className="w-5 h-5" />
+          <Icon icon={Bell} className="w-5 h-5" />
         )}
         {unreadCount > 0 && (
           <span aria-hidden="true" className="absolute top-1.5 right-1.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-violet-500 text-white text-[10px] font-bold leading-none">
@@ -126,11 +128,11 @@ export function NotificationBell() {
         <div
           ref={panelRef}
           role="menu"
-          className="absolute right-0 top-full mt-2 w-80 max-h-[28rem] overflow-y-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50"
+          className="absolute right-0 top-full mt-2 w-80 max-h-[28rem] overflow-y-auto bg-surface border border-border rounded-xl shadow-xl z-50"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <h2 className="text-sm font-semibold text-primary">
               Notifications
             </h2>
             {unreadCount > 0 && (
@@ -145,13 +147,13 @@ export function NotificationBell() {
 
           {/* Notification list */}
           {notifications.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
+            <div className="px-4 py-8 text-center text-sm text-muted">
               No notifications yet
             </div>
           ) : (
-            <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+            <ul className="divide-y divide-border">
               {notifications.map((n) => {
-                const Icon = typeIcons[n.type];
+                const ItemIcon = typeIcons[n.type];
                 const color = typeColors[n.type];
                 return (
                   <li key={n.id}>
@@ -165,6 +167,7 @@ export function NotificationBell() {
                       }`}
                     >
                       <Icon
+                        icon={ItemIcon}
                         className={`w-5 h-5 flex-shrink-0 mt-0.5 ${color}`}
                         aria-hidden="true"
                       />
@@ -172,16 +175,16 @@ export function NotificationBell() {
                         <p
                           className={`text-sm ${
                             !n.read
-                              ? "font-semibold text-gray-900 dark:text-white"
-                              : "font-medium text-gray-600 dark:text-gray-400"
+                              ? "font-semibold text-primary"
+                              : "font-medium text-secondary"
                           }`}
                         >
                           {n.title}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                        <p className="text-xs text-secondary mt-0.5 truncate">
                           {n.message}
                         </p>
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+                        <p className="text-[10px] text-muted mt-1">
                           {relativeTime(n.createdAt)}
                         </p>
                       </div>
@@ -196,7 +199,7 @@ export function NotificationBell() {
           )}
 
           {/* View all link */}
-          <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-2">
+          <div className="border-t border-border px-4 py-2">
             <Link
               href="/notifications"
               onClick={() => setOpen(false)}

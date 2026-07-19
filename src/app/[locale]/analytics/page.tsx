@@ -6,31 +6,33 @@ import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import { AppShell } from "@/components/AppShell";
 import { apiGet } from "@/lib/api-client";
+import { Icon } from "@/components/ui/Icon";
 import {
-  MusicalNoteIcon,
-  HeartIcon,
-  QueueListIcon,
-  StarIcon,
-  CheckCircleIcon,
-  ChartBarIcon,
-  ExclamationTriangleIcon,
-  SparklesIcon,
-  ArrowRightIcon,
-} from "@heroicons/react/24/outline";
+  Music,
+  Heart,
+  ListMusic,
+  Star,
+  CircleCheck,
+  ChartColumn,
+  TriangleAlert,
+  Sparkles,
+  ArrowRight,
+  type LucideIcon,
+} from "lucide-react";
 
 const GenerationsBarChart = dynamic(
   () => import("@/components/analytics/UserAnalyticsCharts").then((mod) => mod.GenerationsBarChart),
-  { ssr: false, loading: () => <div className="h-[200px] animate-pulse bg-gray-100 dark:bg-gray-800 rounded" /> }
+  { ssr: false, loading: () => <div className="h-[200px] animate-pulse bg-surface-raised rounded" /> }
 );
 
 const GenrePieChart = dynamic(
   () => import("@/components/analytics/UserAnalyticsCharts").then((mod) => mod.GenrePieChart),
-  { ssr: false, loading: () => <div className="h-[200px] animate-pulse bg-gray-100 dark:bg-gray-800 rounded" /> }
+  { ssr: false, loading: () => <div className="h-[200px] animate-pulse bg-surface-raised rounded" /> }
 );
 
 const CreditUsageBarChart = dynamic(
   () => import("@/components/analytics/UserAnalyticsCharts").then((mod) => mod.CreditUsageBarChart),
-  { ssr: false, loading: () => <div className="h-[200px] animate-pulse bg-gray-100 dark:bg-gray-800 rounded" /> }
+  { ssr: false, loading: () => <div className="h-[200px] animate-pulse bg-surface-raised rounded" /> }
 );
 
 interface CreditUsageData {
@@ -68,21 +70,21 @@ interface UserAnalytics {
 function StatCard({
   label,
   value,
-  icon: Icon,
+  icon: ItemIcon,
 }: {
   label: string;
   value: string | number;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
 }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+    <div className="bg-surface border border-border rounded-xl p-4">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        <span className="text-xs font-medium uppercase tracking-wide text-secondary">
           {label}
         </span>
-        <Icon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+        <Icon icon={ItemIcon} className="w-4 h-4 text-muted" />
       </div>
-      <div className="text-2xl font-bold text-gray-900 dark:text-white">{value}</div>
+      <div className="text-2xl font-bold text-primary">{value}</div>
     </div>
   );
 }
@@ -117,7 +119,7 @@ export default function AnalyticsPage() {
     return (
       <AppShell>
         <div className="px-4 py-6">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Analytics</h1>
+          <h1 className="text-xl font-bold text-primary mb-6">Analytics</h1>
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-400" />
           </div>
@@ -139,32 +141,32 @@ export default function AnalyticsPage() {
   return (
     <AppShell>
       <div className="px-4 py-6 space-y-6">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Analytics</h1>
+        <h1 className="text-xl font-bold text-primary">Analytics</h1>
 
         {/* Stats cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <StatCard label="Total Songs" value={data.totalGenerations} icon={MusicalNoteIcon} />
-          <StatCard label="Completed" value={data.completedGenerations} icon={CheckCircleIcon} />
-          <StatCard label="Favorites" value={data.totalFavorites} icon={HeartIcon} />
-          <StatCard label="Playlists" value={data.totalPlaylists} icon={QueueListIcon} />
+          <StatCard label="Total Songs" value={data.totalGenerations} icon={Music} />
+          <StatCard label="Completed" value={data.completedGenerations} icon={CircleCheck} />
+          <StatCard label="Favorites" value={data.totalFavorites} icon={Heart} />
+          <StatCard label="Playlists" value={data.totalPlaylists} icon={ListMusic} />
           <StatCard
             label="Avg Rating"
             value={data.averageRating !== null ? `${data.averageRating}\u2605` : "\u2014"}
-            icon={StarIcon}
+            icon={Star}
           />
-          <StatCard label="Rated Songs" value={data.ratedSongsCount} icon={ChartBarIcon} />
+          <StatCard label="Rated Songs" value={data.ratedSongsCount} icon={ChartColumn} />
         </div>
 
         {/* Credit Usage Widget */}
         {creditData && (
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4">
+          <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+              <h2 className="text-base font-semibold text-primary">
                 Credit Usage
               </h2>
               {creditData.isLow && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-full">
-                  <ExclamationTriangleIcon className="w-3.5 h-3.5" />
+                  <Icon icon={TriangleAlert} className="w-3.5 h-3.5" />
                   Low Credits
                 </span>
               )}
@@ -173,14 +175,14 @@ export default function AnalyticsPage() {
             {/* Usage bar */}
             <div>
               <div className="flex items-center justify-between text-sm mb-1.5">
-                <span className="text-gray-600 dark:text-gray-400">
+                <span className="text-secondary">
                   {creditData.creditsUsedThisMonth} / {creditData.budget} credits used
                 </span>
-                <span className="font-medium text-gray-900 dark:text-white">
+                <span className="font-medium text-primary">
                   {creditData.creditsRemaining} remaining
                 </span>
               </div>
-              <div className="w-full h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+              <div className="w-full h-2.5 bg-surface-raised rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${
                     creditData.isLow
@@ -197,24 +199,24 @@ export default function AnalyticsPage() {
             {/* Quick stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="text-center">
-                <p className="text-lg font-bold text-gray-900 dark:text-white">{creditData.generationsThisMonth}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Generations this month</p>
+                <p className="text-lg font-bold text-primary">{creditData.generationsThisMonth}</p>
+                <p className="text-xs text-secondary">Generations this month</p>
               </div>
               <div className="text-center">
-                <p className="text-lg font-bold text-gray-900 dark:text-white">{creditData.creditsUsedThisMonth}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Credits used</p>
+                <p className="text-lg font-bold text-primary">{creditData.creditsUsedThisMonth}</p>
+                <p className="text-xs text-secondary">Credits used</p>
               </div>
               <div className="text-center">
-                <p className="text-lg font-bold text-gray-900 dark:text-white">
+                <p className="text-lg font-bold text-primary">
                   {creditData.generationsThisMonth > 0
                     ? Math.round(creditData.creditsUsedThisMonth / Math.max(1, new Date().getDate()))
                     : 0}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Daily average</p>
+                <p className="text-xs text-secondary">Daily average</p>
               </div>
               <div className="text-center">
-                <p className="text-lg font-bold text-gray-900 dark:text-white">{creditData.totalCreditsAllTime}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">All-time credits</p>
+                <p className="text-lg font-bold text-primary">{creditData.totalCreditsAllTime}</p>
+                <p className="text-xs text-secondary">All-time credits</p>
               </div>
             </div>
 
@@ -222,7 +224,7 @@ export default function AnalyticsPage() {
             {creditData.isLow && currentTier === "free" && (
               <div className="flex items-start justify-between gap-4 p-4 rounded-xl bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border border-violet-200 dark:border-violet-800">
                 <div className="flex items-start gap-3">
-                  <SparklesIcon className="w-5 h-5 text-violet-600 dark:text-violet-400 flex-shrink-0 mt-0.5" />
+                  <Icon icon={Sparkles} className="w-5 h-5 text-violet-600 dark:text-violet-400 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm font-semibold text-violet-900 dark:text-violet-200">
                       Running low on credits
@@ -237,14 +239,14 @@ export default function AnalyticsPage() {
                   className="inline-flex items-center gap-1 flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-600 hover:bg-violet-700 text-white transition-colors"
                 >
                   Upgrade
-                  <ArrowRightIcon className="w-3.5 h-3.5" />
+                  <Icon icon={ArrowRight} className="w-3.5 h-3.5" />
                 </Link>
               </div>
             )}
 
             {/* Daily credit chart */}
             <div>
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <h3 className="text-sm font-medium text-secondary mb-2">
                 Daily Credit Usage
               </h3>
               <CreditUsageBarChart data={creditData.dailyChart} />
@@ -253,8 +255,8 @@ export default function AnalyticsPage() {
         )}
 
         {/* Generations chart */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
-          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">
+        <div className="bg-surface border border-border rounded-xl p-5">
+          <h2 className="text-base font-semibold text-primary mb-4">
             Generations (Last 30 Days)
           </h2>
           <GenerationsBarChart data={data.dailyGenerations} />
@@ -262,8 +264,8 @@ export default function AnalyticsPage() {
 
         {/* Genre breakdown */}
         {data.genreBreakdown.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
-            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">
+          <div className="bg-surface border border-border rounded-xl p-5">
+            <h2 className="text-base font-semibold text-primary mb-4">
               Genre Breakdown
             </h2>
             <GenrePieChart data={data.genreBreakdown} />
@@ -272,31 +274,31 @@ export default function AnalyticsPage() {
 
         {/* Top songs by downloads */}
         {data.topSongs.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
-            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">
+          <div className="bg-surface border border-border rounded-xl p-5">
+            <h2 className="text-base font-semibold text-primary mb-4">
               Most Downloaded Songs
             </h2>
-            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+            <div className="divide-y divide-border">
               {data.topSongs.map((song, i) => (
                 <div key={song.id} className="flex items-center gap-3 py-2.5">
-                  <span className="text-sm font-bold text-gray-400 w-5 text-right">
+                  <span className="text-sm font-bold text-secondary w-5 text-right">
                     {i + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    <p className="text-sm font-medium text-primary truncate">
                       {song.title ?? "Untitled"}
                     </p>
                     {song.tags && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      <p className="text-xs text-secondary truncate">
                         {song.tags}
                       </p>
                     )}
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    <p className="text-sm font-medium text-primary">
                       {song.downloadCount}
                     </p>
-                    <p className="text-xs text-gray-500">downloads</p>
+                    <p className="text-xs text-muted">downloads</p>
                   </div>
                 </div>
               ))}

@@ -1,7 +1,8 @@
 "use client";
 
 import { Component, type ReactNode } from "react";
-import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import { TriangleAlert } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { logError } from "@/lib/error-logger";
 
 interface Props {
@@ -41,8 +42,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
-          <ExclamationTriangleIcon className="w-8 h-8 text-red-400" />
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <Icon icon={TriangleAlert} className="w-8 h-8 text-red-400" />
+          <p className="text-sm text-secondary">
             Something went wrong loading this section.
           </p>
           <button

@@ -3,13 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiGet, apiPatch } from "@/lib/api-client";
 import Image from "next/image";
-import {
-  MusicalNoteIcon,
-  FunnelIcon,
-  EyeSlashIcon,
-  ExclamationTriangleIcon,
-  XCircleIcon,
-} from "@heroicons/react/24/outline";
+import { Music, Funnel, EyeOff, TriangleAlert, CircleX } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 
 interface ReportItem {
   id: string;
@@ -101,13 +96,13 @@ export default function AdminReportsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Content Reports</h1>
-        <span className="text-sm text-gray-400">
+        <span className="text-sm text-secondary">
           {total} {statusFilter === "all" ? "total" : statusFilter} report{total !== 1 ? "s" : ""}
         </span>
       </div>
 
       {/* Status tabs */}
-      <div className="flex gap-1 bg-gray-900 border border-gray-800 rounded-lg p-1">
+      <div className="flex gap-1 bg-surface border border-border rounded-lg p-1">
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.value}
@@ -115,7 +110,7 @@ export default function AdminReportsPage() {
             className={`px-4 py-2 text-sm font-medium rounded-md transition-colors min-h-[44px] ${
               statusFilter === tab.value
                 ? "bg-red-900/40 text-red-400"
-                : "text-gray-400 hover:text-white hover:bg-gray-800"
+                : "text-secondary hover:text-primary hover:bg-surface-hover"
             }`}
           >
             {tab.label}
@@ -125,8 +120,8 @@ export default function AdminReportsPage() {
 
       {/* Reports list */}
       {reports.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          <FunnelIcon className="w-10 h-10 mx-auto mb-2 text-gray-600" />
+        <div className="text-center py-12 text-muted">
+          <Icon icon={Funnel} className="w-10 h-10 mx-auto mb-2 text-gray-600" />
           <p>No {statusFilter === "all" ? "" : statusFilter} reports</p>
         </div>
       ) : (
@@ -134,12 +129,12 @@ export default function AdminReportsPage() {
           {reports.map((report) => (
             <div
               key={report.id}
-              className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3"
+              className="bg-surface border border-border rounded-xl p-4 space-y-3"
             >
               {/* Header row */}
               <div className="flex items-start gap-3">
                 {/* Song thumbnail */}
-                <div className="relative flex-shrink-0 w-12 h-12 rounded-lg bg-gray-800 overflow-hidden flex items-center justify-center">
+                <div className="relative flex-shrink-0 w-12 h-12 rounded-lg bg-surface-raised overflow-hidden flex items-center justify-center">
                   {report.song.imageUrl ? (
                     <Image
                       src={report.song.imageUrl}
@@ -149,11 +144,11 @@ export default function AdminReportsPage() {
                       sizes="48px"
                     />
                   ) : (
-                    <MusicalNoteIcon className="w-6 h-6 text-gray-600" />
+                    <Icon icon={Music} className="w-6 h-6 text-gray-600" />
                   )}
                   {report.song.isHidden && (
                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                      <EyeSlashIcon className="w-5 h-5 text-red-400" />
+                      <Icon icon={EyeOff} className="w-5 h-5 text-red-400" />
                     </div>
                   )}
                 </div>
@@ -161,7 +156,7 @@ export default function AdminReportsPage() {
                 {/* Song + report info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium text-white truncate">
+                    <span className="text-sm font-medium text-primary truncate">
                       {report.song.title ?? "Untitled"}
                     </span>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${REASON_COLORS[report.reason] || REASON_COLORS.other}`}>
@@ -173,7 +168,7 @@ export default function AdminReportsPage() {
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-gray-500 mt-0.5">
+                  <div className="text-xs text-muted mt-0.5">
                     Song by {report.song.user.name || report.song.user.email || "Unknown"}
                     {" · "}
                     Reported by {report.reporter.name || report.reporter.email || "Unknown"}
@@ -201,14 +196,14 @@ export default function AdminReportsPage() {
 
               {/* Description */}
               {report.description && (
-                <p className="text-sm text-gray-400 bg-gray-800/50 rounded-lg px-3 py-2">
+                <p className="text-sm text-secondary bg-gray-800/50 rounded-lg px-3 py-2">
                   {report.description}
                 </p>
               )}
 
               {/* Admin note */}
               {report.adminNote && (
-                <p className="text-xs text-gray-500 italic">
+                <p className="text-xs text-muted italic">
                   Admin note: {report.adminNote}
                 </p>
               )}
@@ -219,9 +214,9 @@ export default function AdminReportsPage() {
                   <button
                     onClick={() => handleAction(report.id, "dismiss")}
                     disabled={actionLoading === report.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-raised hover:bg-surface-hover text-gray-300 transition-colors disabled:opacity-50"
                   >
-                    <XCircleIcon className="w-4 h-4" />
+                    <Icon icon={CircleX} className="w-4 h-4" />
                     Dismiss
                   </button>
                   <button
@@ -229,7 +224,7 @@ export default function AdminReportsPage() {
                     disabled={actionLoading === report.id || report.song.isHidden}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-400 transition-colors disabled:opacity-50"
                   >
-                    <EyeSlashIcon className="w-4 h-4" />
+                    <Icon icon={EyeOff} className="w-4 h-4" />
                     Hide Song
                   </button>
                   <button
@@ -237,7 +232,7 @@ export default function AdminReportsPage() {
                     disabled={actionLoading === report.id}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-yellow-900/30 hover:bg-yellow-900/50 text-yellow-400 transition-colors disabled:opacity-50"
                   >
-                    <ExclamationTriangleIcon className="w-4 h-4" />
+                    <Icon icon={TriangleAlert} className="w-4 h-4" />
                     Warn User
                   </button>
                 </div>
@@ -253,17 +248,17 @@ export default function AdminReportsPage() {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="px-3 py-1.5 text-sm rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-1.5 text-sm rounded-lg bg-surface-raised text-gray-300 hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Previous
           </button>
-          <span className="text-sm text-gray-400">
+          <span className="text-sm text-secondary">
             Page {page} of {totalPages}
           </span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            className="px-3 py-1.5 text-sm rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-1.5 text-sm rounded-lg bg-surface-raised text-gray-300 hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
           </button>

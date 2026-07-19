@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { XMarkIcon } from "@heroicons/react/24/outline";
+import { X } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import Image from "next/image";
 
 const DISMISS_KEY = "sunoflow_pwa_prompt_dismissed_until";
@@ -111,7 +112,7 @@ export function PwaInstallPrompt() {
     <div
       role="dialog"
       aria-label="Install SunoFlow as an app"
-      className="fixed bottom-20 left-4 right-4 z-50 mx-auto max-w-sm bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 animate-in slide-in-from-bottom-4"
+      className="fixed bottom-20 left-4 right-4 z-50 mx-auto max-w-sm bg-surface-raised rounded-xl shadow-lg border border-border p-4 animate-in slide-in-from-bottom-4"
     >
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0 w-10 h-10 rounded-lg overflow-hidden">
@@ -124,10 +125,10 @@ export function PwaInstallPrompt() {
           />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+          <p className="text-sm font-semibold text-primary">
             Install SunoFlow
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          <p className="text-xs text-secondary mt-0.5">
             {ios
               ? 'Tap the Share button \u{1F517}, then "Add to Home Screen".'
               : deferredPrompt.current
@@ -143,7 +144,7 @@ export function PwaInstallPrompt() {
             </button>
             <button
               onClick={dismiss}
-              className="flex-1 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-xs font-medium py-2 px-3 transition-colors"
+              className="flex-1 rounded-lg border border-border text-secondary hover:bg-gray-50 dark:hover:bg-gray-700/50 text-xs font-medium py-2 px-3 transition-colors"
             >
               Not now
             </button>
@@ -152,9 +153,9 @@ export function PwaInstallPrompt() {
         <button
           onClick={dismiss}
           aria-label="Dismiss install prompt"
-          className="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 -mt-1 -mr-1"
+          className="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted hover:text-secondary -mt-1 -mr-1"
         >
-          <XMarkIcon className="w-4 h-4" />
+          <Icon icon={X} className="w-4 h-4" />
         </button>
       </div>
     </div>

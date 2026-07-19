@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MusicalNoteIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import { Music, UsersRound } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useToast } from "./Toast";
 import { apiGet, apiPost } from "@/lib/api-client";
 import { HttpError } from "@/components/QueryProvider";
@@ -68,10 +69,10 @@ export function PlaylistInviteView({ token }: { token: string }) {
     return (
       <div className="px-4 py-12 max-w-md mx-auto text-center space-y-4">
         <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto">
-          <MusicalNoteIcon className="w-8 h-8 text-red-500" />
+          <Icon icon={Music} className="w-8 h-8 text-red-500" />
         </div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Invite unavailable</h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm">
+        <h1 className="text-xl font-bold text-primary">Invite unavailable</h1>
+        <p className="text-secondary text-sm">
           {error ?? "This invite link is invalid or has expired."}
         </p>
         <button
@@ -88,22 +89,22 @@ export function PlaylistInviteView({ token }: { token: string }) {
     <div className="px-4 py-12 max-w-md mx-auto space-y-6">
       <div className="text-center space-y-3">
         <div className="w-16 h-16 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center mx-auto">
-          <UserGroupIcon className="w-8 h-8 text-violet-500" />
+          <Icon icon={UsersRound} className="w-8 h-8 text-violet-500" />
         </div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+        <h1 className="text-xl font-bold text-primary">
           You&apos;ve been invited to collaborate
         </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-secondary">
           {invite.playlist.user.name ?? "Someone"} invited you to add songs to their playlist.
         </p>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-2">
-        <h2 className="font-semibold text-gray-900 dark:text-white">{invite.playlist.name}</h2>
+      <div className="bg-surface-raised border border-border rounded-xl p-4 space-y-2">
+        <h2 className="font-semibold text-primary">{invite.playlist.name}</h2>
         {invite.playlist.description && (
-          <p className="text-sm text-gray-500 dark:text-gray-400">{invite.playlist.description}</p>
+          <p className="text-sm text-secondary">{invite.playlist.description}</p>
         )}
-        <p className="text-xs text-gray-400 dark:text-gray-500">
+        <p className="text-xs text-muted">
           {invite.playlist._count.songs} song{invite.playlist._count.songs !== 1 ? "s" : ""}
         </p>
       </div>
@@ -118,13 +119,13 @@ export function PlaylistInviteView({ token }: { token: string }) {
         </button>
         <button
           onClick={() => router.push("/playlists")}
-          className="w-full px-5 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-xl transition-colors"
+          className="w-full px-5 py-3 bg-surface-raised hover:bg-surface-hover text-gray-700 dark:text-gray-300 text-sm font-medium rounded-xl transition-colors"
         >
           Decline
         </button>
       </div>
 
-      <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
+      <p className="text-xs text-muted text-center">
         Expires {new Date(invite.expiresAt).toLocaleDateString()}
       </p>
     </div>

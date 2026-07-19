@@ -1,12 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  ShareIcon,
-  LinkIcon,
-  CheckIcon,
-  CodeBracketIcon,
-} from "@heroicons/react/24/outline";
+import { Share2, Link, Check, Code } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useToast } from "./Toast";
 import { track } from "@/lib/analytics";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
@@ -116,9 +112,9 @@ export function ShareMenu({
         className={className}
       >
         {copied ? (
-          <CheckIcon className="w-4 h-4" aria-hidden="true" />
+          <Icon icon={Check} className="w-4 h-4" aria-hidden="true" />
         ) : (
-          <ShareIcon className="w-4 h-4" aria-hidden="true" />
+          <Icon icon={Share2} className="w-4 h-4" aria-hidden="true" />
         )}
         <span>{copied ? "Copied!" : "Share"}</span>
       </button>
@@ -126,30 +122,30 @@ export function ShareMenu({
       {open && (
         <div
           role="menu"
-          className="absolute z-50 mt-1 right-0 w-44 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden"
+          className="absolute z-50 mt-1 right-0 w-44 bg-surface border border-border rounded-xl shadow-lg overflow-hidden"
         >
           {hasNativeShare && (
             <button
               role="menuitem"
               onClick={handleNativeShare}
-              className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-secondary hover:bg-surface-hover transition-colors"
             >
-              <ShareIcon className="w-4 h-4 flex-shrink-0 text-violet-500" aria-hidden="true" />
+              <Icon icon={Share2} className="w-4 h-4 flex-shrink-0 text-violet-500" aria-hidden="true" />
               Share
             </button>
           )}
           <button
             role="menuitem"
             onClick={copyToClipboard}
-            className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-secondary hover:bg-surface-hover transition-colors"
           >
-            <LinkIcon className="w-4 h-4 flex-shrink-0 text-violet-500" aria-hidden="true" />
+            <Icon icon={Link} className="w-4 h-4 flex-shrink-0 text-violet-500" aria-hidden="true" />
             Copy link
           </button>
           <button
             role="menuitem"
             onClick={handleShareOnX}
-            className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-secondary hover:bg-surface-hover transition-colors"
           >
             {/* X / Twitter logo */}
             <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -161,12 +157,12 @@ export function ShareMenu({
             <button
               role="menuitem"
               onClick={copyEmbedCode}
-              className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-secondary hover:bg-surface-hover transition-colors"
             >
               {embedCopied ? (
-                <CheckIcon className="w-4 h-4 flex-shrink-0 text-violet-500" aria-hidden="true" />
+                <Icon icon={Check} className="w-4 h-4 flex-shrink-0 text-violet-500" aria-hidden="true" />
               ) : (
-                <CodeBracketIcon className="w-4 h-4 flex-shrink-0 text-violet-500" aria-hidden="true" />
+                <Icon icon={Code} className="w-4 h-4 flex-shrink-0 text-violet-500" aria-hidden="true" />
               )}
               {embedCopied ? "Copied!" : "Copy Embed Code"}
             </button>

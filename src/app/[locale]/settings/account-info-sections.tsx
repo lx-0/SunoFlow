@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowDownTrayIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
+import { Download, RefreshCw } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useOnboarding } from "@/components/OnboardingTour";
 import { Toast } from "./ui";
 import { apiGet } from "@/lib/api-client";
@@ -20,15 +21,15 @@ function OnboardingSection() {
   return (
     <section className="space-y-3">
       <div>
-        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Onboarding</h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Replay the getting-started walkthrough.</p>
+        <h3 className="text-base font-semibold text-primary">Onboarding</h3>
+        <p className="text-xs text-secondary mt-0.5">Replay the getting-started walkthrough.</p>
       </div>
       <button
         onClick={handleRestart}
         disabled={restarting}
         className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors min-h-[44px]"
       >
-        <ArrowPathIcon className="w-4 h-4" />
+        <Icon icon={RefreshCw} className="w-4 h-4" />
         {restarting ? "Restarting..." : "Restart tour"}
       </button>
     </section>
@@ -80,8 +81,8 @@ function ExportDataSection() {
       {toast && <Toast message={toast.message} type={toast.type} />}
       <section className="space-y-3">
         <div>
-          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Export Data</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          <h3 className="text-base font-semibold text-primary">Export Data</h3>
+          <p className="text-xs text-secondary mt-0.5">
             Download your data for backup or portability. Exports include metadata only — no audio files.
           </p>
         </div>
@@ -90,12 +91,12 @@ function ExportDataSection() {
           <button
             onClick={() => handleExport("json", "all", "json-all")}
             disabled={exporting !== null}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left min-h-[44px]"
+            className="w-full flex items-center gap-3 px-4 py-3 bg-surface border border-border rounded-lg hover:bg-surface-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left min-h-[44px]"
           >
-            <ArrowDownTrayIcon className="w-5 h-5 text-violet-500 flex-shrink-0" />
+            <Icon icon={Download} className="w-5 h-5 text-violet-500 flex-shrink-0" />
             <div className="flex-1">
-              <span className="text-sm font-medium text-gray-900 dark:text-white">Export all as JSON</span>
-              <span className="block text-xs text-gray-500 dark:text-gray-400">Songs, playlists, tags, and ratings</span>
+              <span className="text-sm font-medium text-primary">Export all as JSON</span>
+              <span className="block text-xs text-secondary">Songs, playlists, tags, and ratings</span>
             </div>
             {exporting === "json-all" && <span className="text-xs text-violet-500 animate-pulse">Exporting...</span>}
           </button>
@@ -103,12 +104,12 @@ function ExportDataSection() {
           <button
             onClick={() => handleExport("csv", "songs", "csv-songs")}
             disabled={exporting !== null}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left min-h-[44px]"
+            className="w-full flex items-center gap-3 px-4 py-3 bg-surface border border-border rounded-lg hover:bg-surface-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left min-h-[44px]"
           >
-            <ArrowDownTrayIcon className="w-5 h-5 text-green-500 flex-shrink-0" />
+            <Icon icon={Download} className="w-5 h-5 text-green-500 flex-shrink-0" />
             <div className="flex-1">
-              <span className="text-sm font-medium text-gray-900 dark:text-white">Export songs as CSV</span>
-              <span className="block text-xs text-gray-500 dark:text-gray-400">Spreadsheet-friendly format (RFC 4180)</span>
+              <span className="text-sm font-medium text-primary">Export songs as CSV</span>
+              <span className="block text-xs text-secondary">Spreadsheet-friendly format (RFC 4180)</span>
             </div>
             {exporting === "csv-songs" && <span className="text-xs text-violet-500 animate-pulse">Exporting...</span>}
           </button>
@@ -116,12 +117,12 @@ function ExportDataSection() {
           <button
             onClick={() => handleExport("json", "playlists", "json-playlists")}
             disabled={exporting !== null}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left min-h-[44px]"
+            className="w-full flex items-center gap-3 px-4 py-3 bg-surface border border-border rounded-lg hover:bg-surface-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left min-h-[44px]"
           >
-            <ArrowDownTrayIcon className="w-5 h-5 text-blue-500 flex-shrink-0" />
+            <Icon icon={Download} className="w-5 h-5 text-blue-500 flex-shrink-0" />
             <div className="flex-1">
-              <span className="text-sm font-medium text-gray-900 dark:text-white">Export playlists as JSON</span>
-              <span className="block text-xs text-gray-500 dark:text-gray-400">Playlist names and song references</span>
+              <span className="text-sm font-medium text-primary">Export playlists as JSON</span>
+              <span className="block text-xs text-secondary">Playlist names and song references</span>
             </div>
             {exporting === "json-playlists" && <span className="text-xs text-violet-500 animate-pulse">Exporting...</span>}
           </button>
@@ -159,20 +160,20 @@ function ConnectedAccountsSection() {
   return (
     <section className="space-y-3">
       <div>
-        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Connected Accounts</h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Auth providers linked to your account.</p>
+        <h3 className="text-base font-semibold text-primary">Connected Accounts</h3>
+        <p className="text-xs text-secondary mt-0.5">Auth providers linked to your account.</p>
       </div>
       {providers.length === 0 ? (
-        <p className="text-sm text-gray-500 dark:text-gray-400">No OAuth providers connected.</p>
+        <p className="text-sm text-secondary">No OAuth providers connected.</p>
       ) : (
         <ul className="space-y-2">
           {providers.map((provider) => (
             <li
               key={provider}
-              className="flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-4 py-3"
+              className="flex items-center gap-3 bg-surface border border-border rounded-lg px-4 py-3"
             >
               <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
-              <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">
+              <span className="text-sm font-medium text-primary flex-1">
                 {PROVIDER_LABELS[provider] ?? provider.charAt(0).toUpperCase() + provider.slice(1)}
               </span>
               <span className="text-xs text-green-600 dark:text-green-400 font-medium">Connected</span>
@@ -217,8 +218,8 @@ function SubscriptionSummarySection() {
   if (!loaded) {
     return (
       <section className="space-y-3">
-        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Subscription</h3>
-        <div className="h-20 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />
+        <h3 className="text-base font-semibold text-primary">Subscription</h3>
+        <div className="h-20 bg-surface-raised rounded-xl animate-pulse" />
       </section>
     );
   }
@@ -230,17 +231,17 @@ function SubscriptionSummarySection() {
   return (
     <section className="space-y-3">
       <div>
-        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Subscription</h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Your current plan and credit balance.</p>
+        <h3 className="text-base font-semibold text-primary">Subscription</h3>
+        <p className="text-xs text-secondary mt-0.5">Your current plan and credit balance.</p>
       </div>
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
+      <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Plan</span>
-          <span className="text-sm font-semibold text-gray-900 dark:text-white">{tierLabel}</span>
+          <span className="text-sm text-secondary">Plan</span>
+          <span className="text-sm font-semibold text-primary">{tierLabel}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Credits remaining</span>
-          <span className="text-sm font-semibold text-gray-900 dark:text-white">
+          <span className="text-sm text-secondary">Credits remaining</span>
+          <span className="text-sm font-semibold text-primary">
             {info.creditsRemaining} / {info.budget}
           </span>
         </div>

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { EnvelopeIcon } from "@heroicons/react/24/outline";
+import { Mail } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { apiPost } from "@/lib/api-client";
 
 export function EmailVerificationBanner() {
@@ -32,7 +33,7 @@ export function EmailVerificationBanner() {
 
   return (
     <div className="bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800 px-4 py-2.5 flex items-center gap-2 text-sm text-amber-800 dark:text-amber-200">
-      <EnvelopeIcon className="w-4 h-4 flex-shrink-0" />
+      <Icon icon={Mail} className="w-4 h-4 flex-shrink-0" />
       <span className="flex-1">
         {resent
           ? "Verification email sent! Check your inbox."

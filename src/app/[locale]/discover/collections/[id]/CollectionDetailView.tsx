@@ -3,12 +3,8 @@
 import { useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  PlayIcon,
-  PauseIcon,
-  MusicalNoteIcon,
-  ArrowLeftIcon,
-} from "@heroicons/react/24/solid";
+import { Play, Pause, Music, ArrowLeft } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { formatDuration } from "@/lib/time-format";
 
 interface CollectionSong {
@@ -35,7 +31,7 @@ interface CollectionDetail {
   createdAt: string;
 }
 
-const FALLBACK_IMAGE = "https://placehold.co/400x400/1e1b4b/a78bfa?text=♪";
+const FALLBACK_IMAGE = "https://placehold.co/400x400/1e1b4b/e873af?text=♪";
 
 export function CollectionDetailView({ collection }: { collection: CollectionDetail }) {
   const [playingSongId, setPlayingSongId] = useState<string | null>(null);
@@ -63,7 +59,7 @@ export function CollectionDetailView({ collection }: { collection: CollectionDet
   const cover = collection.coverImage ?? collection.songs[0]?.imageUrl ?? FALLBACK_IMAGE;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white">
+    <div className="min-h-screen bg-surface-deep text-primary">
       {/* Hero */}
       <div className="relative bg-gradient-to-b from-violet-900 to-gray-950 pb-8">
         <div className="max-w-5xl mx-auto px-4 pt-6">
@@ -71,7 +67,7 @@ export function CollectionDetailView({ collection }: { collection: CollectionDet
             href="/discover?tab=collections"
             className="inline-flex items-center gap-1.5 text-sm text-violet-300 hover:text-white transition-colors mb-6"
           >
-            <ArrowLeftIcon className="w-4 h-4" />
+            <Icon icon={ArrowLeft} className="w-4 h-4" fill="currentColor" />
             Collections
           </Link>
 
@@ -109,8 +105,8 @@ export function CollectionDetailView({ collection }: { collection: CollectionDet
       <main className="max-w-5xl mx-auto px-4 py-8">
         {collection.songs.length === 0 ? (
           <div className="text-center py-16">
-            <MusicalNoteIcon className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
+            <Icon icon={Music} className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto mb-3" fill="currentColor" />
+            <p className="text-secondary text-sm">
               No songs in this collection yet.
             </p>
           </div>
@@ -127,10 +123,10 @@ export function CollectionDetailView({ collection }: { collection: CollectionDet
               return (
                 <div
                   key={song.id}
-                  className="group flex items-center gap-4 p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl hover:border-violet-400 dark:hover:border-violet-600 transition-colors"
+                  className="group flex items-center gap-4 p-3 bg-surface border border-border rounded-xl hover:border-violet-400 dark:hover:border-violet-600 transition-colors"
                 >
                   {/* Rank */}
-                  <span className="w-6 text-center text-sm text-gray-400 dark:text-gray-500 shrink-0">
+                  <span className="w-6 text-center text-sm text-muted shrink-0">
                     {index + 1}
                   </span>
 
@@ -157,9 +153,9 @@ export function CollectionDetailView({ collection }: { collection: CollectionDet
                             aria-label={isPlaying ? "Pause" : "Play preview"}
                           >
                             {isPlaying ? (
-                              <PauseIcon className="w-4 h-4" />
+                              <Icon icon={Pause} className="w-4 h-4" fill="currentColor" />
                             ) : (
-                              <PlayIcon className="w-4 h-4 ml-0.5" />
+                              <Icon icon={Play} className="w-4 h-4 ml-0.5" fill="currentColor" />
                             )}
                           </button>
                         )}
@@ -179,29 +175,29 @@ export function CollectionDetailView({ collection }: { collection: CollectionDet
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <Link href={href}>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+                      <p className="text-sm font-semibold text-primary truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
                         {song.title || "Untitled"}
                       </p>
                     </Link>
                     {song.user.username ? (
                       <Link
                         href={`/u/${song.user.username}`}
-                        className="text-xs text-gray-500 dark:text-gray-400 truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors block"
+                        className="text-xs text-secondary truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors block"
                       >
                         {creator}
                       </Link>
                     ) : (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{creator}</p>
+                      <p className="text-xs text-secondary truncate">{creator}</p>
                     )}
                   </div>
 
                   {/* Stats */}
                   <div className="text-right shrink-0 space-y-0.5">
-                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    <p className="text-xs font-medium text-secondary">
                       {song.playCount.toLocaleString()} plays
                     </p>
                     {song.duration && (
-                      <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                      <p className="text-[10px] text-muted">
                         {formatDuration(song.duration)}
                       </p>
                     )}

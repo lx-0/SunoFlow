@@ -2,18 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api-client";
-import {
-  UsersIcon,
-  MusicalNoteIcon,
-  BoltIcon,
-  UserGroupIcon,
-  FlagIcon,
-  ExclamationTriangleIcon,
-  CreditCardIcon,
-  CurrencyDollarIcon,
-  CalendarDaysIcon,
-  CalendarIcon,
-} from "@heroicons/react/24/outline";
+import { Users, Music, Zap, UsersRound, Flag, TriangleAlert, CreditCard, CircleDollarSign, CalendarDays, Calendar, type LucideIcon } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 
 interface Stats {
   totalUsers: number;
@@ -33,29 +23,29 @@ interface Stats {
 function StatCard({
   label,
   value,
-  icon: Icon,
+  icon: ItemIcon,
   sub,
 }: {
   label: string;
   value: number | string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   sub?: string;
 }) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+    <div className="bg-surface border border-border rounded-xl p-5">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm text-gray-400">{label}</span>
-        <Icon className="w-5 h-5 text-gray-500" />
+        <span className="text-sm text-secondary">{label}</span>
+        <Icon icon={ItemIcon} className="w-5 h-5 text-muted" />
       </div>
       <div className="text-2xl font-bold">{value}</div>
-      {sub && <div className="text-xs text-gray-500 mt-1">{sub}</div>}
+      {sub && <div className="text-xs text-muted mt-1">{sub}</div>}
     </div>
   );
 }
 
 function MiniChart({ data }: { data: Array<{ date: string; count: number }> }) {
   if (data.length === 0) {
-    return <p className="text-gray-500 text-sm">No data available</p>;
+    return <p className="text-muted text-sm">No data available</p>;
   }
 
   const max = Math.max(...data.map((d) => d.count), 1);
@@ -72,7 +62,7 @@ function MiniChart({ data }: { data: Array<{ date: string; count: number }> }) {
             className="bg-violet-500/80 hover:bg-violet-400 rounded-t transition-colors w-full"
             style={{ height: `${(d.count / max) * 100}%`, minHeight: d.count > 0 ? "2px" : "0" }}
           />
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block bg-gray-800 text-xs text-white px-2 py-1 rounded whitespace-nowrap z-10">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block bg-surface-raised text-xs text-primary px-2 py-1 rounded whitespace-nowrap z-10">
             {d.date}: {d.count}
           </div>
         </div>
@@ -114,46 +104,46 @@ export default function AdminDashboardPage() {
       <h1 className="text-2xl font-bold">Admin Dashboard</h1>
 
       <div>
-        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Users</h2>
+        <h2 className="text-sm font-medium text-secondary uppercase tracking-wider mb-3">Users</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Total Users" value={stats.totalUsers} icon={UsersIcon} />
-          <StatCard label="Paying Users" value={stats.payingUsers} icon={CreditCardIcon} />
-          <StatCard label="Active (7d)" value={stats.activeUsers7d} icon={UserGroupIcon} />
-          <StatCard label="Active (30d)" value={stats.activeUsers30d} icon={UserGroupIcon} />
+          <StatCard label="Total Users" value={stats.totalUsers} icon={Users} />
+          <StatCard label="Paying Users" value={stats.payingUsers} icon={CreditCard} />
+          <StatCard label="Active (7d)" value={stats.activeUsers7d} icon={UsersRound} />
+          <StatCard label="Active (30d)" value={stats.activeUsers30d} icon={UsersRound} />
         </div>
       </div>
 
       <div>
-        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Revenue</h2>
+        <h2 className="text-sm font-medium text-secondary uppercase tracking-wider mb-3">Revenue</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard
             label="Est. MRR"
             value={formatMrr(stats.mrrCents)}
-            icon={CurrencyDollarIcon}
+            icon={CircleDollarSign}
             sub="approximate"
           />
         </div>
       </div>
 
       <div>
-        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Generations</h2>
+        <h2 className="text-sm font-medium text-secondary uppercase tracking-wider mb-3">Generations</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="All Time" value={stats.totalGenerations} icon={MusicalNoteIcon} />
-          <StatCard label="Today" value={stats.generationsToday} icon={BoltIcon} />
-          <StatCard label="This Week" value={stats.generationsWeek} icon={CalendarDaysIcon} />
-          <StatCard label="This Month" value={stats.generationsMonth} icon={CalendarIcon} />
+          <StatCard label="All Time" value={stats.totalGenerations} icon={Music} />
+          <StatCard label="Today" value={stats.generationsToday} icon={Zap} />
+          <StatCard label="This Week" value={stats.generationsWeek} icon={CalendarDays} />
+          <StatCard label="This Month" value={stats.generationsMonth} icon={Calendar} />
         </div>
       </div>
 
       <div>
-        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">System</h2>
+        <h2 className="text-sm font-medium text-secondary uppercase tracking-wider mb-3">System</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Pending Reports" value={stats.pendingReports} icon={FlagIcon} />
-          <StatCard label="Errors Today" value={stats.recentErrors} icon={ExclamationTriangleIcon} />
+          <StatCard label="Pending Reports" value={stats.pendingReports} icon={Flag} />
+          <StatCard label="Errors Today" value={stats.recentErrors} icon={TriangleAlert} />
         </div>
       </div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+      <div className="bg-surface border border-border rounded-xl p-5">
         <h2 className="text-lg font-semibold mb-4">Daily Generations (Last 30 Days)</h2>
         <MiniChart data={stats.dailyGenerations} />
       </div>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { TrashIcon, SwatchIcon, PencilIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { Trash2, SwatchBook, Pencil, Check, X } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useToast } from "./Toast";
 import { apiGet, apiPatch, apiDelete } from "@/lib/api-client";
 
@@ -85,9 +86,9 @@ export function StyleTemplateManager() {
     return (
       <div className="px-4 py-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
-          <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded" />
-          <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded" />
+          <div className="h-6 bg-surface-raised rounded w-1/3" />
+          <div className="h-20 bg-surface-raised rounded" />
+          <div className="h-20 bg-surface-raised rounded" />
         </div>
       </div>
     );
@@ -96,16 +97,16 @@ export function StyleTemplateManager() {
   return (
     <div className="px-4 py-4 space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Style Templates</h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">
+        <h1 className="text-xl font-bold text-primary">Style Templates</h1>
+        <p className="text-secondary text-sm mt-0.5">
           Manage your saved style templates for quick generation
         </p>
       </div>
 
       {templates.length === 0 ? (
         <div className="text-center py-12">
-          <SwatchIcon className="h-12 w-12 text-gray-400 dark:text-gray-600 mx-auto mb-3" />
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
+          <Icon icon={SwatchBook} className="h-12 w-12 text-muted mx-auto mb-3" />
+          <p className="text-secondary text-sm">
             No style templates yet. Save a style from any song using the &ldquo;Save Style&rdquo; action in the song menu.
           </p>
         </div>
@@ -114,7 +115,7 @@ export function StyleTemplateManager() {
           {templates.map((template) => (
             <div
               key={template.id}
-              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4"
+              className="bg-surface-raised border border-border rounded-xl p-4"
             >
               {editingId === template.id ? (
                 <div className="space-y-3">
@@ -125,7 +126,7 @@ export function StyleTemplateManager() {
                     placeholder="Template name"
                     maxLength={100}
                     autoFocus
-                    className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    className="w-full bg-surface-raised border border-border rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-violet-500"
                   />
                   <textarea
                     value={editTags}
@@ -133,7 +134,7 @@ export function StyleTemplateManager() {
                     placeholder="Style tags"
                     rows={2}
                     maxLength={500}
-                    className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    className="w-full bg-surface-raised border border-border rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-violet-500"
                   />
                   <div className="flex gap-2">
                     <button
@@ -142,15 +143,15 @@ export function StyleTemplateManager() {
                       disabled={isSaving}
                       className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-lg transition-colors"
                     >
-                      <CheckIcon className="h-4 w-4" />
+                      <Icon icon={Check} className="h-4 w-4" />
                       {isSaving ? "Saving..." : "Save"}
                     </button>
                     <button
                       type="button"
                       onClick={cancelEdit}
-                      className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                      className="flex items-center gap-1 px-3 py-1.5 text-sm text-secondary hover:text-primary transition-colors"
                     >
-                      <XMarkIcon className="h-4 w-4" />
+                      <Icon icon={X} className="h-4 w-4" />
                       Cancel
                     </button>
                   </div>
@@ -159,16 +160,16 @@ export function StyleTemplateManager() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 min-w-0">
                     <div className="flex-shrink-0 w-10 h-10 bg-violet-100 dark:bg-violet-900/30 rounded-full flex items-center justify-center">
-                      <SwatchIcon className="h-6 w-6 text-violet-600 dark:text-violet-400" />
+                      <Icon icon={SwatchBook} className="h-6 w-6 text-violet-600 dark:text-violet-400" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      <p className="text-sm font-medium text-primary truncate">
                         {template.name}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
+                      <p className="text-xs text-secondary mt-0.5 line-clamp-2">
                         {template.tags}
                       </p>
-                      <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 inline-block">
+                      <span className="text-[10px] text-muted mt-1 inline-block">
                         {new Date(template.createdAt).toLocaleDateString()}
                       </span>
                     </div>
@@ -177,21 +178,21 @@ export function StyleTemplateManager() {
                     <button
                       type="button"
                       onClick={() => startEdit(template)}
-                      className="p-2 text-gray-400 hover:text-violet-500 dark:hover:text-violet-400 transition-colors"
+                      className="p-2 text-muted hover:text-violet-500 dark:hover:text-violet-400 transition-colors"
                       aria-label={`Edit ${template.name}`}
                       title="Edit template"
                     >
-                      <PencilIcon className="h-4 w-4" />
+                      <Icon icon={Pencil} className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(template.id)}
                       disabled={deletingId === template.id}
-                      className="p-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 disabled:opacity-50 transition-colors"
+                      className="p-2 text-muted hover:text-red-500 dark:hover:text-red-400 disabled:opacity-50 transition-colors"
                       aria-label={`Delete ${template.name}`}
                       title="Delete template"
                     >
-                      <TrashIcon className="h-4 w-4" />
+                      <Icon icon={Trash2} className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
@@ -201,7 +202,7 @@ export function StyleTemplateManager() {
         </div>
       )}
 
-      <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+      <p className="text-xs text-secondary text-center">
         {templates.length} / 50 style templates
       </p>
     </div>

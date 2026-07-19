@@ -3,15 +3,9 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  QueueListIcon,
-  RectangleStackIcon,
-  SparklesIcon,
-  MusicalNoteIcon,
-  MagnifyingGlassIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/solid";
+import { ListMusic, Layers, Sparkles, Music, Search, X } from "lucide-react";
 
+import { Icon } from "@/components/ui/Icon";
 import { SORT_OPTIONS, TEMPO_PRESETS } from "./discover-view.utils";
 import {
   CollectionCard,
@@ -139,9 +133,9 @@ export function DiscoverView({
       : trending.pagination.total;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white">
+    <div className="min-h-screen bg-surface-deep text-primary">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800">
+      <header className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -152,7 +146,7 @@ export function DiscoverView({
                 SunoFlow
               </Link>
               <h1 className="text-xl font-bold mt-1">Discover</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-secondary">
                 {tab === "for_you"
                   ? "Your personalized discover feed"
                   : tab === "collections"
@@ -172,13 +166,13 @@ export function DiscoverView({
 
           {/* Search bar */}
           <div className="relative mt-3">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <Icon icon={Search} className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="currentColor" />
             <input
               type="search"
               value={search.inputValue}
               onChange={(e) => search.handleChange(e.target.value)}
               placeholder="Search songs, artists, genres..."
-              className="w-full pl-9 pr-9 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent placeholder:text-gray-400"
+              className="w-full pl-9 pr-9 py-2 text-sm bg-surface-raised border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent placeholder:text-gray-400"
               aria-label="Search public songs"
             />
             {search.inputValue && (
@@ -187,7 +181,7 @@ export function DiscoverView({
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 aria-label="Clear search"
               >
-                <XMarkIcon className="w-4 h-4" />
+                <Icon icon={X} className="w-4 h-4" fill="currentColor" />
               </button>
             )}
           </div>
@@ -195,17 +189,17 @@ export function DiscoverView({
           {/* Tab navigation — hidden during search */}
           {!search.query && (
             <div className="flex gap-1 mt-3">
-              {TABS.map(({ value, label, icon: Icon }) => (
+              {TABS.map(({ value, label, icon: ItemIcon }) => (
                 <button
                   key={value}
                   onClick={() => handleTabChange(value)}
                   className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors min-h-[36px] ${
                     tab === value
                       ? "bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300"
-                      : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      : "text-secondary hover:text-primary hover:bg-surface-hover"
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon icon={ItemIcon} className="w-4 h-4" fill="currentColor" />
                   {label}
                 </button>
               ))}
@@ -219,7 +213,7 @@ export function DiscoverView({
         {search.query && (
           <>
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-secondary">
                 {search.loading
                   ? "Searching…"
                   : `${search.pagination.total} result${search.pagination.total !== 1 ? "s" : ""} for "${search.query}"`}
@@ -231,8 +225,8 @@ export function DiscoverView({
               <SongGridSkeleton />
             ) : search.results.length === 0 ? (
               <div className="text-center py-16">
-                <MusicalNoteIcon className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
-                <p className="text-gray-500 dark:text-gray-400 text-sm">
+                <Icon icon={Music} className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto mb-3" fill="currentColor" />
+                <p className="text-secondary text-sm">
                   No songs found. Try a different search.
                 </p>
               </div>
@@ -259,7 +253,7 @@ export function DiscoverView({
             {/* Feed genre/mood filters */}
             <div className="flex flex-col gap-4">
               <section>
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-2">
                   Genre
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -287,7 +281,7 @@ export function DiscoverView({
               </section>
 
               <section>
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-2">
                   Mood
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -322,8 +316,8 @@ export function DiscoverView({
               <SongGridSkeleton />
             ) : feed.songs.length === 0 ? (
               <div className="text-center py-16">
-                <SparklesIcon className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
-                <p className="text-gray-500 dark:text-gray-400 text-sm">
+                <Icon icon={Sparkles} className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto mb-3" fill="currentColor" />
+                <p className="text-secondary text-sm">
                   No songs to show yet. Try a different filter or check back later.
                 </p>
               </div>
@@ -353,8 +347,8 @@ export function DiscoverView({
             {/* Sort + clear */}
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
               <div className="flex items-center gap-2">
-                <MagnifyingGlassIcon className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-500 dark:text-gray-400">
+                <Icon icon={Search} className="w-4 h-4 text-gray-400" fill="currentColor" />
+                <span className="text-sm text-secondary">
                   Sort:
                 </span>
                 <div className="flex gap-1">
@@ -404,7 +398,7 @@ export function DiscoverView({
 
             {/* Genre filter */}
             <section>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+              <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-2">
                 Genre
               </p>
               <div className="flex flex-wrap gap-2">
@@ -433,7 +427,7 @@ export function DiscoverView({
 
             {/* Mood filter */}
             <section>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+              <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-2">
                 Mood
               </p>
               <div className="flex flex-wrap gap-2">
@@ -462,7 +456,7 @@ export function DiscoverView({
 
             {/* Tempo filter */}
             <section>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+              <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-2">
                 Tempo
               </p>
               <div className="flex flex-wrap gap-2">
@@ -528,7 +522,7 @@ export function DiscoverView({
           <>
             {/* Tab description */}
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-secondary">
                 {tab === "trending"
                   ? "Songs gaining momentum over the last 30 days, ranked by plays and recency."
                   : "All-time most-played public songs."}
@@ -563,7 +557,7 @@ export function DiscoverView({
 
             {/* Genre filter for trending/popular */}
             <section>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+              <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-2">
                 Genre
               </p>
               <div className="flex flex-wrap gap-2">
@@ -594,7 +588,7 @@ export function DiscoverView({
 
             {/* Mood filter for trending/popular */}
             <section>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+              <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-2">
                 Mood
               </p>
               <div className="flex flex-wrap gap-2">
@@ -665,8 +659,8 @@ export function DiscoverView({
               <CollectionsGridSkeleton />
             ) : collectionsHook.collections.length === 0 ? (
               <div className="text-center py-16">
-                <RectangleStackIcon className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
-                <p className="text-gray-500 dark:text-gray-400 text-sm">
+                <Icon icon={Layers} className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto mb-3" fill="currentColor" />
+                <p className="text-secondary text-sm">
                   No collections available yet. Check back soon.
                 </p>
               </div>
@@ -685,7 +679,7 @@ export function DiscoverView({
             {/* Sort + genre filter */}
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500 dark:text-gray-400">
+                <span className="text-sm text-secondary">
                   Sort:
                 </span>
                 <div className="flex gap-1">
@@ -725,7 +719,7 @@ export function DiscoverView({
 
             {/* Genre filter chips */}
             <section>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+              <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-2">
                 Genre
               </p>
               <div className="flex flex-wrap gap-2">
@@ -759,8 +753,8 @@ export function DiscoverView({
               <PlaylistsGridSkeleton />
             ) : playlistsHook.playlists.length === 0 ? (
               <div className="text-center py-16">
-                <QueueListIcon className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
-                <p className="text-gray-500 dark:text-gray-400 text-sm">
+                <Icon icon={ListMusic} className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto mb-3" fill="currentColor" />
+                <p className="text-secondary text-sm">
                   No published playlists yet.
                 </p>
                 {playlistsHook.genre && (

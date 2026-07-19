@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { UserPlusIcon, UserMinusIcon } from "@heroicons/react/24/outline";
+import { UserPlus, UserMinus } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { apiPost, apiDelete } from "@/lib/api-client";
 
 interface FollowButtonProps {
@@ -30,7 +31,7 @@ export function FollowButton({
         href="/login"
         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-violet-500 text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-950/30 transition-colors"
       >
-        <UserPlusIcon className="w-3.5 h-3.5" />
+        <Icon icon={UserPlus} className="w-3.5 h-3.5" />
         Follow
       </Link>
     );
@@ -61,19 +62,19 @@ export function FollowButton({
       disabled={loading}
       className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors disabled:opacity-50 ${
         isFollowing
-          ? "border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-red-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
+          ? "border-border-strong text-secondary hover:border-red-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
           : "border-violet-500 text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-950/30"
       }`}
       aria-label={isFollowing ? "Unfollow" : "Follow"}
     >
       {isFollowing ? (
         <>
-          <UserMinusIcon className="w-3.5 h-3.5" />
+          <Icon icon={UserMinus} className="w-3.5 h-3.5" />
           Following
         </>
       ) : (
         <>
-          <UserPlusIcon className="w-3.5 h-3.5" />
+          <Icon icon={UserPlus} className="w-3.5 h-3.5" />
           Follow
         </>
       )}

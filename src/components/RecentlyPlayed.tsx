@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { PlayIcon, PauseIcon, MusicalNoteIcon, ClockIcon } from "@heroicons/react/24/solid";
+import { Play, Pause, Music, Clock } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import Image from "next/image";
 import { useQueue, type QueueSong } from "./QueueContext";
 import { getCurrentQueueSong } from "@/components/queue/queue-selectors";
@@ -17,8 +18,8 @@ export function RecentlyPlayed() {
     return (
       <section aria-label="Recently Played">
         <div className="flex items-center gap-2 mb-3">
-          <ClockIcon className="w-4 h-4 text-violet-500" />
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+          <Icon icon={Clock} className="w-4 h-4 text-violet-500" fill="currentColor" />
+          <h2 className="text-sm font-semibold text-secondary uppercase tracking-wide">
             Recently Played
           </h2>
         </div>
@@ -28,8 +29,8 @@ export function RecentlyPlayed() {
               key={i}
               className="flex-shrink-0 w-28 animate-pulse"
             >
-              <div className="w-28 h-28 rounded-xl bg-gray-200 dark:bg-gray-800 mb-2" />
-              <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-3/4 mb-1" />
+              <div className="w-28 h-28 rounded-xl bg-surface-raised mb-2" />
+              <div className="h-3 bg-surface-raised rounded w-3/4 mb-1" />
             </div>
           ))}
         </div>
@@ -56,8 +57,8 @@ export function RecentlyPlayed() {
     <section aria-label="Recently Played" className="mb-6">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <ClockIcon className="w-4 h-4 text-violet-500" />
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+          <Icon icon={Clock} className="w-4 h-4 text-violet-500" fill="currentColor" />
+          <h2 className="text-sm font-semibold text-secondary uppercase tracking-wide">
             Recently Played
           </h2>
         </div>
@@ -78,7 +79,7 @@ export function RecentlyPlayed() {
           return (
             <div key={item.id} className="flex-shrink-0 w-28 group">
               {/* Cover art with play overlay */}
-              <div className="relative w-28 h-28 rounded-xl bg-gray-100 dark:bg-gray-800 overflow-hidden mb-2">
+              <div className="relative w-28 h-28 rounded-xl bg-surface-raised overflow-hidden mb-2">
                 {song.imageUrl ? (
                   <Image
                     src={song.imageUrl}
@@ -89,7 +90,7 @@ export function RecentlyPlayed() {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <MusicalNoteIcon className="w-8 h-8 text-gray-400" />
+                    <Icon icon={Music} className="w-8 h-8 text-muted" fill="currentColor" />
                   </div>
                 )}
                 {isPlayable && (
@@ -104,9 +105,9 @@ export function RecentlyPlayed() {
                   >
                     <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow">
                       {isCurrent && isPlaying ? (
-                        <PauseIcon className="w-5 h-5 text-gray-900" />
+                        <Icon icon={Pause} className="w-5 h-5 text-gray-900" fill="currentColor" />
                       ) : (
-                        <PlayIcon className="w-5 h-5 text-gray-900 ml-0.5" />
+                        <Icon icon={Play} className="w-5 h-5 text-gray-900 ml-0.5" fill="currentColor" />
                       )}
                     </div>
                   </button>
@@ -116,7 +117,7 @@ export function RecentlyPlayed() {
               {/* Title */}
               <Link
                 href={`/library/${song.id}`}
-                className="text-xs font-medium text-gray-800 dark:text-gray-200 hover:text-violet-600 dark:hover:text-violet-400 line-clamp-2 leading-tight transition-colors"
+                className="text-xs font-medium text-primary hover:text-violet-600 dark:hover:text-violet-400 line-clamp-2 leading-tight transition-colors"
               >
                 {song.title ?? "Untitled"}
               </Link>

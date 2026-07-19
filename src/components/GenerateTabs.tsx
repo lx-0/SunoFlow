@@ -6,10 +6,8 @@ import dynamic from "next/dynamic";
 import { GenerateForm } from "./GenerateForm";
 // Lazy-load upload tab — only rendered when user switches to the upload tab
 const AudioUploadForm = dynamic(() => import("./AudioUploadForm").then((m) => m.AudioUploadForm));
-import {
-  SparklesIcon,
-  ArrowUpTrayIcon,
-} from "@heroicons/react/24/outline";
+import { Sparkles, Upload } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 
 type Tab = "create" | "upload";
 
@@ -22,7 +20,7 @@ export function GenerateTabs() {
     <div className="space-y-0">
       {/* Tab navigation */}
       <div
-        className="flex border-b border-gray-200 dark:border-gray-700 px-4 pt-4"
+        className="flex border-b border-border px-4 pt-4"
         role="tablist"
         aria-label="Creation mode"
         onKeyDown={(e) => {
@@ -39,10 +37,10 @@ export function GenerateTabs() {
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
             activeTab === "create"
               ? "border-violet-600 text-violet-600 dark:text-violet-400 dark:border-violet-400"
-              : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
+              : "border-transparent text-secondary hover:text-primary hover:border-border-strong"
           }`}
         >
-          <SparklesIcon className="h-4 w-4" />
+          <Icon icon={Sparkles} className="h-4 w-4" />
           Create
         </button>
         <button
@@ -53,10 +51,10 @@ export function GenerateTabs() {
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
             activeTab === "upload"
               ? "border-violet-600 text-violet-600 dark:text-violet-400 dark:border-violet-400"
-              : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
+              : "border-transparent text-secondary hover:text-primary hover:border-border-strong"
           }`}
         >
-          <ArrowUpTrayIcon className="h-4 w-4" />
+          <Icon icon={Upload} className="h-4 w-4" />
           Upload
         </button>
       </div>
@@ -67,8 +65,8 @@ export function GenerateTabs() {
       ) : (
         <div className="px-4 py-4 space-y-6">
           <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Upload &amp; Generate</h1>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Upload audio to create a cover or extend it with AI</p>
+            <h1 className="text-xl font-bold text-primary">Upload &amp; Generate</h1>
+            <p className="text-secondary text-sm mt-0.5">Upload audio to create a cover or extend it with AI</p>
           </div>
           <AudioUploadForm />
         </div>

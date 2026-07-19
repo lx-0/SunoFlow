@@ -2,8 +2,8 @@
 
 import { useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { QueueListIcon } from "@heroicons/react/24/outline";
-import { PlusIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
+import { ListMusic, Plus, ChevronDown } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useToast } from "./Toast";
 import { track } from "@/lib/analytics";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
@@ -74,18 +74,18 @@ export function AddToPlaylistButton({
         <button
           onClick={handleOpen}
           aria-label="Add to playlist"
-          className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-violet-400 transition-colors"
+          className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-muted hover:text-violet-400 transition-colors"
         >
-          <QueueListIcon className="w-5 h-5" aria-hidden="true" />
+          <Icon icon={ListMusic} className="w-5 h-5" aria-hidden="true" />
         </button>
       ) : (
         <button
           onClick={handleOpen}
-          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200 active:scale-95 min-h-[44px]"
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-surface-raised hover:bg-surface-hover text-primary transition-all duration-200 active:scale-95 min-h-[44px]"
         >
-          <PlusIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+          <Icon icon={Plus} className="w-4 h-4 flex-shrink-0" fill="currentColor" aria-hidden="true" />
           Add to playlist
-          <ChevronDownIcon className="w-3 h-3" aria-hidden="true" />
+          <Icon icon={ChevronDown} className="w-3 h-3" fill="currentColor" aria-hidden="true" />
         </button>
       )}
 
@@ -93,14 +93,14 @@ export function AddToPlaylistButton({
         <div
           className={
             variant === "icon"
-              ? "absolute right-0 bottom-full mb-1 w-48 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-20 overflow-hidden"
-              : "absolute top-full left-0 mt-1 w-56 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-20 py-1 max-h-60 overflow-y-auto"
+              ? "absolute right-0 bottom-full mb-1 w-48 bg-surface border border-border rounded-xl shadow-lg z-20 overflow-hidden"
+              : "absolute top-full left-0 mt-1 w-56 max-w-[calc(100vw-2rem)] bg-surface border border-border rounded-xl shadow-xl z-20 py-1 max-h-60 overflow-y-auto"
           }
         >
           {loading ? (
-            <p className="px-4 py-3 text-sm text-gray-500">Loading…</p>
+            <p className="px-4 py-3 text-sm text-secondary">Loading…</p>
           ) : playlists.length === 0 ? (
-            <p className="px-4 py-3 text-sm text-gray-500">No playlists yet</p>
+            <p className="px-4 py-3 text-sm text-secondary">No playlists yet</p>
           ) : (
             playlists.map((pl) => (
               <button
@@ -109,12 +109,12 @@ export function AddToPlaylistButton({
                 disabled={adding === pl.id}
                 className={
                   variant === "icon"
-                    ? "w-full text-left px-4 py-3 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-b last:border-b-0 border-gray-200 dark:border-gray-800 disabled:opacity-50"
-                    : "w-full text-left px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-between"
+                    ? "w-full text-left px-4 py-3 text-sm text-primary hover:bg-surface-hover transition-colors border-b last:border-b-0 border-border disabled:opacity-50"
+                    : "w-full text-left px-3 py-2 text-sm text-primary hover:bg-surface-hover transition-colors disabled:opacity-50 flex items-center justify-between"
                 }
               >
                 <span className="truncate">{pl.name}</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2">
+                <span className="text-xs text-secondary flex-shrink-0 ml-2">
                   {variant === "icon"
                     ? `(${pl._count.songs})`
                     : `${pl._count.songs} songs`}

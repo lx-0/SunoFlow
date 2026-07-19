@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback, use } from "react";
 import Link from "next/link";
-import { ArrowLeftIcon } from "@heroicons/react/24/outline";
+import { ArrowLeft } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { apiGet, apiPost } from "@/lib/api-client";
 
 interface UserDetail {
@@ -152,12 +153,12 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
     <div className="space-y-6">
       <Link
         href="/admin/users"
-        className="inline-flex items-center gap-2 text-gray-400 hover:text-white text-sm"
+        className="inline-flex items-center gap-2 text-secondary hover:text-primary text-sm"
       >
-        <ArrowLeftIcon className="w-4 h-4" /> Back to Users
+        <Icon icon={ArrowLeft} className="w-4 h-4" /> Back to Users
       </Link>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+      <div className="bg-surface border border-border rounded-xl p-5">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-xl font-bold">
@@ -168,7 +169,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                 </span>
               )}
             </h1>
-            <p className="text-gray-400 text-sm mt-1">{user.email}</p>
+            <p className="text-secondary text-sm mt-1">{user.email}</p>
           </div>
           {!user.isAdmin && (
             <button
@@ -187,13 +188,13 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5">
           <div>
-            <span className="text-xs text-gray-500">Status</span>
+            <span className="text-xs text-muted">Status</span>
             <p className={`font-medium ${user.isDisabled ? "text-red-400" : "text-green-400"}`}>
               {user.isDisabled ? "Disabled" : "Active"}
             </p>
           </div>
           <div>
-            <span className="text-xs text-gray-500">Plan</span>
+            <span className="text-xs text-muted">Plan</span>
             <p>
               <span
                 className={`text-xs px-2 py-1 rounded-full capitalize ${
@@ -205,40 +206,40 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
             </p>
           </div>
           <div>
-            <span className="text-xs text-gray-500">Credits Remaining</span>
+            <span className="text-xs text-muted">Credits Remaining</span>
             <p className="font-medium tabular-nums">
               {user.creditBalance}
-              <span className="text-gray-500 text-xs">/{user.creditBudget}</span>
+              <span className="text-muted text-xs">/{user.creditBudget}</span>
             </p>
           </div>
           <div>
-            <span className="text-xs text-gray-500">Joined</span>
+            <span className="text-xs text-muted">Joined</span>
             <p>{new Date(user.createdAt).toLocaleDateString()}</p>
           </div>
           <div>
-            <span className="text-xs text-gray-500">Last Login</span>
+            <span className="text-xs text-muted">Last Login</span>
             <p>
               {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : "Never"}
             </p>
           </div>
           <div>
-            <span className="text-xs text-gray-500">Onboarding</span>
+            <span className="text-xs text-muted">Onboarding</span>
             <p>{user.onboardingCompleted ? "Complete" : "Incomplete"}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-800">
+        <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-border">
           <div className="text-center">
             <div className="text-2xl font-bold">{user.songCount}</div>
-            <div className="text-xs text-gray-500">Songs</div>
+            <div className="text-xs text-muted">Songs</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold">{user.playlistCount}</div>
-            <div className="text-xs text-gray-500">Playlists</div>
+            <div className="text-xs text-muted">Playlists</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold">{user.favoriteCount}</div>
-            <div className="text-xs text-gray-500">Favorites</div>
+            <div className="text-xs text-muted">Favorites</div>
           </div>
         </div>
       </div>
@@ -246,9 +247,9 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
       {!user.isAdmin && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Credit Adjustment */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
+          <div className="bg-surface border border-border rounded-xl p-5 space-y-3">
             <h2 className="text-base font-semibold">Adjust Credits</h2>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted">
               Positive values add credits, negative values deduct credits.
             </p>
             <div className="flex gap-2">
@@ -257,7 +258,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                 placeholder="Amount (e.g. 100 or -50)"
                 value={creditAmount}
                 onChange={(e) => setCreditAmount(e.target.value)}
-                className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="flex-1 px-3 py-2 bg-surface-raised border border-border rounded-lg text-primary placeholder-muted text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
             </div>
             <input
@@ -265,7 +266,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
               placeholder="Reason (optional)"
               value={creditReason}
               onChange={(e) => setCreditReason(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-3 py-2 bg-surface-raised border border-border rounded-lg text-primary placeholder-muted text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
             {creditMessage && (
               <p className={`text-xs ${creditMessage.type === "ok" ? "text-green-400" : "text-red-400"}`}>
@@ -282,15 +283,15 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
           </div>
 
           {/* Plan Change */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
+          <div className="bg-surface border border-border rounded-xl p-5 space-y-3">
             <h2 className="text-base font-semibold">Change Plan</h2>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted">
               Override the user&apos;s subscription tier. This does not affect Stripe billing.
             </p>
             <select
               value={selectedTier}
               onChange={(e) => setSelectedTier(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-3 py-2 bg-surface-raised border border-border rounded-lg text-primary text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
             >
               {TIER_OPTIONS.map((t) => (
                 <option key={t} value={t}>
@@ -314,15 +315,15 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         </div>
       )}
 
-      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-800">
+      <div className="bg-surface border border-border rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-border">
           <h2 className="text-lg font-semibold">Generation History</h2>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-800 text-gray-400">
+              <tr className="border-b border-border text-secondary">
                 <th className="text-left px-4 py-3">Title</th>
                 <th className="text-left px-4 py-3 hidden sm:table-cell">Prompt</th>
                 <th className="text-left px-4 py-3">Status</th>
@@ -332,7 +333,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
             <tbody>
               {songs.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="text-center py-8 text-gray-500">
+                  <td colSpan={4} className="text-center py-8 text-muted">
                     No generations yet
                   </td>
                 </tr>
@@ -343,7 +344,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                     className="border-b border-gray-800/50 hover:bg-gray-800/30"
                   >
                     <td className="px-4 py-3 font-medium">{song.title || "Untitled"}</td>
-                    <td className="px-4 py-3 hidden sm:table-cell text-gray-400 max-w-xs truncate">
+                    <td className="px-4 py-3 hidden sm:table-cell text-secondary max-w-xs truncate">
                       {song.prompt || "-"}
                     </td>
                     <td className="px-4 py-3">
@@ -359,7 +360,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                         {song.generationStatus}
                       </span>
                     </td>
-                    <td className="px-4 py-3 hidden md:table-cell text-gray-400">
+                    <td className="px-4 py-3 hidden md:table-cell text-secondary">
                       {new Date(song.createdAt).toLocaleDateString()}
                     </td>
                   </tr>
@@ -370,21 +371,21 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         </div>
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-800">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border">
             <button
               onClick={() => setPage(Math.max(1, page - 1))}
               disabled={page === 1}
-              className="text-sm px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+              className="text-sm px-3 py-1.5 rounded-lg bg-surface-raised text-gray-300 hover:bg-surface-hover disabled:opacity-50"
             >
               Previous
             </button>
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-secondary">
               Page {page} of {totalPages}
             </span>
             <button
               onClick={() => setPage(Math.min(totalPages, page + 1))}
               disabled={page === totalPages}
-              className="text-sm px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+              className="text-sm px-3 py-1.5 rounded-lg bg-surface-raised text-gray-300 hover:bg-surface-hover disabled:opacity-50"
             >
               Next
             </button>

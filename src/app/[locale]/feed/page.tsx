@@ -5,7 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { AppShell } from "@/components/AppShell";
-import { MusicalNoteIcon, UserGroupIcon, QueueListIcon, HeartIcon } from "@heroicons/react/24/outline";
+import { Music, UsersRound, ListMusic, Heart } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 
 interface FeedUser {
   id: string;
@@ -91,15 +92,15 @@ function SongThumb({ song }: { song: FeedSong }) {
             loading="lazy"
           />
         ) : (
-          <MusicalNoteIcon className="w-6 h-6 text-gray-400 dark:text-gray-500" />
+          <Icon icon={Music} className="w-6 h-6 text-muted" />
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+        <p className="text-sm font-medium text-primary truncate">
           {song.title ?? "Untitled"}
         </p>
         {song.tags && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{song.tags}</p>
+          <p className="text-xs text-secondary truncate">{song.tags}</p>
         )}
       </div>
     </>
@@ -112,26 +113,26 @@ function FeedItemCard({ item }: { item: FeedItem }) {
   if (item.type === "song_created" && item.song) {
     const songHref = item.song.publicSlug ? `/s/${item.song.publicSlug}` : null;
     return (
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex gap-3">
+      <div className="bg-surface border border-border rounded-xl p-4 flex gap-3">
         <Link href={userHref}>
           <Avatar user={item.user} />
         </Link>
         <div className="flex-1 min-w-0 space-y-2">
           <div className="flex items-baseline gap-1.5 flex-wrap">
-            <Link href={userHref} className="text-sm font-semibold text-gray-900 dark:text-white hover:text-violet-600 dark:hover:text-violet-400">
+            <Link href={userHref} className="text-sm font-semibold text-primary hover:text-violet-600 dark:hover:text-violet-400">
               {item.user.name ?? "Someone"}
             </Link>
-            <span className="text-sm text-gray-500 dark:text-gray-400">published a song</span>
-            <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto flex-shrink-0">
+            <span className="text-sm text-secondary">published a song</span>
+            <span className="text-xs text-muted ml-auto flex-shrink-0">
               {formatRelativeTime(item.createdAt)}
             </span>
           </div>
           {songHref ? (
-            <Link href={songHref} className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-2 transition-colors">
+            <Link href={songHref} className="flex items-center gap-3 bg-surface-raised hover:bg-surface-hover rounded-lg p-2 transition-colors">
               <SongThumb song={item.song} />
             </Link>
           ) : (
-            <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
+            <div className="flex items-center gap-3 bg-surface-raised rounded-lg p-2">
               <SongThumb song={item.song} />
             </div>
           )}
@@ -145,27 +146,27 @@ function FeedItemCard({ item }: { item: FeedItem }) {
       ? `/playlists/${item.playlist.slug}`
       : `/playlists/${item.playlist.id}`;
     return (
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex gap-3">
+      <div className="bg-surface border border-border rounded-xl p-4 flex gap-3">
         <Link href={userHref}>
           <Avatar user={item.user} />
         </Link>
         <div className="flex-1 min-w-0 space-y-2">
           <div className="flex items-baseline gap-1.5 flex-wrap">
-            <Link href={userHref} className="text-sm font-semibold text-gray-900 dark:text-white hover:text-violet-600 dark:hover:text-violet-400">
+            <Link href={userHref} className="text-sm font-semibold text-primary hover:text-violet-600 dark:hover:text-violet-400">
               {item.user.name ?? "Someone"}
             </Link>
-            <span className="text-sm text-gray-500 dark:text-gray-400">created a playlist</span>
-            <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto flex-shrink-0">
+            <span className="text-sm text-secondary">created a playlist</span>
+            <span className="text-xs text-muted ml-auto flex-shrink-0">
               {formatRelativeTime(item.createdAt)}
             </span>
           </div>
-          <Link href={playlistHref} className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-2 transition-colors">
+          <Link href={playlistHref} className="flex items-center gap-3 bg-surface-raised hover:bg-surface-hover rounded-lg p-2 transition-colors">
             <div className="w-12 h-12 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
-              <QueueListIcon className="w-6 h-6 text-violet-500" />
+              <Icon icon={ListMusic} className="w-6 h-6 text-violet-500" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.playlist.name}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-sm font-medium text-primary truncate">{item.playlist.name}</p>
+              <p className="text-xs text-secondary">
                 {item.playlist.songCount} song{item.playlist.songCount !== 1 ? "s" : ""}
               </p>
             </div>
@@ -178,28 +179,28 @@ function FeedItemCard({ item }: { item: FeedItem }) {
   if (item.type === "song_favorited" && item.song) {
     const songHref = item.song.publicSlug ? `/s/${item.song.publicSlug}` : null;
     return (
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex gap-3">
+      <div className="bg-surface border border-border rounded-xl p-4 flex gap-3">
         <Link href={userHref}>
           <Avatar user={item.user} />
         </Link>
         <div className="flex-1 min-w-0 space-y-2">
           <div className="flex items-baseline gap-1.5 flex-wrap">
-            <Link href={userHref} className="text-sm font-semibold text-gray-900 dark:text-white hover:text-violet-600 dark:hover:text-violet-400">
+            <Link href={userHref} className="text-sm font-semibold text-primary hover:text-violet-600 dark:hover:text-violet-400">
               {item.user.name ?? "Someone"}
             </Link>
-            <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-              <HeartIcon className="w-3.5 h-3.5 text-pink-500 inline" /> favorited a song
+            <span className="text-sm text-secondary flex items-center gap-1">
+              <Icon icon={Heart} className="w-3.5 h-3.5 text-pink-500 inline" /> favorited a song
             </span>
-            <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto flex-shrink-0">
+            <span className="text-xs text-muted ml-auto flex-shrink-0">
               {formatRelativeTime(item.createdAt)}
             </span>
           </div>
           {songHref ? (
-            <Link href={songHref} className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-2 transition-colors">
+            <Link href={songHref} className="flex items-center gap-3 bg-surface-raised hover:bg-surface-hover rounded-lg p-2 transition-colors">
               <SongThumb song={item.song} />
             </Link>
           ) : (
-            <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
+            <div className="flex items-center gap-3 bg-surface-raised rounded-lg p-2">
               <SongThumb song={item.song} />
             </div>
           )}
@@ -242,7 +243,7 @@ function FeedContent() {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 animate-pulse h-24" />
+          <div key={i} className="bg-surface border border-border rounded-xl p-4 animate-pulse h-24" />
         ))}
       </div>
     );
@@ -251,10 +252,10 @@ function FeedContent() {
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center gap-4 py-16 text-center">
-        <UserGroupIcon className="w-12 h-12 text-gray-300 dark:text-gray-700" />
+        <Icon icon={UsersRound} className="w-12 h-12 text-gray-300 dark:text-gray-700" />
         <div className="space-y-1">
-          <p className="text-base font-medium text-gray-700 dark:text-gray-300">Your feed is empty</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-base font-medium text-secondary">Your feed is empty</p>
+          <p className="text-sm text-secondary">
             Follow other creators to see their songs, playlists, and favorites here.
           </p>
         </div>
@@ -295,8 +296,8 @@ export default function FeedPage() {
     return (
       <AppShell>
         <div className="px-4 py-16 flex flex-col items-center gap-4 text-center">
-          <UserGroupIcon className="w-12 h-12 text-gray-300 dark:text-gray-700" />
-          <p className="text-base font-medium text-gray-700 dark:text-gray-300">
+          <Icon icon={UsersRound} className="w-12 h-12 text-gray-300 dark:text-gray-700" />
+          <p className="text-base font-medium text-secondary">
             Sign in to see your feed
           </p>
           <Link
@@ -313,7 +314,7 @@ export default function FeedPage() {
   return (
     <AppShell>
       <div className="px-4 py-6 space-y-4">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Feed</h1>
+        <h1 className="text-xl font-bold text-primary">Feed</h1>
         <FeedContent />
       </div>
     </AppShell>

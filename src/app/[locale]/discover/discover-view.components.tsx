@@ -1,25 +1,17 @@
 import { forwardRef } from "react";
-import {
-  GlobeAltIcon,
-  SparklesIcon,
-  FireIcon,
-  TrophyIcon,
-  RectangleStackIcon,
-  QueueListIcon,
-  MusicalNoteIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/solid";
+import { Globe, Sparkles, Flame, Trophy, Layers, ListMusic, Music, X, type LucideIcon } from "lucide-react";
 
 import type { Tab } from "./discover-view.types";
+import { Icon } from "@/components/ui/Icon";
 import { Spinner } from "@/components/Spinner";
 
-export const TABS: { value: Tab; label: string; icon: React.ElementType }[] = [
-  { value: "for_you", label: "For You", icon: SparklesIcon },
-  { value: "browse", label: "Browse", icon: GlobeAltIcon },
-  { value: "trending", label: "Trending", icon: FireIcon },
-  { value: "popular", label: "Popular", icon: TrophyIcon },
-  { value: "collections", label: "Collections", icon: RectangleStackIcon },
-  { value: "playlists", label: "Playlists", icon: QueueListIcon },
+export const TABS: { value: Tab; label: string; icon: LucideIcon }[] = [
+  { value: "for_you", label: "For You", icon: Sparkles },
+  { value: "browse", label: "Browse", icon: Globe },
+  { value: "trending", label: "Trending", icon: Flame },
+  { value: "popular", label: "Popular", icon: Trophy },
+  { value: "collections", label: "Collections", icon: Layers },
+  { value: "playlists", label: "Playlists", icon: ListMusic },
 ];
 
 export function FilterPill({
@@ -37,7 +29,7 @@ export function FilterPill({
       className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors min-h-[44px] ${
         active
           ? "bg-violet-100 dark:bg-violet-900/50 border-violet-400 dark:border-violet-600 text-violet-700 dark:text-violet-300"
-          : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
+          : "bg-surface border-border text-secondary hover:border-border-strong"
       }`}
     >
       {label}
@@ -60,7 +52,7 @@ export function ActiveFilterChip({
         aria-label={`Remove ${label} filter`}
         className="flex items-center justify-center w-4 h-4 rounded-full hover:bg-violet-200 dark:hover:bg-violet-800 transition-colors"
       >
-        <XMarkIcon className="w-3 h-3" />
+        <Icon icon={X} className="w-3 h-3" fill="currentColor" />
       </button>
     </span>
   );
@@ -72,7 +64,7 @@ export function SongGridSkeleton() {
       {Array.from({ length: 20 }).map((_, i) => (
         <div
           key={i}
-          className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden animate-pulse"
+          className="bg-surface border border-border rounded-xl overflow-hidden animate-pulse"
         >
           <div className="aspect-square bg-gray-200 dark:bg-gray-800" />
           <div className="p-3 space-y-2">
@@ -91,7 +83,7 @@ export function TrendingListSkeleton() {
       {Array.from({ length: 10 }).map((_, i) => (
         <div
           key={i}
-          className="flex items-center gap-4 p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl animate-pulse"
+          className="flex items-center gap-4 p-3 bg-surface border border-border rounded-xl animate-pulse"
         >
           <div className="w-8 h-6 bg-gray-200 dark:bg-gray-800 rounded shrink-0" />
           <div className="w-12 h-12 bg-gray-200 dark:bg-gray-800 rounded-lg shrink-0" />
@@ -115,8 +107,8 @@ export function EmptyState({
 }) {
   return (
     <div className="text-center py-16">
-      <MusicalNoteIcon className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
-      <p className="text-gray-500 dark:text-gray-400 text-sm">
+      <Icon icon={Music} className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto mb-3" fill="currentColor" />
+      <p className="text-secondary text-sm">
         No songs found. Try a different filter.
       </p>
       {hasFilters && (
@@ -140,7 +132,7 @@ export const ScrollSentinel = forwardRef<HTMLDivElement, { loading: boolean }>(
         aria-live="polite"
       >
         {loading && (
-          <span className="inline-flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+          <span className="inline-flex items-center gap-2 text-sm text-secondary">
             <Spinner className="h-4 w-4" />
             Loading more...
           </span>
@@ -156,7 +148,7 @@ export function PlaylistsGridSkeleton() {
       {Array.from({ length: 8 }).map((_, i) => (
         <div
           key={i}
-          className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden animate-pulse"
+          className="bg-surface border border-border rounded-xl overflow-hidden animate-pulse"
         >
           <div className="h-24 bg-gray-200 dark:bg-gray-800" />
           <div className="p-3 space-y-2">
@@ -173,7 +165,7 @@ export function PlaylistsGridSkeleton() {
 export function FetchErrorBanner({ message }: { message: string }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-700 dark:text-red-400">
-      <XMarkIcon className="w-4 h-4 shrink-0" />
+      <Icon icon={X} className="w-4 h-4 shrink-0" fill="currentColor" />
       <span>Failed to load: {message}</span>
     </div>
   );
@@ -185,7 +177,7 @@ export function CollectionsGridSkeleton() {
       {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
-          className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden animate-pulse"
+          className="bg-surface border border-border rounded-xl overflow-hidden animate-pulse"
         >
           <div className="aspect-video bg-gray-200 dark:bg-gray-800" />
           <div className="p-3 space-y-2">

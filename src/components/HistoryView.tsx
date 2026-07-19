@@ -4,15 +4,8 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useSongsList, type SongsFilters } from "@/hooks/useSongsList";
-import {
-  MusicalNoteIcon,
-  ArrowPathIcon,
-  ClockIcon,
-  SparklesIcon,
-  ChevronUpDownIcon,
-  PlayIcon,
-  PauseIcon,
-} from "@heroicons/react/24/solid";
+import { Music, RefreshCw, Clock, Sparkles, ChevronsUpDown, Play, Pause } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useToast } from "./Toast";
 import { useQueue, type QueueSong } from "./QueueContext";
 import Image from "next/image";
@@ -66,14 +59,14 @@ function HistoryRow({ song, onRetry, retryingId }: { song: Song; onRetry: (song:
   const isThisSongPlaying = isPlaying && currentSong?.id === song.id;
 
   return (
-    <li className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+    <li className="bg-surface border border-border rounded-xl overflow-hidden">
       <div className="flex items-start gap-3 px-3 py-3">
         {/* Cover art with play overlay */}
-        <div className="relative flex-shrink-0 w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center group">
+        <div className="relative flex-shrink-0 w-12 h-12 rounded-lg bg-surface-raised overflow-hidden flex items-center justify-center group">
           {song.imageUrl ? (
             <Image src={song.imageUrl} alt={song.title ?? "Song"} fill className="object-cover" sizes="48px" loading="lazy" />
           ) : (
-            <MusicalNoteIcon className="w-6 h-6 text-gray-400 dark:text-gray-600" />
+            <Icon icon={Music} fill="currentColor" className="w-6 h-6 text-muted" />
           )}
           {isReady && song.audioUrl && (
             <button
@@ -82,9 +75,9 @@ function HistoryRow({ song, onRetry, retryingId }: { song: Song; onRetry: (song:
               className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
             >
               {isThisSongPlaying ? (
-                <PauseIcon className="w-5 h-5 text-white" />
+                <Icon icon={Pause} fill="currentColor" className="w-5 h-5 text-white" />
               ) : (
-                <PlayIcon className="w-5 h-5 text-white" />
+                <Icon icon={Play} fill="currentColor" className="w-5 h-5 text-white" />
               )}
             </button>
           )}
@@ -97,12 +90,12 @@ function HistoryRow({ song, onRetry, retryingId }: { song: Song; onRetry: (song:
             {isReady ? (
               <Link
                 href={`/library/${song.id}`}
-                className="text-sm font-medium text-gray-900 dark:text-white truncate hover:text-violet-400 transition-colors"
+                className="text-sm font-medium text-primary truncate hover:text-violet-400 transition-colors"
               >
                 {song.title ?? "Untitled"}
               </Link>
             ) : (
-              <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+              <span className="text-sm font-medium text-primary truncate">
                 {song.title ?? "Untitled"}
               </span>
             )}
@@ -113,7 +106,7 @@ function HistoryRow({ song, onRetry, retryingId }: { song: Song; onRetry: (song:
               </span>
             )}
             {isReady && ((song as Song & { variationCount?: number }).variationCount ?? 0) > 0 && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-[10px] font-medium">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-surface-raised border border-border text-secondary text-[10px] font-medium">
                 {((song as Song & { variationCount?: number }).variationCount ?? 0) + 1} versions
               </span>
             )}
@@ -121,7 +114,7 @@ function HistoryRow({ song, onRetry, retryingId }: { song: Song; onRetry: (song:
 
           {/* Prompt */}
           {song.prompt && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{song.prompt}</p>
+            <p className="text-xs text-secondary line-clamp-2">{song.prompt}</p>
           )}
 
           {/* Meta row: style, duration, timestamp */}
@@ -130,10 +123,10 @@ function HistoryRow({ song, onRetry, retryingId }: { song: Song; onRetry: (song:
               <span className="text-xs text-gray-500">{song.tags}</span>
             )}
             {song.duration && (
-              <span className="text-xs text-gray-400 dark:text-gray-600">{formatTime(song.duration)}</span>
+              <span className="text-xs text-muted">{formatTime(song.duration)}</span>
             )}
-            <span className="text-xs text-gray-400 dark:text-gray-600 flex items-center gap-1">
-              <ClockIcon className="w-3 h-3" />
+            <span className="text-xs text-muted flex items-center gap-1">
+              <Icon icon={Clock} fill="currentColor" className="w-3 h-3" />
               {formatHistoryRelativeDate(song.createdAt)}
             </span>
           </div>
@@ -158,7 +151,7 @@ function HistoryRow({ song, onRetry, retryingId }: { song: Song; onRetry: (song:
               {isRetrying ? (
                 <Spinner className="h-5 w-5" />
               ) : (
-                <ArrowPathIcon className="w-5 h-5" />
+                <Icon icon={RefreshCw} fill="currentColor" className="w-5 h-5" />
               )}
             </button>
           )}
@@ -166,11 +159,11 @@ function HistoryRow({ song, onRetry, retryingId }: { song: Song; onRetry: (song:
           {/* Create variation button — for all songs */}
           <Link
             href={buildVariationUrl(song)}
-            className="w-11 h-11 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+            className="w-11 h-11 rounded-full flex items-center justify-center bg-surface-raised hover:bg-surface-hover text-primary transition-colors"
             title="Create variation"
             aria-label="Create variation"
           >
-            <SparklesIcon className="w-5 h-5" />
+            <Icon icon={Sparkles} fill="currentColor" className="w-5 h-5" />
           </Link>
         </div>
       </div>
@@ -288,8 +281,8 @@ export function HistoryView({
     <div className="px-4 py-4 space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">History</h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">
+        <h1 className="text-xl font-bold text-primary">History</h1>
+        <p className="text-secondary text-sm mt-0.5">
           {loading ? "Loading…" : `${songs.length}${remaining > 0 ? ` of ${totalSongs}` : ""} generation${totalSongs !== 1 ? "s" : ""}`}
         </p>
       </div>
@@ -305,7 +298,7 @@ export function HistoryView({
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors min-h-[44px] disabled:opacity-50 ${
                 activeFilter === opt.value
                   ? "bg-violet-600 text-white"
-                  : "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  : "bg-surface-raised text-secondary hover:text-primary"
               }`}
             >
               {opt.label}
@@ -319,14 +312,14 @@ export function HistoryView({
             value={sortKey}
             onChange={(e) => handleSortChange(e.target.value as HistorySortKey)}
             disabled={loading}
-            className="appearance-none pl-3 pr-8 py-1.5 rounded-full text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-none cursor-pointer min-h-[44px] focus:ring-2 focus:ring-violet-500 focus:outline-none disabled:opacity-50"
+            className="appearance-none pl-3 pr-8 py-1.5 rounded-full text-sm font-medium bg-surface-raised text-gray-700 dark:text-gray-300 border-none cursor-pointer min-h-[44px] focus:ring-2 focus:ring-violet-500 focus:outline-none disabled:opacity-50"
             aria-label="Sort generations"
           >
             {HISTORY_SORT_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
-          <ChevronUpDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <Icon icon={ChevronsUpDown} fill="currentColor" className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
         </div>
       </div>
 
@@ -336,8 +329,8 @@ export function HistoryView({
           <Spinner className="h-6 w-6 text-violet-500" />
         </div>
       ) : songs.length === 0 ? (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 text-center space-y-3">
-          <MusicalNoteIcon className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto" />
+        <div className="bg-surface border border-border rounded-xl p-8 text-center space-y-3">
+          <Icon icon={Music} fill="currentColor" className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto" />
           <p className="text-gray-500 text-sm">
             {activeFilter === "all"
               ? "No generation history yet. Create your first song!"
@@ -365,7 +358,7 @@ export function HistoryView({
             <button
               onClick={handleLoadMore}
               disabled={loadingMore}
-              className="w-full py-3 rounded-xl bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium transition-colors min-h-[44px] disabled:opacity-50"
+              className="w-full py-3 rounded-xl bg-surface-raised hover:bg-surface-hover text-gray-700 dark:text-gray-300 text-sm font-medium transition-colors min-h-[44px] disabled:opacity-50"
             >
               {loadingMore ? (
                 <span className="inline-flex items-center gap-2">
@@ -380,7 +373,7 @@ export function HistoryView({
 
           {/* End of list indicator */}
           {!nextCursor && songs.length > 0 && (
-            <p className="text-center text-xs text-gray-400 dark:text-gray-600 py-2">
+            <p className="text-center text-xs text-muted py-2">
               All generations loaded
             </p>
           )}

@@ -5,13 +5,15 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { AppShell } from "@/components/AppShell";
+import { Icon } from "@/components/ui/Icon";
 import {
-  ArrowLeftIcon,
-  PlayIcon,
-  UserGroupIcon,
-  ClockIcon,
-  ChatBubbleLeftIcon,
-} from "@heroicons/react/24/outline";
+  ArrowLeft,
+  Play,
+  UsersRound,
+  Clock,
+  MessageSquare,
+  type LucideIcon,
+} from "lucide-react";
 
 const DailyPlaysLineChart = dynamic(
   () =>
@@ -21,7 +23,7 @@ const DailyPlaysLineChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-[180px] animate-pulse bg-gray-100 dark:bg-gray-800 rounded" />
+      <div className="h-[180px] animate-pulse bg-surface-raised rounded" />
     ),
   }
 );
@@ -34,7 +36,7 @@ const RetentionCurveChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-[160px] animate-pulse bg-gray-100 dark:bg-gray-800 rounded" />
+      <div className="h-[160px] animate-pulse bg-surface-raised rounded" />
     ),
   }
 );
@@ -56,23 +58,23 @@ function StatCard({
   label,
   value,
   sub,
-  icon: Icon,
+  icon: ItemIcon,
 }: {
   label: string;
   value: string | number;
   sub?: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
 }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+    <div className="bg-surface border border-border rounded-xl p-4">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        <span className="text-xs font-medium uppercase tracking-wide text-secondary">
           {label}
         </span>
-        <Icon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+        <Icon icon={ItemIcon} className="w-4 h-4 text-muted" />
       </div>
-      <div className="text-2xl font-bold text-gray-900 dark:text-white">{value}</div>
-      {sub && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{sub}</p>}
+      <div className="text-2xl font-bold text-primary">{value}</div>
+      {sub && <p className="text-xs text-secondary mt-0.5">{sub}</p>}
     </div>
   );
 }
@@ -128,11 +130,11 @@ export default function SongAnalyticsPage() {
         <div className="px-4 py-6 space-y-4">
           <Link
             href="/dashboard/analytics"
-            className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            className="inline-flex items-center gap-1 text-sm text-muted hover:text-secondary"
           >
-            <ArrowLeftIcon className="w-4 h-4" /> Back to analytics
+            <Icon icon={ArrowLeft} className="w-4 h-4" /> Back to analytics
           </Link>
-          <p className="text-gray-500">Song not found.</p>
+          <p className="text-muted">Song not found.</p>
         </div>
       </AppShell>
     );
@@ -154,15 +156,15 @@ export default function SongAnalyticsPage() {
         <div>
           <Link
             href="/dashboard/analytics"
-            className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-3"
+            className="inline-flex items-center gap-1 text-sm text-muted hover:text-secondary mb-3"
           >
-            <ArrowLeftIcon className="w-4 h-4" /> Back to analytics
+            <Icon icon={ArrowLeft} className="w-4 h-4" /> Back to analytics
           </Link>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white truncate">
+          <h1 className="text-xl font-bold text-primary truncate">
             {data.title}
           </h1>
           {data.songDuration && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-secondary">
               Song length: {formatDuration(data.songDuration)}
             </p>
           )}
@@ -173,12 +175,12 @@ export default function SongAnalyticsPage() {
           <StatCard
             label="Total Plays"
             value={data.totalPlays.toLocaleString()}
-            icon={PlayIcon}
+            icon={Play}
           />
           <StatCard
             label="Unique Listeners"
             value={data.uniqueListeners.toLocaleString()}
-            icon={UserGroupIcon}
+            icon={UsersRound}
           />
           <StatCard
             label="Avg Listen Time"
@@ -188,22 +190,22 @@ export default function SongAnalyticsPage() {
                 ? `${Math.round((data.avgListenDuration / data.songDuration) * 100)}% of song`
                 : undefined
             }
-            icon={ClockIcon}
+            icon={Clock}
           />
           <StatCard
             label="Comments"
             value={data.totalComments}
-            icon={ChatBubbleLeftIcon}
+            icon={MessageSquare}
           />
         </div>
 
         {/* Daily plays chart */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
-          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">
+        <div className="bg-surface border border-border rounded-xl p-5">
+          <h2 className="text-base font-semibold text-primary mb-4">
             Play Trend — Last 30 Days
           </h2>
           {data.dailyPlays.every((d) => d.count === 0) ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
+            <p className="text-sm text-secondary py-8 text-center">
               No play events recorded for this song yet.
             </p>
           ) : (
@@ -212,9 +214,9 @@ export default function SongAnalyticsPage() {
         </div>
 
         {/* Listener retention curve */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+        <div className="bg-surface border border-border rounded-xl p-5">
           <div className="flex items-start justify-between mb-1">
-            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+            <h2 className="text-base font-semibold text-primary">
               Listener Retention
             </h2>
             {dropOffPct !== null && dropOffPct < 100 && (
@@ -223,11 +225,11 @@ export default function SongAnalyticsPage() {
               </span>
             )}
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+          <p className="text-xs text-secondary mb-4">
             Percentage of listeners still playing at each point in the song.
           </p>
           {!retentionHasData ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">
+            <p className="text-sm text-secondary py-6 text-center">
               Retention data requires play events with duration. Not enough data yet.
             </p>
           ) : (
@@ -244,7 +246,7 @@ export default function SongAnalyticsPage() {
             href={`/songs/${data.songId}`}
             className="inline-flex items-center gap-2 text-sm text-violet-600 dark:text-violet-400 hover:underline"
           >
-            <PlayIcon className="w-4 h-4" />
+            <Icon icon={Play} className="w-4 h-4" />
             Open song
           </Link>
         </div>

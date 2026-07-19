@@ -11,7 +11,8 @@
  */
 
 import { useState, useRef, useCallback } from "react";
-import { ArrowDownTrayIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { Download, ChevronDown } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { downloadSongFile, detectFormat } from "@/lib/download";
 import { estimateAudioBytes, formatBytes } from "@/lib/audio-metadata";
 import type { AudioFormat, Mp3Quality, WavBitDepth } from "@/lib/audio-metadata";
@@ -198,7 +199,7 @@ export function DownloadButton({ song, className = "", compact = false }: Downlo
               : "bg-violet-700 hover:bg-violet-600 text-white disabled:opacity-50"
             }`}
         >
-          <ArrowDownTrayIcon className="w-4 h-4 shrink-0" />
+          <Icon icon={Download} className="w-4 h-4 shrink-0" />
           {!compact && (
             <span>
               {progressLabel ?? "Download"}
@@ -235,7 +236,7 @@ export function DownloadButton({ song, className = "", compact = false }: Downlo
               : "bg-violet-700 hover:bg-violet-600 text-white disabled:opacity-50"
             }`}
         >
-          <ArrowDownTrayIcon className="w-4 h-4 shrink-0" />
+          <Icon icon={Download} className="w-4 h-4 shrink-0" />
           {!compact && (
             <span>
               {progressLabel ?? "Download"}
@@ -259,7 +260,8 @@ export function DownloadButton({ song, className = "", compact = false }: Downlo
           className="flex items-center justify-center rounded-r-lg px-1.5 py-2 bg-violet-700 hover:bg-violet-600
             text-white border-l border-violet-600 transition-colors disabled:opacity-50"
         >
-          <ChevronDownIcon
+          <Icon
+            icon={ChevronDown}
             className={`w-3 h-3 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
           />
         </button>

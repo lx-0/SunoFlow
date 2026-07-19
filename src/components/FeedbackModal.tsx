@@ -2,8 +2,8 @@
 
 import { useState, useRef } from "react";
 import FormTextarea from "./ui/FormTextarea";
-import { StarIcon } from "@heroicons/react/24/outline";
-import { StarIcon as StarSolid } from "@heroicons/react/24/solid";
+import { Star } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useToast } from "./Toast";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
@@ -63,7 +63,7 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Category */}
           <fieldset>
-            <legend className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <legend className="text-sm font-medium text-secondary mb-2">
               Category
             </legend>
             <div className="space-y-2">
@@ -73,7 +73,7 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors min-h-[44px] ${
                     category === c.value
                       ? "border-violet-500 bg-violet-50 dark:bg-violet-900/20"
-                      : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                      : "border-border hover:border-border-strong"
                   }`}
                 >
                   <input
@@ -84,7 +84,7 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
                     onChange={() => setCategory(c.value)}
                     className="accent-violet-500"
                   />
-                  <span className="text-sm text-gray-900 dark:text-white">{c.label}</span>
+                  <span className="text-sm text-primary">{c.label}</span>
                 </label>
               ))}
             </div>
@@ -92,8 +92,8 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
 
           {/* Satisfaction score */}
           <div>
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Satisfaction <span className="font-normal text-gray-400">(optional)</span>
+            <p className="text-sm font-medium text-secondary mb-2">
+              Satisfaction <span className="font-normal text-muted">(optional)</span>
             </p>
             <div
               className="flex gap-1"
@@ -112,9 +112,9 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
                   className="min-w-[44px] min-h-[44px] flex items-center justify-center text-yellow-400 hover:scale-110 transition-transform"
                 >
                   {displayScore !== null && star <= displayScore ? (
-                    <StarSolid className="w-6 h-6" aria-hidden="true" />
+                    <Icon icon={Star} className="w-6 h-6" fill="currentColor" aria-hidden="true" />
                   ) : (
-                    <StarIcon className="w-6 h-6" aria-hidden="true" />
+                    <Icon icon={Star} className="w-6 h-6" aria-hidden="true" />
                   )}
                 </button>
               ))}
@@ -125,7 +125,7 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
           <div>
             <label
               htmlFor="feedback-comment"
-              className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1"
+              className="text-sm font-medium text-secondary block mb-1"
             >
               Comment{category === "bug_report" ? "" : " (optional)"}
             </label>
@@ -149,14 +149,14 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors min-h-[44px]"
+              className="px-4 py-2 text-sm font-medium text-secondary bg-surface-raised hover:bg-surface-hover rounded-lg transition-colors min-h-[44px]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 rounded-lg transition-colors min-h-[44px]"
+              className="px-4 py-2 text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:bg-surface-raised disabled:text-muted rounded-lg transition-colors min-h-[44px]"
             >
               {submitting ? "Sending…" : "Send Feedback"}
             </button>

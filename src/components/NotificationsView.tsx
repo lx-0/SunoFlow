@@ -3,18 +3,20 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  ClockIcon,
-  MegaphoneIcon,
-  BellIcon,
-  ArrowDownTrayIcon,
-  CurrencyDollarIcon,
-  CreditCardIcon,
-  ChatBubbleLeftIcon,
-  UserPlusIcon,
-  MusicalNoteIcon,
-} from "@heroicons/react/24/outline";
+  CircleCheck,
+  CircleAlert,
+  Clock,
+  Megaphone,
+  Bell,
+  Download,
+  CircleDollarSign,
+  CreditCard,
+  MessageSquare,
+  UserPlus,
+  Music,
+  type LucideIcon,
+} from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import {
   useNotifications,
   type NotificationType,
@@ -35,18 +37,18 @@ function relativeTime(iso: string): string {
   return `${days}d ago`;
 }
 
-const typeIcons: Record<NotificationType, typeof CheckCircleIcon> = {
-  generation_complete: CheckCircleIcon,
-  generation_failed: ExclamationCircleIcon,
-  import_complete: ArrowDownTrayIcon,
-  error: ExclamationCircleIcon,
-  rate_limit_reset: ClockIcon,
-  announcement: MegaphoneIcon,
-  credit_update: CurrencyDollarIcon,
-  payment_failed: CreditCardIcon,
-  song_comment: ChatBubbleLeftIcon,
-  new_follower: UserPlusIcon,
-  playlist_invite: MusicalNoteIcon,
+const typeIcons: Record<NotificationType, LucideIcon> = {
+  generation_complete: CircleCheck,
+  generation_failed: CircleAlert,
+  import_complete: Download,
+  error: CircleAlert,
+  rate_limit_reset: Clock,
+  announcement: Megaphone,
+  credit_update: CircleDollarSign,
+  payment_failed: CreditCard,
+  song_comment: MessageSquare,
+  new_follower: UserPlus,
+  playlist_invite: Music,
 };
 
 const typeColors: Record<NotificationType, string> = {
@@ -146,10 +148,10 @@ export function NotificationsView({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-xl font-bold text-primary">
             Notifications
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-sm text-secondary mt-1">
             {total} total notification{total !== 1 ? "s" : ""}
           </p>
         </div>
@@ -157,7 +159,7 @@ export function NotificationsView({
           {browserPermission !== "granted" && (
             <button
               onClick={requestBrowserPermission}
-              className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="text-xs px-3 py-1.5 rounded-lg border border-border text-secondary hover:bg-surface-hover transition-colors"
             >
               Enable browser notifications
             </button>
@@ -173,15 +175,15 @@ export function NotificationsView({
 
       {/* Notification list */}
       {items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500">
-          <BellIcon className="w-12 h-12 mb-3" />
+        <div className="flex flex-col items-center justify-center py-16 text-muted">
+          <Icon icon={Bell} className="w-12 h-12 mb-3" />
           <p className="text-sm">No notifications yet</p>
         </div>
       ) : (
         <div className="space-y-1">
           {items.map((item) => {
-            const Icon =
-              typeIcons[item.type as NotificationType] ?? BellIcon;
+            const ItemIcon =
+              typeIcons[item.type as NotificationType] ?? Bell;
             const color =
               typeColors[item.type as NotificationType] ?? "text-gray-500";
             const label =
@@ -198,6 +200,7 @@ export function NotificationsView({
                 }`}
               >
                 <Icon
+                  icon={ItemIcon}
                   className={`w-5 h-5 flex-shrink-0 mt-0.5 ${color}`}
                   aria-hidden="true"
                 />
@@ -206,8 +209,8 @@ export function NotificationsView({
                     <p
                       className={`text-sm ${
                         !item.read
-                          ? "font-semibold text-gray-900 dark:text-white"
-                          : "font-medium text-gray-600 dark:text-gray-400"
+                          ? "font-semibold text-primary"
+                          : "font-medium text-secondary"
                       }`}
                     >
                       {item.title}
@@ -218,10 +221,10 @@ export function NotificationsView({
                       {label}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  <p className="text-xs text-secondary mt-0.5">
                     {item.message}
                   </p>
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+                  <p className="text-[10px] text-muted mt-1">
                     {relativeTime(item.createdAt)}
                   </p>
                 </div>
@@ -238,7 +241,7 @@ export function NotificationsView({
               <button
                 onClick={loadMore}
                 disabled={loading}
-                className="text-sm px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+                className="text-sm px-4 py-2 rounded-lg border border-border text-secondary hover:bg-surface-hover transition-colors disabled:opacity-50"
               >
                 {loading ? "Loading..." : "Load more"}
               </button>

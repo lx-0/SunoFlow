@@ -7,12 +7,8 @@ import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { AppShell } from "@/components/AppShell";
 import { apiGet, apiPost, apiDelete } from "@/lib/api-client";
-import {
-  MusicalNoteIcon,
-  UserGroupIcon,
-  QueueListIcon,
-  HeartIcon,
-} from "@heroicons/react/24/outline";
+import { Music, UsersRound, ListMusic, Heart } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -99,19 +95,19 @@ function ActivityCard({ item }: { item: ActivityItem }) {
   if (item.type === "song_created" && item.song) {
     const href = item.song.publicSlug ? `/s/${item.song.publicSlug}` : null;
     return (
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-2">
+      <div className="bg-surface border border-border rounded-xl p-4 space-y-2">
         <div className="flex items-baseline gap-1.5 flex-wrap">
-          <span className="text-sm text-gray-500 dark:text-gray-400">published a song</span>
-          <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto flex-shrink-0">
+          <span className="text-sm text-secondary">published a song</span>
+          <span className="text-xs text-muted ml-auto flex-shrink-0">
             {formatRelativeTime(item.createdAt)}
           </span>
         </div>
         {href ? (
-          <Link href={href} className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-2 transition-colors">
+          <Link href={href} className="flex items-center gap-3 bg-surface-raised hover:bg-surface-hover rounded-lg p-2 transition-colors">
             <SongThumbnail song={item.song} />
           </Link>
         ) : (
-          <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
+          <div className="flex items-center gap-3 bg-surface-raised rounded-lg p-2">
             <SongThumbnail song={item.song} />
           </div>
         )}
@@ -124,20 +120,20 @@ function ActivityCard({ item }: { item: ActivityItem }) {
       ? `/playlists/${item.playlist.slug}`
       : `/playlists/${item.playlist.id}`;
     return (
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-2">
+      <div className="bg-surface border border-border rounded-xl p-4 space-y-2">
         <div className="flex items-baseline gap-1.5 flex-wrap">
-          <span className="text-sm text-gray-500 dark:text-gray-400">created a playlist</span>
-          <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto flex-shrink-0">
+          <span className="text-sm text-secondary">created a playlist</span>
+          <span className="text-xs text-muted ml-auto flex-shrink-0">
             {formatRelativeTime(item.createdAt)}
           </span>
         </div>
-        <Link href={href} className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-2 transition-colors">
+        <Link href={href} className="flex items-center gap-3 bg-surface-raised hover:bg-surface-hover rounded-lg p-2 transition-colors">
           <div className="w-10 h-10 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
-            <QueueListIcon className="w-5 h-5 text-violet-500" />
+            <Icon icon={ListMusic} className="w-5 h-5 text-violet-500" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.playlist.name}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-sm font-medium text-primary truncate">{item.playlist.name}</p>
+            <p className="text-xs text-secondary">
               {item.playlist.songCount} song{item.playlist.songCount !== 1 ? "s" : ""}
             </p>
           </div>
@@ -149,21 +145,21 @@ function ActivityCard({ item }: { item: ActivityItem }) {
   if (item.type === "song_favorited" && item.song) {
     const href = item.song.publicSlug ? `/s/${item.song.publicSlug}` : null;
     return (
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-2">
+      <div className="bg-surface border border-border rounded-xl p-4 space-y-2">
         <div className="flex items-baseline gap-1.5 flex-wrap">
-          <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-            <HeartIcon className="w-3.5 h-3.5 text-pink-500 inline" /> favorited a song
+          <span className="text-sm text-secondary flex items-center gap-1">
+            <Icon icon={Heart} className="w-3.5 h-3.5 text-pink-500 inline" /> favorited a song
           </span>
-          <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto flex-shrink-0">
+          <span className="text-xs text-muted ml-auto flex-shrink-0">
             {formatRelativeTime(item.createdAt)}
           </span>
         </div>
         {href ? (
-          <Link href={href} className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-2 transition-colors">
+          <Link href={href} className="flex items-center gap-3 bg-surface-raised hover:bg-surface-hover rounded-lg p-2 transition-colors">
             <SongThumbnail song={item.song} />
           </Link>
         ) : (
-          <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
+          <div className="flex items-center gap-3 bg-surface-raised rounded-lg p-2">
             <SongThumbnail song={item.song} />
           </div>
         )}
@@ -188,15 +184,15 @@ function SongThumbnail({ song }: { song: ActivitySong }) {
             loading="lazy"
           />
         ) : (
-          <MusicalNoteIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+          <Icon icon={Music} className="w-5 h-5 text-muted" />
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+        <p className="text-sm font-medium text-primary truncate">
           {song.title ?? "Untitled"}
         </p>
         {song.tags && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{song.tags}</p>
+          <p className="text-xs text-secondary truncate">{song.tags}</p>
         )}
       </div>
     </>
@@ -241,7 +237,7 @@ function FollowButton({
       disabled={loading}
       className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 ${
         following
-          ? "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+          ? "bg-gray-200 dark:bg-gray-700 text-secondary hover:bg-gray-300 dark:hover:bg-gray-600"
           : "bg-violet-600 hover:bg-violet-500 text-white"
       }`}
     >
@@ -265,23 +261,23 @@ function ProfileHeader({
   return (
     <section className="flex flex-col items-center gap-3 pt-2">
       <UserAvatar user={profile} size={72} />
-      <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+      <h2 className="text-xl font-bold text-primary">
         {profile.name ?? "Anonymous"}
       </h2>
 
       {/* Stats row */}
       <div className="flex items-center gap-6 text-center">
         <div>
-          <p className="text-base font-bold text-gray-900 dark:text-white">{profile.publicSongsCount}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Songs</p>
+          <p className="text-base font-bold text-primary">{profile.publicSongsCount}</p>
+          <p className="text-xs text-secondary">Songs</p>
         </div>
         <div>
-          <p className="text-base font-bold text-gray-900 dark:text-white">{profile.followersCount}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Followers</p>
+          <p className="text-base font-bold text-primary">{profile.followersCount}</p>
+          <p className="text-xs text-secondary">Followers</p>
         </div>
         <div>
-          <p className="text-base font-bold text-gray-900 dark:text-white">{profile.followingCount}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Following</p>
+          <p className="text-base font-bold text-primary">{profile.followingCount}</p>
+          <p className="text-xs text-secondary">Following</p>
         </div>
       </div>
 
@@ -338,7 +334,7 @@ function UserActivityFeed({ userId }: { userId: string }) {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 animate-pulse h-24" />
+          <div key={i} className="bg-surface border border-border rounded-xl p-4 animate-pulse h-24" />
         ))}
       </div>
     );
@@ -347,8 +343,8 @@ function UserActivityFeed({ userId }: { userId: string }) {
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 py-10 text-center">
-        <MusicalNoteIcon className="w-10 h-10 text-gray-300 dark:text-gray-700" />
-        <p className="text-sm text-gray-500 dark:text-gray-400">No public activity yet.</p>
+        <Icon icon={Music} className="w-10 h-10 text-gray-300 dark:text-gray-700" />
+        <p className="text-sm text-secondary">No public activity yet.</p>
       </div>
     );
   }
@@ -418,8 +414,8 @@ export default function UserProfilePage() {
     return (
       <AppShell>
         <div className="px-4 py-16 flex flex-col items-center gap-4 text-center">
-          <UserGroupIcon className="w-12 h-12 text-gray-300 dark:text-gray-700" />
-          <p className="text-base font-medium text-gray-700 dark:text-gray-300">User not found</p>
+          <Icon icon={UsersRound} className="w-12 h-12 text-gray-300 dark:text-gray-700" />
+          <p className="text-base font-medium text-secondary">User not found</p>
           <Link href="/discover" className="text-sm text-violet-500 hover:text-violet-400">
             Discover creators
           </Link>
@@ -432,9 +428,9 @@ export default function UserProfilePage() {
     <AppShell>
       <div className="px-4 py-6 space-y-6">
         <ProfileHeader profile={profile} onFollowChange={handleFollowChange} />
-        <div className="border-t border-gray-200 dark:border-gray-800" />
+        <div className="border-t border-border" />
         <section className="space-y-3">
-          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Activity</h3>
+          <h3 className="text-base font-semibold text-primary">Activity</h3>
           <UserActivityFeed userId={profile.id} />
         </section>
       </div>

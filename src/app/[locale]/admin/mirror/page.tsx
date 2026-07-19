@@ -2,15 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiGet, apiPost } from "@/lib/api-client";
-import {
-  ServerStackIcon,
-  MusicalNoteIcon,
-  PhotoIcon,
-  CircleStackIcon,
-  ArrowPathIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-} from "@heroicons/react/24/outline";
+import { Server, Music, Image, Database, RefreshCw, ChevronDown, ChevronUp, type LucideIcon } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 
 interface MissingSong {
   id: string;
@@ -61,12 +54,12 @@ function PercentBar({ percent, label }: { percent: number; label: string }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-sm text-gray-400">{label}</span>
+        <span className="text-sm text-secondary">{label}</span>
         <span className={`text-sm font-medium ${healthColor(percent)}`}>
           {percent}%
         </span>
       </div>
-      <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+      <div className="w-full h-2 bg-surface-raised rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${healthBgColor(percent)}`}
           style={{ width: `${Math.min(percent, 100)}%` }}
@@ -78,37 +71,37 @@ function PercentBar({ percent, label }: { percent: number; label: string }) {
 
 function CacheCard({
   title,
-  icon: Icon,
+  icon: SectionIcon,
   section,
   diskBytes,
 }: {
   title: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   section: CacheSection;
   diskBytes: number;
 }) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
+    <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
       <div className="flex items-center gap-3">
-        <Icon className="w-5 h-5 text-gray-400" aria-hidden="true" />
+        <Icon icon={SectionIcon} className="w-5 h-5 text-secondary" aria-hidden="true" />
         <h3 className="text-lg font-semibold">{title}</h3>
       </div>
       <div className="grid grid-cols-3 gap-4">
         <div>
           <div className="text-2xl font-bold">{section.cached}</div>
-          <div className="text-xs text-gray-500">Cached</div>
+          <div className="text-xs text-muted">Cached</div>
         </div>
         <div>
-          <div className="text-2xl font-bold text-gray-400">
+          <div className="text-2xl font-bold text-secondary">
             {section.cached + section.missing}
           </div>
-          <div className="text-xs text-gray-500">Total</div>
+          <div className="text-xs text-muted">Total</div>
         </div>
         <div>
-          <div className="text-2xl font-bold text-gray-400">
+          <div className="text-2xl font-bold text-secondary">
             {formatBytes(diskBytes)}
           </div>
-          <div className="text-xs text-gray-500">Disk</div>
+          <div className="text-xs text-muted">Disk</div>
         </div>
       </div>
       <PercentBar percent={section.percentage} label="Cache coverage" />
@@ -127,29 +120,29 @@ function MissingList({
 
   if (songs.length === 0) return null;
 
-  const ChevronIcon = expanded ? ChevronUpIcon : ChevronDownIcon;
+  const ChevronIcon = expanded ? ChevronUp : ChevronDown;
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+    <div className="bg-surface border border-border rounded-xl overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-800/50 transition-colors"
       >
         <span className="font-medium">
           {title}{" "}
-          <span className="text-sm text-gray-500">({songs.length})</span>
+          <span className="text-sm text-muted">({songs.length})</span>
         </span>
-        <ChevronIcon className="w-4 h-4 text-gray-400" aria-hidden="true" />
+        <Icon icon={ChevronIcon} className="w-4 h-4 text-secondary" aria-hidden="true" />
       </button>
       {expanded && (
-        <div className="border-t border-gray-800 max-h-80 overflow-y-auto">
+        <div className="border-t border-border max-h-80 overflow-y-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-900 sticky top-0">
+            <thead className="bg-surface sticky top-0">
               <tr>
-                <th className="text-left px-5 py-2 text-gray-400 font-medium">
+                <th className="text-left px-5 py-2 text-secondary font-medium">
                   Title
                 </th>
-                <th className="text-left px-5 py-2 text-gray-400 font-medium">
+                <th className="text-left px-5 py-2 text-secondary font-medium">
                   ID
                 </th>
               </tr>
@@ -158,10 +151,10 @@ function MissingList({
               {songs.map((song) => (
                 <tr
                   key={song.id}
-                  className="border-t border-gray-800 hover:bg-gray-800/30"
+                  className="border-t border-border hover:bg-gray-800/30"
                 >
                   <td className="px-5 py-2">{song.title}</td>
-                  <td className="px-5 py-2 text-gray-500 font-mono text-xs">
+                  <td className="px-5 py-2 text-muted font-mono text-xs">
                     {song.id}
                   </td>
                 </tr>
@@ -232,32 +225,33 @@ export default function AdminMirrorPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Mirror Health</h1>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-muted">
             Last checked:{" "}
             {new Date(data.lastCheckedAt).toLocaleTimeString()}
           </span>
           <button
             onClick={fetchHealth}
-            className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+            className="p-2 rounded-lg text-secondary hover:text-primary hover:bg-surface-hover transition-colors"
             title="Refresh"
           >
-            <ArrowPathIcon className="w-4 h-4" aria-hidden="true" />
+            <Icon icon={RefreshCw} className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       </div>
 
       {/* Overall health */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 flex items-center gap-6">
-        <ServerStackIcon
+      <div className="bg-surface border border-border rounded-xl p-6 flex items-center gap-6">
+        <Icon
+          icon={Server}
           className="w-10 h-10 text-gray-600 shrink-0"
           aria-hidden="true"
         />
         <div className="flex-1">
-          <div className="text-sm text-gray-400 mb-1">Overall Health</div>
+          <div className="text-sm text-secondary mb-1">Overall Health</div>
           <div className={`text-5xl font-bold ${healthColor(data.overallHealthPercent)}`}>
             {data.overallHealthPercent}%
           </div>
-          <div className="text-sm text-gray-500 mt-1">
+          <div className="text-sm text-muted mt-1">
             {data.totalSongs} total songs &middot;{" "}
             {data.diskUsage.formatted} on disk
           </div>
@@ -268,23 +262,24 @@ export default function AdminMirrorPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <CacheCard
           title="Audio Cache"
-          icon={MusicalNoteIcon}
+          icon={Music}
           section={data.audio}
           diskBytes={data.diskUsage.audioBytes}
         />
         <CacheCard
           title="Cover Cache"
-          icon={PhotoIcon}
+          icon={Image}
           section={data.covers}
           diskBytes={data.diskUsage.coverBytes}
         />
       </div>
 
       {/* Disk usage summary */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+      <div className="bg-surface border border-border rounded-xl p-5">
         <div className="flex items-center gap-3 mb-3">
-          <CircleStackIcon
-            className="w-5 h-5 text-gray-400"
+          <Icon
+            icon={Database}
+            className="w-5 h-5 text-secondary"
             aria-hidden="true"
           />
           <h3 className="text-lg font-semibold">Disk Usage</h3>
@@ -294,17 +289,17 @@ export default function AdminMirrorPage() {
             <div className="text-xl font-bold">
               {formatBytes(data.diskUsage.audioBytes)}
             </div>
-            <div className="text-xs text-gray-500">Audio</div>
+            <div className="text-xs text-muted">Audio</div>
           </div>
           <div>
             <div className="text-xl font-bold">
               {formatBytes(data.diskUsage.coverBytes)}
             </div>
-            <div className="text-xs text-gray-500">Covers</div>
+            <div className="text-xs text-muted">Covers</div>
           </div>
           <div>
             <div className="text-xl font-bold">{data.diskUsage.formatted}</div>
-            <div className="text-xs text-gray-500">Total</div>
+            <div className="text-xs text-muted">Total</div>
           </div>
         </div>
       </div>
@@ -321,11 +316,11 @@ export default function AdminMirrorPage() {
 
       {/* Re-cache button */}
       {(data.covers.missing > 0) && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+        <div className="bg-surface border border-border rounded-xl p-5">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-medium">Re-cache Missing Covers</h3>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-muted mt-1">
                 Download and cache {data.covers.missing} missing cover
                 {data.covers.missing === 1 ? "" : "s"} from source URLs.
               </p>
@@ -333,7 +328,7 @@ export default function AdminMirrorPage() {
             <button
               onClick={handleRecache}
               disabled={recaching}
-              className="px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg text-sm font-medium transition-colors"
+              className="px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:bg-gray-700 disabled:text-muted rounded-lg text-sm font-medium transition-colors"
             >
               {recaching ? "Caching…" : "Re-cache Covers"}
             </button>

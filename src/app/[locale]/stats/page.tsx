@@ -4,30 +4,32 @@ import { useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { AppShell } from "@/components/AppShell";
 import { apiGet } from "@/lib/api-client";
+import { Icon } from "@/components/ui/Icon";
 import {
-  MusicalNoteIcon,
-  ClockIcon,
-  FireIcon,
-  CheckCircleIcon,
-  SparklesIcon,
-  ChartBarIcon,
-  BoltIcon,
-  CalendarDaysIcon,
-} from "@heroicons/react/24/outline";
+  Music,
+  Clock,
+  Flame,
+  CircleCheck,
+  Sparkles,
+  ChartColumn,
+  Zap,
+  CalendarDays,
+  type LucideIcon,
+} from "lucide-react";
 
 const ListeningTimeChart = dynamic(
   () => import("@/components/analytics/StatsCharts").then((m) => m.ListeningTimeChart),
-  { ssr: false, loading: () => <div className="h-[200px] animate-pulse bg-gray-100 dark:bg-gray-800 rounded" /> }
+  { ssr: false, loading: () => <div className="h-[200px] animate-pulse bg-surface-raised rounded" /> }
 );
 
 const PeakHoursChart = dynamic(
   () => import("@/components/analytics/StatsCharts").then((m) => m.PeakHoursChart),
-  { ssr: false, loading: () => <div className="h-[140px] animate-pulse bg-gray-100 dark:bg-gray-800 rounded" /> }
+  { ssr: false, loading: () => <div className="h-[140px] animate-pulse bg-surface-raised rounded" /> }
 );
 
 const StatsCreditChart = dynamic(
   () => import("@/components/analytics/StatsCharts").then((m) => m.StatsCreditChart),
-  { ssr: false, loading: () => <div className="h-[200px] animate-pulse bg-gray-100 dark:bg-gray-800 rounded" /> }
+  { ssr: false, loading: () => <div className="h-[200px] animate-pulse bg-surface-raised rounded" /> }
 );
 
 interface UserStats {
@@ -69,7 +71,7 @@ function formatDuration(seconds: number): string {
 }
 
 function TrendBadge({ value }: { value: number }) {
-  if (value === 0) return <span className="text-xs text-gray-400">same as last</span>;
+  if (value === 0) return <span className="text-xs text-secondary">same as last</span>;
   const positive = value > 0;
   return (
     <span
@@ -86,24 +88,24 @@ function StatCard({
   label,
   value,
   sub,
-  icon: Icon,
+  icon: ItemIcon,
   accent,
 }: {
   label: string;
   value: string | number;
   sub?: React.ReactNode;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   accent?: string;
 }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+    <div className="bg-surface border border-border rounded-xl p-4">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        <span className="text-xs font-medium uppercase tracking-wide text-secondary">
           {label}
         </span>
-        <Icon className={`w-4 h-4 ${accent ?? "text-gray-400 dark:text-gray-500"}`} />
+        <Icon icon={ItemIcon} className={`w-4 h-4 ${accent ?? "text-muted"}`} />
       </div>
-      <div className="text-2xl font-bold text-gray-900 dark:text-white">{value}</div>
+      <div className="text-2xl font-bold text-primary">{value}</div>
       {sub && <div className="mt-1">{sub}</div>}
     </div>
   );
@@ -131,7 +133,7 @@ export default function StatsPage() {
     return (
       <AppShell>
         <div className="px-4 py-6">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-6">My Stats</h1>
+          <h1 className="text-xl font-bold text-primary mb-6">My Stats</h1>
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-400" />
           </div>
@@ -153,79 +155,79 @@ export default function StatsPage() {
   return (
     <AppShell>
       <div className="px-4 py-6 space-y-6">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">My Stats</h1>
+        <h1 className="text-xl font-bold text-primary">My Stats</h1>
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <StatCard
             label="Songs Generated"
             value={data.totalSongsGenerated}
-            icon={MusicalNoteIcon}
+            icon={Music}
             sub={<TrendBadge value={data.monthTrend} />}
           />
           <StatCard
             label="Listening Time"
             value={formatDuration(data.totalListeningTimeSec)}
-            icon={ClockIcon}
+            icon={Clock}
             accent="text-cyan-500"
           />
           <StatCard
             label="Success Rate"
             value={`${data.successRate}%`}
-            icon={CheckCircleIcon}
+            icon={CircleCheck}
             accent="text-green-500"
           />
           <StatCard
             label="This Week"
             value={data.songsThisWeek}
-            icon={CalendarDaysIcon}
+            icon={CalendarDays}
             sub={<TrendBadge value={data.weekTrend} />}
           />
           <StatCard
             label="Current Streak"
             value={`${data.currentStreak}d`}
-            icon={FireIcon}
+            icon={Flame}
             accent="text-orange-500"
             sub={
-              <span className="text-xs text-gray-400">Best: {data.longestStreak}d</span>
+              <span className="text-xs text-secondary">Best: {data.longestStreak}d</span>
             }
           />
           <StatCard
             label="Credits Used"
             value={data.totalCreditsUsed}
-            icon={BoltIcon}
+            icon={Zap}
             accent="text-amber-500"
           />
         </div>
 
         {/* Most-played songs */}
         {data.mostPlayedSongs.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
-            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-              <ChartBarIcon className="w-4 h-4 text-violet-500" />
+          <div className="bg-surface border border-border rounded-xl p-5">
+            <h2 className="text-base font-semibold text-primary mb-4 flex items-center gap-2">
+              <Icon icon={ChartColumn} className="w-4 h-4 text-violet-500" />
               Most-Played Songs
             </h2>
-            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+            <div className="divide-y divide-border">
               {data.mostPlayedSongs.map((song, i) => (
                 <div key={song.id} className="flex items-center gap-3 py-2.5">
-                  <span className="text-sm font-bold text-gray-400 w-5 text-right flex-shrink-0">
+                  <span className="text-sm font-bold text-secondary w-5 text-right flex-shrink-0">
                     {i + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    <p className="text-sm font-medium text-primary truncate">
                       {song.title ?? "Untitled"}
                     </p>
                     {song.tags && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      <p className="text-xs text-secondary truncate">
                         {song.tags}
                       </p>
                     )}
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    <p className="text-sm font-medium text-primary">
                       {song.playCount}
                     </p>
-                    <p className="text-xs text-gray-500">plays</p>
+                    <p className="text-xs text-muted">plays</p>
                   </div>
                 </div>
               ))}
@@ -234,21 +236,21 @@ export default function StatsPage() {
         )}
 
         {/* Listening time chart */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
-          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-            <ClockIcon className="w-4 h-4 text-cyan-500" />
+        <div className="bg-surface border border-border rounded-xl p-5">
+          <h2 className="text-base font-semibold text-primary mb-4 flex items-center gap-2">
+            <Icon icon={Clock} className="w-4 h-4 text-cyan-500" />
             Daily Listening Time (Last 30 Days)
           </h2>
           <ListeningTimeChart data={data.dailyListeningTime} />
         </div>
 
         {/* Peak listening hours */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
-          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-1 flex items-center gap-2">
-            <SparklesIcon className="w-4 h-4 text-amber-500" />
+        <div className="bg-surface border border-border rounded-xl p-5">
+          <h2 className="text-base font-semibold text-primary mb-1 flex items-center gap-2">
+            <Icon icon={Sparkles} className="w-4 h-4 text-amber-500" />
             Peak Listening Hours
           </h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+          <p className="text-xs text-secondary mb-4">
             When you listen most throughout the day
           </p>
           <PeakHoursChart data={data.peakHours} />
@@ -256,16 +258,16 @@ export default function StatsPage() {
 
         {/* Favorite genres */}
         {data.favoriteGenres.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
-            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-              <SparklesIcon className="w-4 h-4 text-violet-500" />
+          <div className="bg-surface border border-border rounded-xl p-5">
+            <h2 className="text-base font-semibold text-primary mb-4 flex items-center gap-2">
+              <Icon icon={Sparkles} className="w-4 h-4 text-violet-500" />
               Favorite Genres &amp; Styles
             </h2>
             <div className="flex flex-wrap gap-2">
               {data.favoriteGenres.map((g, i) => {
                 const colors = [
-                  "#7c3aed", "#06b6d4", "#f59e0b", "#10b981", "#ef4444",
-                  "#8b5cf6", "#3b82f6", "#ec4899", "#14b8a6", "#f97316",
+                  "#c40181", "#06b6d4", "#f59e0b", "#10b981", "#ef4444",
+                  "#d93294", "#3b82f6", "#ec4899", "#14b8a6", "#f97316",
                 ];
                 const color = colors[i % colors.length];
                 return (
@@ -287,43 +289,43 @@ export default function StatsPage() {
         )}
 
         {/* Generation insights */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
-          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-            <MusicalNoteIcon className="w-4 h-4 text-violet-500" />
+        <div className="bg-surface border border-border rounded-xl p-5">
+          <h2 className="text-base font-semibold text-primary mb-4 flex items-center gap-2">
+            <Icon icon={Music} className="w-4 h-4 text-violet-500" />
             Generation Insights
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="text-center">
-              <p className="text-xl font-bold text-gray-900 dark:text-white">
+              <p className="text-xl font-bold text-primary">
                 {data.totalSongsGenerated}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Total generated</p>
+              <p className="text-xs text-secondary">Total generated</p>
             </div>
             <div className="text-center">
-              <p className="text-xl font-bold text-gray-900 dark:text-white">
+              <p className="text-xl font-bold text-primary">
                 {data.completedGenerations}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Completed</p>
+              <p className="text-xs text-secondary">Completed</p>
             </div>
             <div className="text-center">
-              <p className="text-xl font-bold text-gray-900 dark:text-white">
+              <p className="text-xl font-bold text-primary">
                 {data.successRate}%
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Success rate</p>
+              <p className="text-xs text-secondary">Success rate</p>
             </div>
             <div className="text-center">
-              <p className="text-xl font-bold text-gray-900 dark:text-white">
+              <p className="text-xl font-bold text-primary">
                 {data.songsThisMonth}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">This month</p>
+              <p className="text-xs text-secondary">This month</p>
             </div>
           </div>
         </div>
 
         {/* Credit usage chart */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
-          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-            <BoltIcon className="w-4 h-4 text-amber-500" />
+        <div className="bg-surface border border-border rounded-xl p-5">
+          <h2 className="text-base font-semibold text-primary mb-4 flex items-center gap-2">
+            <Icon icon={Zap} className="w-4 h-4 text-amber-500" />
             Credit Usage (Last 30 Days)
           </h2>
           <StatsCreditChart data={data.creditUsageByDay} />

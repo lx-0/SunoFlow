@@ -2,16 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import {
-  MagnifyingGlassIcon,
-  PlusIcon,
-  PencilSquareIcon,
-  TrashIcon,
-  XMarkIcon,
-  SparklesIcon,
-  MusicalNoteIcon,
-} from "@heroicons/react/24/outline";
-import { BookmarkIcon } from "@heroicons/react/24/solid";
+import { Search, Plus, SquarePen, Trash2, X, Sparkles, Music, Bookmark } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useToast } from "./Toast";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/api-client";
 import { HttpError } from "@/components/QueryProvider";
@@ -166,8 +158,8 @@ export function TemplateBrowser() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Prompt Templates</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">
+          <h1 className="text-xl font-bold text-primary">Prompt Templates</h1>
+          <p className="text-secondary text-sm mt-0.5">
             Browse, create, and manage your prompt templates
           </p>
         </div>
@@ -176,7 +168,7 @@ export function TemplateBrowser() {
           onClick={openCreateForm}
           className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 rounded-xl transition-colors"
         >
-          <PlusIcon className="h-4 w-4" />
+          <Icon icon={Plus} className="h-4 w-4" />
           New template
         </button>
       </div>
@@ -184,21 +176,21 @@ export function TemplateBrowser() {
       {/* Search & Filters */}
       <div className="space-y-3">
         <div className="relative">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Icon icon={Search} className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search templates..."
-            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+            className="w-full pl-9 pr-4 py-2.5 bg-surface-raised border border-border rounded-xl text-sm text-primary placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-secondary"
             >
-              <XMarkIcon className="h-4 w-4" />
+              <Icon icon={X} className="h-4 w-4" />
             </button>
           )}
         </div>
@@ -211,7 +203,7 @@ export function TemplateBrowser() {
               className={`px-2.5 py-1 text-xs font-medium rounded-full transition-colors ${
                 selectedCategory === null
                   ? "bg-violet-600 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  : "bg-gray-100 dark:bg-gray-700 text-secondary hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
             >
               All
@@ -224,7 +216,7 @@ export function TemplateBrowser() {
                 className={`px-2.5 py-1 text-xs font-medium rounded-full capitalize transition-colors ${
                   selectedCategory === cat
                     ? "bg-violet-600 text-white"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    : "bg-gray-100 dark:bg-gray-700 text-secondary hover:bg-gray-200 dark:hover:bg-gray-600"
                 }`}
               >
                 {cat}
@@ -236,34 +228,34 @@ export function TemplateBrowser() {
 
       {/* Create / Edit Form */}
       {showForm && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-4">
+        <div className="bg-surface-raised border border-border rounded-xl p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-sm font-semibold text-primary">
               {editingTemplate ? "Edit template" : "Create new template"}
             </h2>
-            <button type="button" onClick={closeForm} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-              <XMarkIcon className="h-5 w-5" />
+            <button type="button" onClick={closeForm} className="text-muted hover:text-secondary">
+              <Icon icon={X} className="h-5 w-5" />
             </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Name *</label>
+              <label className="block text-xs font-medium text-secondary">Name *</label>
               <input
                 type="text"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 placeholder="My template"
                 maxLength={50}
-                className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                className="w-full bg-surface-raised border border-border rounded-xl px-3 py-2 text-sm text-primary placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Category</label>
+              <label className="block text-xs font-medium text-secondary">Category</label>
               <select
                 value={formCategory}
                 onChange={(e) => setFormCategory(e.target.value)}
-                className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                className="w-full bg-surface-raised border border-border rounded-xl px-3 py-2 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               >
                 <option value="">No category</option>
                 {CATEGORY_OPTIONS.map((cat) => (
@@ -274,40 +266,40 @@ export function TemplateBrowser() {
           </div>
 
           <div className="space-y-1">
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Description</label>
+            <label className="block text-xs font-medium text-secondary">Description</label>
             <input
               type="text"
               value={formDescription}
               onChange={(e) => setFormDescription(e.target.value)}
               placeholder="Brief description of this template"
-              className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="w-full bg-surface-raised border border-border rounded-xl px-3 py-2 text-sm text-primary placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Style / Genre</label>
+            <label className="block text-xs font-medium text-secondary">Style / Genre</label>
             <input
               type="text"
               value={formStyle}
               onChange={(e) => setFormStyle(e.target.value)}
               placeholder="e.g. upbeat lo-fi hip-hop, melancholic indie folk"
-              className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="w-full bg-surface-raised border border-border rounded-xl px-3 py-2 text-sm text-primary placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Prompt / Lyrics *</label>
+            <label className="block text-xs font-medium text-secondary">Prompt / Lyrics *</label>
             <textarea
               value={formPrompt}
               onChange={(e) => setFormPrompt(e.target.value)}
               placeholder="[Verse 1]&#10;Your lyrics or prompt here..."
               rows={5}
-              className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
+              className="w-full bg-surface-raised border border-border rounded-xl px-3 py-2 text-sm text-primary placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
             />
           </div>
 
           <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-900/50 rounded-xl px-3 py-2">
-            <span className="text-sm text-gray-700 dark:text-gray-300">Instrumental only</span>
+            <span className="text-sm text-secondary">Instrumental only</span>
             <button
               type="button"
               role="switch"
@@ -337,14 +329,14 @@ export function TemplateBrowser() {
             <button
               type="button"
               onClick={closeForm}
-              className="px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="px-4 py-2.5 text-sm font-medium text-secondary bg-surface-raised border border-border rounded-xl hover:bg-surface-hover transition-colors"
             >
               Cancel
             </button>
           </div>
 
           {!editingTemplate && (
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-xs text-secondary">
               {userTemplates.length} / 20 templates used
             </p>
           )}
@@ -355,7 +347,7 @@ export function TemplateBrowser() {
       {isLoading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-32 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />
+            <div key={i} className="h-32 bg-surface-raised rounded-xl animate-pulse" />
           ))}
         </div>
       )}
@@ -363,7 +355,7 @@ export function TemplateBrowser() {
       {/* Built-in Templates */}
       {!isLoading && builtIn.length > 0 && (
         <div>
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+          <p className="text-xs font-semibold text-secondary uppercase tracking-wide mb-3">
             Starter Templates
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -381,7 +373,7 @@ export function TemplateBrowser() {
       {/* User Templates */}
       {!isLoading && userTemplates.length > 0 && (
         <div>
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+          <p className="text-xs font-semibold text-secondary uppercase tracking-wide mb-3">
             My Templates
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -401,8 +393,8 @@ export function TemplateBrowser() {
       {/* Empty state */}
       {!isLoading && templates.length === 0 && (
         <div className="text-center py-12">
-          <BookmarkIcon className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
+          <Icon icon={Bookmark} className="h-12 w-12 text-muted mx-auto mb-3" fill="currentColor" />
+          <p className="text-secondary text-sm">
             {searchQuery || selectedCategory ? "No templates match your search" : "No templates yet"}
           </p>
           {!searchQuery && !selectedCategory && (
@@ -420,9 +412,9 @@ export function TemplateBrowser() {
       {/* Delete confirmation */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 max-w-sm w-full space-y-4 shadow-xl">
-            <p className="text-sm font-medium text-gray-900 dark:text-white">Delete this template?</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">This action cannot be undone.</p>
+          <div className="bg-surface-raised rounded-xl p-5 max-w-sm w-full space-y-4 shadow-xl">
+            <p className="text-sm font-medium text-primary">Delete this template?</p>
+            <p className="text-sm text-secondary">This action cannot be undone.</p>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -434,7 +426,7 @@ export function TemplateBrowser() {
               <button
                 type="button"
                 onClick={() => setDeleteConfirm(null)}
-                className="flex-1 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                className="flex-1 px-3 py-2 text-sm font-medium text-secondary bg-surface-raised border border-border rounded-xl hover:bg-surface-hover transition-colors"
               >
                 Cancel
               </button>
@@ -458,22 +450,22 @@ function TemplateCard({
   onDelete?: () => void;
 }) {
   return (
-    <div className="group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-violet-400 dark:hover:border-violet-500 transition-colors">
+    <div className="group relative bg-surface-raised border border-border rounded-xl p-4 hover:border-violet-400 dark:hover:border-violet-500 transition-colors">
       <div className="space-y-2">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white leading-snug">
+          <h3 className="text-sm font-semibold text-primary leading-snug">
             {template.name}
           </h3>
           {template.isBuiltIn && (
-            <SparklesIcon className="h-4 w-4 text-violet-500 flex-shrink-0 mt-0.5" />
+            <Icon icon={Sparkles} className="h-4 w-4 text-violet-500 flex-shrink-0 mt-0.5" />
           )}
         </div>
 
         {template.description && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{template.description}</p>
+          <p className="text-xs text-secondary line-clamp-2">{template.description}</p>
         )}
 
-        <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-2 font-mono">
+        <p className="text-xs text-muted line-clamp-2 font-mono">
           {template.style || template.prompt}
         </p>
 
@@ -485,7 +477,7 @@ function TemplateCard({
           )}
           {template.isInstrumental && (
             <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center gap-0.5">
-              <MusicalNoteIcon className="h-3 w-3" />
+              <Icon icon={Music} className="h-3 w-3" />
               Instrumental
             </span>
           )}
@@ -493,33 +485,33 @@ function TemplateCard({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-1 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+      <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border">
         <button
           type="button"
           onClick={onUse}
           className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 hover:bg-violet-100 dark:hover:bg-violet-900/30 rounded-lg transition-colors"
         >
-          <SparklesIcon className="h-3.5 w-3.5" />
+          <Icon icon={Sparkles} className="h-3.5 w-3.5" />
           Use
         </button>
         {onEdit && (
           <button
             type="button"
             onClick={onEdit}
-            className="p-1.5 text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors opacity-0 group-hover:opacity-100"
+            className="p-1.5 text-muted hover:text-violet-600 dark:hover:text-violet-400 rounded-lg hover:bg-surface-hover transition-colors opacity-0 group-hover:opacity-100"
             title="Edit"
           >
-            <PencilSquareIcon className="h-4 w-4" />
+            <Icon icon={SquarePen} className="h-4 w-4" />
           </button>
         )}
         {onDelete && (
           <button
             type="button"
             onClick={onDelete}
-            className="p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors opacity-0 group-hover:opacity-100"
+            className="p-1.5 text-muted hover:text-red-500 dark:hover:text-red-400 rounded-lg hover:bg-surface-hover transition-colors opacity-0 group-hover:opacity-100"
             title="Delete"
           >
-            <TrashIcon className="h-4 w-4" />
+            <Icon icon={Trash2} className="h-4 w-4" />
           </button>
         )}
       </div>

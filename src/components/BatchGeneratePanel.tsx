@@ -1,12 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import {
-  SparklesIcon,
-  ChevronDownIcon,
-  PlusIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline";
+import { Sparkles, ChevronDown, Plus, X } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useToast } from "./Toast";
 import { fetchWithTimeout, clientFetchErrorMessage } from "@/lib/fetch-client";
 import { track } from "@/lib/analytics";
@@ -166,10 +162,11 @@ export function BatchGeneratePanel({
         className="w-full flex items-center justify-between bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl px-4 py-3 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors"
       >
         <span className="flex items-center gap-2 text-sm font-medium text-indigo-700 dark:text-indigo-300">
-          <SparklesIcon className="h-4 w-4" />
+          <Icon icon={Sparkles} className="h-4 w-4" />
           Generate Variations
         </span>
-        <ChevronDownIcon
+        <Icon
+          icon={ChevronDown}
           className={`h-4 w-4 text-indigo-500 dark:text-indigo-400 transition-transform ${
             expanded ? "rotate-180" : ""
           }`}
@@ -177,8 +174,8 @@ export function BatchGeneratePanel({
       </button>
 
       {expanded && (
-        <div className="mt-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-4">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+        <div className="mt-3 bg-surface-raised border border-border rounded-xl p-4 space-y-4">
+          <p className="text-xs text-secondary">
             Generate {variations.length} variations of your prompt with
             different styles or models. Each costs {creditCostPerSong} credits.
           </p>
@@ -188,9 +185,9 @@ export function BatchGeneratePanel({
             {variations.map((v, i) => (
               <div
                 key={v.id}
-                className="flex gap-2 items-start p-3 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700"
+                className="flex gap-2 items-start p-3 bg-surface rounded-xl border border-border"
               >
-                <span className="flex-shrink-0 mt-2 text-xs font-bold text-gray-400 dark:text-gray-500 w-5 text-center">
+                <span className="flex-shrink-0 mt-2 text-xs font-bold text-muted w-5 text-center">
                   {i + 1}
                 </span>
                 <div className="flex-1 space-y-2">
@@ -202,7 +199,7 @@ export function BatchGeneratePanel({
                     }
                     placeholder="Title (optional)"
                     maxLength={200}
-                    className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full bg-surface-raised border border-border rounded-lg px-3 py-1.5 text-sm text-primary placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   />
                   <input
                     type="text"
@@ -212,14 +209,14 @@ export function BatchGeneratePanel({
                     }
                     placeholder="Style / genre override"
                     maxLength={500}
-                    className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full bg-surface-raised border border-border rounded-lg px-3 py-1.5 text-sm text-primary placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   />
                   <select
                     value={v.model}
                     onChange={(e) =>
                       updateVariation(v.id, "model", e.target.value)
                     }
-                    className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full bg-surface-raised border border-border rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   >
                     {MODELS.map((m) => (
                       <option key={m.value} value={m.value}>
@@ -232,10 +229,10 @@ export function BatchGeneratePanel({
                   <button
                     type="button"
                     onClick={() => removeVariation(v.id)}
-                    className="flex-shrink-0 mt-2 p-1 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                    className="flex-shrink-0 mt-2 p-1 text-muted hover:text-red-500 dark:hover:text-red-400 transition-colors"
                     aria-label={`Remove variation ${i + 1}`}
                   >
-                    <XMarkIcon className="h-4 w-4" />
+                    <Icon icon={X} className="h-4 w-4" />
                   </button>
                 )}
               </div>
@@ -249,15 +246,15 @@ export function BatchGeneratePanel({
               onClick={addVariation}
               className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors"
             >
-              <PlusIcon className="h-4 w-4" />
+              <Icon icon={Plus} className="h-4 w-4" />
               Add variation ({variations.length}/5)
             </button>
           )}
 
           {/* Cost preview + submit */}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              <span className="font-medium text-gray-900 dark:text-white">
+          <div className="flex items-center justify-between pt-2 border-t border-border">
+            <div className="text-sm text-secondary">
+              <span className="font-medium text-primary">
                 {totalCost} credits
               </span>{" "}
               ({creditCostPerSong} x {variations.length})
@@ -282,7 +279,7 @@ export function BatchGeneratePanel({
                 </>
               ) : (
                 <>
-                  <SparklesIcon className="h-4 w-4" />
+                  <Icon icon={Sparkles} className="h-4 w-4" />
                   Generate {variations.length} variations
                 </>
               )}
