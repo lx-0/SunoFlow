@@ -1,7 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import { computeCentroid, cosineSimilarity } from "@/lib/embeddings";
 
-export type SmartPlaylistType = "top_hits" | "new_this_week" | "mood" | "similar_to";
+// "archive" is a smart-playlist TYPE (so the reserved tile exists) but is NOT
+// a COMPUTED type: it is virtual, backed by `Song.archivedAt`. It must never
+// reach computeSmartPlaylistSongs (the sweep + refresh guard it out); the
+// explicit case below is defense-in-depth so it can never repopulate/wipe.
+export type SmartPlaylistType =
+  | "top_hits"
+  | "new_this_week"
+  | "mood"
+  | "similar_to"
+  | "archive";
 
 export const SMART_PLAYLIST_SIZE = 25;
 
@@ -42,6 +51,10 @@ export async function computeSmartPlaylistSongs(
       if (!sourceSongId) return [];
       return computeSimilarTo(userId, sourceSongId);
     }
+    case "archive":
+      // Virtual playlist — never materialized. Returning [] here would wipe it,
+      // so this path is guarded upstream; kept explicit for exhaustiveness.
+      return [];
     default:
       return [];
   }

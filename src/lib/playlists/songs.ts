@@ -48,6 +48,14 @@ export async function addSong(
   });
   if (!playlist) return Err.notFound();
 
+  // Smart playlists (Top Hits / New This Week / Mood / the virtual Archive) are
+  // system-managed — their membership is computed or virtual, never hand-added.
+  // Adding here would materialize a stale row (e.g. a non-archived song stuck
+  // in the Archive). Reject at the write layer regardless of what a picker shows.
+  if (playlist.isSmartPlaylist) {
+    return Err.validation("Cannot add songs to an auto-generated playlist");
+  }
+
   if (!songId || typeof songId !== "string") {
     return Err.validation("songId is required");
   }

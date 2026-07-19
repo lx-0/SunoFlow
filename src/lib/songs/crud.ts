@@ -199,6 +199,12 @@ export async function toggleSongShare(songId: string, userId: string) {
   });
 }
 
+// Archive uses `Song.archivedAt` as the SINGLE source of truth. The "Archive"
+// smart playlist is VIRTUAL: it is not materialized as PlaylistSong rows (that
+// diverged from the library's batch-archive path, which only sets archivedAt,
+// and was wiped by the smart-playlist sweep). Its tile links to the library
+// archive view (`/library?smartFilter=archived`); see PlaylistsView + the
+// sweep/bootstrap guards in @/lib/smart-playlists.
 export async function archiveSong(songId: string, userId: string) {
   const song = await findOwnedSong(userId, songId);
   if (!song) return Err.notFound();
@@ -207,45 +213,9 @@ export async function archiveSong(songId: string, userId: string) {
     return Err.validation("Song is already archived");
   }
 
-  const updated = await prisma.$transaction(async (tx) => {
-    const updatedSong = await tx.song.update({
-      where: { id: songId },
-      data: { archivedAt: new Date(), isPublic: false },
-    });
-
-    const playlist = await tx.playlist.upsert({
-      where: {
-        userId_smartPlaylistType: {
-          userId,
-          smartPlaylistType: "archive",
-        },
-      },
-      create: {
-        name: "Archive",
-        userId,
-        isSmartPlaylist: true,
-        smartPlaylistType: "archive",
-      },
-      update: {},
-    });
-
-    const lastSong = await tx.playlistSong.findFirst({
-      where: { playlistId: playlist.id },
-      orderBy: { position: "desc" },
-    });
-
-    await tx.playlistSong.upsert({
-      where: { playlistId_songId: { playlistId: playlist.id, songId } },
-      create: {
-        playlistId: playlist.id,
-        songId,
-        position: lastSong ? lastSong.position + 1 : 0,
-        addedByUserId: userId,
-      },
-      update: {},
-    });
-
-    return updatedSong;
+  const updated = await prisma.song.update({
+    where: { id: songId },
+    data: { archivedAt: new Date(), isPublic: false },
   });
 
   return success({ song: updated });
@@ -255,20 +225,9 @@ export async function restoreSong(songId: string, userId: string) {
   const song = await findOwnedSong(userId, songId, { archivedAt: { not: null } });
   if (!song) return Err.notFound();
 
-  const updated = await prisma.$transaction(async (tx) => {
-    const updatedSong = await tx.song.update({
-      where: { id: songId },
-      data: { archivedAt: null },
-    });
-
-    await tx.playlistSong.deleteMany({
-      where: {
-        songId,
-        playlist: { userId, smartPlaylistType: "archive" },
-      },
-    });
-
-    return updatedSong;
+  const updated = await prisma.song.update({
+    where: { id: songId },
+    data: { archivedAt: null },
   });
 
   return success({ song: updated });

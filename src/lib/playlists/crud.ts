@@ -8,6 +8,7 @@ import {
 } from "@/lib/cache";
 import { recordActivity } from "@/lib/activity";
 import { ownerWhere, memberWhere } from "./access";
+import { SongFilters } from "@/lib/songs/filters";
 import { type Result, success, Err } from "@/lib/result";
 
 const MAX_PLAYLISTS = 50;
@@ -17,7 +18,12 @@ export async function listPlaylists(userId: string) {
     cacheKey("playlists", userId),
     () =>
       prisma.playlist.findMany({
-        where: { userId },
+        // Smart playlists (incl. the virtual Archive) have their own surface
+        // (/api/smart-playlists, the mobile Smart screen, the web smart
+        // section) and a join `_count` that is meaningless for the virtual
+        // Archive. Keep them out of the "your playlists" list so every consumer
+        // of this endpoint (web picker/profile, mobile regular tab) is correct.
+        where: { userId, isSmartPlaylist: false },
         include: {
           _count: {
             select: { songs: { where: { song: { archivedAt: null } } } },
@@ -92,7 +98,29 @@ export async function getPlaylist(playlistId: string, userId: string) {
 
   if (!playlist) return Err.notFound();
 
-  if (playlist.smartPlaylistType !== "archive") {
+  if (playlist.smartPlaylistType === "archive") {
+    // The "archive" playlist is virtual (Song.archivedAt is the source of
+    // truth; no PlaylistSong rows are materialized). Project the archived
+    // songs into the same shape so any consumer (mobile detail, API clients)
+    // sees the real archive rather than the empty/stale join. The web
+    // /playlists/[id] page redirects archive to the library archive view;
+    // this keeps the shared data path correct for everyone else.
+    const archivedSongs = await prisma.song.findMany({
+      where: SongFilters.userArchived(userId),
+      orderBy: { archivedAt: "desc" },
+    });
+    playlist.songs = archivedSongs.map((song, index) => ({
+      id: `archive-${song.id}`,
+      playlistId: playlist.id,
+      songId: song.id,
+      position: index,
+      addedAt: song.archivedAt ?? song.createdAt,
+      addedByUserId: null,
+      song,
+      addedByUser: null,
+    }));
+    playlist._count = { songs: archivedSongs.length };
+  } else {
     playlist.songs = playlist.songs.filter((ps) => !ps.song.archivedAt);
   }
 

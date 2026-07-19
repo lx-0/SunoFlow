@@ -43,8 +43,12 @@ async function fetchSongs(userId: string) {
 }
 
 async function fetchPlaylists(userId: string) {
+  // User-authored playlists only. Smart playlists (incl. the virtual Archive)
+  // are system-derived — their materialized membership is stale/empty under
+  // the virtual model, and the user's archived songs are already exported in
+  // the songs section (fetchSongs has no archivedAt filter).
   return prisma.playlist.findMany({
-    where: { userId },
+    where: { userId, isSmartPlaylist: false },
     include: {
       songs: {
         include: { song: { select: { id: true, title: true } } },

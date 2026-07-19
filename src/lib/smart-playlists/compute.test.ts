@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { rankBySimilarity, type EmbeddingCandidate } from "./compute";
+import {
+  rankBySimilarity,
+  computeSmartPlaylistSongs,
+  type EmbeddingCandidate,
+} from "./compute";
 
 describe("rankBySimilarity", () => {
   it("returns song IDs sorted by cosine similarity descending", () => {
@@ -47,5 +51,14 @@ describe("rankBySimilarity", () => {
     const result = rankBySimilarity(query, candidates, 2);
     expect(result[0]).toBe("same");
     expect(result[1]).toBe("opposite");
+  });
+});
+
+describe("computeSmartPlaylistSongs — archive is virtual", () => {
+  it("returns [] for the 'archive' type without querying (never materializes)", async () => {
+    // archive is backed by Song.archivedAt, not computed membership. Returning
+    // [] here is the defensive guard; the case returns before any prisma call.
+    const result = await computeSmartPlaylistSongs("user-1", "archive", null);
+    expect(result).toEqual([]);
   });
 });

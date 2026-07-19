@@ -26,6 +26,15 @@ const DEFAULTS: Array<{
     description: "Songs tagged with a chill vibe",
     meta: { mood: "chill" },
   },
+  {
+    // Virtual playlist backed by Song.archivedAt — never computed/materialized.
+    // The shell exists so the archive always shows as a tile in /playlists; its
+    // link points at the library archive view. See PlaylistsView + sweep guard.
+    type: "archive",
+    name: "Archive",
+    description: "Songs you've archived",
+    meta: null,
+  },
 ];
 
 function playlistKey(type: string, meta: Record<string, string> | null): string {
@@ -60,6 +69,9 @@ export async function ensureDefaultSmartPlaylists(userId: string): Promise<void>
       },
     });
 
-    await refreshSmartPlaylist(playlist.id);
+    // "archive" is virtual — nothing to compute; skip the refresh.
+    if (def.type !== "archive") {
+      await refreshSmartPlaylist(playlist.id);
+    }
   }
 }

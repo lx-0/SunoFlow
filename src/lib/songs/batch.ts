@@ -212,6 +212,17 @@ async function batchAddToPlaylist(
     return fail("Playlist not found", "NOT_FOUND", 404);
   }
 
+  // Smart playlists (incl. the virtual Archive) are system-managed — the batch
+  // path must not materialize hand-added rows either (mirrors the addSong
+  // guard; appendSongs writes PlaylistSong directly without that check).
+  if (playlist.isSmartPlaylist) {
+    return fail(
+      "Cannot add songs to an auto-generated playlist",
+      "VALIDATION_ERROR",
+      400,
+    );
+  }
+
   if (playlist._count.songs + songIds.length > MAX_SONGS_PER_PLAYLIST) {
     return fail(
       `Would exceed maximum of ${MAX_SONGS_PER_PLAYLIST} songs per playlist`,

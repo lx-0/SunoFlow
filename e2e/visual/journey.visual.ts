@@ -211,6 +211,31 @@ test.describe("Visual journey", () => {
       await page.request.post(`/api/songs/${song.id}/favorite`).catch(() => {});
     }
 
+    // ── Archive one song and verify the virtual-archive flow end to end ──
+    // (regression for the 3 archive bugs: sweep-wipe, count=0, batch-archive
+    // never surfacing). The archived song must vanish from the normal library
+    // and appear in the archive view; the /playlists Archive tile deep-links
+    // here. Archive the LAST ready song so detail/playlist surfaces are stable.
+    if (readySongs.length > 1) {
+      const archivedId = readySongs[readySongs.length - 1].id;
+      const archiveRes = await page.request.post(`/api/songs/${archivedId}/archive`);
+      expect(archiveRes.ok()).toBe(true);
+
+      const normalRes = await page.request.get("/api/songs");
+      const normalBody = (await normalRes.json().catch(() => ({}))) as {
+        songs?: { id: string }[];
+      };
+      const normalIds = (normalBody.songs ?? []).map((s) => s.id);
+      expect(normalIds).not.toContain(archivedId);
+
+      const archivedRes = await page.request.get("/api/songs?archived=true");
+      const archivedBody = (await archivedRes.json().catch(() => ({}))) as {
+        songs?: { id: string }[];
+      };
+      const archivedIds = (archivedBody.songs ?? []).map((s) => s.id);
+      expect(archivedIds).toContain(archivedId);
+    }
+
     // ── Walk the surfaces ──
     const surfaces: Array<[string, string]> = [
       ["03-home", "/"],
@@ -224,6 +249,7 @@ test.describe("Visual journey", () => {
       ["10-style-templates", "/style-templates"],
       ["11-personas", "/personas"],
       ["12-playlists", "/playlists"],
+      ["12b-archive-view", "/library?smartFilter=archived"],
       ["13-playlist-detail", `/playlists/${playlistId}`],
       ["14-favorites", "/favorites"],
       ["15-history", "/history"],

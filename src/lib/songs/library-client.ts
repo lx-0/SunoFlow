@@ -27,6 +27,7 @@ interface PlaylistsResponse {
   playlists?: Array<{
     id: string;
     name: string;
+    isSmartPlaylist?: boolean;
     _count?: { songs?: number };
   }>;
 }
@@ -71,11 +72,15 @@ export async function runSongsBatchAction(
 export async function fetchPlaylistOptions(): Promise<LibraryPlaylistOption[]> {
   try {
     const data = await apiGet<PlaylistsResponse>("/api/playlists");
-    return (data.playlists ?? []).map((pl) => ({
-      id: pl.id,
-      name: pl.name,
-      _count: { songs: pl._count?.songs ?? 0 },
-    }));
+    return (data.playlists ?? [])
+      // Smart playlists (incl. the virtual Archive) are system-managed and
+      // cannot take hand-added songs — never offer them as add targets.
+      .filter((pl) => !pl.isSmartPlaylist)
+      .map((pl) => ({
+        id: pl.id,
+        name: pl.name,
+        _count: { songs: pl._count?.songs ?? 0 },
+      }));
   } catch {
     return [];
   }

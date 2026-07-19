@@ -32,6 +32,14 @@ export async function refreshStalePlaylists(): Promise<{ refreshed: number; skip
   for (const pl of playlists) {
     const type = pl.smartPlaylistType as SmartPlaylistType;
 
+    // The "archive" smart playlist is virtual (backed by Song.archivedAt) and
+    // has no computed membership — refreshing it would deleteMany its rows and
+    // add none, self-emptying the user's archive. Never sweep it.
+    if (type === "archive") {
+      skipped++;
+      continue;
+    }
+
     if (!isStale(type, pl.smartRefreshedAt)) {
       skipped++;
       continue;

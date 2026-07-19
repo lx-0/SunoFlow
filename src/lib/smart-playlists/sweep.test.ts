@@ -1,5 +1,27 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { refreshThreshold, isStale } from "./sweep";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
+
+vi.mock("@/lib/env", () => ({
+  get DATABASE_URL() { return "postgres://test:test@localhost:5432/test"; },
+  env: {},
+}));
+
+const mockPlaylistFindMany = vi.fn();
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    playlist: { findMany: (...a: unknown[]) => mockPlaylistFindMany(...a) },
+  },
+}));
+
+const mockRefreshSmartPlaylist = vi.fn();
+vi.mock("./refresh", () => ({
+  refreshSmartPlaylist: (...a: unknown[]) => mockRefreshSmartPlaylist(...a),
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
+}));
+
+import { refreshThreshold, isStale, refreshStalePlaylists } from "./sweep";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_MS = 7 * DAY_MS;
@@ -49,5 +71,29 @@ describe("isStale", () => {
   it("returns true when refreshed 8 days ago for a weekly type", () => {
     const eightDaysAgo = new Date(Date.now() - 8 * DAY_MS);
     expect(isStale("similar_to", eightDaysAgo)).toBe(true);
+  });
+});
+
+describe("refreshStalePlaylists — archive is never swept", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("skips the virtual 'archive' playlist and never refreshes (would wipe it)", async () => {
+    // Both stale (null smartRefreshedAt), but archive must be left untouched —
+    // refreshing it would deleteMany its membership and repopulate with [].
+    mockPlaylistFindMany.mockResolvedValue([
+      { id: "pl-archive", smartPlaylistType: "archive", smartRefreshedAt: null },
+      { id: "pl-top", smartPlaylistType: "top_hits", smartRefreshedAt: null },
+    ]);
+    mockRefreshSmartPlaylist.mockResolvedValue(undefined);
+
+    const result = await refreshStalePlaylists();
+
+    const refreshedIds = mockRefreshSmartPlaylist.mock.calls.map((c) => c[0]);
+    expect(refreshedIds).toContain("pl-top");
+    expect(refreshedIds).not.toContain("pl-archive");
+    expect(result.refreshed).toBe(1);
+    expect(result.skipped).toBe(1);
   });
 });

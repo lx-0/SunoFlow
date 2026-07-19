@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 import { prisma } from "@/lib/prisma";
-import { ensureDefaultSmartPlaylists } from "@/lib/smart-playlists";
+import { listSmartPlaylistsWithCounts } from "@/lib/smart-playlists";
 
 async function fetchPlaylists() {
   try {
@@ -20,9 +20,8 @@ async function fetchPlaylists() {
 
     const userId = session.user.id;
 
-    // Ensure smart playlists exist for this user (no-op after first visit)
-    await ensureDefaultSmartPlaylists(userId);
-
+    // listSmartPlaylistsWithCounts also ensures the defaults exist (incl. the
+    // virtual "archive" shell) and fixes the archive count in one place.
     const [playlists, smartPlaylists] = await Promise.all([
       prisma.playlist.findMany({
         where: { userId, isSmartPlaylist: false },
@@ -33,15 +32,7 @@ async function fetchPlaylists() {
         },
         orderBy: { updatedAt: "desc" },
       }),
-      prisma.playlist.findMany({
-        where: { userId, isSmartPlaylist: true },
-        include: {
-          _count: {
-            select: { songs: { where: { song: { archivedAt: null } } } },
-          },
-        },
-        orderBy: { createdAt: "asc" },
-      }),
+      listSmartPlaylistsWithCounts(userId),
     ]);
 
     return { playlists, smartPlaylists };

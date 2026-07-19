@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { PlaylistDetailView } from "@/components/PlaylistDetailView";
 import { PlaylistDetailSkeleton } from "@/components/Skeleton";
@@ -29,6 +29,8 @@ async function fetchPlaylist(id: string, userId: string) {
         publishedAt: true,
         genre: true,
         isCollaborative: true,
+        isSmartPlaylist: true,
+        smartPlaylistType: true,
         slug: true,
         userId: true,
         songs: {
@@ -66,6 +68,14 @@ async function PlaylistDetailContent({ id }: { id: string }) {
   const result = await fetchPlaylist(id, session.user.id);
   if (!result) notFound();
   const { playlist, isOwner } = result;
+  // The "archive" smart playlist is virtual (Song.archivedAt) — it has no
+  // materialized membership and PlaylistDetailView isn't built for it (drag
+  // reorder / remove would target nonexistent rows). Send it to the canonical
+  // archive UI in the library, which has the correct restore / delete-forever
+  // actions.
+  if (playlist.smartPlaylistType === "archive") {
+    redirect("/library?smartFilter=archived");
+  }
   return (
     <PlaylistDetailView
       playlist={JSON.parse(JSON.stringify(playlist))}

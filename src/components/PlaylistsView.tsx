@@ -11,6 +11,7 @@ import {
   Flame,
   CalendarDays,
   Smile,
+  Archive,
 } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
 import { useToast } from "./Toast";
@@ -40,6 +41,8 @@ function SmartPlaylistIcon({ type }: { type: string | null }) {
       return <Icon icon={CalendarDays} className="w-6 h-6 text-blue-400" />;
     case "mood":
       return <Icon icon={Smile} className="w-6 h-6 text-yellow-400" />;
+    case "archive":
+      return <Icon icon={Archive} className="w-6 h-6 text-secondary" />;
     default:
       return <Icon icon={Sparkles} className="w-6 h-6 text-violet-400" />;
   }
@@ -53,7 +56,20 @@ function SmartPlaylistBadge({ type }: { type: string | null }) {
       ? "New This Week"
       : type === "mood"
       ? "Mood"
+      : type === "archive"
+      ? "Archive"
       : "Smart";
+
+  // The archive tile is not "smart/auto-generated" in the celebratory sense —
+  // give it a neutral badge so it reads as a system shelf, not a suggestion.
+  if (type === "archive") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-surface-hover text-secondary">
+        <Icon icon={Archive} className="w-3 h-3" aria-hidden="true" />
+        {label}
+      </span>
+    );
+  }
 
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300">
@@ -206,7 +222,14 @@ export function PlaylistsView({
                 key={pl.id}
                 className="bg-surface-raised border border-violet-200 dark:border-violet-900/50 rounded-xl overflow-hidden transition-colors hover:border-violet-400 dark:hover:border-violet-600"
               >
-                <Link href={`/playlists/${pl.id}`} className="flex items-center gap-3 px-4 py-3">
+                <Link
+                  href={
+                    pl.smartPlaylistType === "archive"
+                      ? "/library?smartFilter=archived"
+                      : `/playlists/${pl.id}`
+                  }
+                  className="flex items-center gap-3 px-4 py-3"
+                >
                   {/* Icon */}
                   <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
                     <SmartPlaylistIcon type={pl.smartPlaylistType} />

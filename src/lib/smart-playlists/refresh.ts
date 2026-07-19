@@ -17,6 +17,10 @@ export async function refreshSmartPlaylist(playlistId: string): Promise<void> {
 
   if (!playlist?.isSmartPlaylist || !playlist.smartPlaylistType) return;
 
+  // Defense in depth: the "archive" smart playlist is virtual (Song.archivedAt)
+  // and must never be materialized/wiped, even on a direct refresh call.
+  if (playlist.smartPlaylistType === "archive") return;
+
   const songIds = await computeSmartPlaylistSongs(
     playlist.userId,
     playlist.smartPlaylistType as SmartPlaylistType,
