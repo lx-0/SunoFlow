@@ -4,8 +4,8 @@
   "description": "Manage your Suno music, discover inspiration, and automate your creative workflow.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f9fafb",
-  "theme_color": "#7c3aed",
+  "background_color": "#0f090c",
+  "theme_color": "#ef009c",
   "icons": [
     {
       "src": "/icons/icon-192.png",
