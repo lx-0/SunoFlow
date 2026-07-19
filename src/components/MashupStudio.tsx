@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Spinner } from "./Spinner";
-import { SparklesIcon } from "@heroicons/react/24/solid";
+import { Sparkles } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { GenerationProgress } from "./GenerationProgress";
 import { useMashupSubmit } from "./mashup-studio/useMashupSubmit";
@@ -39,10 +40,10 @@ export function MashupStudio() {
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+        <h1 className="text-xl font-bold text-primary">
           Mashup Studio
         </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        <p className="text-sm text-secondary mt-1">
           Blend two songs together into a new creation
         </p>
       </div>
@@ -63,15 +64,15 @@ export function MashupStudio() {
         </div>
 
         {/* Generation options */}
-        <div className="space-y-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+        <div className="space-y-4 bg-surface-raised border border-border rounded-xl p-4">
+          <h2 className="text-sm font-semibold text-primary">
             Mashup options
           </h2>
 
           <div>
             <label
               htmlFor="mashup-title"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-medium text-secondary mb-1"
             >
               Title (optional)
             </label>
@@ -82,14 +83,14 @@ export function MashupStudio() {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Name your mashup"
               maxLength={200}
-              className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="w-full rounded-xl border border-border-strong bg-surface-raised px-4 py-3 text-sm text-primary placeholder-muted focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
           </div>
 
           <div>
             <label
               htmlFor="mashup-style"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-medium text-secondary mb-1"
             >
               Style / Genre (optional)
             </label>
@@ -100,14 +101,14 @@ export function MashupStudio() {
               onChange={(e) => setStyle(e.target.value)}
               placeholder='e.g. "electronic dance", "lo-fi chill"'
               maxLength={200}
-              className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="w-full rounded-xl border border-border-strong bg-surface-raised px-4 py-3 text-sm text-primary placeholder-muted focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
           </div>
 
           <div>
             <label
               htmlFor="mashup-prompt"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-medium text-secondary mb-1"
             >
               Lyrics / Prompt (optional)
             </label>
@@ -117,7 +118,7 @@ export function MashupStudio() {
               onChange={(e) => setPrompt(e.target.value)}
               rows={3}
               placeholder="Describe how the mashup should sound or add custom lyrics"
-              className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
+              className="w-full rounded-xl border border-border-strong bg-surface-raised px-4 py-3 text-sm text-primary placeholder-muted focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
             />
           </div>
 
@@ -126,9 +127,9 @@ export function MashupStudio() {
               type="checkbox"
               checked={instrumental}
               onChange={(e) => setInstrumental(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+              className="h-4 w-4 rounded border-border-strong text-violet-600 focus:ring-violet-500"
             />
-            <span className="text-sm text-gray-700 dark:text-gray-300">
+            <span className="text-sm text-secondary">
               Instrumental (no vocals)
             </span>
           </label>
@@ -142,7 +143,7 @@ export function MashupStudio() {
                 ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
                 : rateLimit.remaining <= Math.ceil(rateLimit.limit * 0.2)
                   ? "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400"
-                  : "bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                  : "bg-surface-raised text-secondary"
             }`}
           >
             {rateLimitExhausted
@@ -169,7 +170,7 @@ export function MashupStudio() {
             </>
           ) : (
             <>
-              <SparklesIcon className="h-4 w-4" />
+              <Icon icon={Sparkles} fill="currentColor" className="h-4 w-4" />
               Generate Mashup
             </>
           )}

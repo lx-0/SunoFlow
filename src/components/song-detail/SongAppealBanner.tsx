@@ -71,26 +71,26 @@ export function SongAppealBanner({ songId, isHidden }: SongAppealBannerProps) {
             aria-modal="true"
             aria-labelledby="appeal-modal-title"
             tabIndex={-1}
-            className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md shadow-xl"
+            className="bg-surface rounded-2xl p-6 w-full max-w-md shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 id="appeal-modal-title" className="text-lg font-bold mb-2 text-gray-900 dark:text-white">Appeal removal</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            <h2 id="appeal-modal-title" className="text-lg font-bold mb-2 text-primary">Appeal removal</h2>
+            <p className="text-sm text-secondary mb-4">
               Explain why you believe this song should be restored. Be specific — our team will review your appeal.
             </p>
             <textarea
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full rounded-xl border border-border bg-surface-raised text-primary p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-500"
               rows={5}
               placeholder="Describe why this content should be restored (min 10 characters)…"
               value={appealReason}
               onChange={(e) => setAppealReason(e.target.value)}
               maxLength={2000}
             />
-            <p className="text-xs text-gray-400 text-right mt-1">{appealReason.length}/2000</p>
+            <p className="text-xs text-muted text-right mt-1">{appealReason.length}/2000</p>
             <div className="flex gap-3 mt-4">
               <button
                 onClick={() => setAppealOpen(false)}
-                className="flex-1 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="flex-1 py-2 rounded-xl border border-border text-sm text-secondary hover:bg-surface-hover transition-colors"
               >
                 Cancel
               </button>

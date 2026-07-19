@@ -19,7 +19,7 @@ export function GenerationsBarChart({
   data: Array<{ date: string; count: number }>;
 }) {
   if (data.length === 0) {
-    return <p className="text-gray-500 dark:text-gray-400 text-sm">No data yet</p>;
+    return <p className="text-secondary text-sm">No data yet</p>;
   }
   return (
     <ResponsiveContainer width="100%" height={200}>
@@ -36,7 +36,7 @@ export function GenerationsBarChart({
           width={30}
         />
         <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
-        <Bar dataKey="count" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="count" fill="#c40181" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -48,7 +48,7 @@ export function CreditUsageBarChart({
   data: Array<{ date: string; credits: number; count: number }>;
 }) {
   if (data.length === 0) {
-    return <p className="text-gray-500 dark:text-gray-400 text-sm">No data yet</p>;
+    return <p className="text-secondary text-sm">No data yet</p>;
   }
   return (
     <ResponsiveContainer width="100%" height={200}>

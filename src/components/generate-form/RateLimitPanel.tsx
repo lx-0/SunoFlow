@@ -1,6 +1,7 @@
 "use client";
 
-import { ClockIcon } from "@heroicons/react/24/outline";
+import { Clock } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { getRateLimitMeta } from "./helpers";
 import type { RateLimitStatus } from "./types";
 
@@ -24,13 +25,13 @@ export function RateLimitPanel({ rateLimit }: RateLimitPanelProps) {
       <div className={`rounded-xl px-4 py-3 text-sm border ${
         isAtLimit
           ? "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-800"
-          : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+          : "bg-surface-raised border-border"
       }`}>
         <div className="flex items-center justify-between mb-2">
-          <span className={isAtLimit ? "text-red-700 dark:text-red-300 font-medium" : "text-gray-600 dark:text-gray-400"}>
+          <span className={isAtLimit ? "text-red-700 dark:text-red-300 font-medium" : "text-secondary"}>
             {isAtLimit ? "Rate limit reached" : "Generation quota"}
           </span>
-          <span className={`font-semibold ${isAtLimit ? "text-red-700 dark:text-red-300" : "text-gray-900 dark:text-white"}`}>
+          <span className={`font-semibold ${isAtLimit ? "text-red-700 dark:text-red-300" : "text-primary"}`}>
             {used} / {rateLimit.limit} used
           </span>
         </div>
@@ -52,8 +53,8 @@ export function RateLimitPanel({ rateLimit }: RateLimitPanelProps) {
         </div>
 
         {/* Reset time */}
-        <div className="flex items-center gap-1 mt-2 text-xs text-gray-500 dark:text-gray-400">
-          <ClockIcon className="h-3.5 w-3.5" aria-hidden="true" />
+        <div className="flex items-center gap-1 mt-2 text-xs text-secondary">
+          <Icon icon={Clock} className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Resets in {minsLeft} minute{minsLeft === 1 ? "" : "s"}</span>
         </div>
       </div>

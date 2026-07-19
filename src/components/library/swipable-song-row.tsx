@@ -1,11 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { SongListItemProps } from "@/components/SongListItem";
 import { SongListItem } from "@/components/SongListItem";
-import {
-  ArrowDownTrayIcon,
-  ArrowUpOnSquareStackIcon,
-  TrashIcon,
-} from "@heroicons/react/24/solid";
+import { Download, Share, Trash2 } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 
 type SongRowProps = SongListItemProps;
 
@@ -165,7 +162,7 @@ export function SwipableSongRow(props: SongRowProps) {
           aria-label="Share song"
           tabIndex={-1}
         >
-          <ArrowUpOnSquareStackIcon className="w-5 h-5" />
+          <Icon icon={Share} className="w-5 h-5" />
           <span className="text-[10px] font-medium">Share</span>
         </button>
         <button
@@ -175,7 +172,7 @@ export function SwipableSongRow(props: SongRowProps) {
           aria-label="Download song"
           tabIndex={-1}
         >
-          <ArrowDownTrayIcon className="w-5 h-5" />
+          <Icon icon={Download} className="w-5 h-5" />
           <span className="text-[10px] font-medium">Save</span>
         </button>
         <button
@@ -184,7 +181,7 @@ export function SwipableSongRow(props: SongRowProps) {
           aria-label="Archive song"
           tabIndex={-1}
         >
-          <TrashIcon className="w-5 h-5" />
+          <Icon icon={Trash2} className="w-5 h-5" />
           <span className="text-[10px] font-medium">Delete</span>
         </button>
       </div>

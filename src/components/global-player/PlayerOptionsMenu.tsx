@@ -1,14 +1,15 @@
 import { useRef } from "react";
 import {
-  ArrowPathRoundedSquareIcon,
-  ArrowsRightLeftIcon,
-  QueueListIcon,
-  DocumentTextIcon,
-  AdjustmentsHorizontalIcon,
-  CubeIcon,
-  EllipsisVerticalIcon,
-  InformationCircleIcon,
-} from "@heroicons/react/24/outline";
+  ArrowLeftRight,
+  Box,
+  EllipsisVertical,
+  FileText,
+  Info,
+  ListMusic,
+  Repeat,
+  SlidersHorizontal,
+} from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
 
 export interface PlayerOptionsMenuProps {
@@ -64,16 +65,16 @@ export function PlayerOptionsMenu({
         aria-haspopup="true"
         className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
           isOpen
-            ? "text-violet-400 bg-white/10"
-            : "text-gray-500 hover:text-gray-300"
+            ? "text-violet-400 bg-surface-hover"
+            : "text-muted hover:text-secondary"
         }`}
       >
-        <EllipsisVerticalIcon className="w-6 h-6" />
+        <Icon icon={EllipsisVertical} className="w-6 h-6" />
       </button>
       {isOpen && (
         <div
           role="menu"
-          className="absolute bottom-12 right-0 w-48 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl py-1 z-40"
+          className="absolute bottom-12 right-0 w-48 bg-surface-raised border border-border rounded-xl shadow-2xl py-1 z-40"
         >
           <button
             role="menuitem"
@@ -81,12 +82,13 @@ export function PlayerOptionsMenu({
               toggleShuffle();
               onClose();
             }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-white/10 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-surface-hover transition-colors"
           >
-            <ArrowsRightLeftIcon
-              className={`w-5 h-5 ${shuffle ? "text-violet-400" : "text-gray-400"}`}
+            <Icon
+              icon={ArrowLeftRight}
+              className={`w-5 h-5 ${shuffle ? "text-violet-400" : "text-secondary"}`}
             />
-            <span className={shuffle ? "text-violet-400" : "text-gray-200"}>
+            <span className={shuffle ? "text-violet-400" : "text-primary"}>
               Shuffle {shuffle ? "on" : "off"}
             </span>
           </button>
@@ -96,13 +98,14 @@ export function PlayerOptionsMenu({
               toggleShuffleVersions();
               onClose();
             }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-white/10 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-surface-hover transition-colors"
           >
-            <CubeIcon
-              className={`w-5 h-5 ${shuffleVersions ? "text-violet-400" : "text-gray-400"}`}
+            <Icon
+              icon={Box}
+              className={`w-5 h-5 ${shuffleVersions ? "text-violet-400" : "text-secondary"}`}
             />
             <span
-              className={shuffleVersions ? "text-violet-400" : "text-gray-200"}
+              className={shuffleVersions ? "text-violet-400" : "text-primary"}
             >
               Shuffle versions
             </span>
@@ -113,13 +116,14 @@ export function PlayerOptionsMenu({
               cycleRepeat();
               onClose();
             }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-white/10 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-surface-hover transition-colors"
           >
-            <ArrowPathRoundedSquareIcon
-              className={`w-5 h-5 ${repeat !== "off" ? "text-violet-400" : "text-gray-400"}`}
+            <Icon
+              icon={Repeat}
+              className={`w-5 h-5 ${repeat !== "off" ? "text-violet-400" : "text-secondary"}`}
             />
             <span
-              className={repeat !== "off" ? "text-violet-400" : "text-gray-200"}
+              className={repeat !== "off" ? "text-violet-400" : "text-primary"}
             >
               Repeat
               {repeat === "repeat-one"
@@ -136,13 +140,14 @@ export function PlayerOptionsMenu({
                 onToggleLyrics();
                 onClose();
               }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-white/10 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-surface-hover transition-colors"
             >
-              <DocumentTextIcon
-                className={`w-5 h-5 ${showLyrics ? "text-violet-400" : "text-gray-400"}`}
+              <Icon
+                icon={FileText}
+                className={`w-5 h-5 ${showLyrics ? "text-violet-400" : "text-secondary"}`}
               />
               <span
-                className={showLyrics ? "text-violet-400" : "text-gray-200"}
+                className={showLyrics ? "text-violet-400" : "text-primary"}
               >
                 Lyrics
               </span>
@@ -154,12 +159,13 @@ export function PlayerOptionsMenu({
               onToggleEQ();
               onClose();
             }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-white/10 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-surface-hover transition-colors"
           >
-            <AdjustmentsHorizontalIcon
-              className={`w-5 h-5 ${showEQ ? "text-violet-400" : "text-gray-400"}`}
+            <Icon
+              icon={SlidersHorizontal}
+              className={`w-5 h-5 ${showEQ ? "text-violet-400" : "text-secondary"}`}
             />
-            <span className={showEQ ? "text-violet-400" : "text-gray-200"}>
+            <span className={showEQ ? "text-violet-400" : "text-primary"}>
               Equalizer
             </span>
           </button>
@@ -169,26 +175,27 @@ export function PlayerOptionsMenu({
               onToggleUpNext();
               onClose();
             }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-white/10 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-surface-hover transition-colors"
           >
-            <QueueListIcon
-              className={`w-5 h-5 ${showUpNext ? "text-violet-400" : "text-gray-400"}`}
+            <Icon
+              icon={ListMusic}
+              className={`w-5 h-5 ${showUpNext ? "text-violet-400" : "text-secondary"}`}
             />
             <span
-              className={showUpNext ? "text-violet-400" : "text-gray-200"}
+              className={showUpNext ? "text-violet-400" : "text-primary"}
             >
               Up Next
               {queueRemaining > 0 ? ` (${queueRemaining})` : ""}
             </span>
           </button>
-          <div className="border-t border-gray-700 my-1" />
+          <div className="border-t border-border my-1" />
           <a
             role="menuitem"
             href={`/library/${songId}`}
             onClick={onClose}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left text-gray-200 hover:bg-white/10 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left text-primary hover:bg-surface-hover transition-colors"
           >
-            <InformationCircleIcon className="w-5 h-5 text-gray-400" />
+            <Icon icon={Info} className="w-5 h-5 text-secondary" />
             <span>Song details</span>
           </a>
         </div>

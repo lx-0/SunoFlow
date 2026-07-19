@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { XMarkIcon } from "@heroicons/react/24/solid";
+import { X } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
 import { apiGet, apiPost, apiDelete } from "@/lib/api-client";
 
@@ -14,7 +15,7 @@ interface Tag {
 // ─── Tag colors ──────────────────────────────────────────────────────────────
 
 const TAG_COLORS = [
-  "#7c3aed", "#2563eb", "#0891b2", "#059669", "#d97706",
+  "#c40181", "#2563eb", "#0891b2", "#059669", "#d97706",
   "#dc2626", "#db2777", "#7c2d12", "#4338ca", "#0d9488",
 ];
 
@@ -58,7 +59,7 @@ export function TagChip({
           className="hover:opacity-70 min-w-[16px] min-h-[16px] flex items-center justify-center"
           aria-label={`Remove tag ${tag.name}`}
         >
-          <XMarkIcon className="w-3 h-3" />
+          <Icon icon={X} fill="currentColor" className="w-3 h-3" />
         </button>
       )}
     </span>
@@ -166,7 +167,7 @@ export function TagInput({ songId, initialTags = [], onTagsChange }: TagInputPro
 
   return (
     <div className="relative" ref={containerRef}>
-      <div className="flex flex-wrap gap-1.5 items-center p-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg min-h-[40px]">
+      <div className="flex flex-wrap gap-1.5 items-center p-2 bg-surface border border-border rounded-lg min-h-[40px]">
         {tags.map((tag) => (
           <TagChip key={tag.id} tag={tag} onRemove={() => removeTag(tag.id)} />
         ))}
@@ -182,12 +183,12 @@ export function TagInput({ songId, initialTags = [], onTagsChange }: TagInputPro
           onKeyDown={handleKeyDown}
           placeholder={tags.length === 0 ? "Add tags..." : ""}
           disabled={loading || tags.length >= 10}
-          className="flex-1 min-w-[80px] bg-transparent text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 outline-none"
+          className="flex-1 min-w-[80px] bg-transparent text-sm text-primary placeholder-muted outline-none"
         />
       </div>
 
       {showSuggestions && suggestions.length > 0 && (
-        <ul className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg z-20 max-h-40 overflow-y-auto">
+        <ul className="absolute left-0 right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg z-20 max-h-40 overflow-y-auto">
           {suggestions.map((s, i) => (
             <li key={s.id}>
               <button
@@ -195,7 +196,7 @@ export function TagInput({ songId, initialTags = [], onTagsChange }: TagInputPro
                 className={`w-full text-left px-3 py-2 text-sm transition-colors ${
                   i === highlightIndex
                     ? "bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300"
-                    : "text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
+                    : "text-primary hover:bg-surface-hover"
                 }`}
               >
                 <span
@@ -210,7 +211,7 @@ export function TagInput({ songId, initialTags = [], onTagsChange }: TagInputPro
       )}
 
       {showSuggestions && input.trim() && suggestions.length === 0 && !tags.some((t) => t.name === input.trim().toLowerCase()) && (
-        <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg z-20 px-3 py-2 text-sm text-gray-500">
+        <div className="absolute left-0 right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg z-20 px-3 py-2 text-sm text-muted">
           Press Enter to create &quot;{input.trim().toLowerCase()}&quot;
         </div>
       )}

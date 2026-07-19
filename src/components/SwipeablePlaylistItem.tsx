@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState, useEffect, useCallback } from "react";
-import { TrashIcon } from "@heroicons/react/24/outline";
+import { Trash2 } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 
 interface SwipeablePlaylistItemProps {
   onSwipeRemove: () => void;
@@ -94,7 +95,7 @@ export function SwipeablePlaylistItem({
           className="h-full w-20 bg-red-500 text-white flex items-center justify-center"
           aria-label="Remove from playlist"
         >
-          <TrashIcon className="w-5 h-5" />
+          <Icon icon={Trash2} className="w-5 h-5" />
         </button>
       </div>
 

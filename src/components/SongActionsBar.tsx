@@ -1,18 +1,17 @@
 "use client";
 
 import {
-  ShareIcon,
-  FlagIcon,
-  ForwardIcon,
-  CodeBracketIcon,
-} from "@heroicons/react/24/solid";
-import {
-  QueueListIcon,
-  CloudArrowDownIcon,
-  CheckCircleIcon,
-  ArchiveBoxIcon,
-  ArchiveBoxXMarkIcon,
-} from "@heroicons/react/24/outline";
+  Share2,
+  Flag,
+  FastForward,
+  Code,
+  ListMusic,
+  CloudDownload,
+  CircleCheck,
+  Archive,
+  ArchiveX,
+} from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { DownloadButton } from "./DownloadButton";
 import type { SunoSong } from "@/lib/sunoapi";
 
@@ -78,26 +77,26 @@ export function SongActionsBar({
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 active:scale-95 min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed ${
             isCached
               ? "bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400"
-              : "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+              : "bg-surface-raised hover:bg-surface-hover text-primary"
           }`}
         >
           {isCached ? (
-            <CheckCircleIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+            <Icon icon={CircleCheck} className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
           ) : (
-            <CloudArrowDownIcon className={`w-4 h-4 flex-shrink-0 ${isSavingOffline ? "animate-pulse" : ""}`} aria-hidden="true" />
+            <Icon icon={CloudDownload} className={`w-4 h-4 flex-shrink-0 ${isSavingOffline ? "animate-pulse" : ""}`} aria-hidden="true" />
           )}
           {isSavingOffline ? "Saving…" : isCached ? "Saved Offline" : "Save Offline"}
         </button>
       )}
 
       {/* Divider dot */}
-      <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700 hidden sm:block" aria-hidden="true" />
+      <span className="w-1 h-1 rounded-full bg-border-strong hidden sm:block" aria-hidden="true" />
 
       {/* Secondary actions */}
       {/* Visibility toggle */}
-      <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 min-h-[44px]">
-        <ShareIcon className="w-4 h-4 flex-shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
-        <span className="text-sm font-medium text-gray-900 dark:text-white">
+      <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface-raised min-h-[44px]">
+        <Icon icon={Share2} fill="currentColor" className="w-4 h-4 flex-shrink-0 text-secondary" aria-hidden="true" />
+        <span className="text-sm font-medium text-primary">
           {isPublic ? "Public" : "Private"}
         </span>
         <button
@@ -107,7 +106,7 @@ export function SongActionsBar({
           disabled={sharing}
           onClick={onVisibilityToggle}
           className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 disabled:opacity-50 ${
-            isPublic ? "bg-violet-600" : "bg-gray-300 dark:bg-gray-600"
+            isPublic ? "bg-violet-600" : "bg-border-strong"
           }`}
         >
           <span
@@ -120,16 +119,16 @@ export function SongActionsBar({
       {isPublic && (
         <button
           onClick={onCopyLink}
-          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200 active:scale-95 min-h-[44px]"
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-surface-raised hover:bg-surface-hover text-primary transition-all duration-200 active:scale-95 min-h-[44px]"
         >
-          <ShareIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+          <Icon icon={Share2} fill="currentColor" className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
           Share
         </button>
       )}
       {isPublic && (
         <button
           onClick={onShareOnX}
-          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200 active:scale-95 min-h-[44px]"
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-surface-raised hover:bg-surface-hover text-primary transition-all duration-200 active:scale-95 min-h-[44px]"
           aria-label="Share on X (Twitter)"
         >
           <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -143,9 +142,9 @@ export function SongActionsBar({
       {isPublic && (
         <button
           onClick={onEmbedOpen}
-          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200 active:scale-95 min-h-[44px]"
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-surface-raised hover:bg-surface-hover text-primary transition-all duration-200 active:scale-95 min-h-[44px]"
         >
-          <CodeBracketIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+          <Icon icon={Code} fill="currentColor" className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
           Get Embed Code
         </button>
       )}
@@ -155,16 +154,16 @@ export function SongActionsBar({
         <>
           <button
             onClick={onPlayNext}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200 active:scale-95 min-h-[44px]"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-surface-raised hover:bg-surface-hover text-primary transition-all duration-200 active:scale-95 min-h-[44px]"
           >
-            <ForwardIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+            <Icon icon={FastForward} fill="currentColor" className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
             Play Next
           </button>
           <button
             onClick={onAddToQueue}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200 active:scale-95 min-h-[44px]"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-surface-raised hover:bg-surface-hover text-primary transition-all duration-200 active:scale-95 min-h-[44px]"
           >
-            <QueueListIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+            <Icon icon={ListMusic} className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
             Add to Queue
           </button>
         </>
@@ -178,17 +177,17 @@ export function SongActionsBar({
           className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 transition-all duration-200 active:scale-95 min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Restore song from archive"
         >
-          <ArchiveBoxXMarkIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+          <Icon icon={ArchiveX} className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
           {archiving ? "Restoring…" : "Restore"}
         </button>
       ) : (
         <button
           onClick={onArchive}
           disabled={archiving}
-          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 active:scale-95 min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-surface-raised hover:bg-red-100 dark:hover:bg-red-900/30 text-secondary hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 active:scale-95 min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Archive song"
         >
-          <ArchiveBoxIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+          <Icon icon={Archive} className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
           {archiving ? "Archiving…" : "Archive"}
         </button>
       )}
@@ -196,10 +195,10 @@ export function SongActionsBar({
       {/* Report button */}
       <button
         onClick={onReportOpen}
-        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 active:scale-95 min-h-[44px]"
+        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-surface-raised hover:bg-red-100 dark:hover:bg-red-900/30 text-secondary hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 active:scale-95 min-h-[44px]"
         aria-label="Report song"
       >
-        <FlagIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+        <Icon icon={Flag} fill="currentColor" className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
         Report
       </button>
     </div>

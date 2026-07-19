@@ -4,8 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { MusicalNoteIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
-import { PlayIcon } from "@heroicons/react/24/solid";
+import { ArrowLeft, Music, Play } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import type { Song } from "@prisma/client";
 import { useToast } from "./Toast";
 import { SwipeablePlaylistItem } from "./SwipeablePlaylistItem";
@@ -132,9 +132,9 @@ export function PlaylistDetailView({
     <div className="px-4 py-4 space-y-4">
       <Link
         href="/playlists"
-        className="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-violet-400 transition-colors"
+        className="inline-flex items-center gap-1 text-sm text-secondary hover:text-violet-400 transition-colors"
       >
-        <ArrowLeftIcon className="w-4 h-4" />
+        <Icon icon={ArrowLeft} className="w-4 h-4" />
         Playlists
       </Link>
 
@@ -169,7 +169,7 @@ export function PlaylistDetailView({
           onClick={playback.handlePlayAll}
           className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors min-h-[44px]"
         >
-          <PlayIcon className="w-4 h-4" />
+          <Icon icon={Play} fill="currentColor" className="w-4 h-4" />
           Play All
         </button>
       )}
@@ -192,7 +192,7 @@ export function PlaylistDetailView({
             </button>
             <button
               onClick={() => editing.setShowDeleteConfirm(false)}
-              className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors min-h-[44px]"
+              className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium bg-surface-raised text-secondary transition-colors min-h-[44px]"
             >
               Cancel
             </button>
@@ -207,10 +207,10 @@ export function PlaylistDetailView({
       />
 
       {songs.length === 0 ? (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 text-center">
-          <MusicalNoteIcon className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-700 mb-3" aria-hidden="true" />
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">No songs yet</h3>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
+        <div className="bg-surface border border-border rounded-xl p-8 text-center">
+          <Icon icon={Music} className="w-10 h-10 mx-auto text-muted mb-3" aria-hidden="true" />
+          <h3 className="text-base font-semibold text-primary mb-1">No songs yet</h3>
+          <p className="text-secondary text-sm mb-4">
             Add songs to this playlist from your library.
           </p>
           <Link

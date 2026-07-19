@@ -1,12 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import {
-  XMarkIcon,
-  SparklesIcon,
-  ArrowUpTrayIcon,
-  CheckIcon,
-} from "@heroicons/react/24/solid";
+import { X, Sparkles, Upload, Check } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { apiPost, apiPatch } from "@/lib/api-client";
 
 interface CoverArtVariant {
@@ -96,21 +92,21 @@ export function CoverArtModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh]">
+      <div className="bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border">
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Cover Art</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-[280px]">
+            <h2 className="text-lg font-bold text-primary">Cover Art</h2>
+            <p className="text-xs text-secondary mt-0.5 truncate max-w-[280px]">
               {displayTitle}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1"
+            className="text-muted hover:text-primary transition-colors p-1"
             aria-label="Close"
           >
-            <XMarkIcon className="w-5 h-5" />
+            <Icon icon={X} fill="currentColor" className="w-5 h-5" />
           </button>
         </div>
 
@@ -119,14 +115,14 @@ export function CoverArtModal({
           {(currentImageUrl || selected) && (
             <div className="flex items-start gap-4">
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                <p className="text-xs font-medium text-secondary uppercase tracking-wider mb-2">
                   {selected && selected !== currentImageUrl ? "New cover" : "Current cover"}
                 </p>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={selected ?? currentImageUrl!}
                   alt="Cover art"
-                  className="w-24 h-24 rounded-xl object-cover border border-gray-200 dark:border-gray-700 shadow"
+                  className="w-24 h-24 rounded-xl object-cover border border-border shadow"
                 />
               </div>
             </div>
@@ -135,7 +131,7 @@ export function CoverArtModal({
           {/* Generate variants */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              <p className="text-sm font-semibold text-primary">
                 AI-Generated Variants
               </p>
               <button
@@ -143,7 +139,7 @@ export function CoverArtModal({
                 disabled={generating}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-60 disabled:cursor-not-allowed text-white transition-colors"
               >
-                <SparklesIcon className="w-3.5 h-3.5" />
+                <Icon icon={Sparkles} fill="currentColor" className="w-3.5 h-3.5" />
                 {generating ? "Generating…" : variants.length > 0 ? "Regenerate" : "Generate"}
               </button>
             </div>
@@ -153,7 +149,7 @@ export function CoverArtModal({
                 {[0, 1, 2].map((i) => (
                   <div
                     key={i}
-                    className="aspect-square rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse"
+                    className="aspect-square rounded-xl bg-surface-raised animate-pulse"
                   />
                 ))}
               </div>
@@ -183,7 +179,7 @@ export function CoverArtModal({
                       />
                       {isSelected && (
                         <span className="absolute top-1 right-1 bg-violet-600 rounded-full p-0.5">
-                          <CheckIcon className="w-3 h-3 text-white" />
+                          <Icon icon={Check} fill="currentColor" className="w-3 h-3 text-white" />
                         </span>
                       )}
                       <span className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent pt-4 pb-1 px-1.5">
@@ -196,7 +192,7 @@ export function CoverArtModal({
             )}
 
             {!generating && variants.length === 0 && (
-              <p className="text-xs text-gray-400 dark:text-gray-500">
+              <p className="text-xs text-muted">
                 Click &ldquo;Generate&rdquo; to create AI cover art variants based on this song&rsquo;s style and title.
               </p>
             )}
@@ -204,7 +200,7 @@ export function CoverArtModal({
 
           {/* Upload custom */}
           <div className="space-y-2">
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+            <p className="text-sm font-semibold text-primary">
               Upload Custom Image
             </p>
             <input
@@ -216,12 +212,12 @@ export function CoverArtModal({
             />
             <button
               onClick={() => fileRef.current?.click()}
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl border border-border hover:bg-surface-hover text-primary transition-colors"
             >
-              <ArrowUpTrayIcon className="w-4 h-4" />
+              <Icon icon={Upload} fill="currentColor" className="w-4 h-4" />
               Choose file…
             </button>
-            <p className="text-xs text-gray-400 dark:text-gray-500">JPEG, PNG, WEBP — max 4 MB</p>
+            <p className="text-xs text-muted">JPEG, PNG, WEBP — max 4 MB</p>
           </div>
 
           {error && (
@@ -230,10 +226,10 @@ export function CoverArtModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-6 pb-5 pt-2 border-t border-gray-100 dark:border-gray-800">
+        <div className="flex items-center justify-end gap-2 px-6 pb-5 pt-2 border-t border-border">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
+            className="px-4 py-2 text-sm font-medium rounded-xl bg-surface-raised hover:bg-surface-hover text-primary transition-colors"
           >
             Cancel
           </button>

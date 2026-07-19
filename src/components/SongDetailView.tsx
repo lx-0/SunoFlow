@@ -6,11 +6,8 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { type SubscriptionTier } from "@/lib/feature-gates";
-import {
-  PlayIcon,
-  PauseIcon,
-  PaintBrushIcon,
-} from "@heroicons/react/24/solid";
+import { Paintbrush, Pause, Play } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useOfflineCache } from "@/hooks/useOfflineCache";
 import type { SunoSong } from "@/lib/sunoapi";
 import { useToast } from "./Toast";
@@ -149,13 +146,13 @@ export function SongDetailView({
           sunoJobId={sunoJobId}
         />
 
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-2">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Tags</h2>
+        <div className="bg-surface border border-border rounded-xl p-4 space-y-2">
+          <h2 className="text-sm font-semibold text-secondary tracking-wide">Tags</h2>
           <TagInput songId={song.id} initialTags={initialSongTags} />
         </div>
 
         {hasAudio ? (
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center justify-center gap-3">
+          <div className="bg-surface border border-border rounded-xl p-4 flex items-center justify-center gap-3">
             <button
               onClick={() =>
                 togglePlay({ id: song.id, title: song.title, audioUrl: song.audioUrl!, imageUrl: coverImageUrl ?? null, duration: song.duration ?? null, lyrics: song.lyrics })
@@ -164,17 +161,17 @@ export function SongDetailView({
               className="flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl bg-violet-600 hover:bg-violet-500 text-white shadow-sm transition-all duration-200 active:scale-95 min-h-[44px]"
             >
               {isThisSongPlaying ? (
-                <PauseIcon className="w-5 h-5" aria-hidden="true" />
+                <Icon icon={Pause} fill="currentColor" className="w-5 h-5" aria-hidden="true" />
               ) : (
-                <PlayIcon className="w-5 h-5" aria-hidden="true" />
+                <Icon icon={Play} fill="currentColor" className="w-5 h-5" aria-hidden="true" />
               )}
               {isThisSongPlaying ? "Pause" : "Play"}
             </button>
             <AddToPlaylistButton songId={song.id} songTitle={song.title} variant="button" />
           </div>
         ) : (
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center justify-center gap-3">
-            <span className="text-sm text-gray-400 dark:text-gray-600">No audio available</span>
+          <div className="bg-surface border border-border rounded-xl p-4 flex items-center justify-center gap-3">
+            <span className="text-sm text-muted">No audio available</span>
             <AddToPlaylistButton songId={song.id} songTitle={song.title} variant="button" />
           </div>
         )}
@@ -261,12 +258,12 @@ export function SongDetailView({
           initialVideoUrl={song.videoUrl ?? null}
         />
 
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
+        <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Cover Art</h2>
+            <h2 className="text-sm font-semibold text-secondary tracking-wide">Cover Art</h2>
           </div>
           <div className="flex items-center gap-3">
-            <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-border flex-shrink-0">
               <CoverArtImage
                 src={coverImageUrl || generatedFallbackUrl}
                 alt="Cover art"
@@ -281,7 +278,7 @@ export function SongDetailView({
               onClick={() => setCoverArtModalOpen(true)}
               className="flex items-center gap-2 px-3 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
             >
-              <PaintBrushIcon className="w-4 h-4" aria-hidden="true" />
+              <Icon icon={Paintbrush} className="w-4 h-4" aria-hidden="true" />
               {coverImageUrl ? "Change Cover" : "Generate Cover"}
             </button>
           </div>
@@ -321,9 +318,9 @@ export function SongDetailView({
           isCurrentSong={currentSong?.id === song.id}
         />
 
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 transition-shadow duration-200 hover:shadow-md">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide mb-2">Prompt</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{song.prompt}</p>
+        <div className="bg-surface border border-border rounded-xl p-4 transition-shadow duration-200 hover:shadow-md">
+          <h2 className="text-sm font-semibold text-secondary tracking-wide mb-2">Prompt</h2>
+          <p className="text-sm text-secondary">{song.prompt}</p>
         </div>
 
         <SongRatingPanel

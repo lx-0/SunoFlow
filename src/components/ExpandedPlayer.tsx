@@ -3,27 +3,25 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import {
-  PlayIcon,
-  PauseIcon,
-  ForwardIcon,
-  BackwardIcon,
-  SpeakerWaveIcon,
-  SpeakerXMarkIcon,
-} from "@heroicons/react/24/solid";
-import {
-  ArrowPathRoundedSquareIcon,
-  ArrowsRightLeftIcon,
-  ArrowTopRightOnSquareIcon,
-  MusicalNoteIcon,
-  QueueListIcon,
-  DocumentTextIcon,
-  HeartIcon as HeartOutlineIcon,
-  FaceSmileIcon,
-  AdjustmentsHorizontalIcon,
-  CubeIcon,
-} from "@heroicons/react/24/outline";
+  ArrowLeftRight,
+  Box,
+  ExternalLink,
+  FastForward,
+  FileText,
+  Heart,
+  ListMusic,
+  Music,
+  Pause,
+  Play,
+  Repeat,
+  Rewind,
+  SlidersHorizontal,
+  Smile,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { Spinner } from "./Spinner";
-import { HeartIcon } from "@heroicons/react/24/solid";
 import { CoverArtImage } from "./CoverArtImage";
 import { useQueue } from "./QueueContext";
 import { PlayerWaveform } from "./PlayerWaveform";
@@ -94,12 +92,12 @@ export function ExpandedPlayer({
       <div className="flex-1 min-h-0 overflow-y-auto md:flex-initial md:overflow-visible flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-center px-4 py-2 flex-shrink-0">
-        <span className="text-xs text-gray-500 uppercase tracking-wider">Now Playing</span>
+        <span className="text-xs text-muted uppercase tracking-wider">Now Playing</span>
       </div>
 
       {/* Cover art */}
       <div className="flex-shrink-0 flex justify-center px-8 py-4">
-        <div className="relative w-60 h-60 sm:w-72 sm:h-72 rounded-2xl bg-gray-800 overflow-hidden shadow-2xl">
+        <div className="relative w-60 h-60 sm:w-72 sm:h-72 rounded-2xl bg-surface-raised overflow-hidden shadow-2xl">
           {currentSong.imageUrl ? (
             <CoverArtImage
               src={currentSong.imageUrl}
@@ -112,7 +110,7 @@ export function ExpandedPlayer({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <MusicalNoteIcon className="w-20 h-20 text-gray-600" aria-hidden="true" />
+              <Icon icon={Music} className="w-20 h-20 text-muted" aria-hidden="true" />
             </div>
           )}
         </div>
@@ -120,7 +118,7 @@ export function ExpandedPlayer({
 
       {/* Song info */}
       <div className="px-6 py-2 text-center flex-shrink-0">
-        <h2 className="text-lg font-semibold text-white">{currentSong.title ?? "Untitled"}</h2>
+        <h2 className="text-lg font-semibold text-primary">{currentSong.title ?? "Untitled"}</h2>
         <Link
           href={`/library/${currentSong.id}`}
           onClick={() => onClose?.()}
@@ -128,7 +126,7 @@ export function ExpandedPlayer({
           className="mt-1 inline-flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 rounded transition-colors"
         >
           <span>View song details</span>
-          <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" aria-hidden="true" />
+          <Icon icon={ExternalLink} className="w-3.5 h-3.5" aria-hidden="true" />
         </Link>
       </div>
 
@@ -152,7 +150,7 @@ export function ExpandedPlayer({
             </div>
           </div>
         )}
-        <div className="flex justify-between text-xs text-gray-500 mt-1">
+        <div className="flex justify-between text-xs text-muted mt-1">
           <span>{formatTime(currentTime)}</span>
           <span>{formatTime(duration)}</span>
         </div>
@@ -164,18 +162,18 @@ export function ExpandedPlayer({
           onClick={toggleShuffle}
           aria-label={shuffle ? "Shuffle on" : "Shuffle off"}
           className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
-            shuffle ? "text-violet-400" : "text-gray-500 hover:text-gray-300"
+            shuffle ? "text-violet-400" : "text-muted hover:text-secondary"
           }`}
         >
-          <ArrowsRightLeftIcon className="w-5 h-5" />
+          <Icon icon={ArrowLeftRight} className="w-5 h-5" />
         </button>
 
         <button
           onClick={skipPrev}
           aria-label="Previous"
-          className="w-12 h-12 flex items-center justify-center text-white hover:text-violet-400 transition-colors"
+          className="w-12 h-12 flex items-center justify-center text-primary hover:text-violet-400 transition-colors"
         >
-          <BackwardIcon className="w-7 h-7" />
+          <Icon icon={Rewind} className="w-7 h-7" fill="currentColor" />
         </button>
 
         <button
@@ -187,28 +185,28 @@ export function ExpandedPlayer({
           {isBuffering ? (
             <Spinner className="w-8 h-8" />
           ) : isPlaying ? (
-            <PauseIcon className="w-8 h-8" />
+            <Icon icon={Pause} className="w-8 h-8" fill="currentColor" />
           ) : (
-            <PlayIcon className="w-8 h-8 ml-1" />
+            <Icon icon={Play} className="w-8 h-8 ml-1" fill="currentColor" />
           )}
         </button>
 
         <button
           onClick={skipNext}
           aria-label="Next"
-          className="w-12 h-12 flex items-center justify-center text-white hover:text-violet-400 transition-colors"
+          className="w-12 h-12 flex items-center justify-center text-primary hover:text-violet-400 transition-colors"
         >
-          <ForwardIcon className="w-7 h-7" />
+          <Icon icon={FastForward} className="w-7 h-7" fill="currentColor" />
         </button>
 
         <button
           onClick={cycleRepeat}
           aria-label={`Repeat: ${repeat}`}
           className={`relative w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
-            repeat !== "off" ? "text-violet-400" : "text-gray-500 hover:text-gray-300"
+            repeat !== "off" ? "text-violet-400" : "text-muted hover:text-secondary"
           }`}
         >
-          <ArrowPathRoundedSquareIcon className="w-5 h-5" />
+          <Icon icon={Repeat} className="w-5 h-5" />
           {repeat === "repeat-one" && (
             <span className="absolute -top-0.5 -right-0.5 text-[8px] font-bold text-violet-400">1</span>
           )}
@@ -221,12 +219,12 @@ export function ExpandedPlayer({
         <button
           onClick={toggleMute}
           aria-label={muted ? "Unmute" : "Mute"}
-          className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-200 transition-colors"
+          className="w-8 h-8 flex items-center justify-center text-secondary hover:text-primary transition-colors"
         >
           {muted || volume === 0 ? (
-            <SpeakerXMarkIcon className="w-5 h-5" />
+            <Icon icon={VolumeX} className="w-5 h-5" />
           ) : (
-            <SpeakerWaveIcon className="w-5 h-5" />
+            <Icon icon={Volume2} className="w-5 h-5" />
           )}
         </button>
         <input
@@ -244,10 +242,10 @@ export function ExpandedPlayer({
           onClick={toggleShuffleVersions}
           aria-label={shuffleVersions ? "Shuffle versions on" : "Shuffle versions off"}
           className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${
-            shuffleVersions ? "text-violet-400" : "text-gray-500 hover:text-gray-300"
+            shuffleVersions ? "text-violet-400" : "text-muted hover:text-secondary"
           }`}
         >
-          <CubeIcon className="w-5 h-5" />
+          <Icon icon={Box} className="w-5 h-5" />
         </button>
 
         {/* Emoji reactions */}
@@ -258,10 +256,10 @@ export function ExpandedPlayer({
               aria-label={showReactions ? "Hide reactions" : "React with emoji"}
               aria-expanded={showReactions}
               className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${
-                showReactions ? "text-violet-400 bg-white/10" : "text-gray-400 hover:text-gray-200"
+                showReactions ? "text-violet-400 bg-surface-hover" : "text-secondary hover:text-primary"
               }`}
             >
-              <FaceSmileIcon className="w-5 h-5" />
+              <Icon icon={Smile} className="w-5 h-5" />
             </button>
             {showReactions && (
               <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30">
@@ -282,10 +280,10 @@ export function ExpandedPlayer({
             onClick={onToggleFavorite}
             aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
             className={`w-8 h-8 flex items-center justify-center transition-colors ${
-              isFavorite ? "text-pink-500" : "text-gray-400 hover:text-pink-400"
+              isFavorite ? "text-pink-500" : "text-secondary hover:text-pink-400"
             }`}
           >
-            {isFavorite ? <HeartIcon className="w-5 h-5" /> : <HeartOutlineIcon className="w-5 h-5" />}
+            {isFavorite ? <Icon icon={Heart} className="w-5 h-5" fill="currentColor" /> : <Icon icon={Heart} className="w-5 h-5" />}
           </button>
         )}
       </div>
@@ -294,41 +292,41 @@ export function ExpandedPlayer({
       {/* /Upper scrollable region */}
 
       {/* Tab buttons for inline panels */}
-      <div className="flex items-center justify-center gap-1 px-6 py-2 border-t border-gray-800 flex-shrink-0">
+      <div className="flex items-center justify-center gap-1 px-6 py-2 border-t border-border flex-shrink-0">
         {currentSong.lyrics && (
           <button
             onClick={() => toggleTab("lyrics")}
             className={`px-4 py-2 text-xs font-medium rounded-full transition-colors ${
-              activeTab === "lyrics" ? "bg-violet-600 text-white" : "text-gray-400 hover:text-white hover:bg-gray-800"
+              activeTab === "lyrics" ? "bg-violet-600 text-white" : "text-secondary hover:text-primary hover:bg-surface-hover"
             }`}
           >
-            <DocumentTextIcon className="w-4 h-4 inline mr-1" />
+            <Icon icon={FileText} className="w-4 h-4 inline mr-1" />
             Lyrics
           </button>
         )}
         <button
           onClick={() => toggleTab("queue")}
           className={`px-4 py-2 text-xs font-medium rounded-full transition-colors ${
-            activeTab === "queue" ? "bg-violet-600 text-white" : "text-gray-400 hover:text-white hover:bg-gray-800"
+            activeTab === "queue" ? "bg-violet-600 text-white" : "text-secondary hover:text-primary hover:bg-surface-hover"
           }`}
         >
-          <QueueListIcon className="w-4 h-4 inline mr-1" />
+          <Icon icon={ListMusic} className="w-4 h-4 inline mr-1" />
           Up Next
         </button>
         <button
           onClick={() => toggleTab("eq")}
           className={`px-4 py-2 text-xs font-medium rounded-full transition-colors ${
-            activeTab === "eq" ? "bg-violet-600 text-white" : "text-gray-400 hover:text-white hover:bg-gray-800"
+            activeTab === "eq" ? "bg-violet-600 text-white" : "text-secondary hover:text-primary hover:bg-surface-hover"
           }`}
         >
-          <AdjustmentsHorizontalIcon className="w-4 h-4 inline mr-1" />
+          <Icon icon={SlidersHorizontal} className="w-4 h-4 inline mr-1" />
           EQ
         </button>
       </div>
 
       {/* Inline panel content */}
       {activeTab !== "none" && (
-        <div className="flex-1 min-h-0 overflow-y-auto md:flex-initial md:max-h-[50vh] px-4 pb-safe border-t border-gray-800">
+        <div className="flex-1 min-h-0 overflow-y-auto md:flex-initial md:max-h-[50vh] px-4 pb-safe border-t border-border">
           {activeTab === "lyrics" && currentSong.lyrics && (
             <LyricsPanel
               lyrics={currentSong.lyrics}

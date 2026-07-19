@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { BookmarkIcon, TrashIcon } from "@heroicons/react/24/solid";
-import { AdjustmentsHorizontalIcon } from "@heroicons/react/24/outline";
+import { Bookmark, Trash2, SlidersHorizontal } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useToast } from "../Toast";
 import { deletePreset, savePreset } from "./api";
 import type { GenerationPreset } from "./types";
@@ -87,25 +87,25 @@ export function PresetPickerPanel({
           onClick={() => setShowPresetPicker(!showPresetPicker)}
           className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-xl hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors"
         >
-          <AdjustmentsHorizontalIcon className="h-4 w-4" />
+          <Icon icon={SlidersHorizontal} className="h-4 w-4" />
           Presets{presets.length > 0 ? ` (${presets.length})` : ""}
         </button>
         <button
           type="button"
           onClick={() => setShowPresetSaveDialog(!showPresetSaveDialog)}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-secondary bg-surface-raised border border-border rounded-xl hover:bg-surface-hover transition-colors"
         >
-          <BookmarkIcon className="h-4 w-4" />
+          <Icon icon={Bookmark} fill="currentColor" className="h-4 w-4" />
           Save as preset
         </button>
       </div>
 
       {/* Preset Picker Panel */}
       {showPresetPicker && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">My Presets</p>
+        <div className="bg-surface-raised border border-border rounded-xl p-3 space-y-3">
+          <p className="text-xs font-semibold text-secondary uppercase tracking-wide">My Presets</p>
           {presets.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+            <p className="text-sm text-secondary text-center py-2">
               No presets yet — save your current form state as a preset.
             </p>
           ) : (
@@ -115,11 +115,11 @@ export function PresetPickerPanel({
                   <button
                     type="button"
                     onClick={() => onApplyPreset(p)}
-                    className="w-full text-left p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-teal-400 dark:hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/10 transition-colors"
+                    className="w-full text-left p-3 rounded-xl border border-border hover:border-teal-400 dark:hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/10 transition-colors"
                   >
-                    <span className="text-sm font-medium text-gray-900 dark:text-white block pr-6">{p.name}</span>
+                    <span className="text-sm font-medium text-primary block pr-6">{p.name}</span>
                     {p.stylePrompt && (
-                      <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{p.stylePrompt}</span>
+                      <span className="block text-xs text-secondary mt-0.5 truncate">{p.stylePrompt}</span>
                     )}
                     <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                       {p.isInstrumental && (
@@ -133,11 +133,11 @@ export function PresetPickerPanel({
                   <button
                     type="button"
                     onClick={() => handleDeletePreset(p.id)}
-                    className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                    className="absolute top-2 right-2 p-1.5 text-secondary hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
                     aria-label="Delete preset"
                     title="Delete preset"
                   >
-                    <TrashIcon className="h-4 w-4" />
+                    <Icon icon={Trash2} fill="currentColor" className="h-4 w-4" />
                   </button>
                 </div>
               ))}
@@ -148,8 +148,8 @@ export function PresetPickerPanel({
 
       {/* Save Preset Dialog */}
       {showPresetSaveDialog && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
-          <p className="text-sm font-medium text-gray-900 dark:text-white">Save current settings as preset</p>
+        <div className="bg-surface-raised border border-border rounded-xl p-3 space-y-3">
+          <p className="text-sm font-medium text-primary">Save current settings as preset</p>
           <input
             type="text"
             value={presetName}
@@ -158,7 +158,7 @@ export function PresetPickerPanel({
             placeholder="Preset name"
             aria-label="Preset name"
             maxLength={100}
-            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+            className="w-full bg-surface-raised border border-border rounded-xl px-3 py-2 text-base sm:text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
           />
           <div className="flex gap-2">
             <button
@@ -172,12 +172,12 @@ export function PresetPickerPanel({
             <button
               type="button"
               onClick={() => { setShowPresetSaveDialog(false); setPresetName(""); }}
-              className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="px-3 py-2 text-sm font-medium text-secondary bg-surface-raised border border-border rounded-xl hover:bg-surface-hover transition-colors"
             >
               Cancel
             </button>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-secondary">
             {presets.length} / 20 presets used
           </p>
         </div>

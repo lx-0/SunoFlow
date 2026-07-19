@@ -5,15 +5,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
-  ArrowPathIcon,
-  ForwardIcon,
-  MicrophoneIcon,
-  SpeakerWaveIcon,
-  ScissorsIcon,
-  PaintBrushIcon,
-  SwatchIcon,
-} from "@heroicons/react/24/solid";
-import { DocumentDuplicateIcon } from "@heroicons/react/24/outline";
+  RefreshCw,
+  FastForward,
+  Mic,
+  Volume2,
+  Scissors,
+  Paintbrush,
+  SwatchBook,
+  Copy,
+} from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { canUseFeature, type SubscriptionTier } from "@/lib/feature-gates";
 import { useSongStems } from "@/hooks/useSongStems";
 import { useToast } from "../Toast";
@@ -127,8 +128,8 @@ export function SongRemixPanel({
     <>
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Remix & Extend</h2>
-          <span className="text-xs text-gray-400 dark:text-gray-500">{variationCount}/{maxVariations} variations</span>
+          <h2 className="text-sm font-semibold text-primary tracking-wide">Remix & Extend</h2>
+          <span className="text-xs text-muted">{variationCount}/{maxVariations} variations</span>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <button
@@ -142,7 +143,7 @@ export function SongRemixPanel({
             disabled={variationCount >= maxVariations}
             className="flex items-center justify-center gap-2 px-3 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
           >
-            <ArrowPathIcon className="w-4 h-4" aria-hidden="true" />
+            <Icon icon={RefreshCw} fill="currentColor" className="w-4 h-4" aria-hidden="true" />
             Create Variation
           </button>
           <button
@@ -150,7 +151,7 @@ export function SongRemixPanel({
             disabled={variationCount >= maxVariations}
             className="flex items-center justify-center gap-2 px-3 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
           >
-            <ForwardIcon className="w-4 h-4" aria-hidden="true" />
+            <Icon icon={FastForward} fill="currentColor" className="w-4 h-4" aria-hidden="true" />
             Extend
           </button>
           {isInstrumental ? (
@@ -159,7 +160,7 @@ export function SongRemixPanel({
               disabled={variationCount >= maxVariations}
               className="flex items-center justify-center gap-2 px-3 py-2.5 bg-pink-600 hover:bg-pink-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
             >
-              <MicrophoneIcon className="w-4 h-4" aria-hidden="true" />
+              <Icon icon={Mic} fill="currentColor" className="w-4 h-4" aria-hidden="true" />
               Add Vocals
             </button>
           ) : (
@@ -168,7 +169,7 @@ export function SongRemixPanel({
               disabled={variationCount >= maxVariations}
               className="flex items-center justify-center gap-2 px-3 py-2.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
             >
-              <SpeakerWaveIcon className="w-4 h-4" aria-hidden="true" />
+              <Icon icon={Volume2} fill="currentColor" className="w-4 h-4" aria-hidden="true" />
               Add Instrumental
             </button>
           )}
@@ -178,16 +179,16 @@ export function SongRemixPanel({
               disabled={!hasAudio}
               className="flex items-center justify-center gap-2 px-3 py-2.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px]"
             >
-              <ScissorsIcon className="w-4 h-4" aria-hidden="true" />
+              <Icon icon={Scissors} fill="currentColor" className="w-4 h-4" aria-hidden="true" />
               Separate Vocals
             </button>
           ) : (
             <Link
               href="/pricing"
-              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium rounded-xl transition-colors min-h-[44px] hover:bg-violet-100 dark:hover:bg-violet-900/20 hover:text-violet-700 dark:hover:text-violet-400"
+              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-surface-raised text-secondary text-sm font-medium rounded-xl transition-colors min-h-[44px] hover:bg-violet-100 dark:hover:bg-violet-900/20 hover:text-violet-700 dark:hover:text-violet-400"
               title="Vocal Separation requires Pro or higher"
             >
-              <ScissorsIcon className="w-4 h-4" aria-hidden="true" />
+              <Icon icon={Scissors} fill="currentColor" className="w-4 h-4" aria-hidden="true" />
               Separate Vocals <span className="text-xs font-bold">(Pro+)</span>
             </Link>
           )}
@@ -196,7 +197,7 @@ export function SongRemixPanel({
             disabled={!hasAudio || !song.duration || variationCount >= maxVariations}
             className="flex items-center justify-center gap-2 px-3 py-2.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px] col-span-2"
           >
-            <PaintBrushIcon className="w-4 h-4" aria-hidden="true" />
+            <Icon icon={Paintbrush} fill="currentColor" className="w-4 h-4" aria-hidden="true" />
             Replace Section
           </button>
           <button
@@ -210,9 +211,9 @@ export function SongRemixPanel({
               if (song.title) params.set("sourceSongTitle", song.title);
               router.push(`/generate?${params.toString()}`);
             }}
-            className="flex items-center justify-center gap-2 px-3 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-xl transition-colors min-h-[44px] col-span-2"
+            className="flex items-center justify-center gap-2 px-3 py-2.5 bg-surface-raised hover:bg-surface-hover text-primary text-sm font-medium rounded-xl transition-colors min-h-[44px] col-span-2"
           >
-            <DocumentDuplicateIcon className="w-4 h-4" aria-hidden="true" />
+            <Icon icon={Copy} className="w-4 h-4" aria-hidden="true" />
             Use as Template
           </button>
           {song.tags?.trim() && (
@@ -224,7 +225,7 @@ export function SongRemixPanel({
               }}
               className="flex items-center justify-center gap-2 px-3 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors min-h-[44px] col-span-2"
             >
-              <SwatchIcon className="w-4 h-4" aria-hidden="true" />
+              <Icon icon={SwatchBook} fill="currentColor" className="w-4 h-4" aria-hidden="true" />
               Save Style
             </button>
           )}
@@ -295,16 +296,16 @@ export function SongRemixPanel({
           onClick={() => setSaveStyleOpen(false)}
         >
           <div
-            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4"
+            className="bg-surface rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 id="save-style-title" className="text-lg font-semibold text-gray-900 dark:text-white">Save Style Template</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <h2 id="save-style-title" className="text-lg font-semibold text-primary">Save Style Template</h2>
+            <p className="text-sm text-secondary">
               Save this song style for quick reuse in future generations.
             </p>
             <div className="space-y-3">
               <div>
-                <label htmlFor="style-template-name" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                <label htmlFor="style-template-name" className="block text-xs font-medium text-secondary mb-1">
                   Template Name
                 </label>
                 <input
@@ -314,12 +315,12 @@ export function SongRemixPanel({
                   onChange={(e) => setStyleTemplateName(e.target.value)}
                   maxLength={100}
                   autoFocus
-                  className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="w-full bg-surface-raised border border-border rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-violet-500"
                   placeholder="e.g. Cinematic Piano Ballad"
                 />
               </div>
               <div>
-                <label htmlFor="style-template-tags" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                <label htmlFor="style-template-tags" className="block text-xs font-medium text-secondary mb-1">
                   Style Tags
                 </label>
                 <textarea
@@ -328,7 +329,7 @@ export function SongRemixPanel({
                   onChange={(e) => setStyleTemplateTags(e.target.value)}
                   rows={3}
                   maxLength={500}
-                  className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
+                  className="w-full bg-surface-raised border border-border rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
                   placeholder="e.g. dreamy synthwave, lush pads, driving bass"
                 />
               </div>
@@ -336,7 +337,7 @@ export function SongRemixPanel({
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setSaveStyleOpen(false)}
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-surface-raised hover:bg-surface-hover text-primary transition-colors"
               >
                 Cancel
               </button>

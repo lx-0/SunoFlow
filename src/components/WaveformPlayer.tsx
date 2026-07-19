@@ -1,12 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import {
-  PlayIcon,
-  PauseIcon,
-  SpeakerWaveIcon,
-  SpeakerXMarkIcon,
-} from "@heroicons/react/24/solid";
+import { Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { formatDuration as formatTime } from "@/lib/time-format";
 
 interface WaveformPlayerProps {
@@ -40,9 +36,9 @@ export function WaveformPlayer({ audioUrl, duration }: WaveformPlayerProps) {
 
       const ws = WaveSurfer.create({
         container: containerRef.current,
-        waveColor: "#a78bfa",
-        progressColor: "#7c3aed",
-        cursorColor: "#7c3aed",
+        waveColor: "#aaa2a5",
+        progressColor: "#ef009c",
+        cursorColor: "#ef009c",
         cursorWidth: 2,
         barWidth: 2,
         barGap: 1,
@@ -163,7 +159,7 @@ export function WaveformPlayer({ audioUrl, duration }: WaveformPlayerProps) {
       aria-label="Audio player"
       tabIndex={0}
       onKeyDown={handleKeyDown}
-      className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-950"
+      className="bg-surface border border-border rounded-xl p-4 space-y-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-950"
     >
       <div className="flex items-center gap-3">
         <button
@@ -174,26 +170,26 @@ export function WaveformPlayer({ audioUrl, duration }: WaveformPlayerProps) {
           className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${
             loaded
               ? "bg-violet-600 hover:bg-violet-500 text-white"
-              : "bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed"
+              : "bg-surface-raised text-muted cursor-not-allowed"
           }`}
         >
           {isPlaying ? (
-            <PauseIcon className="w-6 h-6" />
+            <Icon icon={Pause} className="w-6 h-6" />
           ) : (
-            <PlayIcon className="w-6 h-6 ml-0.5" />
+            <Icon icon={Play} className="w-6 h-6 ml-0.5" />
           )}
         </button>
 
         <div className="flex-1 min-w-0">
           <div ref={containerRef} className="w-full" />
           {!loaded && !error && (
-            <div className="h-16 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+            <div className="h-16 bg-surface-raised rounded-lg animate-pulse" />
           )}
         </div>
       </div>
 
       <div className="flex items-center justify-between pl-15">
-        <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
+        <div className="flex items-center gap-2 text-xs text-muted">
           <span>{formatTime(currentTime)}</span>
           <span>/</span>
           <span>{formatTime(totalDuration)}</span>
@@ -205,12 +201,12 @@ export function WaveformPlayer({ audioUrl, duration }: WaveformPlayerProps) {
             onClick={handleToggleMute}
             aria-label={muted ? "Unmute" : "Mute"}
             tabIndex={-1}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-muted hover:text-secondary transition-colors"
           >
             {muted || volume === 0 ? (
-              <SpeakerXMarkIcon className="w-4 h-4" />
+              <Icon icon={VolumeX} className="w-4 h-4" />
             ) : (
-              <SpeakerWaveIcon className="w-4 h-4" />
+              <Icon icon={Volume2} className="w-4 h-4" />
             )}
           </button>
           <input
@@ -353,7 +349,7 @@ function FallbackPlayer({
       aria-label="Audio player"
       tabIndex={0}
       onKeyDown={handleKeyDown}
-      className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-950"
+      className="bg-surface border border-border rounded-xl p-4 space-y-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-950"
     >
       <div className="flex items-center gap-3">
         <button
@@ -363,18 +359,18 @@ function FallbackPlayer({
           className="w-12 h-12 rounded-full flex items-center justify-center bg-violet-600 hover:bg-violet-500 text-white transition-colors flex-shrink-0"
         >
           {isPlaying ? (
-            <PauseIcon className="w-6 h-6" />
+            <Icon icon={Pause} className="w-6 h-6" />
           ) : (
-            <PlayIcon className="w-6 h-6 ml-0.5" />
+            <Icon icon={Play} className="w-6 h-6 ml-0.5" />
           )}
         </button>
-        <div className="flex-1 text-sm text-gray-500 dark:text-gray-400">
+        <div className="flex-1 text-sm text-secondary">
           {isPlaying ? "Playing" : "Paused"}
         </div>
       </div>
 
       <div className="space-y-1">
-        <div className="relative h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full">
+        <div className="relative h-1.5 bg-surface-raised rounded-full">
           <div
             className="absolute inset-y-0 left-0 bg-violet-500 rounded-full transition-all"
             style={{ width: `${pct}%` }}
@@ -391,7 +387,7 @@ function FallbackPlayer({
           />
         </div>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
+          <div className="flex items-center gap-2 text-xs text-muted">
             <span>{formatTime(currentTime)}</span>
             <span>/</span>
             <span>{formatTime(audioDuration)}</span>
@@ -403,12 +399,12 @@ function FallbackPlayer({
               onClick={handleToggleMute}
               aria-label={muted ? "Unmute" : "Mute"}
               tabIndex={-1}
-              className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center text-muted hover:text-secondary transition-colors"
             >
               {muted || volume === 0 ? (
-                <SpeakerXMarkIcon className="w-4 h-4" />
+                <Icon icon={VolumeX} className="w-4 h-4" />
               ) : (
-                <SpeakerWaveIcon className="w-4 h-4" />
+                <Icon icon={Volume2} className="w-4 h-4" />
               )}
             </button>
             <input

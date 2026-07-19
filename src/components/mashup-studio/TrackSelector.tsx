@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import {
-  ArrowUpTrayIcon,
-  MusicalNoteIcon,
-} from "@heroicons/react/24/solid";
+import { Music, Upload } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import Image from "next/image";
 import { useToast } from "../Toast";
 import { SongPickerModal } from "./SongPickerModal";
@@ -90,21 +88,21 @@ export function TrackSelector({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label className="block text-sm font-medium text-secondary">
           {label}
         </label>
         {hasSelection && (
           <button
             type="button"
             onClick={clearTrack}
-            className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400"
+            className="text-xs text-secondary hover:text-red-500 dark:hover:text-red-400"
           >
             Clear
           </button>
         )}
       </div>
 
-      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+      <div className="flex gap-1 bg-surface rounded-lg p-1">
         {(["library", "upload", "url"] as const).map((type) => (
           <button
             key={type}
@@ -117,8 +115,8 @@ export function TrackSelector({
             }}
             className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-colors ${
               track.sourceType === type
-                ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                ? "bg-surface-raised text-primary shadow-sm"
+                : "text-secondary hover:text-primary"
             }`}
           >
             {type === "library"
@@ -133,7 +131,7 @@ export function TrackSelector({
       {track.sourceType === "library" && (
         <>
           {track.songId ? (
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 flex items-center gap-3">
+            <div className="bg-surface-raised border border-border rounded-xl p-3 flex items-center gap-3">
               {track.songImageUrl ? (
                 <Image
                   src={track.songImageUrl}
@@ -145,10 +143,10 @@ export function TrackSelector({
                 />
               ) : (
                 <div className="h-10 w-10 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
-                  <MusicalNoteIcon className="h-5 w-5 text-violet-500" />
+                  <Icon icon={Music} fill="currentColor" className="h-5 w-5 text-violet-500" />
                 </div>
               )}
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate flex-1">
+              <p className="text-sm font-medium text-primary truncate flex-1">
                 {track.songTitle || "Untitled"}
               </p>
               <button
@@ -163,10 +161,10 @@ export function TrackSelector({
             <button
               type="button"
               onClick={() => setPickerOpen(true)}
-              className="w-full flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:border-violet-400 dark:hover:border-violet-500 bg-gray-50 dark:bg-gray-800/50 transition-colors"
+              className="w-full flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-border-strong rounded-xl hover:border-violet-400 dark:hover:border-violet-500 bg-surface-raised transition-colors"
             >
-              <MusicalNoteIcon className="h-6 w-6 text-gray-400 dark:text-gray-500" />
-              <span className="text-sm text-gray-600 dark:text-gray-400">
+              <Icon icon={Music} fill="currentColor" className="h-6 w-6 text-muted" />
+              <span className="text-sm text-secondary">
                 Choose from library
               </span>
             </button>
@@ -213,21 +211,21 @@ export function TrackSelector({
               className={`flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
                 isDragging
                   ? "border-violet-500 bg-violet-50 dark:bg-violet-900/20"
-                  : "border-gray-300 dark:border-gray-600 hover:border-violet-400 dark:hover:border-violet-500 bg-gray-50 dark:bg-gray-800/50"
+                  : "border-border-strong hover:border-violet-400 dark:hover:border-violet-500 bg-surface-raised"
               }`}
             >
-              <ArrowUpTrayIcon
+              <Icon
+                icon={Upload}
+                fill="currentColor"
                 className={`h-6 w-6 ${
-                  isDragging
-                    ? "text-violet-500"
-                    : "text-gray-400 dark:text-gray-500"
+                  isDragging ? "text-violet-500" : "text-muted"
                 }`}
               />
               <div className="text-center">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <p className="text-sm font-medium text-secondary">
                   Drop audio file or click to browse
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                <p className="text-xs text-secondary mt-0.5">
                   MP3, WAV, OGG, FLAC, M4A (max 10MB)
                 </p>
               </div>
@@ -243,16 +241,16 @@ export function TrackSelector({
               />
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-2">
+            <div className="bg-surface-raised border border-border rounded-xl p-3 space-y-2">
               <div className="flex items-center gap-3">
                 <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
-                  <MusicalNoteIcon className="h-5 w-5 text-violet-500" />
+                  <Icon icon={Music} fill="currentColor" className="h-5 w-5 text-violet-500" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  <p className="text-sm font-medium text-primary truncate">
                     {track.file.name}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-secondary">
                     {formatFileSize(track.file.size)}
                     {track.duration != null &&
                       ` · ${formatDuration(track.duration)}`}
@@ -278,7 +276,7 @@ export function TrackSelector({
           value={track.fileUrl}
           onChange={(e) => onChange({ ...track, fileUrl: e.target.value })}
           placeholder="https://example.com/song.mp3"
-          className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+          className="w-full rounded-xl border border-border-strong bg-surface-raised px-4 py-3 text-sm text-primary placeholder-muted focus:ring-2 focus:ring-violet-500 focus:border-transparent"
         />
       )}
     </div>

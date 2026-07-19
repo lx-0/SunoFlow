@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { XMarkIcon, SparklesIcon, BoltIcon, ClockIcon } from "@heroicons/react/24/outline";
+import { Clock, Sparkles, X, Zap } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { track } from "@/lib/analytics";
 import { apiGet } from "@/lib/api-client";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
@@ -82,7 +83,7 @@ export function UpgradeModal({ trigger, onClose }: UpgradeModalProps) {
         aria-labelledby="upgrade-modal-title"
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
       >
-        <div ref={dialogRef} className="relative w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+        <div ref={dialogRef} className="relative w-full max-w-md rounded-2xl bg-surface shadow-2xl border border-border overflow-hidden">
           {/* Header */}
           <div className="relative bg-gradient-to-br from-violet-600 to-purple-700 px-6 py-8 text-center">
             <button
@@ -90,10 +91,10 @@ export function UpgradeModal({ trigger, onClose }: UpgradeModalProps) {
               className="absolute top-3 right-3 p-1 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
               aria-label="Close"
             >
-              <XMarkIcon className="w-5 h-5" />
+              <Icon icon={X} className="w-5 h-5" />
             </button>
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/20 mb-3">
-              <SparklesIcon className="w-6 h-6 text-white" />
+              <Icon icon={Sparkles} className="w-6 h-6 text-white" />
             </div>
             <h2
               id="upgrade-modal-title"
@@ -108,7 +109,7 @@ export function UpgradeModal({ trigger, onClose }: UpgradeModalProps) {
             <>
               {/* Plan highlights */}
               <div className="px-6 py-5">
-                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3">
+                <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">
                   Annual billing — save 20%
                 </p>
                 <div className="space-y-2">
@@ -122,22 +123,22 @@ export function UpgradeModal({ trigger, onClose }: UpgradeModalProps) {
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        {plan.highlight && <BoltIcon className="w-4 h-4 text-violet-500" />}
+                        {plan.highlight && <Icon icon={Zap} className="w-4 h-4 text-violet-500" />}
                         <span
                           className={`text-sm font-semibold ${
                             plan.highlight
                               ? "text-violet-700 dark:text-violet-300"
-                              : "text-gray-700 dark:text-gray-300"
+                              : "text-secondary"
                           }`}
                         >
                           {plan.tier}
                         </span>
                       </div>
                       <div className="text-right">
-                        <span className="text-sm font-bold text-gray-900 dark:text-white">
+                        <span className="text-sm font-bold text-primary">
                           {plan.price}
                         </span>
-                        <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                        <span className="ml-2 text-xs text-secondary">
                           {plan.credits}
                         </span>
                       </div>
@@ -157,7 +158,7 @@ export function UpgradeModal({ trigger, onClose }: UpgradeModalProps) {
                 </Link>
                 <button
                   onClick={handleDismiss}
-                  className="w-full py-2.5 px-4 rounded-xl text-sm font-medium text-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                  className="w-full py-2.5 px-4 rounded-xl text-sm font-medium text-center text-secondary hover:text-primary transition-colors"
                 >
                   Maybe later
                 </button>
@@ -168,12 +169,12 @@ export function UpgradeModal({ trigger, onClose }: UpgradeModalProps) {
               {/* Coming soon state */}
               <div className="px-6 py-6 text-center">
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 mb-3">
-                  <ClockIcon className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                  <Icon icon={Clock} className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                 </div>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                <p className="text-sm font-semibold text-primary mb-1">
                   Subscriptions coming soon
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-secondary">
                   Paid plans are not yet available. Check back shortly — we&apos;re working on it.
                 </p>
               </div>
@@ -181,7 +182,7 @@ export function UpgradeModal({ trigger, onClose }: UpgradeModalProps) {
               <div className="px-6 pb-6">
                 <button
                   onClick={handleDismiss}
-                  className="w-full py-2.5 px-4 rounded-xl text-sm font-medium text-center bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  className="w-full py-2.5 px-4 rounded-xl text-sm font-medium text-center bg-surface-raised text-secondary hover:bg-surface-hover transition-colors"
                 >
                   Got it
                 </button>

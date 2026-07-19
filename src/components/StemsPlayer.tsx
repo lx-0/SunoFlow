@@ -1,14 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ArrowDownTrayIcon,
-  ScissorsIcon,
-  SpeakerWaveIcon,
-  SpeakerXMarkIcon,
-  PlayIcon,
-  PauseIcon,
-} from "@heroicons/react/24/solid";
+import { Download, Scissors, Volume2, VolumeX, Play, Pause } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { formatDuration as formatTime } from "@/lib/time-format";
 
 export interface StemTrack {
@@ -206,10 +200,10 @@ export function StemsPlayer({ stems, onDownload, onDownloadAll, downloadingAll }
   const hasSolo = trackStates.some((t) => t.soloed);
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
+    <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-          <ScissorsIcon className="w-4 h-4 text-violet-400" aria-hidden="true" />
+        <h2 className="text-sm font-semibold text-primary flex items-center gap-2">
+          <Icon icon={Scissors} fill="currentColor" className="w-4 h-4 text-violet-400" aria-hidden="true" />
           Stems Preview
         </h2>
         {readyStems.length > 1 && (
@@ -218,7 +212,7 @@ export function StemsPlayer({ stems, onDownload, onDownloadAll, downloadingAll }
             disabled={downloadingAll}
             className="flex items-center gap-1.5 text-xs text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 disabled:opacity-50 transition-colors"
           >
-            <ArrowDownTrayIcon className="w-3.5 h-3.5" />
+            <Icon icon={Download} fill="currentColor" className="w-3.5 h-3.5" />
             {downloadingAll ? "Preparing…" : "Download All"}
           </button>
         )}
@@ -241,8 +235,8 @@ export function StemsPlayer({ stems, onDownload, onDownloadAll, downloadingAll }
               key={stem.id}
               className={`flex items-center gap-2 p-2.5 rounded-lg border transition-colors ${
                 isSoloDimmed
-                  ? "border-gray-100 dark:border-gray-800 opacity-40"
-                  : "border-gray-200 dark:border-gray-700"
+                  ? "border-border opacity-40"
+                  : "border-border"
               }`}
             >
               {isReady && hasMultipleReady && (
@@ -259,7 +253,7 @@ export function StemsPlayer({ stems, onDownload, onDownloadAll, downloadingAll }
               )}
 
               <div className="flex-1 min-w-0">
-                <span className="text-xs font-medium text-gray-900 dark:text-white block truncate">
+                <span className="text-xs font-medium text-primary block truncate">
                   {stem.title || `Stem ${idx + 1}`}
                 </span>
               </div>
@@ -284,10 +278,10 @@ export function StemsPlayer({ stems, onDownload, onDownloadAll, downloadingAll }
                         className={`p-1.5 rounded transition-colors ${
                           ts.muted
                             ? "text-red-500 bg-red-100 dark:bg-red-900/30"
-                            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                            : "text-secondary hover:text-primary"
                         }`}
                       >
-                        {ts.muted ? <SpeakerXMarkIcon className="w-4 h-4" /> : <SpeakerWaveIcon className="w-4 h-4" />}
+                        {ts.muted ? <Icon icon={VolumeX} fill="currentColor" className="w-4 h-4" /> : <Icon icon={Volume2} fill="currentColor" className="w-4 h-4" />}
                       </button>
                       <button
                         onClick={() => toggleSolo(idx)}
@@ -295,7 +289,7 @@ export function StemsPlayer({ stems, onDownload, onDownloadAll, downloadingAll }
                         className={`px-2 py-1 rounded text-xs font-bold transition-colors ${
                           ts.soloed
                             ? "bg-violet-500 text-white"
-                            : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                            : "bg-surface-raised text-secondary hover:bg-surface-hover"
                         }`}
                       >
                         S
@@ -307,9 +301,9 @@ export function StemsPlayer({ stems, onDownload, onDownloadAll, downloadingAll }
                   <button
                     onClick={() => onDownload(stem)}
                     aria-label={`Download ${stem.title || "stem"}`}
-                    className="p-1.5 text-gray-500 hover:text-violet-500 dark:text-gray-400 dark:hover:text-violet-400 transition-colors flex-shrink-0"
+                    className="p-1.5 text-secondary hover:text-violet-500 dark:hover:text-violet-400 transition-colors flex-shrink-0"
                   >
-                    <ArrowDownTrayIcon className="w-4 h-4" />
+                    <Icon icon={Download} fill="currentColor" className="w-4 h-4" />
                   </button>
                 </>
               ) : stem.generationStatus === "failed" ? (
@@ -323,7 +317,7 @@ export function StemsPlayer({ stems, onDownload, onDownloadAll, downloadingAll }
       </div>
 
       {hasMultipleReady && (
-        <div className="pt-2 border-t border-gray-100 dark:border-gray-800 space-y-2">
+        <div className="pt-2 border-t border-border space-y-2">
           <input
             type="range"
             min={0}
@@ -340,10 +334,10 @@ export function StemsPlayer({ stems, onDownload, onDownloadAll, downloadingAll }
               aria-label={isPlaying ? "Pause" : "Play all stems"}
               className="flex items-center gap-2 px-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-white text-xs font-medium rounded-lg transition-colors min-w-[72px] justify-center"
             >
-              {isPlaying ? <PauseIcon className="w-4 h-4" /> : <PlayIcon className="w-4 h-4" />}
+              {isPlaying ? <Icon icon={Pause} fill="currentColor" className="w-4 h-4" /> : <Icon icon={Play} fill="currentColor" className="w-4 h-4" />}
               {isPlaying ? "Pause" : "Play"}
             </button>
-            <span className="text-xs text-gray-400 tabular-nums">
+            <span className="text-xs text-muted tabular-nums">
               {formatTime(currentTime)} / {formatTime(duration)}
             </span>
           </div>

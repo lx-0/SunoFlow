@@ -1,6 +1,7 @@
 "use client";
 
-import { XMarkIcon } from "@heroicons/react/24/solid";
+import { X } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -102,7 +103,7 @@ export function LibraryFilterPanel({
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               aria-label="Filter by status"
-              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-base sm:text-sm text-gray-900 dark:text-white min-h-[44px]"
+              className="px-3 py-2 rounded-lg border border-border bg-surface text-base sm:text-sm text-primary min-h-[44px]"
             >
               {STATUS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -113,7 +114,7 @@ export function LibraryFilterPanel({
               value={ratingFilter}
               onChange={(e) => setRatingFilter(e.target.value)}
               aria-label="Filter by rating"
-              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-base sm:text-sm text-gray-900 dark:text-white min-h-[44px]"
+              className="px-3 py-2 rounded-lg border border-border bg-surface text-base sm:text-sm text-primary min-h-[44px]"
             >
               {RATING_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -126,7 +127,7 @@ export function LibraryFilterPanel({
               onChange={(e) => setDateFrom(e.target.value)}
               placeholder="From"
               aria-label="Filter from date"
-              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-base sm:text-sm text-gray-900 dark:text-white min-h-[44px]"
+              className="px-3 py-2 rounded-lg border border-border bg-surface text-base sm:text-sm text-primary min-h-[44px]"
             />
 
             <input
@@ -135,14 +136,14 @@ export function LibraryFilterPanel({
               onChange={(e) => setDateTo(e.target.value)}
               placeholder="To"
               aria-label="Filter to date"
-              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-base sm:text-sm text-gray-900 dark:text-white min-h-[44px]"
+              className="px-3 py-2 rounded-lg border border-border bg-surface text-base sm:text-sm text-primary min-h-[44px]"
             />
           </div>
 
           {/* Tag multi-select */}
           {availableTags.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Tags</p>
+              <p className="text-xs font-medium text-secondary mb-1.5">Tags</p>
               <div className="flex flex-wrap gap-1.5">
                 {availableTags.map((t) => (
                   <button
@@ -151,13 +152,13 @@ export function LibraryFilterPanel({
                     className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                       tagFilter.includes(t.id)
                         ? "text-white"
-                        : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                        : "bg-surface-raised text-secondary hover:bg-surface-hover"
                     }`}
                     style={tagFilter.includes(t.id) ? { backgroundColor: t.color } : undefined}
                   >
                     {t.name}
                     {t._count?.songTags != null && (
-                      <span className={`ml-1 ${tagFilter.includes(t.id) ? "opacity-75" : "text-gray-400 dark:text-gray-500"}`}>
+                      <span className={`ml-1 ${tagFilter.includes(t.id) ? "opacity-75" : "text-muted"}`}>
                         {t._count.songTags}
                       </span>
                     )}
@@ -169,7 +170,7 @@ export function LibraryFilterPanel({
 
           {/* Genre multi-select */}
           <div>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Genre</p>
+            <p className="text-xs font-medium text-secondary mb-1.5">Genre</p>
             <div className="flex flex-wrap gap-1.5">
               {GENRE_OPTIONS.map((g) => (
                 <button
@@ -178,7 +179,7 @@ export function LibraryFilterPanel({
                   className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                     genreFilter.includes(g)
                       ? "bg-violet-600 text-white"
-                      : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                      : "bg-surface-raised text-secondary hover:bg-surface-hover"
                   }`}
                 >
                   {g}
@@ -189,7 +190,7 @@ export function LibraryFilterPanel({
 
           {/* Mood multi-select */}
           <div>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Mood</p>
+            <p className="text-xs font-medium text-secondary mb-1.5">Mood</p>
             <div className="flex flex-wrap gap-1.5">
               {MOOD_OPTIONS.map((m) => (
                 <button
@@ -198,7 +199,7 @@ export function LibraryFilterPanel({
                   className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                     moodFilter.includes(m)
                       ? "bg-violet-600 text-white"
-                      : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                      : "bg-surface-raised text-secondary hover:bg-surface-hover"
                   }`}
                 >
                   {m}
@@ -209,11 +210,11 @@ export function LibraryFilterPanel({
 
           {/* Tempo range */}
           <div>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+            <p className="text-xs font-medium text-secondary mb-1.5">
               Tempo (BPM){tempoMin || tempoMax ? `: ${tempoMin || TEMPO_MIN}–${tempoMax || TEMPO_MAX}` : ""}
             </p>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-gray-400 w-8">{TEMPO_MIN}</span>
+              <span className="text-xs text-muted w-8">{TEMPO_MIN}</span>
               <div className="flex-1 flex items-center gap-2">
                 <input
                   type="range"
@@ -244,7 +245,7 @@ export function LibraryFilterPanel({
                   className="flex-1 accent-violet-600"
                 />
               </div>
-              <span className="text-xs text-gray-400 w-8 text-right">{TEMPO_MAX}</span>
+              <span className="text-xs text-muted w-8 text-right">{TEMPO_MAX}</span>
             </div>
           </div>
         </div>
@@ -257,7 +258,7 @@ export function LibraryFilterPanel({
             <span key={g} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300">
               {g}
               <button onClick={() => setGenreFilter((prev) => prev.filter((x) => x !== g))} aria-label={`Remove ${g} filter`} className="hover:text-violet-500">
-                <XMarkIcon className="w-3 h-3" />
+                <Icon icon={X} className="w-3 h-3" />
               </button>
             </span>
           ))}
@@ -265,7 +266,7 @@ export function LibraryFilterPanel({
             <span key={m} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
               {m}
               <button onClick={() => setMoodFilter((prev) => prev.filter((x) => x !== m))} aria-label={`Remove ${m} filter`} className="hover:text-blue-500">
-                <XMarkIcon className="w-3 h-3" />
+                <Icon icon={X} className="w-3 h-3" />
               </button>
             </span>
           ))}
@@ -273,15 +274,15 @@ export function LibraryFilterPanel({
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
               {tempoMin || TEMPO_MIN}–{tempoMax || TEMPO_MAX} BPM
               <button onClick={() => { setTempoMin(""); setTempoMax(""); }} aria-label="Remove tempo filter" className="hover:text-green-500">
-                <XMarkIcon className="w-3 h-3" />
+                <Icon icon={X} className="w-3 h-3" />
               </button>
             </span>
           )}
           {statusFilter && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-surface-raised text-primary">
               {STATUS_OPTIONS.find((o) => o.value === statusFilter)?.label ?? statusFilter}
-              <button onClick={() => setStatusFilter("")} aria-label="Remove status filter" className="hover:text-gray-500">
-                <XMarkIcon className="w-3 h-3" />
+              <button onClick={() => setStatusFilter("")} aria-label="Remove status filter" className="hover:text-secondary">
+                <Icon icon={X} className="w-3 h-3" />
               </button>
             </span>
           )}
@@ -289,15 +290,15 @@ export function LibraryFilterPanel({
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300">
               {RATING_OPTIONS.find((o) => o.value === ratingFilter)?.label ?? ratingFilter}
               <button onClick={() => setRatingFilter("")} aria-label="Remove rating filter" className="hover:text-yellow-500">
-                <XMarkIcon className="w-3 h-3" />
+                <Icon icon={X} className="w-3 h-3" />
               </button>
             </span>
           )}
           {(dateFrom || dateTo) && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-surface-raised text-primary">
               {dateFrom || "…"}–{dateTo || "…"}
-              <button onClick={() => { setDateFrom(""); setDateTo(""); }} aria-label="Remove date filter" className="hover:text-gray-500">
-                <XMarkIcon className="w-3 h-3" />
+              <button onClick={() => { setDateFrom(""); setDateTo(""); }} aria-label="Remove date filter" className="hover:text-secondary">
+                <Icon icon={X} className="w-3 h-3" />
               </button>
             </span>
           )}
@@ -308,7 +309,7 @@ export function LibraryFilterPanel({
               <span key={tid} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: t.color }}>
                 #{t.name}
                 <button onClick={() => setTagFilter((prev) => prev.filter((x) => x !== tid))} aria-label={`Remove ${t.name} tag filter`} className="hover:opacity-70">
-                  <XMarkIcon className="w-3 h-3" />
+                  <Icon icon={X} className="w-3 h-3" />
                 </button>
               </span>
             );

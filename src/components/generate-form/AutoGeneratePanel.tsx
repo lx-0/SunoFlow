@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { SparklesIcon } from "@heroicons/react/24/solid";
-import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { Sparkles, ChevronDown } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useToast } from "../Toast";
 import { autoFillGenerationFields } from "./api";
 import { Spinner } from "../Spinner";
@@ -49,10 +49,10 @@ export function AutoGeneratePanel({ initialPrompt, onFieldsFilled }: AutoGenerat
         className="w-full flex items-center justify-between bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
       >
         <span className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
-          <SparklesIcon className="h-4 w-4" />
+          <Icon icon={Sparkles} fill="currentColor" className="h-4 w-4" />
           Auto-generate from description
         </span>
-        <ChevronDownIcon
+        <Icon icon={ChevronDown}
           className={`h-4 w-4 text-amber-500 dark:text-amber-400 transition-transform ${
             showAutoGenerate ? "rotate-180" : ""
           }`}
@@ -60,8 +60,8 @@ export function AutoGeneratePanel({ initialPrompt, onFieldsFilled }: AutoGenerat
       </button>
 
       {showAutoGenerate && (
-        <div className="mt-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+        <div className="mt-3 bg-surface-raised border border-border rounded-xl p-4 space-y-3">
+          <p className="text-xs text-secondary">
             Describe what you want and we&apos;ll suggest a title, style, and prompt prompt all at once.
           </p>
           <div className="flex gap-2">
@@ -74,7 +74,7 @@ export function AutoGeneratePanel({ initialPrompt, onFieldsFilled }: AutoGenerat
               aria-label="Auto-generation description"
               maxLength={500}
               disabled={isAutoGenerating}
-              className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-50"
+              className="flex-1 bg-surface-raised border border-border rounded-xl px-4 py-2.5 text-base sm:text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-50"
             />
             <button
               type="button"
@@ -89,7 +89,7 @@ export function AutoGeneratePanel({ initialPrompt, onFieldsFilled }: AutoGenerat
                 </>
               ) : (
                 <>
-                  <SparklesIcon className="h-4 w-4" />
+                  <Icon icon={Sparkles} fill="currentColor" className="h-4 w-4" />
                   Fill fields
                 </>
               )}

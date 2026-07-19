@@ -28,7 +28,7 @@ export function PublishSheets({ publish, isPublic, songCount }: PublishSheetsPro
         title="Publish to Discover"
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-600 dark:text-gray-300">
+          <p className="text-sm text-secondary">
             This will make your playlist visible on the Discover page{!isPublic ? " and set it to public" : ""}.
           </p>
           {songCount === 0 && (
@@ -37,14 +37,14 @@ export function PublishSheets({ publish, isPublic, songCount }: PublishSheetsPro
             </p>
           )}
           <div className="space-y-1.5">
-            <label htmlFor="publish-genre" className="text-xs font-medium text-gray-500 dark:text-gray-400">
+            <label htmlFor="publish-genre" className="text-xs font-medium text-secondary">
               Genre (optional)
             </label>
             <select
               id="publish-genre"
               value={publish.selectedGenre}
               onChange={(e) => publish.setSelectedGenre(e.target.value)}
-              className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="w-full bg-surface-raised border border-border rounded-lg px-3 py-2.5 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             >
               <option value="">No genre</option>
               {publish.genres.map((g) => (
@@ -62,7 +62,7 @@ export function PublishSheets({ publish, isPublic, songCount }: PublishSheetsPro
             </button>
             <button
               onClick={() => publish.setShowPublishConfirm(false)}
-              className="px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors min-h-[44px]"
+              className="px-4 py-2.5 rounded-lg text-sm font-medium bg-surface-raised text-primary transition-colors min-h-[44px]"
             >
               Cancel
             </button>
@@ -76,7 +76,7 @@ export function PublishSheets({ publish, isPublic, songCount }: PublishSheetsPro
         title="Unpublish playlist"
       >
         <div className="space-y-3">
-          <p className="text-sm text-gray-600 dark:text-gray-300">
+          <p className="text-sm text-secondary">
             This will remove your playlist from the Discover page. The public share link will still work.
           </p>
           <div className="flex gap-2">
@@ -89,7 +89,7 @@ export function PublishSheets({ publish, isPublic, songCount }: PublishSheetsPro
             </button>
             <button
               onClick={() => publish.setShowUnpublishConfirm(false)}
-              className="px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors min-h-[44px]"
+              className="px-4 py-2.5 rounded-lg text-sm font-medium bg-surface-raised text-primary transition-colors min-h-[44px]"
             >
               Cancel
             </button>

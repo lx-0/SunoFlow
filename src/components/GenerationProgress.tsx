@@ -4,16 +4,13 @@ import { useState } from "react";
 import { apiPost } from "@/lib/api-client";
 import { useRouter } from "next/navigation";
 import {
-  MusicalNoteIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  HandThumbUpIcon,
-  HandThumbDownIcon,
-} from "@heroicons/react/24/solid";
-import {
-  HandThumbUpIcon as HandThumbUpOutlineIcon,
-  HandThumbDownIcon as HandThumbDownOutlineIcon,
-} from "@heroicons/react/24/outline";
+  Music,
+  CircleCheck,
+  CircleAlert,
+  ThumbsUp,
+  ThumbsDown,
+} from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import type { GenerationState } from "@/hooks/useGenerationPoller";
 import { Spinner } from "./Spinner";
 
@@ -28,9 +25,9 @@ const STEPS = ["Queued", "Generating", "Complete"];
 
 function StatusIcon({ status }: { status: GenerationState["status"] }) {
   if (status === "ready")
-    return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
+    return <Icon icon={CircleCheck} fill="currentColor" className="h-5 w-5 text-green-500" />;
   if (status === "failed")
-    return <ExclamationCircleIcon className="h-5 w-5 text-red-500" />;
+    return <Icon icon={CircleAlert} fill="currentColor" className="h-5 w-5 text-red-500" />;
   return (
     <Spinner className="h-5 w-5 text-violet-500" />
   );
@@ -63,7 +60,7 @@ function ThumbsFeedback({ songId }: { songId: string }) {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-gray-500 dark:text-gray-400">Rate this:</span>
+      <span className="text-xs text-secondary">Rate this:</span>
       <button
         type="button"
         onClick={() => handleClick("thumbs_up")}
@@ -73,13 +70,13 @@ function ThumbsFeedback({ songId }: { songId: string }) {
         className={`p-1.5 rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center ${
           rating === "thumbs_up"
             ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
-            : "text-gray-400 dark:text-gray-500 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20"
+            : "text-muted hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20"
         }`}
       >
         {rating === "thumbs_up" ? (
-          <HandThumbUpIcon className="h-4 w-4" />
+          <Icon icon={ThumbsUp} fill="currentColor" className="h-4 w-4" />
         ) : (
-          <HandThumbUpOutlineIcon className="h-4 w-4" />
+          <Icon icon={ThumbsUp} className="h-4 w-4" />
         )}
       </button>
       <button
@@ -91,13 +88,13 @@ function ThumbsFeedback({ songId }: { songId: string }) {
         className={`p-1.5 rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center ${
           rating === "thumbs_down"
             ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
-            : "text-gray-400 dark:text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+            : "text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
         }`}
       >
         {rating === "thumbs_down" ? (
-          <HandThumbDownIcon className="h-4 w-4" />
+          <Icon icon={ThumbsDown} fill="currentColor" className="h-4 w-4" />
         ) : (
-          <HandThumbDownOutlineIcon className="h-4 w-4" />
+          <Icon icon={ThumbsDown} className="h-4 w-4" />
         )}
       </button>
     </div>
@@ -110,14 +107,14 @@ function SongProgress({ song }: { song: GenerationState }) {
   const isTerminal = song.status === "ready" || song.status === "failed";
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
+    <div className="bg-surface-raised border border-border rounded-xl p-4 space-y-3">
       {/* Song header */}
       <div className="flex items-center gap-3">
         <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
-          <MusicalNoteIcon className="h-5 w-5 text-violet-500" />
+          <Icon icon={Music} fill="currentColor" className="h-5 w-5 text-violet-500" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+          <p className="text-sm font-medium text-primary truncate">
             {song.title ?? "Untitled song"}
           </p>
           <div className="flex items-center gap-1.5">
@@ -162,8 +159,8 @@ function SongProgress({ song }: { song: GenerationState }) {
               <span
                 className={`text-[10px] ${
                   isCurrent || isDone || isFailed
-                    ? "text-gray-700 dark:text-gray-300 font-medium"
-                    : "text-gray-400 dark:text-gray-500"
+                    ? "text-primary font-medium"
+                    : "text-muted"
                 }`}
               >
                 {step}
@@ -213,14 +210,14 @@ export function GenerationProgress({
   return (
     <div className="space-y-3" aria-label="Generation progress">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+        <h2 className="text-sm font-semibold text-primary">
           Generation progress
         </h2>
         {allDone && (
           <button
             type="button"
             onClick={onDismiss}
-            className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            className="text-xs text-secondary hover:text-primary"
           >
             Dismiss
           </button>

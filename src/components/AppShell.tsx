@@ -7,35 +7,37 @@ import { useTranslations } from "next-intl";
 import { TIER_LABELS, TIER_BADGE_COLORS, type SubscriptionTier } from "@/lib/feature-gates";
 
 import {
-  HomeIcon,
-  HeartIcon,
-  Cog6ToothIcon,
-  BookOpenIcon,
-  QueueListIcon,
-  PlusCircleIcon,
-  UserCircleIcon,
-  Bars3Icon,
-  XMarkIcon,
-  ClockIcon,
-  ShieldCheckIcon,
-  ChartBarIcon,
-  PresentationChartLineIcon,
-  LightBulbIcon,
-  SparklesIcon,
-  BookmarkIcon,
-  UserGroupIcon,
-  GlobeAltIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  SunIcon,
-  MoonIcon,
-  ComputerDesktopIcon,
-  RssIcon,
-  ChatBubbleLeftEllipsisIcon,
-  MusicalNoteIcon,
-  RectangleStackIcon,
-  Squares2X2Icon,
-} from "@heroicons/react/24/outline";
+  House,
+  Heart,
+  Settings,
+  BookOpen,
+  ListMusic,
+  CirclePlus,
+  CircleUserRound,
+  Menu,
+  X,
+  Clock,
+  ShieldCheck,
+  ChartColumn,
+  Presentation,
+  Lightbulb,
+  Sparkles,
+  Bookmark,
+  UsersRound,
+  Globe,
+  ChevronLeft,
+  ChevronRight,
+  Sun,
+  Moon,
+  Monitor,
+  Rss,
+  MessageSquareMore,
+  Music,
+  Layers,
+  LayoutGrid,
+  type LucideIcon,
+} from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useTheme } from "./ThemeProvider";
 import dynamic from "next/dynamic";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -57,32 +59,35 @@ import { useKbFeedback } from "@/hooks/useKbFeedback";
 // prefetch: true forces eager prefetch even before the link enters the viewport.
 // Critical user-flow routes get this treatment so they load instantly on first click.
 const NAV_ITEM_DEFS = [
-  { key: "home" as const, href: "/", icon: HomeIcon, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "library" as const, href: "/library", icon: BookOpenIcon, dataTour: undefined as string | undefined, prefetch: true },
-  { key: "inspire" as const, href: "/inspire", icon: LightBulbIcon, dataTour: "nav-inspire" as string | undefined, prefetch: false },
-  { key: "generate" as const, href: "/generate", icon: PlusCircleIcon, dataTour: "nav-generate" as string | undefined, prefetch: true },
-  { key: "templates" as const, href: "/templates", icon: BookmarkIcon, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "personas" as const, href: "/personas", icon: UserGroupIcon, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "mashup" as const, href: "/mashup", icon: SparklesIcon, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "feed" as const, href: "/feed", icon: RssIcon, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "radio" as const, href: "/radio", icon: MusicalNoteIcon, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "explore" as const, href: "/explore", icon: Squares2X2Icon, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "discover" as const, href: "/discover", icon: GlobeAltIcon, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "playlists" as const, href: "/playlists", icon: QueueListIcon, dataTour: "explore" as string | undefined, prefetch: false },
-  { key: "favorites" as const, href: "/favorites", icon: HeartIcon, dataTour: "nav-favorites" as string | undefined, prefetch: false },
-  { key: "history" as const, href: "/history", icon: ClockIcon, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "generations" as const, href: "/generations", icon: RectangleStackIcon, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "analytics" as const, href: "/analytics", icon: ChartBarIcon, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "stats" as const, href: "/stats", icon: PresentationChartLineIcon, dataTour: undefined as string | undefined, prefetch: false },
+  { key: "home" as const, href: "/", icon: House, dataTour: undefined as string | undefined, prefetch: false },
+  { key: "library" as const, href: "/library", icon: BookOpen, dataTour: undefined as string | undefined, prefetch: true },
+  { key: "inspire" as const, href: "/inspire", icon: Lightbulb, dataTour: "nav-inspire" as string | undefined, prefetch: false },
+  { key: "generate" as const, href: "/generate", icon: CirclePlus, dataTour: "nav-generate" as string | undefined, prefetch: true },
+  { key: "templates" as const, href: "/templates", icon: Bookmark, dataTour: undefined as string | undefined, prefetch: false },
+  { key: "personas" as const, href: "/personas", icon: UsersRound, dataTour: undefined as string | undefined, prefetch: false },
+  { key: "mashup" as const, href: "/mashup", icon: Sparkles, dataTour: undefined as string | undefined, prefetch: false },
+  { key: "feed" as const, href: "/feed", icon: Rss, dataTour: undefined as string | undefined, prefetch: false },
+  { key: "radio" as const, href: "/radio", icon: Music, dataTour: undefined as string | undefined, prefetch: false },
+  { key: "explore" as const, href: "/explore", icon: LayoutGrid, dataTour: undefined as string | undefined, prefetch: false },
+  { key: "discover" as const, href: "/discover", icon: Globe, dataTour: undefined as string | undefined, prefetch: false },
+  { key: "playlists" as const, href: "/playlists", icon: ListMusic, dataTour: "explore" as string | undefined, prefetch: false },
+  { key: "favorites" as const, href: "/favorites", icon: Heart, dataTour: "nav-favorites" as string | undefined, prefetch: false },
+  { key: "history" as const, href: "/history", icon: Clock, dataTour: undefined as string | undefined, prefetch: false },
+  { key: "generations" as const, href: "/generations", icon: Layers, dataTour: undefined as string | undefined, prefetch: false },
+  { key: "analytics" as const, href: "/analytics", icon: ChartColumn, dataTour: undefined as string | undefined, prefetch: false },
+  { key: "stats" as const, href: "/stats", icon: Presentation, dataTour: undefined as string | undefined, prefetch: false },
 ];
+
+/** Bottom-nav hrefs: the 3 PRODUCT.md modes — Browse (library), Generate, Edit (mashup). */
+const MOBILE_NAV_HREFS = ["/library", "/generate", "/mashup"];
 
 const themeOrder = ["light", "dark", "system"] as const;
 type ThemeOption = (typeof themeOrder)[number];
 
-const themeIcons: Record<ThemeOption, React.ElementType> = {
-  light: SunIcon,
-  dark: MoonIcon,
-  system: ComputerDesktopIcon,
+const themeIcons: Record<ThemeOption, LucideIcon> = {
+  light: Sun,
+  dark: Moon,
+  system: Monitor,
 };
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -135,24 +140,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {t("skipToMain")}
       </a>
       {/* ── Desktop sidebar (md+) ── */}
-      <aside aria-label="Main navigation" className={`hidden md:flex md:flex-col md:fixed md:inset-y-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 z-20 transition-all duration-200 ${sidebarCollapsed ? "md:w-16" : "md:w-56"}`}>
+      <aside aria-label="Main navigation" className={`hidden md:flex md:flex-col md:fixed md:inset-y-0 bg-surface-deep border-r border-border z-20 transition-all duration-200 ${sidebarCollapsed ? "md:w-16" : "md:w-56"}`}>
         {/* Logo + collapse toggle */}
-        <div className={`flex items-center h-14 border-b border-gray-200 dark:border-gray-800 ${sidebarCollapsed ? "justify-center px-2" : "px-4 justify-between"}`}>
+        <div className={`flex items-center h-14 border-b border-border ${sidebarCollapsed ? "justify-center px-2" : "px-4 justify-between"}`}>
           {!sidebarCollapsed && (
             <span className="text-violet-400 font-bold text-lg tracking-tight">SunoFlow</span>
           )}
           <button
             onClick={toggleSidebarCollapsed}
             aria-label={t("toggleSidebar")}
-            className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg text-muted hover:text-primary hover:bg-surface-hover transition-colors"
           >
-            {sidebarCollapsed ? <ChevronRightIcon className="w-4 h-4" /> : <ChevronLeftIcon className="w-4 h-4" />}
+            {sidebarCollapsed ? <Icon icon={ChevronRight} className="w-4 h-4" /> : <Icon icon={ChevronLeft} className="w-4 h-4" />}
           </button>
         </div>
 
         {/* Nav links */}
         <nav aria-label="Primary" className="flex-1 min-h-0 overflow-y-auto py-3 px-2 space-y-1">
-          {navItems.map(({ label, href, icon: Icon, dataTour, prefetch }) => {
+          {navItems.map(({ label, href, icon: ItemIcon, dataTour, prefetch }) => {
             const active = pathname === href;
             return (
               <Link
@@ -165,11 +170,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {...(dataTour ? { "data-tour": dataTour } : {})}
                 className={`flex items-center rounded-lg text-sm font-medium transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"} ${
                   active
-                    ? "bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                    ? "bg-surface-raised text-accent"
+                    : "text-secondary hover:bg-surface-hover hover:text-primary"
                 }`}
               >
-                <Icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                <Icon icon={ItemIcon} className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
                 {!sidebarCollapsed && label}
               </Link>
             );
@@ -178,7 +183,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Bottom section — profile/settings/signout */}
         {session?.user && (
-          <div className="border-t border-gray-200 dark:border-gray-800 p-2 space-y-1">
+          <div className="border-t border-border p-2 space-y-1">
             {/* Tier badge — visible when sidebar is expanded and user is on paid tier */}
             {!sidebarCollapsed && (() => {
               const tier = ((session.user as unknown as Record<string, unknown>).subscriptionTier as SubscriptionTier) ?? "free";
@@ -187,9 +192,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   href="/settings/billing"
                   aria-label="billing plan"
-                  className="flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-surface-hover transition-colors"
                 >
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Plan</span>
+                  <span className="text-xs text-secondary">Plan</span>
                   <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide ${TIER_BADGE_COLORS[tier]}`}>
                     {TIER_LABELS[tier]}
                   </span>
@@ -205,10 +210,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className={`flex items-center rounded-lg text-sm font-medium transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"} ${
                   pathname.startsWith("/admin")
                     ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                    : "text-secondary hover:bg-surface-hover hover:text-primary"
                 }`}
               >
-                <ShieldCheckIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                <Icon icon={ShieldCheck} className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
                 {!sidebarCollapsed && t("admin")}
               </Link>
             )}
@@ -219,11 +224,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               title={sidebarCollapsed ? tCommon("profile") : undefined}
               className={`flex items-center rounded-lg text-sm font-medium transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"} ${
                 pathname === "/profile"
-                  ? "bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                  ? "bg-surface-raised text-accent"
+                  : "text-secondary hover:bg-surface-hover hover:text-primary"
               }`}
             >
-              <UserCircleIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+              <Icon icon={CircleUserRound} className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
               {!sidebarCollapsed && tCommon("profile")}
             </Link>
             <Link
@@ -233,11 +238,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               title={sidebarCollapsed ? t("settings") : undefined}
               className={`flex items-center rounded-lg text-sm font-medium transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"} ${
                 pathname === "/settings"
-                  ? "bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                  ? "bg-surface-raised text-accent"
+                  : "text-secondary hover:bg-surface-hover hover:text-primary"
               }`}
             >
-              <Cog6ToothIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+              <Icon icon={Settings} className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
               {!sidebarCollapsed && t("settings")}
             </Link>
             <div className={sidebarCollapsed ? "flex justify-center py-1" : "px-2 py-1"}>
@@ -247,16 +252,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               onClick={() => setFeedbackOpen(true)}
               aria-label="Send feedback"
               title={sidebarCollapsed ? "Send feedback" : undefined}
-              className={`w-full flex items-center rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"}`}
+              className={`w-full flex items-center rounded-lg text-sm font-medium text-secondary hover:bg-surface-hover hover:text-primary transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"}`}
             >
-              <ChatBubbleLeftEllipsisIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+              <Icon icon={MessageSquareMore} className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
               {!sidebarCollapsed && "Feedback"}
             </button>
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
               aria-label={tCommon("logout")}
               title={sidebarCollapsed ? tCommon("logout") : undefined}
-              className={`w-full flex items-center rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"}`}
+              className={`w-full flex items-center rounded-lg text-sm font-medium text-secondary hover:bg-surface-hover hover:text-primary transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"}`}
             >
               {sidebarCollapsed ? (
                 <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -283,19 +288,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         role="dialog"
         aria-modal="true"
         aria-label="Navigation menu"
-        className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-200 ease-in-out md:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-surface-deep border-r border-border transform transition-transform duration-200 ease-in-out md:hidden ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Drawer header */}
-        <div className="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b border-gray-200 dark:border-gray-800">
+        <div className="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b border-border">
           <span className="text-violet-400 font-bold text-lg tracking-tight">SunoFlow</span>
           <button
             onClick={closeSidebar}
             aria-label={t("closeMenu")}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-secondary hover:text-primary transition-colors"
           >
-            <XMarkIcon className="w-6 h-6" />
+            <Icon icon={X} className="w-6 h-6" />
           </button>
         </div>
 
@@ -303,7 +308,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex-1 overflow-y-auto">
         {/* Nav links */}
         <nav aria-label="Primary" className="py-3 px-2 space-y-1">
-          {navItems.map(({ label, href, icon: Icon }) => {
+          {navItems.map(({ label, href, icon: ItemIcon }) => {
             const active = pathname === href;
             return (
               <Link
@@ -313,11 +318,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 onClick={closeSidebar}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
                   active
-                    ? "bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                    ? "bg-surface-raised text-accent"
+                    : "text-secondary hover:bg-surface-hover hover:text-primary"
                 }`}
               >
-                <Icon className="w-5 h-5" aria-hidden="true" />
+                <Icon icon={ItemIcon} className="w-5 h-5" aria-hidden="true" />
                 {label}
               </Link>
             );
@@ -326,7 +331,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Bottom section */}
         {session?.user && (
-          <div className="border-t border-gray-200 dark:border-gray-800 p-2 space-y-1">
+          <div className="border-t border-border p-2 space-y-1">
             {/* Tier badge for mobile drawer */}
             {(() => {
               const tier = ((session.user as unknown as Record<string, unknown>).subscriptionTier as SubscriptionTier) ?? "free";
@@ -336,9 +341,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   aria-label="billing plan"
                   href="/settings/billing"
                   onClick={closeSidebar}
-                  className="flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-surface-hover transition-colors"
                 >
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Plan</span>
+                  <span className="text-xs text-secondary">Plan</span>
                   <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide ${TIER_BADGE_COLORS[tier]}`}>
                     {TIER_LABELS[tier]}
                   </span>
@@ -352,11 +357,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 aria-label={tCommon("profile")}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
                 pathname === "/profile"
-                  ? "bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                  ? "bg-surface-raised text-accent"
+                  : "text-secondary hover:bg-surface-hover hover:text-primary"
               }`}
             >
-              <UserCircleIcon className="w-5 h-5" aria-hidden="true" />
+              <Icon icon={CircleUserRound} className="w-5 h-5" aria-hidden="true" />
               {tCommon("profile")}
             </Link>
             <Link
@@ -366,11 +371,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               aria-label={t("settings")}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
                 pathname === "/settings"
-                  ? "bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                  ? "bg-surface-raised text-accent"
+                  : "text-secondary hover:bg-surface-hover hover:text-primary"
               }`}
             >
-              <Cog6ToothIcon className="w-5 h-5" aria-hidden="true" />
+              <Icon icon={Settings} className="w-5 h-5" aria-hidden="true" />
               {t("settings")}
             </Link>
             <div className="px-2 py-1">
@@ -379,15 +384,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <button
               onClick={() => { closeSidebar(); setFeedbackOpen(true); }}
               aria-label="Send feedback"
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors min-h-[44px]"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-secondary hover:bg-surface-hover hover:text-primary transition-colors min-h-[44px]"
             >
-              <ChatBubbleLeftEllipsisIcon className="w-5 h-5" aria-hidden="true" />
+              <Icon icon={MessageSquareMore} className="w-5 h-5" aria-hidden="true" />
               Feedback
             </button>
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
               aria-label={tCommon("logout")}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors min-h-[44px]"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-secondary hover:bg-surface-hover hover:text-primary transition-colors min-h-[44px]"
             >
               {tCommon("logout")}
             </button>
@@ -399,14 +404,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* ── Main content area ── */}
       <div className={`flex flex-col flex-1 min-w-0 transition-all duration-200 ${sidebarCollapsed ? "md:ml-16" : "md:ml-56"}`}>
         {/* Top header */}
-        <header className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
+        <header className="sticky top-0 z-10 bg-surface border-b border-border px-4 py-3 flex items-center justify-between">
           {/* Hamburger (mobile only) */}
           <button
             onClick={openSidebar}
             aria-label={t("openMenu")}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors md:hidden"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-secondary hover:text-primary transition-colors md:hidden"
           >
-            <Bars3Icon className="w-6 h-6" />
+            <Icon icon={Menu} className="w-6 h-6" />
           </button>
 
           <span className="text-violet-400 font-bold text-lg tracking-tight md:hidden">SunoFlow</span>
@@ -432,33 +437,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 onClick={cycleTheme}
                 aria-label={themeLabels[(theme as ThemeOption) ?? "system"]}
                 title={themeLabels[(theme as ThemeOption) ?? "system"]}
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-secondary hover:text-primary hover:bg-surface-hover transition-colors"
               >
-                <ThemeIcon className="w-5 h-5" aria-hidden="true" />
+                <Icon icon={ThemeIcon} className="w-5 h-5" aria-hidden="true" />
               </button>
               <NotificationBell />
               <Link
                 href="/profile"
                 aria-label={tCommon("profile")}
                 className={`min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors md:hidden ${
-                  pathname === "/profile" ? "text-violet-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  pathname === "/profile" ? "text-violet-400" : "text-secondary hover:text-primary"
                 }`}
               >
-                <UserCircleIcon className="w-5 h-5" />
+                <Icon icon={CircleUserRound} className="w-5 h-5" />
               </Link>
               <Link
                 href="/settings"
                 aria-label={t("settings")}
                 className={`min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors md:hidden ${
-                  pathname === "/settings" ? "text-violet-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  pathname === "/settings" ? "text-violet-400" : "text-secondary hover:text-primary"
                 }`}
               >
-                <Cog6ToothIcon className="w-5 h-5" />
+                <Icon icon={Settings} className="w-5 h-5" />
               </Link>
               <button
                 onClick={() => signOut({ callbackUrl: "/login" })}
                 aria-label={tCommon("logout")}
-                className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors min-h-[44px] px-2 hidden md:block"
+                className="text-sm text-secondary hover:text-primary transition-colors min-h-[44px] px-2 hidden md:block"
               >
                 {tCommon("logout")}
               </button>
@@ -504,9 +509,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Bottom nav (mobile only) */}
-        <nav aria-label="Mobile navigation" className="fixed bottom-0 left-0 right-0 z-10 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 md:hidden">
+        <nav aria-label="Mobile navigation" className="fixed bottom-0 left-0 right-0 z-10 bg-surface border-t border-border md:hidden">
           <div className="flex items-center justify-around h-16">
-            {navItems.slice(0, 5).map(({ label, href, icon: Icon }) => {
+            {navItems.filter(({ href }) => MOBILE_NAV_HREFS.includes(href)).map(({ label, href, icon: ItemIcon }) => {
               const active = pathname === href;
               return (
                 <Link
@@ -517,14 +522,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   className={`flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-lg transition-colors min-w-[44px] min-h-[44px] ${
                     active
                       ? "text-violet-400"
-                      : "text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                      : "text-muted hover:text-secondary"
                   }`}
                 >
-                  <Icon className="w-6 h-6" aria-hidden="true" />
+                  <Icon icon={ItemIcon} className="w-6 h-6" aria-hidden="true" />
                   <span className="text-[10px]" aria-hidden="true">{label}</span>
                 </Link>
               );
             })}
+            <button
+              onClick={openSidebar}
+              aria-label={t("openMenu")}
+              className="flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-lg transition-colors min-w-[44px] min-h-[44px] text-muted hover:text-secondary"
+            >
+              <Icon icon={Menu} className="w-6 h-6" aria-hidden="true" />
+              <span className="text-[10px]" aria-hidden="true">More</span>
+            </button>
           </div>
         </nav>
       </div>

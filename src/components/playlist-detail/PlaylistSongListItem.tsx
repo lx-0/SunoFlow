@@ -4,15 +4,16 @@ import { useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  PlayIcon,
-  PauseIcon,
-  MusicalNoteIcon,
-  TrashIcon,
-  Bars3Icon,
-  ForwardIcon,
-  QueueListIcon,
-} from "@heroicons/react/24/outline";
-import { CheckIcon } from "@heroicons/react/24/solid";
+  Check,
+  FastForward,
+  ListMusic,
+  Menu,
+  Music,
+  Pause,
+  Play,
+  Trash2,
+} from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { formatDuration as formatTime } from "@/lib/time-format";
 import type { PlaylistSongItem } from "./types";
 
@@ -88,7 +89,7 @@ export function PlaylistSongListItem({
           ? "border border-violet-500 bg-violet-50 dark:bg-violet-950/30"
           : isActive
             ? "bg-violet-50 dark:bg-violet-900/20 border border-violet-300 dark:border-violet-700"
-            : "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
+            : "bg-surface border border-border"
       } ${isDragOver && !selectionMode ? "border-violet-400 dark:border-violet-500" : ""} ${
         dragIndex === index ? "opacity-50" : ""
       }`}
@@ -98,10 +99,10 @@ export function PlaylistSongListItem({
           onClick={onToggleSelect}
           aria-label={isSelected ? "Deselect song" : "Select song"}
           className={`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
-            isSelected ? "bg-violet-600 border-violet-600 text-white" : "border-gray-300 dark:border-gray-600 hover:border-violet-400"
+            isSelected ? "bg-violet-600 border-violet-600 text-white" : "border-border-strong hover:border-violet-400"
           }`}
         >
-          {isSelected && <CheckIcon className="w-4 h-4" />}
+          {isSelected && <Icon icon={Check} className="w-4 h-4" />}
         </button>
       ) : (
         <div
@@ -110,42 +111,42 @@ export function PlaylistSongListItem({
           role="button"
           aria-label={`Reorder ${ps.song.title ?? "song"}. Press arrow keys to move up or down.`}
           aria-disabled={isFirst && isLast}
-          className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center touch-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 rounded"
+          className="flex-shrink-0 cursor-grab active:cursor-grabbing text-muted min-w-[44px] min-h-[44px] flex items-center justify-center touch-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 rounded"
           onTouchStart={onDragHandleTouchStart}
           onKeyDown={(e) => {
             if (e.key === "ArrowUp") { e.preventDefault(); onKeyboardReorder("up"); }
             else if (e.key === "ArrowDown") { e.preventDefault(); onKeyboardReorder("down"); }
           }}
         >
-          <Bars3Icon className="w-5 h-5" />
+          <Icon icon={Menu} className="w-5 h-5" />
         </div>
       )}
 
-      <span className="flex-shrink-0 w-6 text-xs text-gray-400 dark:text-gray-500 text-center hidden sm:block">
+      <span className="flex-shrink-0 w-6 text-xs text-muted text-center hidden sm:block">
         {index + 1}
       </span>
 
-      <div className="relative flex-shrink-0 w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center">
+      <div className="relative flex-shrink-0 w-10 h-10 rounded-lg bg-surface-raised overflow-hidden flex items-center justify-center">
         {ps.song.imageUrl ? (
           <Image src={ps.song.imageUrl} alt={ps.song.title ?? "Song"} fill className="object-cover" sizes="40px" loading="lazy" />
         ) : (
-          <MusicalNoteIcon className="w-5 h-5 text-gray-400 dark:text-gray-600" />
+          <Icon icon={Music} className="w-5 h-5 text-muted" />
         )}
       </div>
 
       <div className="flex-1 min-w-0">
         <Link
           href={`/library/${ps.songId}`}
-          className="block text-sm font-medium text-gray-900 dark:text-white truncate hover:text-violet-400 transition-colors"
+          className="block text-sm font-medium text-primary truncate hover:text-violet-400 transition-colors"
         >
           {ps.song.title ?? "Untitled"}
         </Link>
         <div className="flex items-center gap-1.5">
           {ps.song.duration && (
-            <span className="text-xs text-gray-400 dark:text-gray-500">{formatTime(ps.song.duration)}</span>
+            <span className="text-xs text-muted">{formatTime(ps.song.duration)}</span>
           )}
           {isCollaborative && ps.addedByUser?.name && (
-            <span className="text-xs text-gray-400 dark:text-gray-500 truncate">
+            <span className="text-xs text-muted truncate">
               · {ps.addedByUser.name}
             </span>
           )}
@@ -159,10 +160,10 @@ export function PlaylistSongListItem({
         className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
           hasAudio
             ? "bg-violet-600 hover:bg-violet-500 text-white"
-            : "bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
+            : "bg-surface-raised text-muted cursor-not-allowed"
         }`}
       >
-        {isActive && isPlaying ? <PauseIcon className="w-5 h-5" /> : <PlayIcon className="w-5 h-5 ml-0.5" />}
+        {isActive && isPlaying ? <Icon icon={Pause} className="w-5 h-5" /> : <Icon icon={Play} className="w-5 h-5 ml-0.5" />}
       </button>
 
       {hasAudio && !selectionMode && (
@@ -171,17 +172,17 @@ export function PlaylistSongListItem({
             onClick={onPlayNext}
             aria-label={`Play ${ps.song.title ?? "song"} next`}
             title="Play Next"
-            className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-violet-400 transition-colors"
+            className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-violet-400 transition-colors"
           >
-            <ForwardIcon className="w-4 h-4" />
+            <Icon icon={FastForward} className="w-4 h-4" />
           </button>
           <button
             onClick={onAddToQueue}
             aria-label={`Add ${ps.song.title ?? "song"} to queue`}
             title="Add to Queue"
-            className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-violet-400 transition-colors"
+            className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-violet-400 transition-colors"
           >
-            <QueueListIcon className="w-4 h-4" />
+            <Icon icon={ListMusic} className="w-4 h-4" />
           </button>
         </div>
       )}
@@ -190,9 +191,9 @@ export function PlaylistSongListItem({
         <button
           onClick={onRemove}
           aria-label="Remove from playlist"
-          className="flex-shrink-0 w-11 h-11 rounded-full hidden sm:flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-red-500 transition-colors"
+          className="flex-shrink-0 w-11 h-11 rounded-full hidden sm:flex items-center justify-center text-muted hover:text-red-500 transition-colors"
         >
-          <TrashIcon className="w-4 h-4" />
+          <Icon icon={Trash2} className="w-4 h-4" />
         </button>
       )}
     </li>

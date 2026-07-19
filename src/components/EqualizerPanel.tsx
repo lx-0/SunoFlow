@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { XMarkIcon } from "@heroicons/react/24/solid";
+import { X } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import {
   useAudioEQ,
   EQ_BANDS,
@@ -60,7 +61,7 @@ export function EqualizerPanel({ onClose }: EqualizerPanelProps) {
             aria-label="Close equalizer"
             className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-200 transition-colors hover:bg-white/10"
           >
-            <XMarkIcon className="w-4 h-4" />
+            <Icon icon={X} className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -88,7 +89,7 @@ export function EqualizerPanel({ onClose }: EqualizerPanelProps) {
           <div key={band.label} className="flex flex-col items-center gap-1 flex-1">
             <span
               className="text-[10px] font-medium tabular-nums w-7 text-center"
-              style={{ color: settings.gains[i] !== 0 ? "#a78bfa" : "#9ca3af" }}
+              style={{ color: settings.gains[i] !== 0 ? "#ef009c" : "#9ca3af" }}
             >
               {settings.gains[i] > 0 ? `+${settings.gains[i]}` : settings.gains[i]}
             </span>
@@ -153,7 +154,7 @@ export function EqualizerPanel({ onClose }: EqualizerPanelProps) {
           />
           <span
             className="text-xs w-9 text-right tabular-nums"
-            style={{ color: settings.pitch !== 0 ? "#a78bfa" : "#d1d5db" }}
+            style={{ color: settings.pitch !== 0 ? "#ef009c" : "#d1d5db" }}
           >
             {settings.pitch > 0 ? `+${settings.pitch}` : settings.pitch}st
           </span>

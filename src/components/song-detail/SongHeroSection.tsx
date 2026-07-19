@@ -1,12 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import {
-  ArrowLeftIcon,
-  HeartIcon,
-  PaintBrushIcon,
-} from "@heroicons/react/24/solid";
-import { HeartIcon as HeartOutlineIcon } from "@heroicons/react/24/outline";
+import { ArrowLeft, Heart, Paintbrush } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { CoverArtImage } from "../CoverArtImage";
 
 interface SongHeroSectionProps {
@@ -55,13 +51,13 @@ export function SongHeroSection({
       <div className="relative px-4 pt-4 pb-6 space-y-4">
         <button
           onClick={() => router.back()}
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors min-h-[44px]"
+          className="inline-flex items-center gap-1.5 text-sm text-secondary hover:text-primary transition-colors min-h-[44px]"
         >
-          <ArrowLeftIcon className="w-4 h-4" aria-hidden="true" />
+          <Icon icon={ArrowLeft} fill="currentColor" className="w-4 h-4" aria-hidden="true" />
           Back
         </button>
 
-        <div className="relative w-full aspect-square max-h-80 sm:max-h-[400px] rounded-2xl bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center shadow-xl ring-1 ring-black/5 dark:ring-white/10 mx-auto group">
+        <div className="relative w-full aspect-square max-h-80 sm:max-h-[400px] rounded-2xl bg-surface-raised overflow-hidden flex items-center justify-center shadow-xl ring-1 ring-black/5 dark:ring-white/10 mx-auto group">
           <CoverArtImage
             src={coverImageUrl || generatedFallbackUrl}
             alt={title}
@@ -78,7 +74,7 @@ export function SongHeroSection({
             aria-label="Change cover art"
           >
             <span className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 px-3 py-1.5 bg-black/70 text-white text-xs font-medium rounded-full">
-              <PaintBrushIcon className="w-3.5 h-3.5" />
+              <Icon icon={Paintbrush} fill="currentColor" className="w-3.5 h-3.5" />
               {coverImageUrl ? "Change Cover" : "Generate Cover"}
             </span>
           </button>
@@ -86,7 +82,7 @@ export function SongHeroSection({
 
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white flex-1">
+            <h1 className="text-3xl font-extrabold tracking-tight text-primary flex-1">
               {title}
               {isHidden && (
                 <span className="ml-2 inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 align-middle">
@@ -98,13 +94,13 @@ export function SongHeroSection({
               onClick={onToggleFavorite}
               aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
               className={`flex-shrink-0 flex items-center gap-1 px-2 h-11 rounded-full transition-all duration-200 active:scale-95 ${
-                isFavorite ? "text-pink-500" : "text-gray-400 dark:text-gray-500 hover:text-pink-400"
+                isFavorite ? "text-pink-500" : "text-muted hover:text-pink-400"
               }`}
             >
               {isFavorite ? (
-                <HeartIcon className="w-6 h-6" />
+                <Icon icon={Heart} fill="currentColor" className="w-6 h-6" />
               ) : (
-                <HeartOutlineIcon className="w-6 h-6" />
+                <Icon icon={Heart} className="w-6 h-6" />
               )}
               {favoriteCount > 0 && (
                 <span className="text-sm font-medium">{favoriteCount}</span>

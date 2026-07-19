@@ -22,7 +22,7 @@ export function SuggestionsPanel({
       {/* Suggested for you */}
       {suggestions.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+          <p className="text-xs font-semibold text-secondary uppercase tracking-wide">
             Suggested for you
           </p>
           <div className="flex flex-wrap gap-2">
@@ -32,7 +32,7 @@ export function SuggestionsPanel({
                 type="button"
                 onClick={() => onApplySuggestion(s)}
                 title={s.stylePrompt}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-full hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/10 hover:text-violet-700 dark:hover:text-violet-300 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-surface-raised text-primary border border-border rounded-full hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/10 hover:text-violet-700 dark:hover:text-violet-300 transition-colors"
               >
                 {s.source === "personal" && (
                   <span className="text-amber-500" aria-hidden="true">&#9733;</span>
@@ -52,7 +52,7 @@ export function SuggestionsPanel({
       {/* Trending combos */}
       {trendingCombos.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+          <p className="text-xs font-semibold text-secondary uppercase tracking-wide">
             Trending Combos
           </p>
           <div className="flex flex-wrap gap-2">

@@ -1,14 +1,14 @@
 export const CHART_TOOLTIP_STYLE = {
-  backgroundColor: "#1f2937",
-  border: "1px solid #374151",
+  backgroundColor: "#20181c",
+  border: "1px solid #2f262a",
   borderRadius: "8px",
   fontSize: "12px",
-  color: "#fff",
+  color: "#f5f0f2",
 };
 
 export const CHART_PIE_COLORS = [
-  "#7c3aed", "#a78bfa", "#c4b5fd", "#8b5cf6", "#6d28d9",
-  "#5b21b6", "#4c1d95", "#ddd6fe", "#ede9fe", "#f5f3ff",
+  "#d93294", "#f4a6ca", "#ac0170", "#facee1", "#91005e",
+  "#e873af", "#79004e", "#fce5ef", "#c40181", "#4f0031",
 ];
 
-export const CHART_AXIS_TICK = { fontSize: 10, fill: "#9ca3af" };
+export const CHART_AXIS_TICK = { fontSize: 10, fill: "#aaa2a5" };

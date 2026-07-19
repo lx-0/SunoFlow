@@ -20,7 +20,7 @@ export function WeeklyFeedbackChart({
   data: Array<{ week: string; likes: number; dislikes: number }>;
 }) {
   if (data.every((d) => d.likes === 0 && d.dislikes === 0)) {
-    return <p className="text-gray-500 dark:text-gray-400 text-sm">No feedback data yet</p>;
+    return <p className="text-secondary text-sm">No feedback data yet</p>;
   }
   return (
     <ResponsiveContainer width="100%" height={200}>
@@ -47,7 +47,7 @@ export function TagQualityChart({
   data: Array<{ tag: string; likes: number; dislikes: number; total: number; likeRatio: number }>;
 }) {
   if (data.length === 0) {
-    return <p className="text-gray-500 dark:text-gray-400 text-sm">No tag data yet</p>;
+    return <p className="text-secondary text-sm">No tag data yet</p>;
   }
   // Show top 10 by total, display as horizontal bars
   const top = data.slice(0, 10);
@@ -58,7 +58,7 @@ export function TagQualityChart({
         <YAxis
           type="category"
           dataKey="tag"
-          tick={{ fontSize: 11, fill: "#9ca3af" }}
+          tick={{ fontSize: 11, fill: "#aaa2a5" }}
           width={90}
         />
         <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
@@ -76,7 +76,7 @@ export function GenreBarChart({
   data: Array<{ genre: string; count: number }>;
 }) {
   if (data.length === 0) {
-    return <p className="text-gray-500 dark:text-gray-400 text-sm">No genre data yet</p>;
+    return <p className="text-secondary text-sm">No genre data yet</p>;
   }
   const top = data.slice(0, 10);
   return (
@@ -86,11 +86,11 @@ export function GenreBarChart({
         <YAxis
           type="category"
           dataKey="genre"
-          tick={{ fontSize: 11, fill: "#9ca3af" }}
+          tick={{ fontSize: 11, fill: "#aaa2a5" }}
           width={90}
         />
         <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
-        <Bar dataKey="count" name="Songs" fill="#8b5cf6" radius={[0, 3, 3, 0]} />
+        <Bar dataKey="count" name="Songs" fill="#d93294" radius={[0, 3, 3, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -102,12 +102,12 @@ export function WeeklyActivityChart({
   data: Array<{ week: string; count: number }>;
 }) {
   if (data.every((d) => d.count === 0)) {
-    return <p className="text-gray-500 dark:text-gray-400 text-sm">No activity yet</p>;
+    return <p className="text-secondary text-sm">No activity yet</p>;
   }
   return (
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.4} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#2f262a" strokeOpacity={0.4} />
         <XAxis
           dataKey="week"
           tick={CHART_AXIS_TICK}
@@ -120,9 +120,9 @@ export function WeeklyActivityChart({
           type="monotone"
           dataKey="count"
           name="Songs"
-          stroke="#8b5cf6"
+          stroke="#d93294"
           strokeWidth={2}
-          dot={{ fill: "#8b5cf6", r: 3 }}
+          dot={{ fill: "#d93294", r: 3 }}
           activeDot={{ r: 5 }}
         />
       </LineChart>

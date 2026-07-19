@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { XMarkIcon } from "@heroicons/react/24/solid";
+import { X } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import FormInput from "./ui/FormInput";
 import FormTextarea from "./ui/FormTextarea";
 import { formatDuration as formatTime } from "@/lib/time-format";
@@ -178,9 +179,9 @@ export function SectionEditor({
 
       const ws = WaveSurfer.create({
         container: waveContainerRef.current,
-        waveColor: "#a78bfa",
-        progressColor: "#7c3aed",
-        cursorColor: "#7c3aed",
+        waveColor: "#e873af",
+        progressColor: "#c40181",
+        cursorColor: "#c40181",
         cursorWidth: 2,
         barWidth: 2,
         barGap: 1,
@@ -271,29 +272,29 @@ export function SectionEditor({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 overflow-y-auto py-8">
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl w-full max-w-lg p-5 space-y-4 shadow-xl my-auto">
+      <div className="bg-surface border border-border rounded-2xl w-full max-w-lg p-5 space-y-4 shadow-xl my-auto">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Replace Section</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1">
-            <XMarkIcon className="w-5 h-5" />
+          <h2 className="text-lg font-bold text-primary">Replace Section</h2>
+          <button onClick={onClose} className="text-secondary hover:text-primary p-1">
+            <Icon icon={X} fill="currentColor" className="w-5 h-5" />
           </button>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-secondary">
           Select a region (6–60s, max 50% of song) and describe what should replace it.
         </p>
 
         {/* Waveform with region overlay */}
         <div className="space-y-2">
-          <div className="relative rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+          <div className="relative rounded-lg overflow-hidden bg-surface-raised">
             <div ref={waveContainerRef} className="w-full" style={{ minHeight: 80 }} />
             {!waveLoaded && !waveError && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="h-20 w-full bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+                <div className="h-20 w-full bg-surface-raised rounded-lg animate-pulse" />
               </div>
             )}
             {waveError && (
-              <div className="h-20 flex items-center justify-center text-sm text-gray-400">
+              <div className="h-20 flex items-center justify-center text-sm text-secondary">
                 Could not load waveform
               </div>
             )}
@@ -312,7 +313,7 @@ export function SectionEditor({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5">
-                <label className="text-xs text-gray-500 dark:text-gray-400">Start</label>
+                <label className="text-xs text-secondary">Start</label>
                 <input
                   type="number"
                   value={startS}
@@ -323,12 +324,12 @@ export function SectionEditor({
                   min={0}
                   max={endS - 6}
                   step={0.1}
-                  className="w-16 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-2 py-1 text-xs text-gray-900 dark:text-white text-center focus:outline-none focus:border-violet-500"
+                  className="w-16 bg-surface-raised border border-border rounded px-2 py-1 text-xs text-primary text-center focus:outline-none focus:border-violet-500"
                 />
               </div>
-              <span className="text-xs text-gray-400">–</span>
+              <span className="text-xs text-secondary">–</span>
               <div className="flex items-center gap-1.5">
-                <label className="text-xs text-gray-500 dark:text-gray-400">End</label>
+                <label className="text-xs text-secondary">End</label>
                 <input
                   type="number"
                   value={endS}
@@ -339,10 +340,10 @@ export function SectionEditor({
                   min={startS + 6}
                   max={songDuration}
                   step={0.1}
-                  className="w-16 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-2 py-1 text-xs text-gray-900 dark:text-white text-center focus:outline-none focus:border-violet-500"
+                  className="w-16 bg-surface-raised border border-border rounded px-2 py-1 text-xs text-primary text-center focus:outline-none focus:border-violet-500"
                 />
               </div>
-              <span className={`text-xs ${tooShort || tooLong ? "text-red-400" : "text-gray-400"}`}>
+              <span className={`text-xs ${tooShort || tooLong ? "text-red-400" : "text-secondary"}`}>
                 {formatTime(sectionLen)}
               </span>
             </div>
@@ -350,7 +351,7 @@ export function SectionEditor({
             <button
               onClick={handlePreviewToggle}
               disabled={!waveLoaded}
-              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-raised hover:bg-surface-hover text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {previewPlaying ? "Stop" : "Preview"}
             </button>
@@ -366,7 +367,7 @@ export function SectionEditor({
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+            <label className="block text-xs font-medium text-secondary mb-1">
               Replacement prompt *
             </label>
             <FormTextarea
@@ -379,7 +380,7 @@ export function SectionEditor({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+            <label className="block text-xs font-medium text-secondary mb-1">
               Style / tags *
             </label>
             <FormInput
@@ -392,7 +393,7 @@ export function SectionEditor({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+            <label className="block text-xs font-medium text-secondary mb-1">
               Title (optional)
             </label>
             <FormInput
@@ -404,7 +405,7 @@ export function SectionEditor({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+            <label className="block text-xs font-medium text-secondary mb-1">
               Negative tags (optional)
             </label>
             <FormInput

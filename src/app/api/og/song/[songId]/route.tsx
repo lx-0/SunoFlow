@@ -59,7 +59,7 @@ export async function GET(
           width: CARD_W,
           height: CARD_H,
           display: "flex",
-          background: "linear-gradient(135deg, #0f0f1a 0%, #1a0f2e 100%)",
+          background: "linear-gradient(135deg, #0f090c 0%, #20181c 100%)",
           fontFamily: "sans-serif",
           padding: 60,
           gap: 60,
@@ -77,8 +77,8 @@ export async function GET(
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "#1e1e3a",
-            border: "2px solid #2d2d5a",
+            background: "#151012",
+            border: "2px solid #2f262a",
           }}
         >
           {coverArtData ? (
@@ -105,7 +105,7 @@ export async function GET(
           {/* Brand */}
           <div
             style={{
-              color: "#8b5cf6",
+              color: "#ef009c",
               fontSize: 18,
               fontWeight: 700,
               letterSpacing: 4,
@@ -118,7 +118,7 @@ export async function GET(
           {/* Title */}
           <div
             style={{
-              color: "#ffffff",
+              color: "#f5f0f2",
               fontSize: titleFontSize,
               fontWeight: 800,
               lineHeight: 1.15,
@@ -132,7 +132,7 @@ export async function GET(
           {/* Artist */}
           <div
             style={{
-              color: "#a78bfa",
+              color: "#e873af",
               fontSize: 28,
               fontWeight: 500,
               marginBottom: 40,
@@ -158,7 +158,7 @@ export async function GET(
                   height: Math.round(h * 1.4),
                   borderRadius: 4,
                   background:
-                    i % 3 === 0 ? "#8b5cf6" : i % 3 === 1 ? "#7c3aed" : "#6d28d9",
+                    i % 3 === 0 ? "#ef009c" : i % 3 === 1 ? "#c40181" : "#ac0170",
                   opacity: 0.9,
                 }}
               />
@@ -168,7 +168,7 @@ export async function GET(
           {/* Footer */}
           <div
             style={{
-              color: "#4b5563",
+              color: "#686164",
               fontSize: 18,
               marginTop: 32,
             }}

@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { UserGroupIcon } from "@heroicons/react/24/outline";
+import { UsersRound } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import type { PlaylistActivityItem } from "./types";
 
 interface PlaylistActivityFeedProps {
@@ -18,24 +19,24 @@ export function PlaylistActivityFeed({
   onToggle,
 }: PlaylistActivityFeedProps) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+    <div className="bg-surface border border-border rounded-xl overflow-hidden">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-primary hover:bg-surface-hover transition-colors"
       >
         <span className="flex items-center gap-2">
-          <UserGroupIcon className="w-4 h-4 text-violet-500" />
+          <Icon icon={UsersRound} className="w-4 h-4 text-violet-500" />
           Activity feed
         </span>
-        <span className="text-xs text-gray-400">{showActivityFeed ? "▲" : "▼"}</span>
+        <span className="text-xs text-muted">{showActivityFeed ? "▲" : "▼"}</span>
       </button>
 
       {showActivityFeed && (
-        <div className="border-t border-gray-100 dark:border-gray-800 px-4 py-3 space-y-3">
+        <div className="border-t border-border px-4 py-3 space-y-3">
           {activityLoading ? (
-            <p className="text-xs text-gray-400 text-center py-2">Loading...</p>
+            <p className="text-xs text-muted text-center py-2">Loading...</p>
           ) : activities.length === 0 ? (
-            <p className="text-xs text-gray-400 text-center py-2">No activity yet. Start adding songs!</p>
+            <p className="text-xs text-muted text-center py-2">No activity yet. Start adding songs!</p>
           ) : (
             activities.map((a) => (
               <div key={a.id} className="flex items-start gap-3">
@@ -53,14 +54,14 @@ export function PlaylistActivityFeed({
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-700 dark:text-gray-300">
+                  <p className="text-xs text-primary">
                     <span className="font-medium">{a.user?.name ?? "Someone"}</span>
                     {" "}
                     {a.type === "song_added_to_playlist" ? "added" : "removed"}
                     {" "}
                     <span className="font-medium">{a.song?.title ?? "a song"}</span>
                   </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-xs text-muted mt-0.5">
                     {new Date(a.createdAt).toLocaleString()}
                   </p>
                 </div>

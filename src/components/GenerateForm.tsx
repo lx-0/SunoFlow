@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { SparklesIcon } from "@heroicons/react/24/solid";
-import { BoltIcon, UserCircleIcon, ExclamationTriangleIcon, QueueListIcon, AdjustmentsHorizontalIcon, DocumentDuplicateIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { Sparkles, Zap, CircleUserRound, TriangleAlert, ListMusic, SlidersHorizontal, Copy, X } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useToast } from "./Toast";
 import { useGenerationPoller } from "@/hooks/useGenerationPoller";
 import { useGenerationQueue } from "@/hooks/useGenerationQueue";
@@ -149,14 +149,14 @@ export function GenerateForm() {
 
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Generate</h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Create a new song with AI</p>
+        <h1 className="text-xl font-bold text-primary">Generate</h1>
+        <p className="text-secondary text-sm mt-0.5">Create a new song with AI</p>
       </div>
 
       {/* Low Credit Warning Banner */}
       {creditInfo?.isLow && (
         <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-          <ExclamationTriangleIcon className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <Icon icon={TriangleAlert} className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
               Low Credits
@@ -172,7 +172,7 @@ export function GenerateForm() {
       {/* Source song banner (pre-filled from duplication) */}
       {sourceSongId && (
         <div className="flex items-center gap-3 p-3 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl">
-          <DocumentDuplicateIcon className="w-5 h-5 text-violet-600 dark:text-violet-400 flex-shrink-0" aria-hidden="true" />
+          <Icon icon={Copy} className="w-5 h-5 text-violet-600 dark:text-violet-400 flex-shrink-0" aria-hidden="true" />
           <div className="flex-1 min-w-0 text-sm text-violet-800 dark:text-violet-300">
             Based on{" "}
             <Link href={`/library/${sourceSongId}`} className="font-medium underline hover:text-violet-900 dark:hover:text-violet-200">
@@ -190,7 +190,7 @@ export function GenerateForm() {
             className="text-violet-500 hover:text-violet-700 dark:hover:text-violet-300 transition-colors flex-shrink-0"
             title="Reset to defaults"
           >
-            <XMarkIcon className="w-4 h-4" />
+            <Icon icon={X} className="w-4 h-4" />
           </button>
         </div>
       )}
@@ -248,8 +248,8 @@ export function GenerateForm() {
       <form onSubmit={handleSubmit} className="space-y-4" data-tour="generate-prompt">
         {/* Title */}
         <div className="space-y-1">
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Song title <span className="text-gray-500 dark:text-gray-400">(optional)</span>
+          <label htmlFor="title" className="block text-sm font-medium text-primary">
+            Song title <span className="text-secondary">(optional)</span>
           </label>
           <input
             id="title"
@@ -258,13 +258,13 @@ export function GenerateForm() {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="My awesome song"
             disabled={isSubmitting}
-            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50"
+            className="w-full bg-surface-raised border border-border rounded-xl px-4 py-3 text-base sm:text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50"
           />
         </div>
 
         {/* Style / Genre prompt */}
         <div className="space-y-1">
-          <label htmlFor="stylePrompt" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label htmlFor="stylePrompt" className="block text-sm font-medium text-primary">
             Style / genre
           </label>
           <div className="flex gap-2">
@@ -278,10 +278,10 @@ export function GenerateForm() {
               disabled={isSubmitting}
               aria-invalid={!customMode && !!promptError}
               aria-describedby={!customMode && promptError ? "prompt-error" : undefined}
-              className={`flex-1 bg-white dark:bg-gray-800 border rounded-xl px-4 py-3 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent disabled:opacity-50 ${
+              className={`flex-1 bg-surface-raised border rounded-xl px-4 py-3 text-base sm:text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:border-transparent disabled:opacity-50 ${
                 !customMode && promptError
                   ? "border-red-400 dark:border-red-600 focus:ring-red-500"
-                  : "border-gray-300 dark:border-gray-700 focus:ring-violet-500"
+                  : "border-border focus:ring-violet-500"
               }`}
             />
             <button
@@ -291,7 +291,7 @@ export function GenerateForm() {
               aria-label={isBoosting ? "Enhancing style description with AI" : "Enhance style description with AI"}
               className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-900/30 disabled:opacity-50 transition-colors whitespace-nowrap"
             >
-              <BoltIcon className="h-4 w-4" aria-hidden="true" />
+              <Icon icon={Zap} className="h-4 w-4" aria-hidden="true" />
               {isBoosting ? "..." : "Enhance"}
             </button>
           </div>
@@ -306,7 +306,7 @@ export function GenerateForm() {
             </label>
             {styleTemplates.length > 0 ? (
               <div className="flex items-center gap-2">
-                <AdjustmentsHorizontalIcon className="h-4 w-4 text-violet-400 dark:text-violet-500 flex-shrink-0" />
+                <Icon icon={SlidersHorizontal} className="h-4 w-4 text-violet-400 dark:text-violet-500 flex-shrink-0" />
                 <select
                   id="styleTemplateSelect"
                   value=""
@@ -318,7 +318,7 @@ export function GenerateForm() {
                     }
                   }}
                   disabled={isSubmitting}
-                  className="flex-1 bg-white dark:bg-gray-800 border border-violet-300 dark:border-violet-700 rounded-lg px-2 py-1.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50"
+                  className="flex-1 bg-surface-raised border border-violet-300 dark:border-violet-700 rounded-lg px-2 py-1.5 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50"
                 >
                   <option value="">Choose a style template…</option>
                   {styleTemplates.map((t) => (
@@ -343,17 +343,17 @@ export function GenerateForm() {
         {/* Persona picker */}
         {personas.length > 0 && (
           <div className="space-y-1">
-            <label htmlFor="persona" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Voice persona <span className="text-gray-500 dark:text-gray-400">(optional)</span>
+            <label htmlFor="persona" className="block text-sm font-medium text-primary">
+              Voice persona <span className="text-secondary">(optional)</span>
             </label>
             <div className="flex items-center gap-2">
-              <UserCircleIcon className="h-5 w-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+              <Icon icon={CircleUserRound} className="h-5 w-5 text-muted flex-shrink-0" />
               <select
                 id="persona"
                 value={selectedPersonaId}
                 onChange={(e) => setSelectedPersonaId(e.target.value)}
                 disabled={isSubmitting}
-                className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50"
+                className="flex-1 bg-surface-raised border border-border rounded-xl px-3 py-2 text-base sm:text-sm text-primary focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50"
               >
                 <option value="">No persona</option>
                 {personas.map((p) => (
@@ -382,8 +382,8 @@ export function GenerateForm() {
         />
 
         {/* Custom prompt toggle */}
-        <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3">
-          <span id="custom-lyrics-label" className="text-sm font-medium text-gray-700 dark:text-gray-300">Custom lyrics</span>
+        <div className="flex items-center justify-between bg-surface-raised border border-border rounded-xl px-4 py-3">
+          <span id="custom-lyrics-label" className="text-sm font-medium text-primary">Custom lyrics</span>
           <button
             type="button"
             role="switch"
@@ -406,7 +406,7 @@ export function GenerateForm() {
         {/* Lyrics textarea — shown only in custom mode */}
         {customMode && (
           <div className="space-y-1">
-            <label htmlFor="lyrics" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label htmlFor="lyrics" className="block text-sm font-medium text-primary">
               Lyrics
             </label>
             <textarea
@@ -419,10 +419,10 @@ export function GenerateForm() {
               disabled={isSubmitting}
               aria-invalid={customMode && !!promptError}
               aria-describedby={customMode && promptError ? "prompt-error" : undefined}
-              className={`w-full bg-white dark:bg-gray-800 border rounded-xl px-4 py-3 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent resize-none disabled:opacity-50 ${
+              className={`w-full bg-surface-raised border rounded-xl px-4 py-3 text-base sm:text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:border-transparent resize-none disabled:opacity-50 ${
                 customMode && promptError
                   ? "border-red-400 dark:border-red-600 focus:ring-red-500"
-                  : "border-gray-300 dark:border-gray-700 focus:ring-violet-500"
+                  : "border-border focus:ring-violet-500"
               }`}
             />
             {customMode && promptError && (
@@ -434,8 +434,8 @@ export function GenerateForm() {
         )}
 
         {/* Instrumental toggle */}
-        <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3">
-          <span id="instrumental-label" className="text-sm font-medium text-gray-700 dark:text-gray-300">Instrumental only</span>
+        <div className="flex items-center justify-between bg-surface-raised border border-border rounded-xl px-4 py-3">
+          <span id="instrumental-label" className="text-sm font-medium text-primary">Instrumental only</span>
           <button
             type="button"
             role="switch"
@@ -488,7 +488,7 @@ export function GenerateForm() {
                 </>
               ) : (
                 <>
-                  <SparklesIcon className="h-5 w-5" aria-hidden="true" />
+                  <Icon icon={Sparkles} fill="currentColor" className="h-5 w-5" aria-hidden="true" />
                   Generate
                 </>
               )}
@@ -505,9 +505,9 @@ export function GenerateForm() {
             onClick={handleAddToQueue}
             disabled={isSubmitting || queueTotalActive >= 10}
             aria-label={queueTotalActive >= 10 ? "Queue is full (max 10)" : `Add to generation queue${queueTotalActive > 0 ? ` (${queueTotalActive} active)` : ""}`}
-            className="flex items-center justify-center gap-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-300 font-semibold rounded-xl px-4 py-3 transition-colors min-h-[52px] whitespace-nowrap"
+            className="flex items-center justify-center gap-1.5 bg-surface-raised hover:bg-surface-hover border border-border disabled:opacity-50 disabled:cursor-not-allowed text-primary font-semibold rounded-xl px-4 py-3 transition-colors min-h-[52px] whitespace-nowrap"
           >
-            <QueueListIcon className="h-5 w-5" aria-hidden="true" />
+            <Icon icon={ListMusic} className="h-5 w-5" aria-hidden="true" />
             Queue{queueTotalActive > 0 ? ` (${queueTotalActive})` : ""}
           </button>
         </div>

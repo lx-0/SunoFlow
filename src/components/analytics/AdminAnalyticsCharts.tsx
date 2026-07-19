@@ -22,7 +22,7 @@ export function AdminGenerationsBarChart({
   data: Array<{ date: string; count: number }>;
 }) {
   if (data.length === 0) {
-    return <p className="text-gray-500 text-sm">No data for this period</p>;
+    return <p className="text-secondary text-sm">No data for this period</p>;
   }
   return (
     <ResponsiveContainer width="100%" height={250}>
@@ -39,7 +39,7 @@ export function AdminGenerationsBarChart({
           width={40}
         />
         <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
-        <Bar dataKey="count" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="count" fill="#c40181" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -51,7 +51,7 @@ export function DailyActiveUsersChart({
   data: Array<{ date: string; count: number }>;
 }) {
   if (data.length === 0) {
-    return <p className="text-gray-500 text-sm">No data for this period</p>;
+    return <p className="text-secondary text-sm">No data for this period</p>;
   }
   return (
     <ResponsiveContainer width="100%" height={200}>
@@ -71,9 +71,9 @@ export function DailyActiveUsersChart({
         <Line
           type="monotone"
           dataKey="count"
-          stroke="#7c3aed"
+          stroke="#c40181"
           strokeWidth={2}
-          dot={{ fill: "#7c3aed", r: 3 }}
+          dot={{ fill: "#c40181", r: 3 }}
         />
       </LineChart>
     </ResponsiveContainer>
@@ -86,7 +86,7 @@ export function QualityTrendChart({
   data: Array<{ week: string; likes: number; dislikes: number; score: number }>;
 }) {
   if (data.length === 0) {
-    return <p className="text-gray-500 text-sm">No data for this period</p>;
+    return <p className="text-secondary text-sm">No data for this period</p>;
   }
   return (
     <ResponsiveContainer width="100%" height={220}>
@@ -109,15 +109,15 @@ export function QualityTrendChart({
           labelFormatter={(label) => `Week of ${label}`}
         />
         <Legend
-          wrapperStyle={{ fontSize: "11px", color: "#9ca3af" }}
+          wrapperStyle={{ fontSize: "11px", color: "#aaa2a5" }}
         />
         <Line
           type="monotone"
           dataKey="score"
           name="Quality Score (%)"
-          stroke="#7c3aed"
+          stroke="#c40181"
           strokeWidth={2}
-          dot={{ fill: "#7c3aed", r: 3 }}
+          dot={{ fill: "#c40181", r: 3 }}
           activeDot={{ r: 5 }}
         />
       </LineChart>

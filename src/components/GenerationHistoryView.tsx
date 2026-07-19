@@ -5,18 +5,18 @@ import { apiGet, apiDelete } from "@/lib/api-client";
 import { StatusBadge } from "./StatusBadge";
 import Link from "next/link";
 import {
-  MusicalNoteIcon,
-  ArrowPathIcon,
-  ClockIcon,
-  SparklesIcon,
-  ChevronUpDownIcon,
-  PlayIcon,
-  PauseIcon,
-  MagnifyingGlassIcon,
-  BookmarkIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline";
-import { BookmarkIcon as BookmarkSolidIcon } from "@heroicons/react/24/solid";
+  Music,
+  RefreshCw,
+  Clock,
+  Sparkles,
+  ChevronsUpDown,
+  Play,
+  Pause,
+  Search,
+  Bookmark,
+  X,
+} from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useToast } from "./Toast";
 import { useQueue, type QueueSong } from "./QueueContext";
 import Image from "next/image";
@@ -97,14 +97,14 @@ function GenerationRow({
   };
 
   return (
-    <li className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+    <li className="bg-surface border border-border rounded-xl overflow-hidden">
       <div className="flex items-start gap-3 px-3 py-3">
         {/* Cover art with play overlay */}
-        <div className="relative flex-shrink-0 w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center group">
+        <div className="relative flex-shrink-0 w-12 h-12 rounded-lg bg-surface-raised overflow-hidden flex items-center justify-center group">
           {entry.imageUrl ? (
             <Image src={entry.imageUrl} alt={entry.title ?? "Song"} fill className="object-cover" sizes="48px" loading="lazy" />
           ) : (
-            <MusicalNoteIcon className="w-6 h-6 text-gray-400 dark:text-gray-600" />
+            <Icon icon={Music} className="w-6 h-6 text-muted" />
           )}
           {isReady && entry.audioUrl && (
             <button
@@ -113,9 +113,9 @@ function GenerationRow({
               className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
             >
               {isThisSongPlaying ? (
-                <PauseIcon className="w-5 h-5 text-white" />
+                <Icon icon={Pause} className="w-5 h-5 text-white" />
               ) : (
-                <PlayIcon className="w-5 h-5 text-white" />
+                <Icon icon={Play} className="w-5 h-5 text-white" />
               )}
             </button>
           )}
@@ -127,12 +127,12 @@ function GenerationRow({
             {isReady ? (
               <Link
                 href={`/library/${entry.id}`}
-                className="text-sm font-medium text-gray-900 dark:text-white truncate hover:text-violet-400 transition-colors"
+                className="text-sm font-medium text-primary truncate hover:text-violet-400 transition-colors"
               >
                 {entry.title ?? "Untitled"}
               </Link>
             ) : (
-              <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+              <span className="text-sm font-medium text-primary truncate">
                 {entry.title ?? "Untitled"}
               </span>
             )}
@@ -150,16 +150,16 @@ function GenerationRow({
           </div>
 
           {entry.prompt && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{entry.prompt}</p>
+            <p className="text-xs text-secondary line-clamp-2">{entry.prompt}</p>
           )}
 
           <div className="flex items-center gap-3 flex-wrap">
-            {entry.tags && <span className="text-xs text-gray-500">{entry.tags}</span>}
+            {entry.tags && <span className="text-xs text-muted">{entry.tags}</span>}
             {entry.duration != null && (
-              <span className="text-xs text-gray-400 dark:text-gray-600">{formatTime(entry.duration)}</span>
+              <span className="text-xs text-muted">{formatTime(entry.duration)}</span>
             )}
-            <span className="text-xs text-gray-400 dark:text-gray-600 flex items-center gap-1">
-              <ClockIcon className="w-3 h-3" />
+            <span className="text-xs text-muted flex items-center gap-1">
+              <Icon icon={Clock} className="w-3 h-3" />
               {formatHistoryRelativeDate(entry.createdAt)}
             </span>
           </div>
@@ -176,14 +176,14 @@ function GenerationRow({
             <button
               onClick={() => onSavePrompt(entry)}
               disabled={isSaving}
-              className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors disabled:opacity-50"
+              className="w-9 h-9 rounded-full flex items-center justify-center bg-surface-raised hover:bg-amber-100 dark:hover:bg-amber-900/40 text-secondary hover:text-amber-600 dark:hover:text-amber-400 transition-colors disabled:opacity-50"
               title="Save prompt for reuse"
               aria-label="Save prompt"
             >
               {isSaving ? (
                 <Spinner className="h-4 w-4" />
               ) : (
-                <BookmarkIcon className="w-4 h-4" />
+                <Icon icon={Bookmark} className="w-4 h-4" />
               )}
             </button>
           )}
@@ -200,7 +200,7 @@ function GenerationRow({
               {isRetrying ? (
                 <Spinner className="h-4 w-4" />
               ) : (
-                <ArrowPathIcon className="w-4 h-4" />
+                <Icon icon={RefreshCw} className="w-4 h-4" />
               )}
             </button>
           )}
@@ -208,11 +208,11 @@ function GenerationRow({
           {/* Regenerate — for all songs (navigate to generate with same params) */}
           <Link
             href={buildGenerateUrl(entry)}
-            className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+            className="w-9 h-9 rounded-full flex items-center justify-center bg-surface-raised hover:bg-surface-hover text-primary transition-colors"
             title={isFailed ? "Create new generation with same prompt" : "Regenerate with same prompt"}
             aria-label="Regenerate"
           >
-            <SparklesIcon className="w-4 h-4" />
+            <Icon icon={Sparkles} className="w-4 h-4" />
           </Link>
         </div>
       </div>
@@ -268,8 +268,8 @@ function SavedPromptsPanel() {
 
   if (presets.length === 0) {
     return (
-      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-        No saved prompts yet. Click the <BookmarkIcon className="w-3.5 h-3.5 inline" /> button on any generation to save it.
+      <p className="text-sm text-secondary text-center py-4">
+        No saved prompts yet. Click the <Icon icon={Bookmark} className="w-3.5 h-3.5 inline" /> button on any generation to save it.
       </p>
     );
   }
@@ -279,13 +279,13 @@ function SavedPromptsPanel() {
       {presets.map((preset) => (
         <li
           key={preset.id}
-          className="flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2.5"
+          className="flex items-center gap-3 bg-surface border border-border rounded-xl px-3 py-2.5"
         >
-          <BookmarkSolidIcon className="w-4 h-4 text-amber-500 flex-shrink-0" />
+          <Icon icon={Bookmark} fill="currentColor" className="w-4 h-4 text-amber-500 flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{preset.name}</p>
+            <p className="text-sm font-medium text-primary truncate">{preset.name}</p>
             {preset.stylePrompt && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{preset.stylePrompt}</p>
+              <p className="text-xs text-secondary truncate">{preset.stylePrompt}</p>
             )}
           </div>
           <Link
@@ -297,10 +297,10 @@ function SavedPromptsPanel() {
           <button
             onClick={() => handleDelete(preset.id)}
             disabled={deletingId === preset.id}
-            className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/40 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+            className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/40 text-secondary hover:text-red-500 transition-colors disabled:opacity-50"
             aria-label="Delete saved prompt"
           >
-            <XMarkIcon className="w-4 h-4" />
+            <Icon icon={X} className="w-4 h-4" />
           </button>
         </li>
       ))}
@@ -355,8 +355,8 @@ export function GenerationHistoryView({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Generation History</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">
+          <h1 className="text-xl font-bold text-primary">Generation History</h1>
+          <p className="text-secondary text-sm mt-0.5">
             {loading ? "Loading…" : `${songs.length}${remaining > 0 ? ` of ${totalSongs}` : ""} generation${totalSongs !== 1 ? "s" : ""}`}
           </p>
         </div>
@@ -365,10 +365,10 @@ export function GenerationHistoryView({
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors min-h-[36px] ${
             showSavedPrompts
               ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400"
-              : "bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+              : "bg-surface-raised text-secondary hover:text-primary"
           }`}
         >
-          <BookmarkSolidIcon className="w-4 h-4" />
+          <Icon icon={Bookmark} fill="currentColor" className="w-4 h-4" />
           Saved Prompts
         </button>
       </div>
@@ -383,41 +383,41 @@ export function GenerationHistoryView({
 
       {/* Search */}
       <div className="relative">
-        <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        <Icon icon={Search} className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary pointer-events-none" />
         <input
           type="search"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search by prompt…"
-          className="w-full pl-9 pr-4 py-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+          className="w-full pl-9 pr-4 py-2 rounded-xl bg-surface border border-border text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-violet-500"
         />
       </div>
 
       {/* Date range */}
       <div className="flex gap-2">
         <div className="flex-1">
-          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">From</label>
+          <label className="block text-xs text-secondary mb-1">From</label>
           <input
             type="date"
             value={dateFrom}
             onChange={(e) => { setDateFrom(e.target.value); handleDateChange(); }}
-            className="w-full px-3 py-1.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+            className="w-full px-3 py-1.5 rounded-xl bg-surface border border-border text-sm text-primary focus:outline-none focus:ring-2 focus:ring-violet-500"
           />
         </div>
         <div className="flex-1">
-          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">To</label>
+          <label className="block text-xs text-secondary mb-1">To</label>
           <input
             type="date"
             value={dateTo}
             onChange={(e) => { setDateTo(e.target.value); handleDateChange(); }}
-            className="w-full px-3 py-1.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+            className="w-full px-3 py-1.5 rounded-xl bg-surface border border-border text-sm text-primary focus:outline-none focus:ring-2 focus:ring-violet-500"
           />
         </div>
         {(dateFrom || dateTo) && (
           <div className="flex items-end pb-0.5">
             <button
               onClick={() => { setDateFrom(""); setDateTo(""); handleDateChange(); }}
-              className="px-3 py-1.5 rounded-xl text-xs text-gray-500 hover:text-gray-900 dark:hover:text-white bg-gray-100 dark:bg-gray-800 transition-colors"
+              className="px-3 py-1.5 rounded-xl text-xs text-muted hover:text-primary bg-surface-raised transition-colors"
             >
               Clear
             </button>
@@ -436,7 +436,7 @@ export function GenerationHistoryView({
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors min-h-[44px] disabled:opacity-50 ${
                 activeFilter === opt.value
                   ? "bg-violet-600 text-white"
-                  : "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  : "bg-surface-raised text-secondary hover:text-primary"
               }`}
             >
               {opt.label}
@@ -449,14 +449,14 @@ export function GenerationHistoryView({
             value={sortKey}
             onChange={(e) => handleSortChange(e.target.value as HistorySortKey)}
             disabled={loading}
-            className="appearance-none pl-3 pr-8 py-1.5 rounded-full text-sm font-medium bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-none cursor-pointer min-h-[44px] focus:ring-2 focus:ring-violet-500 focus:outline-none disabled:opacity-50"
+            className="appearance-none pl-3 pr-8 py-1.5 rounded-full text-sm font-medium bg-surface-raised text-primary border-none cursor-pointer min-h-[44px] focus:ring-2 focus:ring-violet-500 focus:outline-none disabled:opacity-50"
             aria-label="Sort generations"
           >
             {HISTORY_SORT_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
-          <ChevronUpDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <Icon icon={ChevronsUpDown} className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary pointer-events-none" />
         </div>
       </div>
 
@@ -466,9 +466,9 @@ export function GenerationHistoryView({
           <Spinner className="h-6 w-6 text-violet-500" />
         </div>
       ) : songs.length === 0 ? (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 text-center space-y-3">
-          <MusicalNoteIcon className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto" />
-          <p className="text-gray-500 text-sm">
+        <div className="bg-surface border border-border rounded-xl p-8 text-center space-y-3">
+          <Icon icon={Music} className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto" />
+          <p className="text-muted text-sm">
             {activeFilter !== "all" || debouncedQuery || dateFrom || dateTo
               ? "No generations match these filters."
               : "No generation history yet. Create your first song!"}
@@ -498,7 +498,7 @@ export function GenerationHistoryView({
             <button
               onClick={handleLoadMore}
               disabled={loadingMore}
-              className="w-full py-3 rounded-xl bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium transition-colors min-h-[44px] disabled:opacity-50"
+              className="w-full py-3 rounded-xl bg-surface-raised hover:bg-surface-hover text-primary text-sm font-medium transition-colors min-h-[44px] disabled:opacity-50"
             >
               {loadingMore ? (
                 <span className="inline-flex items-center gap-2">
@@ -512,7 +512,7 @@ export function GenerationHistoryView({
           )}
 
           {!nextCursor && songs.length > 0 && (
-            <p className="text-center text-xs text-gray-400 dark:text-gray-600 py-2">All generations loaded</p>
+            <p className="text-center text-xs text-muted py-2">All generations loaded</p>
           )}
         </>
       )}

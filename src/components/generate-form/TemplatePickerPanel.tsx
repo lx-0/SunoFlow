@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { BookmarkIcon, TrashIcon } from "@heroicons/react/24/solid";
-import { BookmarkIcon as BookmarkOutline } from "@heroicons/react/24/outline";
+import { Bookmark, Trash2 } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useToast } from "../Toast";
 import { deletePromptTemplate, savePromptTemplate } from "./api";
 import { getSubmitPrompt } from "./helpers";
@@ -105,22 +105,22 @@ export function TemplatePickerPanel({
           onClick={() => setShowTemplatePicker(!showTemplatePicker)}
           className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
         >
-          <BookmarkOutline className="h-4 w-4" />
+          <Icon icon={Bookmark} className="h-4 w-4" />
           Templates
         </button>
         <button
           type="button"
           onClick={() => setShowSaveDialog(!showSaveDialog)}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-secondary bg-surface-raised border border-border rounded-xl hover:bg-surface-hover transition-colors"
         >
-          <BookmarkIcon className="h-4 w-4" />
+          <Icon icon={Bookmark} fill="currentColor" className="h-4 w-4" />
           Save as template
         </button>
       </div>
 
       {/* Template Picker Panel */}
       {showTemplatePicker && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
+        <div className="bg-surface-raised border border-border rounded-xl p-3 space-y-3">
           {/* Category Filter */}
           {categories.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
@@ -130,7 +130,7 @@ export function TemplatePickerPanel({
                 className={`px-2.5 py-1 text-xs font-medium rounded-full transition-colors ${
                   selectedCategory === null
                     ? "bg-violet-600 text-white"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    : "bg-surface-raised text-secondary hover:bg-surface-hover"
                 }`}
               >
                 All
@@ -143,7 +143,7 @@ export function TemplatePickerPanel({
                   className={`px-2.5 py-1 text-xs font-medium rounded-full capitalize transition-colors ${
                     selectedCategory === cat
                       ? "bg-violet-600 text-white"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      : "bg-surface-raised text-secondary hover:bg-surface-hover"
                   }`}
                 >
                   {cat}
@@ -155,18 +155,18 @@ export function TemplatePickerPanel({
           {/* Built-in Templates Grid */}
           {filteredBuiltIn.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Starter Templates</p>
+              <p className="text-xs font-semibold text-secondary uppercase tracking-wide mb-2">Starter Templates</p>
               <div className="grid grid-cols-2 gap-2">
                 {filteredBuiltIn.map((t) => (
                   <button
                     key={t.id}
                     type="button"
                     onClick={() => onApplyTemplate(t)}
-                    className="text-left p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/10 transition-colors"
+                    className="text-left p-3 rounded-xl border border-border hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/10 transition-colors"
                   >
-                    <span className="text-sm font-medium text-gray-900 dark:text-white block">{t.name}</span>
+                    <span className="text-sm font-medium text-primary block">{t.name}</span>
                     {t.description && (
-                      <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{t.description}</span>
+                      <span className="block text-xs text-secondary mt-0.5 line-clamp-2">{t.description}</span>
                     )}
                     <div className="flex items-center gap-1.5 mt-1.5">
                       {t.category && (
@@ -185,29 +185,29 @@ export function TemplatePickerPanel({
           {/* User Templates */}
           {filteredUser.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">My Templates</p>
+              <p className="text-xs font-semibold text-secondary uppercase tracking-wide mb-2">My Templates</p>
               <div className="grid grid-cols-2 gap-2">
                 {filteredUser.map((t) => (
                   <div key={t.id} className="relative group">
                     <button
                       type="button"
                       onClick={() => onApplyTemplate(t)}
-                      className="w-full text-left p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/10 transition-colors"
+                      className="w-full text-left p-3 rounded-xl border border-border hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/10 transition-colors"
                     >
-                      <span className="text-sm font-medium text-gray-900 dark:text-white block pr-6">{t.name}</span>
-                      <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{t.style ?? t.prompt}</span>
+                      <span className="text-sm font-medium text-primary block pr-6">{t.name}</span>
+                      <span className="block text-xs text-secondary mt-0.5 truncate">{t.style ?? t.prompt}</span>
                       {t.category && (
-                        <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 mt-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 capitalize">{t.category}</span>
+                        <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 mt-1.5 rounded-full bg-surface-raised text-secondary capitalize">{t.category}</span>
                       )}
                     </button>
                     <button
                       type="button"
                       onClick={() => deleteTemplate(t.id)}
-                      className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                      className="absolute top-2 right-2 p-1.5 text-secondary hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
                       aria-label="Delete template"
                       title="Delete template"
                     >
-                      <TrashIcon className="h-4 w-4" />
+                      <Icon icon={Trash2} fill="currentColor" className="h-4 w-4" />
                     </button>
                   </div>
                 ))}
@@ -215,7 +215,7 @@ export function TemplatePickerPanel({
             </div>
           )}
           {filteredBuiltIn.length === 0 && filteredUser.length === 0 && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+            <p className="text-sm text-secondary text-center py-2">
               {selectedCategory ? "No templates in this category" : "No templates yet"}
             </p>
           )}
@@ -224,8 +224,8 @@ export function TemplatePickerPanel({
 
       {/* Save Template Dialog */}
       {showSaveDialog && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-3">
-          <p className="text-sm font-medium text-gray-900 dark:text-white">Save current settings as template</p>
+        <div className="bg-surface-raised border border-border rounded-xl p-3 space-y-3">
+          <p className="text-sm font-medium text-primary">Save current settings as template</p>
           <input
             type="text"
             value={templateName}
@@ -233,13 +233,13 @@ export function TemplatePickerPanel({
             placeholder="Template name"
             aria-label="Template name"
             maxLength={50}
-            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+            className="w-full bg-surface-raised border border-border rounded-xl px-3 py-2 text-base sm:text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
           />
           <select
             value={templateCategory}
             onChange={(e) => setTemplateCategory(e.target.value)}
             aria-label="Template category"
-            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+            className="w-full bg-surface-raised border border-border rounded-xl px-3 py-2 text-base sm:text-sm text-primary focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
           >
             <option value="">No category</option>
             <option value="pop">Pop</option>
@@ -265,12 +265,12 @@ export function TemplatePickerPanel({
             <button
               type="button"
               onClick={() => { setShowSaveDialog(false); setTemplateName(""); setTemplateCategory(""); }}
-              className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="px-3 py-2 text-sm font-medium text-secondary bg-surface-raised border border-border rounded-xl hover:bg-surface-hover transition-colors"
             >
               Cancel
             </button>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-secondary">
             {userTemplates.length} / 20 templates used
           </p>
         </div>

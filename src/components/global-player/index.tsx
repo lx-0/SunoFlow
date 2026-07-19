@@ -1,16 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  HeartIcon,
-  SpeakerWaveIcon,
-  SpeakerXMarkIcon,
-} from "@heroicons/react/24/solid";
-import {
-  MusicalNoteIcon,
-  HeartIcon as HeartOutlineIcon,
-  FaceSmileIcon,
-} from "@heroicons/react/24/outline";
+import { Heart, Music, Smile, Volume2, VolumeX } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { CoverArtImage } from "../CoverArtImage";
 import { useQueue } from "../QueueContext";
 import { UpNextPanel } from "../UpNextPanel";
@@ -163,8 +155,8 @@ export function GlobalPlayer({
             commentPopups={activeCommentPopups}
           />
 
-          <div className="bg-gray-900 dark:bg-gray-800 rounded-2xl md:rounded-none md:rounded-t-2xl shadow-2xl border border-gray-700 dark:border-gray-600">
-            <div className="relative h-12 px-2 pt-1 pb-0.5 bg-gray-900 dark:bg-gray-800 overflow-hidden rounded-t-2xl md:rounded-none md:rounded-t-2xl">
+          <div className="bg-surface rounded-2xl md:rounded-none md:rounded-t-2xl shadow-2xl border border-border">
+            <div className="relative h-12 px-2 pt-1 pb-0.5 bg-surface overflow-hidden rounded-t-2xl md:rounded-none md:rounded-t-2xl">
               <PlayerWaveform
                 songId={currentSong.id}
                 currentTime={currentTime}
@@ -190,7 +182,7 @@ export function GlobalPlayer({
               <button
                 key={currentSong.id}
                 onClick={handleCoverClick}
-                className="relative flex-shrink-0 w-12 h-12 md:w-10 md:h-10 rounded-lg bg-gray-800 dark:bg-gray-700 overflow-hidden flex items-center justify-center hover:ring-2 hover:ring-violet-500/50 transition-all"
+                className="relative flex-shrink-0 w-12 h-12 md:w-10 md:h-10 rounded-lg bg-surface-raised overflow-hidden flex items-center justify-center hover:ring-2 hover:ring-violet-500/50 transition-all"
                 aria-label="Open song details"
                 title="Open song details"
               >
@@ -205,8 +197,9 @@ export function GlobalPlayer({
                     fallbackSrc="/icons/icon-512.png"
                   />
                 ) : (
-                  <MusicalNoteIcon
-                    className="w-5 h-5 text-gray-500"
+                  <Icon
+                    icon={Music}
+                    className="w-5 h-5 text-muted"
                     aria-hidden="true"
                   />
                 )}
@@ -220,7 +213,7 @@ export function GlobalPlayer({
               >
                 <div className="flex items-center gap-1.5">
                   <span
-                    className="text-sm font-medium text-white truncate hover:text-violet-400 transition-colors cursor-pointer"
+                    className="text-sm font-medium text-primary truncate hover:text-violet-400 transition-colors cursor-pointer"
                     aria-live="polite"
                   >
                     {currentSong.title ?? "Untitled"}
@@ -232,7 +225,7 @@ export function GlobalPlayer({
                       </span>
                     )}
                 </div>
-                <div className="flex items-center gap-2 text-xs text-gray-400">
+                <div className="flex items-center gap-2 text-xs text-secondary">
                   <span>{formatTime(currentTime)}</span>
                   <span>/</span>
                   <span>{formatTime(duration)}</span>
@@ -266,11 +259,11 @@ export function GlobalPlayer({
                     aria-expanded={showReactions}
                     className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${
                       showReactions
-                        ? "text-violet-400 bg-white/10"
-                        : "text-gray-400 hover:text-gray-200"
+                        ? "text-violet-400 bg-surface-hover"
+                        : "text-secondary hover:text-primary"
                     }`}
                   >
-                    <FaceSmileIcon className="w-5 h-5" />
+                    <Icon icon={Smile} className="w-5 h-5" />
                   </button>
                   {showReactions && (
                     <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30">
@@ -296,13 +289,17 @@ export function GlobalPlayer({
                   className={`flex-shrink-0 w-8 h-8 flex items-center justify-center transition-colors ${
                     isFavorite
                       ? "text-pink-500"
-                      : "text-gray-400 hover:text-pink-400"
+                      : "text-secondary hover:text-pink-400"
                   }`}
                 >
                   {isFavorite ? (
-                    <HeartIcon className="w-5 h-5" />
+                    <Icon
+                      icon={Heart}
+                      className="w-5 h-5"
+                      fill="currentColor"
+                    />
                   ) : (
-                    <HeartOutlineIcon className="w-5 h-5" />
+                    <Icon icon={Heart} className="w-5 h-5" />
                   )}
                 </button>
               )}
@@ -311,12 +308,12 @@ export function GlobalPlayer({
                 <button
                   onClick={toggleMute}
                   aria-label={muted ? "Unmute" : "Mute"}
-                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-200 transition-colors"
+                  className="w-8 h-8 flex items-center justify-center text-secondary hover:text-primary transition-colors"
                 >
                   {muted || volume === 0 ? (
-                    <SpeakerXMarkIcon className="w-4 h-4" />
+                    <Icon icon={VolumeX} className="w-4 h-4" />
                   ) : (
-                    <SpeakerWaveIcon className="w-4 h-4" />
+                    <Icon icon={Volume2} className="w-4 h-4" />
                   )}
                 </button>
                 <input

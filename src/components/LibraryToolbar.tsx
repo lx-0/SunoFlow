@@ -1,14 +1,7 @@
 "use client";
 
-import {
-  MagnifyingGlassIcon,
-  XMarkIcon,
-  FunnelIcon,
-} from "@heroicons/react/24/solid";
-import {
-  Squares2X2Icon,
-  ListBulletIcon,
-} from "@heroicons/react/24/outline";
+import { Search, X, Funnel, LayoutGrid, List } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { LibraryFilterPanel, type LibraryFilterPanelProps } from "./LibraryFilterPanel";
 
 // ─── Sort / smart-filter constants ──────────────────────────────────────────
@@ -91,22 +84,22 @@ export function LibraryToolbar({
     <div className="space-y-3">
       <div className="flex gap-2">
         <div className="relative flex-1">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
+          <Icon icon={Search} className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" aria-hidden="true" />
           <input
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             placeholder="Search titles, lyrics, tags, prompts…"
             aria-label="Search songs"
-            className="w-full pl-9 pr-9 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent min-h-[44px]"
+            className="w-full pl-9 pr-9 py-2.5 rounded-lg border border-border bg-surface text-base sm:text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent min-h-[44px]"
           />
           {searchText && (
             <button
               onClick={() => setSearchText("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-secondary"
               aria-label="Clear search"
             >
-              <XMarkIcon className="w-4 h-4" />
+              <Icon icon={X} className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -117,10 +110,10 @@ export function LibraryToolbar({
           className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
             showFilters || hasActiveFilters
               ? "bg-violet-600 text-white"
-              : "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+              : "bg-surface-raised text-secondary hover:text-primary"
           }`}
         >
-          <FunnelIcon className="w-4 h-4" />
+          <Icon icon={Funnel} className="w-4 h-4" />
           Filters
           {hasActiveFilters && !showFilters && (
             <span className="w-2 h-2 rounded-full bg-white" />
@@ -128,22 +121,22 @@ export function LibraryToolbar({
         </button>
 
         {/* View mode toggle */}
-        <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+        <div className="flex rounded-lg overflow-hidden border border-border">
           <button
             onClick={() => { setViewMode("list"); localStorage.setItem("library-view-mode", "list"); }}
             aria-label="List view"
             aria-pressed={viewMode === "list"}
-            className={`flex items-center justify-center w-10 min-h-[44px] transition-colors ${viewMode === "list" ? "bg-violet-600 text-white" : "bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"}`}
+            className={`flex items-center justify-center w-10 min-h-[44px] transition-colors ${viewMode === "list" ? "bg-violet-600 text-white" : "bg-surface text-secondary hover:text-primary"}`}
           >
-            <ListBulletIcon className="w-4 h-4" />
+            <Icon icon={List} className="w-4 h-4" />
           </button>
           <button
             onClick={() => { setViewMode("grid"); localStorage.setItem("library-view-mode", "grid"); }}
             aria-label="Grid view"
             aria-pressed={viewMode === "grid"}
-            className={`flex items-center justify-center w-10 min-h-[44px] transition-colors ${viewMode === "grid" ? "bg-violet-600 text-white" : "bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"}`}
+            className={`flex items-center justify-center w-10 min-h-[44px] transition-colors ${viewMode === "grid" ? "bg-violet-600 text-white" : "bg-surface text-secondary hover:text-primary"}`}
           >
-            <Squares2X2Icon className="w-4 h-4" />
+            <Icon icon={LayoutGrid} className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -181,7 +174,7 @@ export function LibraryToolbar({
             className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
               smartFilter === opt.value
                 ? "bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 ring-1 ring-violet-400"
-                : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                : "bg-surface-raised text-secondary hover:text-primary"
             }`}
           >
             {opt.label}
@@ -193,7 +186,7 @@ export function LibraryToolbar({
           className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
             includeVariations
               ? "bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 ring-1 ring-violet-400"
-              : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+              : "bg-surface-raised text-secondary hover:text-primary"
           }`}
         >
           + Variations
@@ -210,7 +203,7 @@ export function LibraryToolbar({
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
                 sortBy === opt.value
                   ? "bg-violet-600 text-white"
-                  : "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  : "bg-surface-raised text-secondary hover:text-primary"
               }`}
             >
               {opt.label}

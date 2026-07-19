@@ -110,8 +110,8 @@ export function PlayerWaveform({
         document.body.classList.contains("dark");
 
       // Colours
-      const playedColor = "#7c3aed"; // violet-700
-      const unplayedColor = isDark ? "#374151" : "#9ca3af"; // gray-700 / gray-400
+      const playedColor = "#ef009c"; // accent (Electric Magenta)
+      const unplayedColor = isDark ? "#686164" : "#aaa2a5"; // tinted neutrals (text-faint / text-dim)
 
       const barW = Math.max(1, (w - (NUM_BARS - 1)) / NUM_BARS);
       const step = w / NUM_BARS;
@@ -136,7 +136,7 @@ export function PlayerWaveform({
 
       // Subtle buffering pulse overlay on the played region
       if (bufRef.current && progress > 0) {
-        ctx.fillStyle = "rgba(124, 58, 237, 0.25)";
+        ctx.fillStyle = "rgba(196, 1, 129, 0.25)";
         ctx.fillRect(0, 0, progress * w, h);
       }
 
@@ -159,7 +159,7 @@ export function PlayerWaveform({
       // Comment timestamp markers — violet pip at the top of each marked bar
       const commentTs = commentsRef.current;
       if (commentTs.length > 0 && durRef.current > 0) {
-        ctx.fillStyle = "#a78bfa"; // violet-400
+        ctx.fillStyle = "#e873af"; // magenta-400
         for (const ts of commentTs) {
           const barIdx = Math.min(
             NUM_BARS - 1,

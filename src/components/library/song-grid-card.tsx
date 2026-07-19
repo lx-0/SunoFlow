@@ -2,14 +2,8 @@ import { useRef } from "react";
 import type { Song } from "@prisma/client";
 import Link from "next/link";
 import Image from "next/image";
-import {
-  CheckIcon,
-  MusicalNoteIcon,
-  PauseIcon,
-  PlayIcon,
-  HeartIcon,
-} from "@heroicons/react/24/solid";
-import { HeartIcon as HeartOutlineIcon } from "@heroicons/react/24/outline";
+import { Check, Music, Pause, Play, Heart } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { HighlightText } from "@/components/HighlightText";
 import { ShareButton } from "@/components/ShareButton";
 
@@ -77,10 +71,10 @@ export function SongGridCard({
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
-      className={`group relative bg-white dark:bg-gray-900 rounded-xl border overflow-hidden transition-colors ${
+      className={`group relative bg-surface rounded-xl border overflow-hidden transition-colors ${
         isSelected
           ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30"
-          : "border-gray-200 dark:border-gray-800 hover:border-violet-300 dark:hover:border-violet-700"
+          : "border-border hover:border-violet-300 dark:hover:border-violet-700"
       }`}
     >
       <button
@@ -94,10 +88,10 @@ export function SongGridCard({
             : "border-white bg-black/20 hover:border-violet-400"
         }`}
       >
-        {isSelected && <CheckIcon className="w-4 h-4" />}
+        {isSelected && <Icon icon={Check} className="w-4 h-4" />}
       </button>
 
-      <div className="relative aspect-square bg-gray-100 dark:bg-gray-800">
+      <div className="relative aspect-square bg-surface-raised">
         {song.imageUrl ? (
           <Image
             src={song.imageUrl}
@@ -108,11 +102,11 @@ export function SongGridCard({
             priority={priority}
             loading={priority ? "eager" : "lazy"}
             placeholder="blur"
-            blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHZpZXdCb3g9IjAgMCAxMCAxMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiM3YzNhZWQiIGZpbGwtb3BhY2l0eT0iMC4yIi8+PC9zdmc+"
+            blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHZpZXdCb3g9IjAgMCAxMCAxMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiNlZjAwOWMiIGZpbGwtb3BhY2l0eT0iMC4yIi8+PC9zdmc+"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <MusicalNoteIcon className="w-10 h-10 text-gray-300 dark:text-gray-700" aria-hidden="true" />
+            <Icon icon={Music} className="w-10 h-10 text-muted" aria-hidden="true" />
           </div>
         )}
 
@@ -127,9 +121,9 @@ export function SongGridCard({
             }`}
           >
             {isActive && isPlaying ? (
-              <PauseIcon className="w-6 h-6 text-violet-600" />
+              <Icon icon={Pause} fill="currentColor" className="w-6 h-6 text-violet-600" />
             ) : (
-              <PlayIcon className="w-6 h-6 text-violet-600 ml-0.5" />
+              <Icon icon={Play} fill="currentColor" className="w-6 h-6 text-violet-600 ml-0.5" />
             )}
           </span>
         </button>
@@ -150,7 +144,7 @@ export function SongGridCard({
       <div className="px-3 py-2 flex items-center justify-between gap-2">
         <Link
           href={`/library/${song.id}`}
-          className="text-sm font-medium text-gray-900 dark:text-white truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors min-w-0"
+          className="text-sm font-medium text-primary truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors min-w-0"
         >
           <HighlightText text={song.title ?? "Untitled"} query={searchQuery} />
         </Link>
@@ -158,7 +152,7 @@ export function SongGridCard({
           <ShareButton
             song={song}
             source="library_grid"
-            className="text-gray-400 hover:text-violet-500 transition-colors"
+            className="text-muted hover:text-violet-500 transition-colors"
           />
           <button
             onClick={() => onToggleFavorite(song)}
@@ -167,12 +161,12 @@ export function SongGridCard({
                 ? "Remove from favorites"
                 : "Add to favorites"
             }
-            className="flex-shrink-0 text-gray-400 hover:text-red-500 transition-colors"
+            className="flex-shrink-0 text-muted hover:text-red-500 transition-colors"
           >
             {(song as Song & { isFavorite?: boolean }).isFavorite ? (
-              <HeartIcon className="w-4 h-4 text-red-500" />
+              <Icon icon={Heart} fill="currentColor" className="w-4 h-4 text-red-500" />
             ) : (
-              <HeartOutlineIcon className="w-4 h-4" />
+              <Icon icon={Heart} className="w-4 h-4" />
             )}
           </button>
         </div>

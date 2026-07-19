@@ -1,11 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import {
-  XMarkIcon,
-  MusicalNoteIcon,
-  MagnifyingGlassIcon,
-} from "@heroicons/react/24/solid";
+import { Music, Search, X } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import Image from "next/image";
 import { useDialogFocusTrap } from "@/hooks/useDialogFocusTrap";
 import { apiGet } from "@/lib/api-client";
@@ -62,31 +59,31 @@ export function SongPickerModal({
         aria-modal="true"
         aria-labelledby="song-picker-title"
         tabIndex={-1}
-        className="relative w-full max-w-lg max-h-[70vh] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl flex flex-col"
+        className="relative w-full max-w-lg max-h-[70vh] bg-surface border border-border rounded-2xl shadow-xl flex flex-col"
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-          <h3 id="song-picker-title" className="text-sm font-semibold text-gray-900 dark:text-white">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <h3 id="song-picker-title" className="text-sm font-semibold text-primary">
             Pick a song from your library
           </h3>
           <button
             onClick={onClose}
             aria-label="Close song picker"
-            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="p-1 rounded-lg hover:bg-surface-hover"
           >
-            <XMarkIcon className="h-5 w-5 text-gray-500" />
+            <Icon icon={X} fill="currentColor" className="h-5 w-5 text-secondary" />
           </button>
         </div>
 
         <div className="px-4 py-2">
           <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Icon icon={Search} fill="currentColor" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
             <input
               type="text"
               aria-label="Search songs to pick"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search songs..."
-              className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="w-full pl-9 pr-4 py-2 rounded-xl border border-border-strong bg-surface-raised text-sm text-primary placeholder-muted focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -97,7 +94,7 @@ export function SongPickerModal({
               <Spinner className="h-6 w-6 text-violet-500" />
             </div>
           ) : filtered.length === 0 ? (
-            <p className="text-center text-sm text-gray-500 dark:text-gray-400 py-8">
+            <p className="text-center text-sm text-secondary py-8">
               {search.trim()
                 ? "No songs match your search"
                 : "No completed songs in your library"}
@@ -124,15 +121,15 @@ export function SongPickerModal({
                       loading="lazy"
                     />
                   ) : (
-                    <div className="h-10 w-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
-                      <MusicalNoteIcon className="h-5 w-5 text-gray-400" />
+                    <div className="h-10 w-10 rounded-lg bg-surface-raised flex items-center justify-center flex-shrink-0">
+                      <Icon icon={Music} fill="currentColor" className="h-5 w-5 text-muted" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    <p className="text-sm font-medium text-primary truncate">
                       {song.title || "Untitled"}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    <p className="text-xs text-secondary truncate">
                       {song.tags || "No tags"}
                       {song.duration != null &&
                         ` · ${formatDuration(song.duration)}`}

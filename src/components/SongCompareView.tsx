@@ -4,15 +4,16 @@ import { useRef, useState, useCallback, useEffect, forwardRef, useImperativeHand
 import Image from "next/image";
 import Link from "next/link";
 import {
-  PlayIcon,
-  PauseIcon,
-  ArrowLeftIcon,
-  MusicalNoteIcon,
-  ArrowsRightLeftIcon,
-  LinkIcon,
-  SpeakerWaveIcon,
-  SpeakerXMarkIcon,
-} from "@heroicons/react/24/solid";
+  Play,
+  Pause,
+  ArrowLeft,
+  Music,
+  ArrowLeftRight,
+  Link as LinkGlyph,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { formatDuration as formatTime } from "@/lib/time-format";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -148,9 +149,9 @@ const ComparePanel = forwardRef<PanelHandle, ComparePanelProps>(
     const hasAudio = !!song.audioUrl && song.generationStatus === "ready";
 
     return (
-      <div className="flex-1 min-w-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+      <div className="flex-1 min-w-0 bg-surface border border-border rounded-2xl overflow-hidden">
         {/* Panel header */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-surface-deep">
           <span
             className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-bold ${
               label === "A"
@@ -162,15 +163,15 @@ const ComparePanel = forwardRef<PanelHandle, ComparePanelProps>(
           </span>
           <Link
             href={`/library/${song.id}`}
-            className="text-xs text-gray-400 hover:text-violet-500 transition-colors"
+            className="text-xs text-muted hover:text-violet-500 transition-colors"
             title="Open song detail"
           >
-            <LinkIcon className="w-3.5 h-3.5" />
+            <Icon icon={LinkGlyph} fill="currentColor" className="w-3.5 h-3.5" />
           </Link>
         </div>
 
         {/* Cover image */}
-        <div className="relative aspect-square bg-gray-100 dark:bg-gray-800">
+        <div className="relative aspect-square bg-surface-raised">
           {song.imageUrl ? (
             <Image
               src={song.imageUrl}
@@ -181,7 +182,7 @@ const ComparePanel = forwardRef<PanelHandle, ComparePanelProps>(
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <MusicalNoteIcon className="w-16 h-16 text-gray-300 dark:text-gray-600" />
+              <Icon icon={Music} fill="currentColor" className="w-16 h-16 text-muted" />
             </div>
           )}
         </div>
@@ -189,7 +190,7 @@ const ComparePanel = forwardRef<PanelHandle, ComparePanelProps>(
         {/* Metadata */}
         <div className="p-4 space-y-3">
           <div>
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white truncate">
+            <h2 className="text-base font-semibold text-primary truncate">
               {song.title ?? "Untitled"}
             </h2>
             {song.tags && (
@@ -199,17 +200,17 @@ const ComparePanel = forwardRef<PanelHandle, ComparePanelProps>(
 
           {song.prompt && (
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-0.5">Prompt</p>
-              <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-3">{song.prompt}</p>
+              <p className="text-xs font-medium text-secondary uppercase tracking-wide mb-0.5">Prompt</p>
+              <p className="text-xs text-secondary line-clamp-3">{song.prompt}</p>
             </div>
           )}
 
-          <div className="flex flex-wrap gap-2 text-xs text-gray-400">
+          <div className="flex flex-wrap gap-2 text-xs text-muted">
             {song.duration != null && (
               <span>{formatTime(song.duration)}</span>
             )}
             {song.model && (
-              <span className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">{song.model}</span>
+              <span className="bg-surface-raised px-1.5 py-0.5 rounded">{song.model}</span>
             )}
             {song.isInstrumental && (
               <span className="bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 px-1.5 py-0.5 rounded">
@@ -222,7 +223,7 @@ const ComparePanel = forwardRef<PanelHandle, ComparePanelProps>(
           {hasAudio ? (
             <div className="space-y-2">
               {/* Progress bar */}
-              <div className="relative h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+              <div className="relative h-2 bg-surface-raised rounded-full">
                 <div
                   className={`absolute inset-y-0 left-0 rounded-full transition-all ${
                     label === "A" ? "bg-violet-500" : "bg-indigo-500"
@@ -252,16 +253,16 @@ const ComparePanel = forwardRef<PanelHandle, ComparePanelProps>(
                         ? label === "A"
                           ? "bg-violet-600 hover:bg-violet-500 text-white"
                           : "bg-indigo-600 hover:bg-indigo-500 text-white"
-                        : "bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
+                        : "bg-surface-raised text-muted cursor-not-allowed"
                     }`}
                   >
                     {isPlaying ? (
-                      <PauseIcon className="w-4 h-4" />
+                      <Icon icon={Pause} fill="currentColor" className="w-4 h-4" />
                     ) : (
-                      <PlayIcon className="w-4 h-4 ml-0.5" />
+                      <Icon icon={Play} fill="currentColor" className="w-4 h-4 ml-0.5" />
                     )}
                   </button>
-                  <span className="text-xs text-gray-400 tabular-nums">
+                  <span className="text-xs text-muted tabular-nums">
                     {formatTime(currentTime)} / {formatTime(audioDuration)}
                   </span>
                 </div>
@@ -270,18 +271,18 @@ const ComparePanel = forwardRef<PanelHandle, ComparePanelProps>(
                 <button
                   onClick={() => setLocalMuted((m) => !m)}
                   aria-label={localMuted ? "Unmute" : "Mute"}
-                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  className="p-1.5 text-muted hover:text-secondary transition-colors"
                 >
                   {localMuted || (muted && !localMuted) ? (
-                    <SpeakerXMarkIcon className="w-4 h-4" />
+                    <Icon icon={VolumeX} fill="currentColor" className="w-4 h-4" />
                   ) : (
-                    <SpeakerWaveIcon className="w-4 h-4" />
+                    <Icon icon={Volume2} fill="currentColor" className="w-4 h-4" />
                   )}
                 </button>
               </div>
             </div>
           ) : (
-            <p className="text-xs text-gray-400 dark:text-gray-500 italic">
+            <p className="text-xs text-muted italic">
               {song.generationStatus === "ready" ? "No audio available" : `Status: ${song.generationStatus}`}
             </p>
           )}
@@ -289,11 +290,11 @@ const ComparePanel = forwardRef<PanelHandle, ComparePanelProps>(
           {/* Lyrics */}
           {song.lyrics && (
             <details className="group">
-              <summary className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide cursor-pointer select-none hover:text-violet-500 transition-colors">
+              <summary className="text-xs font-medium text-secondary uppercase tracking-wide cursor-pointer select-none hover:text-violet-500 transition-colors">
                 Lyrics
               </summary>
               <div className="mt-2 max-h-48 overflow-y-auto">
-                <p className="text-xs text-gray-600 dark:text-gray-300 whitespace-pre-line leading-relaxed">
+                <p className="text-xs text-secondary whitespace-pre-line leading-relaxed">
                   {song.lyrics}
                 </p>
               </div>
@@ -395,19 +396,19 @@ export function SongCompareView({ songA, songB }: SongCompareViewProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen bg-surface-deep">
       {/* Top bar */}
-      <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3">
+      <div className="sticky top-0 z-30 bg-surface border-b border-border px-4 py-3">
         <div className="max-w-5xl mx-auto flex items-center gap-3">
           <Link
             href="/library"
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+            className="flex items-center gap-1 text-sm text-secondary hover:text-primary transition-colors"
           >
-            <ArrowLeftIcon className="w-4 h-4" />
+            <Icon icon={ArrowLeft} fill="currentColor" className="w-4 h-4" />
             Library
           </Link>
-          <span className="text-gray-300 dark:text-gray-600">/</span>
-          <span className="text-sm font-medium text-gray-900 dark:text-white">Compare</span>
+          <span className="text-muted">/</span>
+          <span className="text-sm font-medium text-primary">Compare</span>
 
           <div className="ml-auto flex items-center gap-2">
             {/* Sync toggle */}
@@ -417,10 +418,10 @@ export function SongCompareView({ songA, songB }: SongCompareViewProps) {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 syncEnabled
                   ? "bg-violet-600 text-white hover:bg-violet-500"
-                  : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                  : "bg-surface-raised text-secondary hover:bg-surface-hover"
               }`}
             >
-              <ArrowsRightLeftIcon className="w-3.5 h-3.5" />
+              <Icon icon={ArrowLeftRight} fill="currentColor" className="w-3.5 h-3.5" />
               Sync {syncEnabled ? "On" : "Off"}
             </button>
 
@@ -428,7 +429,7 @@ export function SongCompareView({ songA, songB }: SongCompareViewProps) {
             <button
               onClick={handleAbSwitch}
               title="Cycle A / B / Both focus"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-surface-raised text-primary hover:bg-surface-hover transition-colors"
             >
               Focus:{" "}
               <span className="font-bold">
@@ -440,9 +441,9 @@ export function SongCompareView({ songA, songB }: SongCompareViewProps) {
             <button
               onClick={handleCopyLink}
               title="Copy compare link"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-surface-raised text-primary hover:bg-surface-hover transition-colors"
             >
-              <LinkIcon className="w-3.5 h-3.5" />
+              <Icon icon={LinkGlyph} fill="currentColor" className="w-3.5 h-3.5" />
               {copied ? "Copied!" : "Share"}
             </button>
           </div>
@@ -469,7 +470,7 @@ export function SongCompareView({ songA, songB }: SongCompareViewProps) {
         </div>
 
         {/* Sync legend */}
-        <p className="mt-4 text-xs text-center text-gray-400 dark:text-gray-500">
+        <p className="mt-4 text-xs text-center text-muted">
           {syncEnabled
             ? "Sync is on — playing one panel will start both from the same position."
             : "Sync is off — panels play independently."}

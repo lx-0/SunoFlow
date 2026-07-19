@@ -1,6 +1,7 @@
 "use client";
 
-import { XMarkIcon } from "@heroicons/react/24/solid";
+import { X } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 
 interface ModalShellProps {
   title: string;
@@ -35,19 +36,19 @@ export function ModalShell({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl w-full ${maxWidthClass} p-5 space-y-4${cardClassName ? ` ${cardClassName}` : ""}`}
+        className={`bg-surface border border-border rounded-xl w-full ${maxWidthClass} p-5 space-y-4${cardClassName ? ` ${cardClassName}` : ""}`}
         onClick={closeOnBackdrop ? (e) => e.stopPropagation() : undefined}
       >
         <div className="flex items-center justify-between">
-          <h2 id={titleId} className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h2 id={titleId} className="text-lg font-semibold text-primary">
             {title}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="text-muted hover:text-primary min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Close"
           >
-            <XMarkIcon className="w-5 h-5" />
+            <Icon icon={X} className="w-5 h-5" fill="currentColor" />
           </button>
         </div>
         {children}

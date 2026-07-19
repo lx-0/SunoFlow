@@ -8,12 +8,8 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  InformationCircleIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/solid";
+import { CircleAlert, CircleCheck, Info, X, type LucideIcon } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -65,10 +61,10 @@ const variantStyles: Record<ToastVariant, string> = {
     "bg-gray-100/90 dark:bg-gray-800/90 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100",
 };
 
-const VariantIcon: Record<ToastVariant, typeof CheckCircleIcon> = {
-  success: CheckCircleIcon,
-  error: ExclamationCircleIcon,
-  info: InformationCircleIcon,
+const VariantIcon: Record<ToastVariant, LucideIcon> = {
+  success: CircleCheck,
+  error: CircleAlert,
+  info: Info,
 };
 
 function ToastItem({
@@ -78,7 +74,6 @@ function ToastItem({
   toast: Toast;
   onDismiss: (id: string) => void;
 }) {
-  const Icon = VariantIcon[toast.variant];
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -95,7 +90,7 @@ function ToastItem({
       role="alert"
       className={`flex items-start gap-2 border rounded-xl px-4 py-3 shadow-lg backdrop-blur-sm animate-slide-in ${variantStyles[toast.variant]}`}
     >
-      <Icon className="w-5 h-5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+      <Icon icon={VariantIcon[toast.variant]} className="w-5 h-5 flex-shrink-0 mt-0.5" aria-hidden="true" />
       <div className="flex-1 min-w-0">
         <p className="text-sm">{toast.message}</p>
         {toast.action && (
@@ -115,7 +110,7 @@ function ToastItem({
         aria-label="Dismiss notification"
         className="flex-shrink-0 p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
       >
-        <XMarkIcon className="w-4 h-4" />
+        <Icon icon={X} className="w-4 h-4" />
       </button>
     </div>
   );

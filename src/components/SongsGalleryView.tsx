@@ -3,16 +3,20 @@
 import { useRef, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import {
-  PlayIcon,
-  PauseIcon,
-  HeartIcon,
-  ArrowDownTrayIcon,
-  MagnifyingGlassIcon,
-  XMarkIcon,
-  FunnelIcon,
-  EllipsisVerticalIcon,
-} from "@heroicons/react/24/solid";
-import { HeartIcon as HeartOutlineIcon, CloudArrowDownIcon, CheckCircleIcon, QueueListIcon, ForwardIcon } from "@heroicons/react/24/outline";
+  Play,
+  Pause,
+  Heart,
+  Download,
+  Search,
+  X,
+  Funnel,
+  EllipsisVertical,
+  CloudDownload,
+  CircleCheck,
+  ListMusic,
+  FastForward,
+} from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useOfflineCache } from "@/hooks/useOfflineCache";
 import { downloadSongFile } from "@/lib/download";
 import { useToast } from "./Toast";
@@ -78,7 +82,7 @@ function SongCard({ song, isPlaying, onPlayToggle, onFavoriteToggle, onDownload,
   const coverUrl = song.imageUrl || generatedCoverUrl;
 
   return (
-    <div className="group relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden transition-shadow hover:shadow-lg hover:shadow-violet-500/10">
+    <div className="group relative bg-surface-raised border border-border rounded-xl overflow-hidden transition-shadow hover:shadow-lg hover:shadow-violet-500/10">
       {/* Cover art */}
       <Link href={`/library/${song.id}`} className="block relative aspect-square">
         <CoverArtImage
@@ -104,9 +108,9 @@ function SongCard({ song, isPlaying, onPlayToggle, onFavoriteToggle, onDownload,
               aria-label={isPlaying ? "Pause" : "Play preview"}
             >
               {isPlaying ? (
-                <PauseIcon className="w-7 h-7" />
+                <Icon icon={Pause} fill="currentColor" className="w-7 h-7" />
               ) : (
-                <PlayIcon className="w-7 h-7 ml-0.5" />
+                <Icon icon={Play} fill="currentColor" className="w-7 h-7 ml-0.5" />
               )}
             </button>
           )}
@@ -132,7 +136,7 @@ function SongCard({ song, isPlaying, onPlayToggle, onFavoriteToggle, onDownload,
         {/* Offline badge */}
         {isCached && (
           <span className="absolute bottom-2 left-2 px-1.5 py-0.5 text-[10px] font-medium bg-green-600/90 text-white rounded-full flex items-center gap-0.5">
-            <CheckCircleIcon className="w-2.5 h-2.5" />
+            <Icon icon={CircleCheck} className="w-2.5 h-2.5" />
             Offline
           </span>
         )}
@@ -152,50 +156,50 @@ function SongCard({ song, isPlaying, onPlayToggle, onFavoriteToggle, onDownload,
       {/* Info + actions */}
       <div className="p-3">
         <Link href={`/library/${song.id}`}>
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+          <h3 className="text-sm font-semibold text-primary truncate hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
             {song.title || "Untitled"}
           </h3>
         </Link>
-        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+        <p className="text-xs text-secondary truncate mt-0.5">
           {song.tags || song.prompt?.slice(0, 60) || "No description"}
         </p>
         <div className="flex items-center justify-between mt-2">
-          <span className="text-xs text-gray-400 dark:text-gray-500">
+          <span className="text-xs text-muted">
             {formatDate(song.createdAt)}
           </span>
           <div className="flex items-center gap-1">
             <button
               onClick={onFavoriteToggle}
-              className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="p-1.5 rounded-full hover:bg-surface-hover transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label={song.isFavorite ? "Remove from favorites" : "Add to favorites"}
             >
               {song.isFavorite ? (
-                <HeartIcon className="w-4.5 h-4.5 text-red-500" />
+                <Icon icon={Heart} fill="currentColor" className="w-4.5 h-4.5 text-red-500" />
               ) : (
-                <HeartOutlineIcon className="w-4.5 h-4.5 text-gray-400 hover:text-red-400" />
+                <Icon icon={Heart} className="w-4.5 h-4.5 text-muted hover:text-red-400" />
               )}
             </button>
             {hasAudio && (
               <button
                 onClick={onDownload}
-                className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="p-1.5 rounded-full hover:bg-surface-hover transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label="Download song"
               >
-                <ArrowDownTrayIcon className="w-4.5 h-4.5 text-gray-400 hover:text-violet-500" />
+                <Icon icon={Download} className="w-4.5 h-4.5 text-muted hover:text-violet-500" />
               </button>
             )}
             {hasAudio && (
               <button
                 onClick={isCached ? onRemoveOffline : onSaveOffline}
                 disabled={isSaving}
-                className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center disabled:opacity-50"
+                className="p-1.5 rounded-full hover:bg-surface-hover transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center disabled:opacity-50"
                 aria-label={isCached ? "Remove from offline" : "Save for offline playback"}
                 title={isCached ? "Remove from offline" : "Save for offline"}
               >
                 {isCached ? (
-                  <CheckCircleIcon className="w-4.5 h-4.5 text-green-500" />
+                  <Icon icon={CircleCheck} className="w-4.5 h-4.5 text-green-500" />
                 ) : (
-                  <CloudArrowDownIcon className={`w-4.5 h-4.5 ${isSaving ? "text-violet-400 animate-pulse" : "text-gray-400 hover:text-violet-500"}`} />
+                  <Icon icon={CloudDownload} className={`w-4.5 h-4.5 ${isSaving ? "text-violet-400 animate-pulse" : "text-muted hover:text-violet-500"}`} />
                 )}
               </button>
             )}
@@ -205,24 +209,24 @@ function SongCard({ song, isPlaying, onPlayToggle, onFavoriteToggle, onDownload,
                   onClick={() => setMenuOpen((v) => !v)}
                   aria-label="More options"
                   aria-expanded={menuOpen}
-                  className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  className="p-1.5 rounded-full hover:bg-surface-hover transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                 >
-                  <EllipsisVerticalIcon className="w-4.5 h-4.5 text-gray-400" />
+                  <Icon icon={EllipsisVertical} className="w-4.5 h-4.5 text-muted" />
                 </button>
                 {menuOpen && (
-                  <div className="absolute right-0 bottom-full mb-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-20 overflow-hidden">
+                  <div className="absolute right-0 bottom-full mb-1 w-40 bg-surface-raised border border-border rounded-xl shadow-lg z-20 overflow-hidden">
                     <button
                       onClick={() => { onPlayNext(); setMenuOpen(false); }}
-                      className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-primary hover:bg-surface-hover transition-colors"
                     >
-                      <ForwardIcon className="w-4 h-4 flex-shrink-0 text-gray-400" />
+                      <Icon icon={FastForward} className="w-4 h-4 flex-shrink-0 text-muted" />
                       Play Next
                     </button>
                     <button
                       onClick={() => { onAddToQueue(); setMenuOpen(false); }}
-                      className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-primary hover:bg-surface-hover transition-colors"
                     >
-                      <QueueListIcon className="w-4 h-4 flex-shrink-0 text-gray-400" />
+                      <Icon icon={ListMusic} className="w-4 h-4 flex-shrink-0 text-muted" />
                       Add to Queue
                     </button>
                   </div>
@@ -408,8 +412,8 @@ export function SongsGalleryView({ initialSongs }: SongsGalleryViewProps) {
     <div className="px-4 py-4 space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Songs</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+        <h1 className="text-xl font-bold text-primary">Songs</h1>
+        <p className="text-sm text-secondary mt-0.5">
           {filtered.length} {filtered.length === 1 ? "song" : "songs"}
         </p>
       </div>
@@ -417,21 +421,21 @@ export function SongsGalleryView({ initialSongs }: SongsGalleryViewProps) {
       {/* Search + filter toggle */}
       <div className="flex gap-2">
         <div className="relative flex-1">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Icon icon={Search} className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search songs..."
-            className="w-full pl-9 pr-8 py-2.5 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none transition-all min-h-[44px]"
+            className="w-full pl-9 pr-8 py-2.5 text-sm bg-surface border border-border rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none transition-all min-h-[44px]"
           />
           {search && (
             <button
               onClick={() => setSearch("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-surface-hover min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Clear search"
             >
-              <XMarkIcon className="w-4 h-4 text-gray-400" />
+              <Icon icon={X} className="w-4 h-4 text-muted" />
             </button>
           )}
         </div>
@@ -440,11 +444,11 @@ export function SongsGalleryView({ initialSongs }: SongsGalleryViewProps) {
           className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium rounded-xl border transition-colors min-h-[44px] ${
             showFilters || activeFilterCount > 0
               ? "bg-violet-50 dark:bg-violet-900/30 border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300"
-              : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              : "bg-surface border-border text-secondary hover:bg-surface-hover"
           }`}
           aria-label="Toggle filters"
         >
-          <FunnelIcon className="w-4 h-4" />
+          <Icon icon={Funnel} className="w-4 h-4" />
           {activeFilterCount > 0 && (
             <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full bg-violet-600 text-white">
               {activeFilterCount}
@@ -455,10 +459,10 @@ export function SongsGalleryView({ initialSongs }: SongsGalleryViewProps) {
 
       {/* Filters panel */}
       {showFilters && (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-4">
+        <div className="bg-surface border border-border rounded-xl p-4 space-y-4">
           {/* Style */}
           <div>
-            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+            <h3 className="text-xs font-semibold text-secondary uppercase tracking-wider mb-2">
               Style
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -469,7 +473,7 @@ export function SongsGalleryView({ initialSongs }: SongsGalleryViewProps) {
                   className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors min-h-[44px] ${
                     selectedStyles.has(style)
                       ? "bg-violet-100 dark:bg-violet-900/50 border-violet-400 dark:border-violet-600 text-violet-700 dark:text-violet-300"
-                      : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
+                      : "bg-surface-raised border-border text-secondary hover:border-border-strong"
                   }`}
                 >
                   {style}
@@ -480,7 +484,7 @@ export function SongsGalleryView({ initialSongs }: SongsGalleryViewProps) {
 
           {/* Mood */}
           <div>
-            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+            <h3 className="text-xs font-semibold text-secondary uppercase tracking-wider mb-2">
               Mood
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -491,7 +495,7 @@ export function SongsGalleryView({ initialSongs }: SongsGalleryViewProps) {
                   className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors min-h-[44px] ${
                     selectedMoods.has(mood)
                       ? "bg-violet-100 dark:bg-violet-900/50 border-violet-400 dark:border-violet-600 text-violet-700 dark:text-violet-300"
-                      : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
+                      : "bg-surface-raised border-border text-secondary hover:border-border-strong"
                   }`}
                 >
                   {mood}
@@ -502,7 +506,7 @@ export function SongsGalleryView({ initialSongs }: SongsGalleryViewProps) {
 
           {/* Date */}
           <div>
-            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+            <h3 className="text-xs font-semibold text-secondary uppercase tracking-wider mb-2">
               Date
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -513,7 +517,7 @@ export function SongsGalleryView({ initialSongs }: SongsGalleryViewProps) {
                   className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors min-h-[44px] ${
                     dateFilter === df.days
                       ? "bg-violet-100 dark:bg-violet-900/50 border-violet-400 dark:border-violet-600 text-violet-700 dark:text-violet-300"
-                      : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
+                      : "bg-surface-raised border-border text-secondary hover:border-border-strong"
                   }`}
                 >
                   {df.label}
@@ -524,7 +528,7 @@ export function SongsGalleryView({ initialSongs }: SongsGalleryViewProps) {
 
           {/* Offline */}
           <div>
-            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+            <h3 className="text-xs font-semibold text-secondary uppercase tracking-wider mb-2">
               Availability
             </h3>
             <button
@@ -532,10 +536,10 @@ export function SongsGalleryView({ initialSongs }: SongsGalleryViewProps) {
               className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors min-h-[44px] flex items-center gap-1.5 ${
                 offlineOnly
                   ? "bg-green-100 dark:bg-green-900/40 border-green-400 dark:border-green-600 text-green-700 dark:text-green-300"
-                  : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
+                  : "bg-surface-raised border-border text-secondary hover:border-border-strong"
               }`}
             >
-              <CheckCircleIcon className="w-3.5 h-3.5" />
+              <Icon icon={CircleCheck} className="w-3.5 h-3.5" />
               Available offline
             </button>
           </div>
@@ -555,7 +559,7 @@ export function SongsGalleryView({ initialSongs }: SongsGalleryViewProps) {
       {/* Gallery grid */}
       {filtered.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
+          <p className="text-secondary text-sm">
             {songs.length === 0
               ? "No songs yet. Generate your first song to see it here."
               : "No songs match your filters."}

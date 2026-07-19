@@ -3,15 +3,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-  PlusIcon,
-  MusicalNoteIcon,
-  TrashIcon,
-  QueueListIcon,
-  SparklesIcon,
-  FireIcon,
-  CalendarDaysIcon,
-  FaceSmileIcon,
-} from "@heroicons/react/24/outline";
+  Plus,
+  Music,
+  Trash2,
+  ListMusic,
+  Sparkles,
+  Flame,
+  CalendarDays,
+  Smile,
+} from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useToast } from "./Toast";
 import { track } from "@/lib/analytics";
 import { InAppFeedbackWidget, hasFeedbackBeenSubmitted } from "./InAppFeedbackWidget";
@@ -34,13 +35,13 @@ interface SmartPlaylistItem extends PlaylistItem {
 function SmartPlaylistIcon({ type }: { type: string | null }) {
   switch (type) {
     case "top_hits":
-      return <FireIcon className="w-6 h-6 text-orange-400" />;
+      return <Icon icon={Flame} className="w-6 h-6 text-orange-400" />;
     case "new_this_week":
-      return <CalendarDaysIcon className="w-6 h-6 text-blue-400" />;
+      return <Icon icon={CalendarDays} className="w-6 h-6 text-blue-400" />;
     case "mood":
-      return <FaceSmileIcon className="w-6 h-6 text-yellow-400" />;
+      return <Icon icon={Smile} className="w-6 h-6 text-yellow-400" />;
     default:
-      return <SparklesIcon className="w-6 h-6 text-violet-400" />;
+      return <Icon icon={Sparkles} className="w-6 h-6 text-violet-400" />;
   }
 }
 
@@ -56,7 +57,7 @@ function SmartPlaylistBadge({ type }: { type: string | null }) {
 
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300">
-      <SparklesIcon className="w-3 h-3" aria-hidden="true" />
+      <Icon icon={Sparkles} className="w-3 h-3" aria-hidden="true" />
       {label}
     </span>
   );
@@ -133,10 +134,10 @@ export function PlaylistsView({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-xl font-bold text-primary">
             Playlists
           </h1>
-          <span className="text-gray-500 dark:text-gray-400 text-sm">
+          <span className="text-secondary text-sm">
             {playlists.length} playlist{playlists.length !== 1 ? "s" : ""}
           </span>
         </div>
@@ -144,7 +145,7 @@ export function PlaylistsView({
           onClick={() => setShowCreate((v) => !v)}
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors min-h-[44px]"
         >
-          <PlusIcon className="w-4 h-4" />
+          <Icon icon={Plus} className="w-4 h-4" />
           New
         </button>
       </div>
@@ -153,7 +154,7 @@ export function PlaylistsView({
       {showCreate && (
         <form
           onSubmit={handleCreate}
-          className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3"
+          className="bg-surface border border-border rounded-xl p-4 space-y-3"
         >
           <input
             type="text"
@@ -163,7 +164,7 @@ export function PlaylistsView({
             onChange={(e) => setNewName(e.target.value)}
             maxLength={100}
             autoFocus
-            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+            className="w-full bg-surface-raised border border-border rounded-xl px-4 py-3 text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
           />
           <input
             type="text"
@@ -171,7 +172,7 @@ export function PlaylistsView({
             aria-label="Playlist description"
             value={newDesc}
             onChange={(e) => setNewDesc(e.target.value)}
-            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+            className="w-full bg-surface-raised border border-border rounded-xl px-4 py-3 text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
           />
           <div className="flex gap-2">
             <button
@@ -184,7 +185,7 @@ export function PlaylistsView({
             <button
               type="button"
               onClick={() => setShowCreate(false)}
-              className="px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors min-h-[44px]"
+              className="px-4 py-2.5 rounded-lg text-sm font-medium bg-surface-raised hover:bg-surface-hover text-primary transition-colors min-h-[44px]"
             >
               Cancel
             </button>
@@ -195,15 +196,15 @@ export function PlaylistsView({
       {/* Smart playlists section */}
       {smartPlaylists.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <SparklesIcon className="w-4 h-4" aria-hidden="true" />
+          <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <Icon icon={Sparkles} className="w-4 h-4" aria-hidden="true" />
             Auto-Generated
           </h2>
           <ul className="space-y-2">
             {smartPlaylists.map((pl) => (
               <li
                 key={pl.id}
-                className="bg-white dark:bg-gray-900 border border-violet-200 dark:border-violet-900/50 rounded-xl overflow-hidden transition-colors hover:border-violet-400 dark:hover:border-violet-600"
+                className="bg-surface-raised border border-violet-200 dark:border-violet-900/50 rounded-xl overflow-hidden transition-colors hover:border-violet-400 dark:hover:border-violet-600"
               >
                 <Link href={`/playlists/${pl.id}`} className="flex items-center gap-3 px-4 py-3">
                   {/* Icon */}
@@ -214,17 +215,17 @@ export function PlaylistsView({
                   {/* Name + meta */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate hover:text-violet-400 transition-colors">
+                      <p className="text-sm font-medium text-primary truncate hover:text-violet-400 transition-colors">
                         {pl.name}
                       </p>
                       <SmartPlaylistBadge type={pl.smartPlaylistType} />
                     </div>
                     {pl.description && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                      <p className="text-xs text-secondary truncate mt-0.5">
                         {pl.description}
                       </p>
                     )}
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                    <p className="text-xs text-muted mt-0.5">
                       {pl._count.songs} song{pl._count.songs !== 1 ? "s" : ""}
                     </p>
                   </div>
@@ -237,17 +238,17 @@ export function PlaylistsView({
 
       {/* User-created playlists section */}
       {smartPlaylists.length > 0 && (
-        <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-          <QueueListIcon className="w-4 h-4" aria-hidden="true" />
+        <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider flex items-center gap-1.5">
+          <Icon icon={ListMusic} className="w-4 h-4" aria-hidden="true" />
           Your Playlists
         </h2>
       )}
 
       {playlists.length === 0 ? (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 text-center">
-          <QueueListIcon className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600 mb-3" aria-hidden="true" />
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">No playlists yet</h3>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
+        <div className="bg-surface border border-border rounded-xl p-8 text-center">
+          <Icon icon={ListMusic} className="w-10 h-10 mx-auto text-muted mb-3" aria-hidden="true" />
+          <h3 className="text-base font-semibold text-primary mb-1">No playlists yet</h3>
+          <p className="text-secondary text-sm mb-4">
             Create a playlist to organize your songs by mood, project, or anything you like.
           </p>
           <button
@@ -255,7 +256,7 @@ export function PlaylistsView({
             onClick={() => setShowCreate(true)}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-xl transition-colors"
           >
-            <PlusIcon className="w-4 h-4" aria-hidden="true" />
+            <Icon icon={Plus} className="w-4 h-4" aria-hidden="true" />
             Create your first playlist
           </button>
         </div>
@@ -264,12 +265,12 @@ export function PlaylistsView({
           {playlists.map((pl) => (
             <li
               key={pl.id}
-              className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden transition-colors hover:border-violet-400 dark:hover:border-violet-600"
+              className="bg-surface-raised border border-border rounded-xl overflow-hidden transition-colors hover:border-violet-400 dark:hover:border-violet-600"
             >
               <div className="flex items-center gap-3 px-4 py-3">
                 {/* Icon */}
                 <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
-                  <MusicalNoteIcon className="w-6 h-6 text-violet-500" />
+                  <Icon icon={Music} className="w-6 h-6 text-violet-500" />
                 </div>
 
                 {/* Name + meta */}
@@ -277,15 +278,15 @@ export function PlaylistsView({
                   href={`/playlists/${pl.id}`}
                   className="flex-1 min-w-0"
                 >
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate hover:text-violet-400 transition-colors">
+                  <p className="text-sm font-medium text-primary truncate hover:text-violet-400 transition-colors">
                     {pl.name}
                   </p>
                   {pl.description && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                    <p className="text-xs text-secondary truncate mt-0.5">
                       {pl.description}
                     </p>
                   )}
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  <p className="text-xs text-muted mt-0.5">
                     {pl._count.songs} song{pl._count.songs !== 1 ? "s" : ""}
                   </p>
                 </Link>
@@ -304,7 +305,7 @@ export function PlaylistsView({
                     <button
                       onClick={() => setConfirmDeleteId(null)}
                       aria-label="Cancel delete"
-                      className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors"
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-surface-raised text-secondary transition-colors"
                     >
                       Cancel
                     </button>
@@ -314,9 +315,9 @@ export function PlaylistsView({
                     onClick={() => setConfirmDeleteId(pl.id)}
                     disabled={deletingId === pl.id}
                     aria-label="Delete playlist"
-                    className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-red-500 transition-colors disabled:opacity-50"
+                    className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-muted hover:text-red-500 transition-colors disabled:opacity-50"
                   >
-                    <TrashIcon className="w-5 h-5" />
+                    <Icon icon={Trash2} className="w-5 h-5" />
                   </button>
                 )}
               </div>

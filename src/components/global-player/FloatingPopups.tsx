@@ -1,4 +1,5 @@
-import { ChatBubbleLeftIcon } from "@heroicons/react/24/outline";
+import { MessageSquare } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import type { EmojiPopup, CommentPopup } from "./types";
 
 export function FloatingPopups({
@@ -45,7 +46,7 @@ export function FloatingPopups({
                 )}
                 <span className="line-clamp-2">{popup.body}</span>
               </div>
-              <ChatBubbleLeftIcon className="w-3 h-3 text-violet-400" />
+              <Icon icon={MessageSquare} className="w-3 h-3 text-violet-400" />
             </div>
           ))}
         </div>

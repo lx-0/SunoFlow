@@ -34,7 +34,7 @@ export function DailyPlaysLineChart({
             <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#2f262a" vertical={false} />
         <XAxis
           dataKey="label"
           tick={CHART_AXIS_TICK}
@@ -53,7 +53,7 @@ export function DailyPlaysLineChart({
         <Area
           type="monotone"
           dataKey="count"
-          stroke="#7c3aed"
+          stroke="#c40181"
           strokeWidth={2}
           fill="url(#playsGradient)"
           name="Plays"
@@ -82,13 +82,13 @@ export function TopSongsBarChart({
         <YAxis
           type="category"
           dataKey="title"
-          tick={{ fontSize: 11, fill: "#d1d5db" }}
+          tick={{ fontSize: 11, fill: "#f5f0f2" }}
           width={120}
           tickLine={false}
           axisLine={false}
         />
         <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
-        <Bar dataKey="plays" fill="#7c3aed" radius={[0, 4, 4, 0]} name="Plays" />
+        <Bar dataKey="plays" fill="#c40181" radius={[0, 4, 4, 0]} name="Plays" />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -111,7 +111,7 @@ export function RetentionCurveChart({
   return (
     <ResponsiveContainer width="100%" height={160}>
       <LineChart data={formatted}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#2f262a" vertical={false} />
         <XAxis
           dataKey="label"
           tick={CHART_AXIS_TICK}
@@ -133,7 +133,7 @@ export function RetentionCurveChart({
         <Line
           type="monotone"
           dataKey="rate"
-          stroke="#a78bfa"
+          stroke="#e873af"
           strokeWidth={2}
           dot={false}
           name="Retention"

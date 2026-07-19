@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { LockClosedIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
+import { ArrowRight, Lock } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import {
   FEATURE_GATES,
   TIER_LABELS,
@@ -35,25 +36,25 @@ export function FeatureGate({ featureKey, tier, children }: FeatureGateProps) {
 
       {/* Locked overlay */}
       <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-6">
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-xl p-6 max-w-sm w-full text-center space-y-4">
+        <div className="bg-surface border border-border rounded-2xl shadow-xl p-6 max-w-sm w-full text-center space-y-4">
           <div className="flex items-center justify-center w-12 h-12 mx-auto rounded-full bg-violet-100 dark:bg-violet-900/30">
-            <LockClosedIcon className="w-6 h-6 text-violet-600 dark:text-violet-400" />
+            <Icon icon={Lock} className="w-6 h-6 text-violet-600 dark:text-violet-400" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+            <p className="text-sm font-semibold text-secondary uppercase tracking-wide mb-1">
               {TIER_LABELS[gate.minTier]}+ Feature
             </p>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">{gate.name}</h3>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{gate.description}</p>
+            <h3 className="text-lg font-bold text-primary">{gate.name}</h3>
+            <p className="mt-1 text-sm text-secondary">{gate.description}</p>
           </div>
           <Link
             href="/pricing"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white transition-colors"
           >
             Upgrade to {TIER_LABELS[gate.minTier]}
-            <ArrowRightIcon className="w-4 h-4" />
+            <Icon icon={ArrowRight} className="w-4 h-4" />
           </Link>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-secondary">
             You are on the <span className="font-medium">{TIER_LABELS[tier]}</span> plan.
           </p>
         </div>
@@ -82,18 +83,18 @@ export function InlineFeatureGate({ featureKey, tier, children }: InlineFeatureG
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-8 px-4 text-center">
       <div className="flex items-center justify-center w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/30">
-        <LockClosedIcon className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+        <Icon icon={Lock} className="w-5 h-5 text-violet-600 dark:text-violet-400" />
       </div>
       <div>
-        <p className="text-sm font-semibold text-gray-900 dark:text-white">{gate.name}</p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{gate.description}</p>
+        <p className="text-sm font-semibold text-primary">{gate.name}</p>
+        <p className="text-xs text-secondary mt-0.5">{gate.description}</p>
       </div>
       <Link
         href="/pricing"
         className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-violet-600 hover:bg-violet-700 text-white transition-colors"
       >
         Upgrade to {TIER_LABELS[gate.minTier]}
-        <ArrowRightIcon className="w-3.5 h-3.5" />
+        <Icon icon={ArrowRight} className="w-3.5 h-3.5" />
       </Link>
     </div>
   );

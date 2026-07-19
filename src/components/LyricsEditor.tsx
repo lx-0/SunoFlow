@@ -1,14 +1,15 @@
 "use client";
 
 import {
-  PencilIcon,
-  CheckIcon,
-  XMarkIcon,
-  ClockIcon,
-  ChatBubbleLeftIcon,
-  ArrowUturnLeftIcon,
-  ChevronRightIcon,
-} from "@heroicons/react/24/outline";
+  Pencil,
+  Check,
+  X,
+  Clock,
+  MessageSquare,
+  Undo2,
+  ChevronRight,
+} from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useQueue } from "./QueueContext";
 import { formatDuration as formatTime } from "@/lib/time-format";
 import { useLyricsEditor } from "./lyrics-editor/use-lyrics-editor";
@@ -70,14 +71,14 @@ export function LyricsEditor({
 
   if (!originalLyrics && !editor.savedEdited) {
     return (
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+      <div className="bg-surface border border-border rounded-xl p-4">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Lyrics</h2>
+          <h2 className="text-sm font-semibold text-primary tracking-wide">Lyrics</h2>
           <button
             onClick={editor.startAddingLyrics}
             className="flex items-center gap-1 text-xs text-violet-500 hover:text-violet-400 transition-colors"
           >
-            <PencilIcon className="w-3.5 h-3.5" />
+            <Icon icon={Pencil} className="w-3.5 h-3.5" />
             Add lyrics
           </button>
         </div>
@@ -93,17 +94,17 @@ export function LyricsEditor({
           />
         )}
         {!editor.isEditing && (
-          <p className="text-sm text-gray-400 dark:text-gray-500 italic">No lyrics yet.</p>
+          <p className="text-sm text-muted italic">No lyrics yet.</p>
         )}
       </div>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+    <div className="bg-surface border border-border rounded-xl overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Lyrics</h2>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <h2 className="text-sm font-semibold text-primary tracking-wide">Lyrics</h2>
         <div className="flex items-center gap-2">
           {editor.savedEdited && (
             <button
@@ -111,7 +112,7 @@ export function LyricsEditor({
               className={`text-xs px-2 py-1 rounded transition-colors ${
                 editor.showOriginal
                   ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
-                  : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
+                  : "text-muted hover:text-secondary"
               }`}
               title={editor.showOriginal ? "Show edited version" : "Show original"}
             >
@@ -123,9 +124,9 @@ export function LyricsEditor({
               onClick={editor.handleDiscardEdits}
               disabled={editor.saving}
               title="Revert to original"
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              className="text-secondary hover:text-primary transition-colors"
             >
-              <ArrowUturnLeftIcon className="w-4 h-4" />
+              <Icon icon={Undo2} className="w-4 h-4" />
             </button>
           )}
           {/* Timestamp mode toggle */}
@@ -142,10 +143,10 @@ export function LyricsEditor({
               className={`transition-colors ${
                 ts.isSettingTimestamps
                   ? "text-violet-500"
-                  : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-400"
+                  : "text-secondary hover:text-secondary"
               }`}
             >
-              <ClockIcon className="w-4 h-4" />
+              <Icon icon={Clock} className="w-4 h-4" />
             </button>
           )}
           {/* Annotations toggle */}
@@ -156,10 +157,10 @@ export function LyricsEditor({
               className={`transition-colors ${
                 ann.annotationsOpen
                   ? "text-violet-500"
-                  : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-400"
+                  : "text-secondary hover:text-secondary"
               }`}
             >
-              <ChatBubbleLeftIcon className="w-4 h-4" />
+              <Icon icon={MessageSquare} className="w-4 h-4" />
             </button>
           )}
           {/* Edit toggle */}
@@ -170,9 +171,9 @@ export function LyricsEditor({
                 ts.cancelSettingTimestamps();
               }}
               title="Edit lyrics"
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-400 transition-colors"
+              className="text-secondary hover:text-secondary transition-colors"
             >
-              <PencilIcon className="w-4 h-4" />
+              <Icon icon={Pencil} className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -197,7 +198,7 @@ export function LyricsEditor({
             <div className="px-4 py-4 max-h-[60vh] overflow-y-auto space-y-0.5">
               {ts.isSettingTimestamps && (
                 <div className="mb-3 flex items-center gap-2 text-xs text-violet-400 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-lg px-3 py-2">
-                  <ClockIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                  <Icon icon={Clock} className="w-3.5 h-3.5 flex-shrink-0" />
                   <span>
                     {isCurrentSong
                       ? "Tap a line while playing to set its start time"
@@ -224,7 +225,7 @@ export function LyricsEditor({
                       className={`group flex items-start gap-2 px-2 py-1 rounded-lg transition-colors cursor-pointer select-none ${
                         isActive
                           ? "bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 font-medium"
-                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                          : "text-primary hover:bg-gray-50 dark:hover:bg-gray-800/50"
                       } ${ts.isSettingTimestamps ? "hover:bg-violet-50 dark:hover:bg-violet-900/20" : ""}`}
                     >
                       <span className="flex-1 text-sm leading-relaxed">
@@ -236,14 +237,14 @@ export function LyricsEditor({
                             className={`text-xs tabular-nums ${
                               hasPending
                                 ? "text-violet-500"
-                                : "text-gray-400 dark:text-gray-500"
+                                : "text-muted"
                             }`}
                           >
                             {formatTime(lineTs)}
                           </span>
                         )}
                         {lineAnn && !ann.annotationsOpen && (
-                          <ChatBubbleLeftIcon className="w-3 h-3 text-amber-400 flex-shrink-0" />
+                          <Icon icon={MessageSquare} className="w-3 h-3 text-amber-400 flex-shrink-0" />
                         )}
                       </span>
                     </div>
@@ -258,7 +259,7 @@ export function LyricsEditor({
                           placeholder="Add a note about this line…"
                           aria-label="Line annotation"
                           rows={2}
-                          className="w-full bg-transparent text-xs text-gray-800 dark:text-gray-200 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-amber-500 rounded"
+                          className="w-full bg-transparent text-xs text-primary placeholder-muted resize-none focus:outline-none focus:ring-2 focus:ring-amber-500 rounded"
                         />
                         <div className="flex items-center gap-2">
                           <button
@@ -266,12 +267,12 @@ export function LyricsEditor({
                             disabled={ann.savingAnnotation}
                             className="flex items-center gap-1 text-xs px-2 py-1 bg-amber-500 hover:bg-amber-400 text-white rounded-md transition-colors"
                           >
-                            <CheckIcon className="w-3 h-3" />
+                            <Icon icon={Check} className="w-3 h-3" />
                             Save
                           </button>
                           <button
                             onClick={ann.cancelEditingAnnotation}
-                            className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                            className="text-xs text-secondary hover:text-primary transition-colors"
                           >
                             Cancel
                           </button>
@@ -296,12 +297,12 @@ export function LyricsEditor({
                     onClick={ts.handleSaveTimestamps}
                     className="flex items-center gap-1 text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-white rounded-lg transition-colors"
                   >
-                    <CheckIcon className="w-3.5 h-3.5" />
+                    <Icon icon={Check} className="w-3.5 h-3.5" />
                     Save {ts.pendingTimestamps.size} timestamp{ts.pendingTimestamps.size !== 1 ? "s" : ""}
                   </button>
                   <button
                     onClick={ts.clearPendingTimestamps}
-                    className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                    className="text-xs text-secondary hover:text-gray-600 transition-colors"
                   >
                     Clear
                   </button>
@@ -313,14 +314,14 @@ export function LyricsEditor({
 
         {/* Annotations sidebar */}
         {ann.annotationsOpen && ann.annotations.length > 0 && !editor.isEditing && (
-          <div className="w-48 border-l border-gray-100 dark:border-gray-800 flex-shrink-0">
-            <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-gray-800">
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Annotations</span>
+          <div className="w-48 border-l border-border flex-shrink-0">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+              <span className="text-xs font-medium text-secondary">Annotations</span>
               <button
                 onClick={() => ann.setAnnotationsOpen(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="text-secondary hover:text-primary"
               >
-                <XMarkIcon className="w-3.5 h-3.5" />
+                <Icon icon={X} className="w-3.5 h-3.5" />
               </button>
             </div>
             <div className="overflow-y-auto max-h-[55vh] p-2 space-y-2">
@@ -330,10 +331,10 @@ export function LyricsEditor({
                   onClick={() => ann.openAnnotationForLine(a.lineIndex)}
                   className="w-full text-left p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 hover:border-amber-300 dark:hover:border-amber-600 transition-colors"
                 >
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">
+                  <p className="text-xs text-secondary mb-0.5">
                     Line {a.lineIndex + 1}
                   </p>
-                  <p className="text-xs text-gray-700 dark:text-gray-300 line-clamp-3">
+                  <p className="text-xs text-primary line-clamp-3">
                     {a.body}
                   </p>
                 </button>
@@ -345,11 +346,11 @@ export function LyricsEditor({
 
       {/* Version history indicator */}
       {editor.savedEdited && !editor.isEditing && (
-        <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-800 flex items-center gap-2">
-          <span className="text-xs text-gray-400 dark:text-gray-500">
+        <div className="px-4 py-2 border-t border-border flex items-center gap-2">
+          <span className="text-xs text-muted">
             {editor.showOriginal ? "Viewing original" : "Showing your edited version"}
           </span>
-          <ChevronRightIcon className="w-3 h-3 text-gray-300 dark:text-gray-600" />
+          <Icon icon={ChevronRight} className="w-3 h-3 text-gray-300 dark:text-gray-600" />
           <button
             onClick={() => editor.setShowOriginal((v) => !v)}
             className="text-xs text-violet-500 hover:text-violet-400 transition-colors"
@@ -388,7 +389,7 @@ function EditingView({
         <button
           type="button"
           onMouseDown={(e) => { e.preventDefault(); onInsertFormat("**"); }}
-          className="px-2 py-1 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+          className="px-2 py-1 text-xs font-bold text-primary bg-surface-raised hover:bg-surface-hover rounded transition-colors"
           title="Bold (**text**)"
         >
           B
@@ -396,7 +397,7 @@ function EditingView({
         <button
           type="button"
           onMouseDown={(e) => { e.preventDefault(); onInsertFormat("*"); }}
-          className="px-2 py-1 text-xs italic text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+          className="px-2 py-1 text-xs italic text-primary bg-surface-raised hover:bg-surface-hover rounded transition-colors"
           title="Italic (*text*)"
         >
           I
@@ -409,7 +410,7 @@ function EditingView({
         rows={14}
         autoFocus
         placeholder="Enter lyrics…"
-        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 resize-none focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors font-mono leading-relaxed"
+        className="w-full bg-surface-raised border border-border rounded-lg px-3 py-2 text-sm text-primary placeholder-muted resize-none focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors font-mono leading-relaxed"
       />
       <div className="flex items-center gap-2">
         <button
@@ -417,15 +418,15 @@ function EditingView({
           disabled={saving}
           className="flex items-center gap-1 px-3 py-1.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors min-h-[32px]"
         >
-          <CheckIcon className="w-3.5 h-3.5" />
+          <Icon icon={Check} className="w-3.5 h-3.5" />
           {saving ? "Saving…" : "Save"}
         </button>
         <button
           onClick={onCancel}
           disabled={saving}
-          className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium rounded-lg transition-colors min-h-[32px]"
+          className="flex items-center gap-1 px-3 py-1.5 bg-surface-raised hover:bg-surface-hover text-primary text-xs font-medium rounded-lg transition-colors min-h-[32px]"
         >
-          <XMarkIcon className="w-3.5 h-3.5" />
+          <Icon icon={X} className="w-3.5 h-3.5" />
           Cancel
         </button>
       </div>

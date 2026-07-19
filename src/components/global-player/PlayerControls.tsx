@@ -1,18 +1,17 @@
 import {
-  PlayIcon,
-  PauseIcon,
-  ForwardIcon,
-  BackwardIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/solid";
-import {
-  ArrowPathRoundedSquareIcon,
-  ArrowsRightLeftIcon,
-  QueueListIcon,
-  DocumentTextIcon,
-  AdjustmentsHorizontalIcon,
-  CubeIcon,
-} from "@heroicons/react/24/outline";
+  ArrowLeftRight,
+  Box,
+  FastForward,
+  FileText,
+  ListMusic,
+  Pause,
+  Play,
+  Repeat,
+  Rewind,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { Spinner } from "../Spinner";
 
 export interface PlayerControlsProps {
@@ -66,10 +65,10 @@ export function PlayerControls({
         onClick={toggleShuffle}
         aria-label={shuffle ? "Shuffle on" : "Shuffle off"}
         className={`hidden md:flex w-11 h-11 rounded-full items-center justify-center transition-colors ${
-          shuffle ? "text-violet-400" : "text-gray-500 hover:text-gray-300"
+          shuffle ? "text-violet-400" : "text-muted hover:text-secondary"
         }`}
       >
-        <ArrowsRightLeftIcon className="w-5 h-5" aria-hidden="true" />
+        <Icon icon={ArrowLeftRight} className="w-5 h-5" aria-hidden="true" />
       </button>
 
       <button
@@ -81,18 +80,23 @@ export function PlayerControls({
         className={`hidden lg:flex w-11 h-11 rounded-full items-center justify-center transition-colors ${
           shuffleVersions
             ? "text-violet-400"
-            : "text-gray-500 hover:text-gray-300"
+            : "text-muted hover:text-secondary"
         }`}
       >
-        <CubeIcon className="w-5 h-5" aria-hidden="true" />
+        <Icon icon={Box} className="w-5 h-5" aria-hidden="true" />
       </button>
 
       <button
         onClick={skipPrev}
         aria-label="Previous"
-        className="w-11 h-11 rounded-full flex items-center justify-center text-white hover:text-violet-400 transition-colors"
+        className="w-11 h-11 rounded-full flex items-center justify-center text-primary hover:text-violet-400 transition-colors"
       >
-        <BackwardIcon className="w-6 h-6" aria-hidden="true" />
+        <Icon
+          icon={Rewind}
+          className="w-6 h-6"
+          fill="currentColor"
+          aria-hidden="true"
+        />
       </button>
 
       <button
@@ -104,18 +108,23 @@ export function PlayerControls({
         {isBuffering ? (
           <Spinner className="w-6 h-6" />
         ) : isPlaying ? (
-          <PauseIcon className="w-6 h-6" />
+          <Icon icon={Pause} className="w-6 h-6" fill="currentColor" />
         ) : (
-          <PlayIcon className="w-6 h-6 ml-0.5" />
+          <Icon icon={Play} className="w-6 h-6 ml-0.5" fill="currentColor" />
         )}
       </button>
 
       <button
         onClick={skipNext}
         aria-label="Next"
-        className="w-11 h-11 rounded-full flex items-center justify-center text-white hover:text-violet-400 transition-colors"
+        className="w-11 h-11 rounded-full flex items-center justify-center text-primary hover:text-violet-400 transition-colors"
       >
-        <ForwardIcon className="w-6 h-6" aria-hidden="true" />
+        <Icon
+          icon={FastForward}
+          className="w-6 h-6"
+          fill="currentColor"
+          aria-hidden="true"
+        />
       </button>
 
       <button
@@ -124,10 +133,10 @@ export function PlayerControls({
         className={`hidden md:flex relative w-11 h-11 rounded-full items-center justify-center transition-colors ${
           repeat !== "off"
             ? "text-violet-400"
-            : "text-gray-500 hover:text-gray-300"
+            : "text-muted hover:text-secondary"
         }`}
       >
-        <ArrowPathRoundedSquareIcon className="w-5 h-5" aria-hidden="true" />
+        <Icon icon={Repeat} className="w-5 h-5" aria-hidden="true" />
         {repeat === "repeat-one" && (
           <span className="absolute -top-0.5 -right-0.5 text-[8px] font-bold text-violet-400">
             1
@@ -143,10 +152,10 @@ export function PlayerControls({
           className={`hidden lg:flex w-11 h-11 rounded-full items-center justify-center transition-colors ${
             showLyrics
               ? "text-violet-400"
-              : "text-gray-500 hover:text-gray-300"
+              : "text-muted hover:text-secondary"
           }`}
         >
-          <DocumentTextIcon className="w-6 h-6" />
+          <Icon icon={FileText} className="w-6 h-6" />
         </button>
       )}
 
@@ -155,10 +164,10 @@ export function PlayerControls({
         aria-label={showEQ ? "Hide equalizer" : "Show equalizer"}
         aria-expanded={showEQ}
         className={`hidden lg:flex w-11 h-11 rounded-full items-center justify-center transition-colors ${
-          showEQ ? "text-violet-400" : "text-gray-500 hover:text-gray-300"
+          showEQ ? "text-violet-400" : "text-muted hover:text-secondary"
         }`}
       >
-        <AdjustmentsHorizontalIcon className="w-6 h-6" />
+        <Icon icon={SlidersHorizontal} className="w-6 h-6" />
       </button>
 
       <button
@@ -168,10 +177,10 @@ export function PlayerControls({
         className={`hidden lg:flex relative w-11 h-11 rounded-full items-center justify-center transition-colors ${
           showUpNext
             ? "text-violet-400"
-            : "text-gray-500 hover:text-gray-300"
+            : "text-muted hover:text-secondary"
         }`}
       >
-        <QueueListIcon className="w-6 h-6" />
+        <Icon icon={ListMusic} className="w-6 h-6" />
         {queueRemaining > 0 && (
           <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-0.5 bg-violet-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
             {queueRemaining}
@@ -182,9 +191,9 @@ export function PlayerControls({
       <button
         onClick={clearQueue}
         aria-label="Close player"
-        className="w-11 h-11 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-300 transition-colors"
+        className="w-11 h-11 rounded-full flex items-center justify-center text-muted hover:text-secondary transition-colors"
       >
-        <XMarkIcon className="w-6 h-6" />
+        <Icon icon={X} className="w-6 h-6" />
       </button>
     </>
   );

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowsRightLeftIcon } from "@heroicons/react/24/solid";
+import { ArrowLeftRight } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { formatDuration as formatTime } from "@/lib/time-format";
 import type { VariationSummary } from "./types";
 
@@ -34,7 +35,7 @@ export function SongVariationTree({
   return (
     <>
       {parentSongId && (
-        <div className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="text-sm text-secondary">
           Variation of:{" "}
           <Link href={`/library/${parentSongId}`} className="text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 underline">
             {parentSongTitle ?? "Original song"}
@@ -43,8 +44,8 @@ export function SongVariationTree({
       )}
 
       {variations.length > 0 && (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">
+        <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+          <h2 className="text-sm font-semibold text-primary tracking-wide">
             Variations ({variations.length}/{maxVariations})
           </h2>
           <div className="space-y-2">
@@ -54,14 +55,14 @@ export function SongVariationTree({
                 className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
                   v.id === songId
                     ? "border-violet-400 bg-violet-50 dark:bg-violet-900/20"
-                    : "border-gray-200 dark:border-gray-700 hover:border-violet-300 dark:hover:border-violet-600"
+                    : "border-border hover:border-violet-300 dark:hover:border-violet-600"
                 }`}
               >
                 <Link href={`/library/${v.id}`} className="flex-1 min-w-0">
-                  <span className="text-sm font-medium text-gray-900 dark:text-white block truncate">
+                  <span className="text-sm font-medium text-primary block truncate">
                     {v.title || "Untitled variation"}
                   </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 block truncate">
+                  <span className="text-xs text-secondary block truncate">
                     {v.tags || v.prompt || "No description"}
                   </span>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -80,7 +81,7 @@ export function SongVariationTree({
                       </span>
                     )}
                     {v.duration != null && (
-                      <span className="text-xs text-gray-400">{formatTime(v.duration)}</span>
+                      <span className="text-xs text-muted">{formatTime(v.duration)}</span>
                     )}
                   </div>
                 </Link>
@@ -91,7 +92,7 @@ export function SongVariationTree({
                       className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors"
                       title="Full compare page"
                     >
-                      <ArrowsRightLeftIcon className="w-3 h-3" />
+                      <Icon icon={ArrowLeftRight} fill="currentColor" className="w-3 h-3" />
                       Compare
                     </Link>
                     <button
@@ -99,7 +100,7 @@ export function SongVariationTree({
                       className={`px-2 py-1 text-xs font-medium rounded-lg transition-colors ${
                         compareVariation?.id === v.id
                           ? "bg-indigo-600 text-white"
-                          : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                          : "bg-surface-raised text-primary hover:bg-surface-hover"
                       }`}
                     >
                       {compareVariation?.id === v.id ? "Hide" : "Quick"}
@@ -113,12 +114,12 @@ export function SongVariationTree({
       )}
 
       {compareVariation && (
-        <div className="bg-white dark:bg-gray-900 border border-violet-300 dark:border-violet-700 rounded-xl p-4 space-y-3">
+        <div className="bg-surface border border-violet-300 dark:border-violet-700 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide">Comparison</h2>
+            <h2 className="text-sm font-semibold text-primary tracking-wide">Comparison</h2>
             <button
               onClick={() => setCompareVariation(null)}
-              className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              className="text-xs text-secondary hover:text-primary"
             >
               Close
             </button>
@@ -126,29 +127,29 @@ export function SongVariationTree({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <span className="text-xs font-semibold text-violet-500 uppercase tracking-wide">Current</span>
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{song.title || "Untitled"}</p>
-              {song.tags && <p className="text-xs text-gray-500 dark:text-gray-400">{song.tags}</p>}
-              {song.duration != null && <p className="text-xs text-gray-400">{formatTime(song.duration)}</p>}
+              <p className="text-sm font-medium text-primary truncate">{song.title || "Untitled"}</p>
+              {song.tags && <p className="text-xs text-secondary">{song.tags}</p>}
+              {song.duration != null && <p className="text-xs text-muted">{formatTime(song.duration)}</p>}
               {song.audioUrl && (
                 <audio src={song.audioUrl} controls className="w-full h-8" preload="none" />
               )}
               {song.lyrics && (
                 <div className="max-h-40 overflow-y-auto">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-pre-line">{song.lyrics}</p>
+                  <p className="text-xs text-secondary whitespace-pre-line">{song.lyrics}</p>
                 </div>
               )}
             </div>
             <div className="space-y-2">
               <span className="text-xs font-semibold text-violet-500 uppercase tracking-wide">Variation</span>
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{compareVariation.title || "Untitled"}</p>
-              {compareVariation.tags && <p className="text-xs text-gray-500 dark:text-gray-400">{compareVariation.tags}</p>}
-              {compareVariation.duration != null && <p className="text-xs text-gray-400">{formatTime(compareVariation.duration)}</p>}
+              <p className="text-sm font-medium text-primary truncate">{compareVariation.title || "Untitled"}</p>
+              {compareVariation.tags && <p className="text-xs text-secondary">{compareVariation.tags}</p>}
+              {compareVariation.duration != null && <p className="text-xs text-muted">{formatTime(compareVariation.duration)}</p>}
               {compareVariation.audioUrl && (
                 <audio src={compareVariation.audioUrl} controls className="w-full h-8" preload="none" />
               )}
               {compareVariation.lyrics && (
                 <div className="max-h-40 overflow-y-auto">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-pre-line">{compareVariation.lyrics}</p>
+                  <p className="text-xs text-secondary whitespace-pre-line">{compareVariation.lyrics}</p>
                 </div>
               )}
             </div>

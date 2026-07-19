@@ -3,26 +3,24 @@
 import { memo, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  PlayIcon,
-  PauseIcon,
-  MusicalNoteIcon,
-  ArrowDownTrayIcon,
-  HeartIcon,
-  CheckIcon,
-  ArrowPathIcon,
-  EllipsisVerticalIcon,
-  ArchiveBoxIcon,
-  ArrowUturnLeftIcon,
-  TrashIcon,
-  ForwardIcon,
-} from "@heroicons/react/24/solid";
-import {
-  HeartIcon as HeartOutlineIcon,
-  QueueListIcon,
-  SignalSlashIcon,
-  CloudArrowDownIcon,
-  SwatchIcon,
-} from "@heroicons/react/24/outline";
+  Play,
+  Pause,
+  Music,
+  Download,
+  Heart,
+  Check,
+  RefreshCw,
+  EllipsisVertical,
+  Archive,
+  Undo2,
+  Trash2,
+  FastForward,
+  ListMusic,
+  WifiOff,
+  CloudDownload,
+  SwatchBook,
+} from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { CoverArtImage } from "./CoverArtImage";
 import type { Song } from "@prisma/client";
 import type { SongRating } from "@/lib/ratings";
@@ -72,7 +70,7 @@ function PlayerBar({ currentTime, duration, hasAudio, onSeek }: PlayerBarProps) 
 
   return (
     <div className="mt-2 space-y-1">
-      <div className="relative h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full">
+      <div className="relative h-1.5 bg-surface-raised rounded-full">
         <div
           className="absolute inset-y-0 left-0 bg-violet-500 rounded-full transition-all"
           style={{ width: `${pct}%` }}
@@ -88,7 +86,7 @@ function PlayerBar({ currentTime, duration, hasAudio, onSeek }: PlayerBarProps) 
           aria-label="Seek"
         />
       </div>
-      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+      <div className="flex justify-between text-xs text-secondary">
         <span>{formatTime(currentTime)}</span>
         <span>{formatTime(duration)}</span>
       </div>
@@ -163,27 +161,27 @@ function SongRowMenu({
   useOutsideClick(menuRef, () => setOpen(false), open);
 
   const itemClass =
-    "w-full text-left px-4 py-3 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-b border-gray-200 dark:border-gray-800 flex items-center gap-2";
+    "w-full text-left px-4 py-3 text-sm text-primary hover:bg-surface-hover transition-colors border-b border-border flex items-center gap-2";
 
   return (
     <div className="relative ml-auto" ref={menuRef}>
       <button
         onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
         aria-label="More actions"
-        className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
+        className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-muted hover:text-primary transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
       >
-        <EllipsisVerticalIcon className="w-5 h-5" aria-hidden="true" />
+        <Icon icon={EllipsisVertical} className="w-5 h-5" aria-hidden="true" />
       </button>
 
       {open && (
-        <div className="absolute right-0 bottom-full mb-1 w-48 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-30 overflow-hidden">
+        <div className="absolute right-0 bottom-full mb-1 w-48 bg-surface border border-border rounded-xl shadow-lg z-30 overflow-hidden">
           <button
             onClick={() => { setOpen(false); onToggleFavorite(song); }}
             className={itemClass}
           >
             {song.isFavorite
-              ? <HeartIcon className="w-4 h-4 text-pink-500 flex-shrink-0" />
-              : <HeartOutlineIcon className="w-4 h-4 flex-shrink-0" />}
+              ? <Icon icon={Heart} fill="currentColor" className="w-4 h-4 text-pink-500 flex-shrink-0" />
+              : <Icon icon={Heart} className="w-4 h-4 flex-shrink-0" />}
             {song.isFavorite ? "Unfavorite" : "Favorite"}
           </button>
           {hasAudio && (
@@ -196,7 +194,7 @@ function SongRowMenu({
               }}
               className={itemClass}
             >
-              <ForwardIcon className="w-4 h-4 flex-shrink-0" />
+              <Icon icon={FastForward} className="w-4 h-4 flex-shrink-0" />
               Play Next
             </button>
           )}
@@ -210,7 +208,7 @@ function SongRowMenu({
               }}
               className={itemClass}
             >
-              <QueueListIcon className="w-4 h-4 flex-shrink-0" />
+              <Icon icon={ListMusic} className="w-4 h-4 flex-shrink-0" />
               Add to Queue
             </button>
           )}
@@ -231,7 +229,7 @@ function SongRowMenu({
               onClick={() => { setOpen(false); onDownload(song); }}
               className={itemClass}
             >
-              <ArrowDownTrayIcon className="w-4 h-4 flex-shrink-0" />
+              <Icon icon={Download} className="w-4 h-4 flex-shrink-0" />
               Download
             </button>
           )}
@@ -243,7 +241,7 @@ function SongRowMenu({
               }}
               className={itemClass}
             >
-              <SwatchIcon className="w-4 h-4 flex-shrink-0" />
+              <Icon icon={SwatchBook} className="w-4 h-4 flex-shrink-0" />
               Save Style
             </button>
           )}
@@ -252,7 +250,7 @@ function SongRowMenu({
               onClick={() => { setOpen(false); router.push(`/library/${song.id}`); }}
               className={itemClass}
             >
-              <ArrowPathIcon className="w-4 h-4 flex-shrink-0" />
+              <Icon icon={RefreshCw} className="w-4 h-4 flex-shrink-0" />
               Create Variation
             </button>
           )}
@@ -262,23 +260,23 @@ function SongRowMenu({
                 onClick={() => { setOpen(false); onSingleRestore(song); }}
                 className={itemClass}
               >
-                <ArrowUturnLeftIcon className="w-4 h-4 text-green-500 flex-shrink-0" />
+                <Icon icon={Undo2} className="w-4 h-4 text-green-500 flex-shrink-0" />
                 Restore
               </button>
               <button
                 onClick={() => { setOpen(false); onSingleDeleteForever(song); }}
                 className="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center gap-2"
               >
-                <TrashIcon className="w-4 h-4 flex-shrink-0" />
+                <Icon icon={Trash2} className="w-4 h-4 flex-shrink-0" />
                 Delete forever
               </button>
             </>
           ) : (
             <button
               onClick={() => { setOpen(false); onSingleArchive(song); }}
-              className="w-full text-left px-4 py-3 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
+              className="w-full text-left px-4 py-3 text-sm text-primary hover:bg-surface-hover transition-colors flex items-center gap-2"
             >
-              <ArchiveBoxIcon className="w-4 h-4 flex-shrink-0" />
+              <Icon icon={Archive} className="w-4 h-4 flex-shrink-0" />
               Archive
             </button>
           )}
@@ -291,29 +289,29 @@ function SongRowMenu({
           onClick={closeSaveStyle}
         >
           <div
-            className="bg-white dark:bg-gray-900 rounded-xl shadow-xl p-5 w-80 space-y-3"
+            className="bg-surface rounded-xl shadow-xl p-5 w-80 space-y-3"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Save as Style Template</h3>
+            <h3 className="text-sm font-semibold text-primary">Save as Style Template</h3>
             <input
               type="text"
               placeholder="Template name"
               value={styleTemplateName}
               onChange={(e) => setStyleTemplateName(e.target.value)}
               autoFocus
-              className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full bg-surface-raised border border-border rounded-lg px-3 py-2 text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
             <textarea
               value={styleTemplateTags}
               onChange={(e) => setStyleTemplateTags(e.target.value)}
               rows={2}
-              className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full bg-surface-raised border border-border rounded-lg px-3 py-2 text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
             <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={closeSaveStyle}
-                className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                className="px-3 py-1.5 text-sm text-secondary hover:text-primary transition-colors"
               >
                 Cancel
               </button>
@@ -430,12 +428,12 @@ export const SongListItem = memo(function SongListItem({
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
       aria-selected={isActive}
-      className={`group bg-white dark:bg-gray-900 border rounded-xl transition-colors ${
+      className={`group bg-surface border rounded-xl transition-colors ${
         isSelected
           ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30"
           : isActive
             ? "border-violet-600"
-            : "border-gray-200 dark:border-gray-800"
+            : "border-border"
       } ${isPending ? "opacity-75" : ""}`}
     >
       <div className="flex items-center gap-3 px-3 pt-3 pb-1">
@@ -448,24 +446,24 @@ export const SongListItem = memo(function SongListItem({
           } ${
             isSelected
               ? "bg-violet-600 border-violet-600 text-white"
-              : "border-gray-300 dark:border-gray-600 hover:border-violet-400"
+              : "border-border-strong hover:border-violet-400"
           }`}
         >
-          {isSelected && <CheckIcon className="w-4 h-4" />}
+          {isSelected && <Icon icon={Check} className="w-4 h-4" />}
         </button>
 
-        <div className="relative flex-shrink-0 w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center">
+        <div className="relative flex-shrink-0 w-12 h-12 rounded-lg bg-surface-raised overflow-hidden flex items-center justify-center">
           {song.imageUrl ? (
             <CoverArtImage src={song.imageUrl} alt={song.title ?? "Song"} fill className="object-cover" sizes="48px" loading="lazy" songId={song.id} />
           ) : (
-            <MusicalNoteIcon className="w-6 h-6 text-gray-400 dark:text-gray-600" aria-hidden="true" />
+            <Icon icon={Music} className="w-6 h-6 text-muted" aria-hidden="true" />
           )}
         </div>
 
         <div className="flex-1 min-w-0">
           <Link
             href={`/library/${song.id}`}
-            className="block text-sm font-medium text-gray-900 dark:text-white truncate hover:text-violet-400 transition-colors"
+            className="block text-sm font-medium text-primary truncate hover:text-violet-400 transition-colors"
           >
             <HighlightText text={song.title ?? "Untitled"} query={searchQuery} />
           </Link>
@@ -478,34 +476,34 @@ export const SongListItem = memo(function SongListItem({
                   <TagChip key={st.tag.id} tag={st.tag} size="xs" onClick={() => onTagClick?.(st.tag.id)} />
                 ))}
                 {(song as SongWithTags).songTags.length > 3 && (
-                  <span className="text-[10px] text-gray-500 dark:text-gray-400">+{(song as SongWithTags).songTags.length - 3}</span>
+                  <span className="text-[10px] text-secondary">+{(song as SongWithTags).songTags.length - 3}</span>
                 )}
               </div>
             )}
             {!isPending && !isFailed && !((song as SongWithTags).songTags?.length > 0) && song.tags && (
-              <span className="text-xs text-gray-500 truncate">
+              <span className="text-xs text-secondary truncate">
                 {firstTag(song.tags)}
               </span>
             )}
             {!isPending && song.duration && (
-              <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+              <span className="text-xs text-secondary flex-shrink-0">
                 {formatTime(song.duration)}
               </span>
             )}
             {!isOnline && !isCached && hasAudio && (
               <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-600 dark:text-amber-400 flex-shrink-0">
-                <SignalSlashIcon className="w-3 h-3" aria-hidden="true" />
+                <Icon icon={WifiOff} className="w-3 h-3" aria-hidden="true" />
                 Unavailable offline
               </span>
             )}
             {isCached && (
               <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 flex-shrink-0" title="Available offline">
-                <CheckIcon className="w-3 h-3" aria-hidden="true" />
+                <Icon icon={Check} className="w-3 h-3" aria-hidden="true" />
                 Offline
               </span>
             )}
             {!isPending && !isFailed && ((song as Song & { variationCount?: number }).variationCount ?? 0) > 0 && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-[10px] font-medium">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-surface-raised border border-border text-secondary text-[10px] font-medium">
                 {((song as Song & { variationCount?: number }).variationCount ?? 0) + 1} versions
               </span>
             )}
@@ -529,13 +527,13 @@ export const SongListItem = memo(function SongListItem({
           className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
             hasAudio
               ? "bg-violet-600 hover:bg-violet-500 text-white"
-              : "bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed"
+              : "bg-surface-raised text-muted cursor-not-allowed"
           }`}
         >
           {isActive && isPlaying ? (
-            <PauseIcon className="w-5 h-5" />
+            <Icon icon={Pause} fill="currentColor" className="w-5 h-5" />
           ) : (
-            <PlayIcon className="w-5 h-5 ml-0.5" />
+            <Icon icon={Play} fill="currentColor" className="w-5 h-5 ml-0.5" />
           )}
         </button>
       </div>
@@ -552,7 +550,7 @@ export const SongListItem = memo(function SongListItem({
             {isRetrying ? (
               <Spinner className="h-5 w-5" />
             ) : (
-              <ArrowPathIcon className="w-5 h-5" />
+              <Icon icon={RefreshCw} className="w-5 h-5" />
             )}
           </button>
         )}
@@ -563,13 +561,13 @@ export const SongListItem = memo(function SongListItem({
           className={`flex-shrink-0 h-11 px-2 rounded-full flex items-center gap-1 transition-colors ${
             song.isFavorite
               ? "text-pink-500 hover:text-pink-400"
-              : "text-gray-400 dark:text-gray-500 hover:text-pink-400"
+              : "text-muted hover:text-pink-400"
           }`}
         >
           {song.isFavorite ? (
-            <HeartIcon className="w-5 h-5" />
+            <Icon icon={Heart} fill="currentColor" className="w-5 h-5" />
           ) : (
-            <HeartOutlineIcon className="w-5 h-5" />
+            <Icon icon={Heart} className="w-5 h-5" />
           )}
           {((song as Song & { favoriteCount?: number }).favoriteCount ?? 0) > 0 && (
             <span className="text-xs font-medium">
@@ -590,7 +588,7 @@ export const SongListItem = memo(function SongListItem({
             className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
               song.isPublic
                 ? "bg-violet-100 dark:bg-violet-800 hover:bg-violet-200 dark:hover:bg-violet-700 text-violet-700 dark:text-violet-300"
-                : "bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+                : "bg-surface-raised hover:bg-surface-hover text-primary"
             }`}
           />
         )}
@@ -601,11 +599,11 @@ export const SongListItem = memo(function SongListItem({
           aria-label={isDownloading ? `Downloading ${downloadProgress}%` : "Download song"}
           className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
             hasAudio && !isDownloading
-              ? "bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
-              : "bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed"
+              ? "bg-surface-raised hover:bg-surface-hover text-primary"
+              : "bg-surface-raised text-muted cursor-not-allowed"
           }`}
         >
-          <ArrowDownTrayIcon className="w-5 h-5" aria-hidden="true" />
+          <Icon icon={Download} className="w-5 h-5" aria-hidden="true" />
         </button>
 
         {hasAudio && (
@@ -617,16 +615,16 @@ export const SongListItem = memo(function SongListItem({
               isCached
                 ? "bg-emerald-100 dark:bg-emerald-900/40 hover:bg-red-100 dark:hover:bg-red-900/40 text-emerald-600 dark:text-emerald-400 hover:text-red-500 dark:hover:text-red-400"
                 : isSaving
-                  ? "bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                  : "bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+                  ? "bg-surface-raised text-muted cursor-not-allowed"
+                  : "bg-surface-raised hover:bg-surface-hover text-primary"
             }`}
           >
             {isSaving ? (
               <Spinner className="h-5 w-5" />
             ) : isCached ? (
-              <CheckIcon className="w-5 h-5" aria-hidden="true" />
+              <Icon icon={Check} className="w-5 h-5" aria-hidden="true" />
             ) : (
-              <CloudArrowDownIcon className="w-5 h-5" aria-hidden="true" />
+              <Icon icon={CloudDownload} className="w-5 h-5" aria-hidden="true" />
             )}
           </button>
         )}
@@ -663,7 +661,7 @@ export const SongListItem = memo(function SongListItem({
 
       {isDownloading && downloadProgress !== null && downloadProgress < 100 && (
         <div className="px-3 pb-2">
-          <div className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-1 bg-surface-raised rounded-full overflow-hidden">
             <div
               className="h-full bg-violet-500 rounded-full transition-all duration-300"
               style={{ width: `${downloadProgress}%` }}

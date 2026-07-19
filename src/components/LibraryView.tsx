@@ -4,13 +4,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, useMemo } fr
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  MusicalNoteIcon,
-  ArrowUpOnSquareStackIcon,
-  CheckIcon,
-  ArrowPathIcon,
-} from "@heroicons/react/24/solid";
-import { PlayIcon as PlayOutlineIcon } from "@heroicons/react/24/outline";
+import { Music, Share, Check, RefreshCw, Play } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import type { Song } from "@prisma/client";
 import { RecentlyPlayed } from "./RecentlyPlayed";
 import { LowCreditsBanner } from "./LowCreditsBanner";
@@ -232,11 +227,11 @@ export function LibraryView({
           className="flex items-center justify-center overflow-hidden transition-all"
           style={{ height: isPullingRefresh ? 48 : pullDistance }}
         >
-          <ArrowPathIcon
+          <Icon icon={RefreshCw}
             className={`w-5 h-5 text-violet-500 transition-transform ${isPullingRefresh ? "animate-spin" : ""}`}
             style={{ transform: isPullingRefresh ? undefined : `rotate(${pullDistance * 4.5}deg)` }}
           />
-          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+          <span className="ml-2 text-xs text-secondary">
             {isPullingRefresh ? "Refreshing…" : pullDistance >= 60 ? "Release to refresh" : "Pull to refresh"}
           </span>
         </div>
@@ -247,8 +242,8 @@ export function LibraryView({
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">
+          <h1 className="text-xl font-bold text-primary">{title}</h1>
+          <p className="text-secondary text-sm mt-0.5">
             {loading ? "Searching…" : `${songs.length}${totalSongs > songs.length ? ` of ${totalSongs}` : ""} song${totalSongs !== 1 ? "s" : ""}`}
           </p>
           {songs.length > 0 && (
@@ -260,8 +255,8 @@ export function LibraryView({
             </button>
           )}
           {offlineStats.count > 0 && (
-            <div className="mt-1 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <CheckIcon className="w-3.5 h-3.5 text-emerald-500" aria-hidden="true" />
+            <div className="mt-1 flex items-center gap-2 text-xs text-secondary">
+              <Icon icon={Check} className="w-3.5 h-3.5 text-emerald-500" aria-hidden="true" />
               <span>{offlineStats.count} offline · {formatBytes(offlineStats.totalBytes)}</span>
               <button
                 onClick={clearOffline}
@@ -283,27 +278,27 @@ export function LibraryView({
             aria-label="Export library"
             className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
               exportActions.exporting
-                ? "bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                : "bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+                ? "bg-surface-raised text-muted cursor-not-allowed"
+                : "bg-surface-raised hover:bg-surface-hover text-primary"
             }`}
           >
-            <ArrowUpOnSquareStackIcon className="w-4 h-4" />
+            <Icon icon={Share} className="w-4 h-4" />
             {exportActions.exporting && exportActions.exportProgress
               ? `${exportActions.exportProgress.completed}/${exportActions.exportProgress.total}`
               : "Export"}
           </button>
 
           {exportActions.exportMenuOpen && (
-            <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-20 overflow-hidden">
+            <div className="absolute right-0 mt-1 w-48 bg-surface border border-border rounded-xl shadow-lg z-20 overflow-hidden">
               <button
                 onClick={exportActions.handleExportZip}
-                className="w-full text-left px-4 py-3 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="w-full text-left px-4 py-3 text-sm text-primary hover:bg-surface-hover transition-colors"
               >
                 Download as ZIP
               </button>
               <button
                 onClick={exportActions.handleExportM3U}
-                className="w-full text-left px-4 py-3 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-t border-gray-200 dark:border-gray-800"
+                className="w-full text-left px-4 py-3 text-sm text-primary hover:bg-surface-hover transition-colors border-t border-border"
               >
                 Export M3U playlist
               </button>
@@ -316,13 +311,13 @@ export function LibraryView({
       {/* Export progress bar */}
       {exportActions.exporting && exportActions.exportProgress && (
         <div className="space-y-1">
-          <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-surface-raised rounded-full overflow-hidden">
             <div
               className="h-full bg-violet-500 rounded-full transition-all duration-300"
               style={{ width: `${Math.round((exportActions.exportProgress.completed / exportActions.exportProgress.total) * 100)}%` }}
             />
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-secondary">
             Downloading {exportActions.exportProgress.completed} of {exportActions.exportProgress.total} songs…
           </p>
         </div>
@@ -334,7 +329,7 @@ export function LibraryView({
           onClick={songActions.handlePlayAll}
           className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors min-h-[44px]"
         >
-          <PlayOutlineIcon className="w-4 h-4" />
+          <Icon icon={Play} className="w-4 h-4" />
           Play All
         </button>
       )}
@@ -386,13 +381,13 @@ export function LibraryView({
 
       {/* Song list */}
       {songs.length === 0 ? (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 text-center">
-          <MusicalNoteIcon className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-700 mb-3" aria-hidden="true" />
+        <div className="bg-surface border border-border rounded-xl p-8 text-center">
+          <Icon icon={Music} className="w-10 h-10 mx-auto text-muted mb-3" aria-hidden="true" />
           {isArchiveView ? (
-            <p className="text-gray-500 dark:text-gray-400 text-sm">Your archive is empty.</p>
+            <p className="text-secondary text-sm">Your archive is empty.</p>
           ) : hasAnyFilter ? (
             <>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">No songs match your filters.</p>
+              <p className="text-secondary text-sm">No songs match your filters.</p>
               <button
                 onClick={clearAllFilters}
                 className="mt-3 px-4 py-2 rounded-lg text-sm font-medium text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors"
@@ -402,8 +397,8 @@ export function LibraryView({
             </>
           ) : (
             <>
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">No songs yet</h3>
-              <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
+              <h3 className="text-base font-semibold text-primary mb-1">No songs yet</h3>
+              <p className="text-secondary text-sm mb-4">
                 Create your first AI-generated song — describe a mood, genre, or vibe and let the music flow.
               </p>
               <Link
@@ -503,7 +498,7 @@ export function LibraryView({
       {nextCursor && !loading && (
         <div ref={loadMoreSentinelRef} className="flex items-center justify-center py-4" aria-live="polite">
           {loadingMore ? (
-            <span className="inline-flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <span className="inline-flex items-center gap-2 text-sm text-secondary">
               <Spinner className="h-4 w-4" />
               Loading more…
             </span>
@@ -521,13 +516,13 @@ export function LibraryView({
       {/* Batch download progress bar */}
       {batchActions.batchDownloading && batchActions.batchDownloadProgress && (
         <div className="space-y-1">
-          <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-surface-raised rounded-full overflow-hidden">
             <div
               className="h-full bg-violet-500 rounded-full transition-all duration-300"
               style={{ width: `${Math.round((batchActions.batchDownloadProgress.completed / batchActions.batchDownloadProgress.total) * 100)}%` }}
             />
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-secondary">
             Downloading {batchActions.batchDownloadProgress.completed} of {batchActions.batchDownloadProgress.total} songs…
           </p>
         </div>

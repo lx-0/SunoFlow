@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { SparklesIcon } from "@heroicons/react/24/solid";
-import { PencilSquareIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { Sparkles, SquarePen, ChevronDown } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { useToast } from "../Toast";
 import { generateLyricsFromPrompt } from "./api";
 import { Spinner } from "../Spinner";
@@ -56,10 +56,10 @@ export function LyricsGeneratorPanel({ initialPrompt, onUseLyrics, onApplyMeta }
         className="w-full flex items-center justify-between bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl px-4 py-3 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
       >
         <span className="flex items-center gap-2 text-sm font-medium text-violet-700 dark:text-violet-300">
-          <PencilSquareIcon className="h-4 w-4" />
+          <Icon icon={SquarePen} className="h-4 w-4" />
           Generate Lyrics
         </span>
-        <ChevronDownIcon
+        <Icon icon={ChevronDown}
           className={`h-4 w-4 text-violet-500 dark:text-violet-400 transition-transform ${
             showLyricsGenerator ? "rotate-180" : ""
           }`}
@@ -67,7 +67,7 @@ export function LyricsGeneratorPanel({ initialPrompt, onUseLyrics, onApplyMeta }
       </button>
 
       {showLyricsGenerator && (
-        <div className="mt-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
+        <div className="mt-3 bg-surface-raised border border-border rounded-xl p-4 space-y-3">
           <div className="flex gap-2">
             <textarea
               value={lyricsPrompt}
@@ -77,7 +77,7 @@ export function LyricsGeneratorPanel({ initialPrompt, onUseLyrics, onApplyMeta }
               maxLength={6000}
               rows={3}
               disabled={isGeneratingLyrics}
-              className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50 resize-none"
+              className="flex-1 bg-surface-raised border border-border rounded-xl px-4 py-2.5 text-base sm:text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50 resize-none"
             />
             <button
               type="button"
@@ -92,7 +92,7 @@ export function LyricsGeneratorPanel({ initialPrompt, onUseLyrics, onApplyMeta }
                 </>
               ) : (
                 <>
-                  <SparklesIcon className="h-4 w-4" />
+                  <Icon icon={Sparkles} fill="currentColor" className="h-4 w-4" />
                   Generate
                 </>
               )}
@@ -106,7 +106,7 @@ export function LyricsGeneratorPanel({ initialPrompt, onUseLyrics, onApplyMeta }
                 onChange={(e) => setGeneratedLyrics(e.target.value)}
                 aria-label="Generated lyrics"
                 rows={8}
-                className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-base sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
+                className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-base sm:text-sm text-primary focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
               />
               <button
                 type="button"

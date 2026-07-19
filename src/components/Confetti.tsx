@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-const COLORS = ["#7c3aed", "#a855f7", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#f43f5e"];
+const COLORS = ["#d93294", "#e873af", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#f43f5e"];
 const PARTICLE_COUNT = 60;
 
 type Particle = {

@@ -20,7 +20,7 @@ export function ListeningTimeChart({
   data: Array<{ date: string; minutes: number }>;
 }) {
   if (data.every((d) => d.minutes === 0)) {
-    return <p className="text-gray-500 dark:text-gray-400 text-sm">No listening data yet</p>;
+    return <p className="text-secondary text-sm">No listening data yet</p>;
   }
   return (
     <ResponsiveContainer width="100%" height={200}>
@@ -51,12 +51,12 @@ export function GenerationTrendChart({
   data: Array<{ date: string; count: number }>;
 }) {
   if (data.every((d) => d.count === 0)) {
-    return <p className="text-gray-500 dark:text-gray-400 text-sm">No generation data yet</p>;
+    return <p className="text-secondary text-sm">No generation data yet</p>;
   }
   return (
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+        <CartesianGrid strokeDasharray="3 3" stroke="#2f262a" />
         <XAxis
           dataKey="date"
           tick={CHART_AXIS_TICK}
@@ -72,7 +72,7 @@ export function GenerationTrendChart({
         <Line
           type="monotone"
           dataKey="count"
-          stroke="#7c3aed"
+          stroke="#c40181"
           strokeWidth={2}
           dot={false}
           name="Generations"
@@ -94,7 +94,7 @@ export function PeakHoursChart({
   }));
 
   if (data.every((d) => d.count === 0)) {
-    return <p className="text-gray-500 dark:text-gray-400 text-sm">No listening data yet</p>;
+    return <p className="text-secondary text-sm">No listening data yet</p>;
   }
 
   return (
@@ -102,7 +102,7 @@ export function PeakHoursChart({
       <BarChart data={formatted} barSize={14}>
         <XAxis
           dataKey="hour"
-          tick={{ fontSize: 9, fill: "#9ca3af" }}
+          tick={{ fontSize: 9, fill: "#aaa2a5" }}
           interval={2}
         />
         <YAxis hide />
@@ -124,7 +124,7 @@ export function StatsCreditChart({
   data: Array<{ date: string; credits: number }>;
 }) {
   if (data.every((d) => d.credits === 0)) {
-    return <p className="text-gray-500 dark:text-gray-400 text-sm">No credit usage yet</p>;
+    return <p className="text-secondary text-sm">No credit usage yet</p>;
   }
   return (
     <ResponsiveContainer width="100%" height={200}>

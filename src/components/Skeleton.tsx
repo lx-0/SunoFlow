@@ -11,7 +11,7 @@ export function Skeleton({ className, style }: { className?: string; style?: Rea
 /** Skeleton matching a song card in the library list. */
 export function SongCardSkeleton() {
   return (
-    <li className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+    <li className="bg-surface border border-border rounded-xl overflow-hidden">
       <div className="flex items-center gap-3 px-3 pt-3 pb-3">
         {/* Cover art placeholder */}
         <Skeleton className="flex-shrink-0 w-12 h-12 rounded-lg" />
@@ -72,7 +72,7 @@ export function SongDetailSkeleton() {
       {/* Regenerate button */}
       <Skeleton className="h-11 w-full rounded-xl" />
       {/* Audio player card */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
+      <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
         <div className="flex items-center gap-3">
           <Skeleton className="w-12 h-12 rounded-full" />
           <Skeleton className="h-4 w-20 rounded" />
@@ -84,14 +84,14 @@ export function SongDetailSkeleton() {
         </div>
       </div>
       {/* Lyrics card */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-2">
+      <div className="bg-surface border border-border rounded-xl p-4 space-y-2">
         <Skeleton className="h-4 w-12 rounded" />
         <Skeleton className="h-3 w-full rounded" />
         <Skeleton className="h-3 w-5/6 rounded" />
         <Skeleton className="h-3 w-4/6 rounded" />
       </div>
       {/* Prompt card */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-2">
+      <div className="bg-surface border border-border rounded-xl p-4 space-y-2">
         <Skeleton className="h-4 w-14 rounded" />
         <Skeleton className="h-3 w-full rounded" />
         <Skeleton className="h-3 w-2/3 rounded" />
@@ -105,7 +105,7 @@ export function SongDetailSkeleton() {
 /** Generic card skeleton — matches the standard card container used across pages. */
 export function SkeletonCard({ className }: { className?: string }) {
   return (
-    <div className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3 ${className ?? ""}`}>
+    <div className={`bg-surface border border-border rounded-xl p-4 space-y-3 ${className ?? ""}`}>
       <Skeleton className="h-4 w-3/4 rounded" />
       <Skeleton className="h-3 w-1/2 rounded" />
       <Skeleton className="h-3 w-2/3 rounded" />
@@ -116,9 +116,9 @@ export function SkeletonCard({ className }: { className?: string }) {
 /** Table skeleton with header row and body rows. */
 export function SkeletonTable({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+    <div className="bg-surface border border-border rounded-xl overflow-hidden">
       {/* Header */}
-      <div className="flex gap-4 px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+      <div className="flex gap-4 px-4 py-3 border-b border-border">
         <Skeleton className="h-3 w-1/4 rounded" />
         <Skeleton className="h-3 w-1/4 rounded" />
         <Skeleton className="h-3 w-1/6 rounded" />
@@ -171,7 +171,7 @@ export function DashboardSkeleton() {
       {/* Stat cards grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-5">
+          <div key={i} className="bg-surface border border-border rounded-xl px-4 py-5">
             <Skeleton className="h-3 w-16 rounded" />
             <Skeleton className="h-7 w-12 rounded mt-2" />
           </div>
@@ -191,7 +191,7 @@ export function DashboardSkeleton() {
       {/* Usage chart */}
       <div>
         <Skeleton className="h-5 w-48 rounded mb-3" />
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+        <div className="bg-surface border border-border rounded-xl p-4">
           <div className="flex items-end gap-1.5 h-32">
             {["h-[20%]", "h-[28%]", "h-[36%]", "h-[44%]", "h-[52%]", "h-[60%]", "h-[68%]"].map((h, i) => (
               <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
@@ -205,7 +205,7 @@ export function DashboardSkeleton() {
       {/* Recent songs */}
       <div>
         <Skeleton className="h-5 w-28 rounded mb-3" />
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden divide-y divide-gray-100 dark:divide-gray-800">
+        <div className="bg-surface border border-border rounded-xl overflow-hidden divide-y divide-border">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3 px-3 py-3">
               <Skeleton className="w-10 h-10 rounded-lg flex-shrink-0" />
@@ -239,7 +239,7 @@ export function HistorySkeleton() {
       {/* History rows */}
       <ul className="space-y-2">
         {Array.from({ length: 6 }).map((_, i) => (
-          <li key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+          <li key={i} className="bg-surface border border-border rounded-xl overflow-hidden">
             <div className="flex items-start gap-3 px-3 py-3">
               <Skeleton className="flex-shrink-0 w-12 h-12 rounded-lg" />
               <div className="flex-1 min-w-0 space-y-1.5">
@@ -278,7 +278,7 @@ export function PlaylistsSkeleton() {
       {/* Playlist items */}
       <ul className="space-y-2">
         {Array.from({ length: 4 }).map((_, i) => (
-          <li key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+          <li key={i} className="bg-surface border border-border rounded-xl overflow-hidden">
             <div className="flex items-center gap-3 px-4 py-3">
               <Skeleton className="flex-shrink-0 w-12 h-12 rounded-lg" />
               <div className="flex-1 min-w-0 space-y-1.5">
@@ -305,13 +305,13 @@ export function ProfileSkeleton() {
         <Skeleton className="h-6 w-32 rounded" />
         <Skeleton className="h-4 w-48 rounded" />
       </div>
-      <div className="border-t border-gray-200 dark:border-gray-800" />
+      <div className="border-t border-border" />
       {/* Account stats */}
       <div className="space-y-3">
         <Skeleton className="h-5 w-28 rounded" />
         <div className="grid grid-cols-2 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex flex-col items-center gap-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+            <div key={i} className="flex flex-col items-center gap-1 bg-surface-raised border border-border rounded-xl p-4">
               <Skeleton className="w-5 h-5 rounded" />
               <Skeleton className="h-5 w-8 rounded" />
               <Skeleton className="h-3 w-14 rounded" />
@@ -319,7 +319,7 @@ export function ProfileSkeleton() {
           ))}
         </div>
       </div>
-      <div className="border-t border-gray-200 dark:border-gray-800" />
+      <div className="border-t border-border" />
       {/* Change password form */}
       <div className="space-y-3">
         <Skeleton className="h-5 w-36 rounded" />
@@ -404,7 +404,7 @@ export function SongsGallerySkeleton() {
       {/* Gallery grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
         {Array.from({ length: 10 }).map((_, i) => (
-          <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+          <div key={i} className="bg-surface border border-border rounded-xl overflow-hidden">
             <Skeleton className="aspect-square w-full" />
             <div className="p-3 space-y-2">
               <Skeleton className="h-4 w-3/4 rounded" />
