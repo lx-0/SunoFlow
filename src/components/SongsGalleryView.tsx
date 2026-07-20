@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   Play,
@@ -24,7 +25,7 @@ import { useQueue, type QueueSong } from "./QueueContext";
 import { PullToRefreshContainer } from "./PullToRefreshContainer";
 import { CoverArtImage } from "./CoverArtImage";
 import { generateCoverArtVariants } from "@/lib/cover-art-generator";
-import { useOutsideClick } from "@/hooks/useOutsideClick";
+import { useAnchoredMenu } from "@/hooks/useAnchoredMenu";
 import { applySongsGalleryFilters, type SongWithMeta } from "./songs-gallery/filtering";
 import { apiGet, apiPost, apiDelete } from "@/lib/api-client";
 import { formatDuration } from "@/lib/time-format";
@@ -73,10 +74,13 @@ interface SongCardProps {
 }
 
 function SongCard({ song, isPlaying, onPlayToggle, onFavoriteToggle, onDownload, isCached, isSaving, onSaveOffline, onRemoveOffline, onPlayNext, onAddToQueue }: SongCardProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useOutsideClick(menuRef, () => setMenuOpen(false), menuOpen);
+  const {
+    open: menuOpen,
+    setOpen: setMenuOpen,
+    triggerRef,
+    menuRef: menuPanelRef,
+    menuStyle,
+  } = useAnchoredMenu(160);
   const hasAudio = !!song.audioUrl;
   const generatedCoverUrl = generateCoverArtVariants({ songId: song.id, title: song.title, tags: song.tags })[0].dataUrl;
   const coverUrl = song.imageUrl || generatedCoverUrl;
@@ -204,7 +208,7 @@ function SongCard({ song, isPlaying, onPlayToggle, onFavoriteToggle, onDownload,
               </button>
             )}
             {hasAudio && (
-              <div className="relative" ref={menuRef}>
+              <div className="relative" ref={triggerRef}>
                 <button
                   onClick={() => setMenuOpen((v) => !v)}
                   aria-label="More options"
@@ -213,8 +217,12 @@ function SongCard({ song, isPlaying, onPlayToggle, onFavoriteToggle, onDownload,
                 >
                   <Icon icon={EllipsisVertical} className="w-4.5 h-4.5 text-muted" />
                 </button>
-                {menuOpen && (
-                  <div className="absolute right-0 bottom-full mb-1 w-40 bg-surface-raised border border-border rounded-xl shadow-lg z-20 overflow-hidden">
+                {menuOpen && menuStyle && createPortal(
+                  <div
+                    ref={menuPanelRef}
+                    style={menuStyle}
+                    className="bg-surface-raised border border-border rounded-xl shadow-lg z-50 overflow-y-auto"
+                  >
                     <button
                       onClick={() => { onPlayNext(); setMenuOpen(false); }}
                       className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-primary hover:bg-surface-hover transition-colors"
@@ -229,7 +237,8 @@ function SongCard({ song, isPlaying, onPlayToggle, onFavoriteToggle, onDownload,
                       <Icon icon={ListMusic} className="w-4 h-4 flex-shrink-0 text-muted" />
                       Add to Queue
                     </button>
-                  </div>
+                  </div>,
+                  document.body,
                 )}
               </div>
             )}

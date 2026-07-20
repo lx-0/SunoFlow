@@ -1,6 +1,8 @@
 "use client";
 
-import { memo, useRef, useState } from "react";
+import { memo } from "react";
+import { createPortal } from "react-dom";
+import { useAnchoredMenu } from "@/hooks/useAnchoredMenu";
 import Link from "next/link";
 import {
   Play,
@@ -31,7 +33,6 @@ import { ShareButton } from "./ShareButton";
 import { AddToPlaylistButton } from "./AddToPlaylistButton";
 import { useRouter } from "next/navigation";
 import { HighlightText } from "./HighlightText";
-import { useOutsideClick } from "@/hooks/useOutsideClick";
 import { formatDuration as formatTime } from "@/lib/time-format";
 import { firstTag } from "@sunoflow/core";
 import { useLongPress } from "./song-list-item/use-long-press";
@@ -141,8 +142,7 @@ function SongRowMenu({
   onSingleRestore,
   onSingleDeleteForever,
 }: SongRowMenuProps) {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const { open, setOpen, triggerRef, menuRef, menuStyle } = useAnchoredMenu(192);
   const { playNext, addToQueue } = useQueue();
   const { toast } = useToast();
   const router = useRouter();
@@ -158,13 +158,11 @@ function SongRowMenu({
     submitSaveStyle,
   } = useSaveStyleTemplate();
 
-  useOutsideClick(menuRef, () => setOpen(false), open);
-
   const itemClass =
     "w-full text-left px-4 py-3 text-sm text-primary hover:bg-surface-hover transition-colors border-b border-border flex items-center gap-2";
 
   return (
-    <div className="relative ml-auto" ref={menuRef}>
+    <div className="relative ml-auto" ref={triggerRef}>
       <button
         onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
         aria-label="More actions"
@@ -173,8 +171,12 @@ function SongRowMenu({
         <Icon icon={EllipsisVertical} className="w-5 h-5" aria-hidden="true" />
       </button>
 
-      {open && (
-        <div className="absolute right-0 bottom-full mb-1 w-48 bg-surface border border-border rounded-xl shadow-lg z-30 overflow-hidden">
+      {open && menuStyle && createPortal(
+        <div
+          ref={menuRef}
+          style={menuStyle}
+          className="bg-surface border border-border rounded-xl shadow-lg z-50 overflow-y-auto"
+        >
           <button
             onClick={() => { setOpen(false); onToggleFavorite(song); }}
             className={itemClass}
@@ -280,7 +282,8 @@ function SongRowMenu({
               Archive
             </button>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
 
       {saveStyleOpen && (

@@ -263,6 +263,24 @@ test.describe("Visual journey", () => {
       await capture(page, testInfo, name, urlPath);
     }
 
+    // ── Library row action menu (the three-dot/kebab popover). It renders in a
+    // body portal with fixed positioning so it can't be clipped by the
+    // virtualized list's scroll container — this shot verifies it isn't cut off.
+    await page.goto("/library");
+    await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
+    // The kebab is opacity-0 until row-hover — force-click past that, then
+    // confirm the menu opened (its "Archive" item, portaled to <body>) before
+    // capturing. Capture only if the menu is actually open.
+    const kebab = page.getByRole("button", { name: /more actions/i }).first();
+    await kebab.scrollIntoViewIfNeeded().catch(() => {});
+    await kebab.click({ force: true }).catch(() => {});
+    const archiveItem = page.getByRole("button", { name: /^archive$/i }).first();
+    if (await archiveItem.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await page.waitForTimeout(200);
+      await capture(page, testInfo, "04b-row-menu");
+      await page.keyboard.press("Escape").catch(() => {});
+    }
+
     // ── Player chrome: trigger playback so the mini-player mounts. Mock songs
     // have an empty audioUrl, so nothing actually plays — the bar renders its
     // idle state, which is enough for brand diffing. Best-effort: if the play

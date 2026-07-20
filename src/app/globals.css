@@ -110,6 +110,34 @@ html {
   overflow-x: hidden;
 }
 
+/* Themed scrollbars — the native light/gray bars clash with the dark-first
+   console. Thin, tinted to the surface stack; adapts to light/dark via the
+   semantic vars (Firefox via scrollbar-color, Chromium/WebKit via the
+   pseudo-elements). Track transparent so it blends into the surface. */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--border-strong);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-muted);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Theme transition — only active during toggle to avoid FOUC on load */
 html.theme-transition,
 html.theme-transition *,
