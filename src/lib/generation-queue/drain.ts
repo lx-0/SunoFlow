@@ -1,5 +1,6 @@
 import { generateSong } from "@/lib/sunoapi";
 import { logger } from "@/lib/logger";
+import { logServerError } from "@/lib/error-logger";
 import { prisma } from "@/lib/prisma";
 import { SUNOAPI_KEY } from "@/lib/env";
 import { onCircuitClose } from "@/lib/circuit-breaker";
@@ -72,10 +73,13 @@ export async function drainQueuedItems(): Promise<void> {
         return;
 
       case "api_error":
-        logger.error(
-          { queueItemId: item.id, err: outcome.rawError },
-          "generation: queued item failed"
-        );
+        // Circuit-recover replay hits the exact Suno-flaky window — surface it
+        // to GlitchTip like the sibling process-next path, not just Pino.
+        logServerError("queue-drain", outcome.rawError, {
+          userId: item.userId,
+          route: "generation-queue/drain",
+          params: { queueItemId: item.id },
+        });
         await updateItemById(item.id, { status: "failed", errorMessage: outcome.errorMessage, songId: outcome.song.id }).catch(
           (updateErr) => {
             logger.error(
