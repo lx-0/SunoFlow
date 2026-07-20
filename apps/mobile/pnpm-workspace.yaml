@@ -4,3 +4,12 @@
 # workspace, so `pnpm install` / `npx expo install` run HERE install the mobile
 # app's own deps into apps/mobile/node_modules (with its own pnpm-lock.yaml).
 packages: []
+
+# pnpm 10+/11 gates dependency build scripts: an un-decided build script fails
+# `pnpm install` with ERR_PNPM_IGNORED_BUILDS (which broke `pnpm release` here).
+# Approve the two native addons this workspace pulls in (both ship prebuilt
+# binaries; unrs-resolver needs its napi binary, msgpackr-extract is msgpackr's
+# optional native accelerator).
+allowBuilds:
+  msgpackr-extract: true
+  unrs-resolver: true
