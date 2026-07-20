@@ -22,6 +22,7 @@ Written at the end of the 2026-07-20 web-nav session (supersedes the transient p
 
 1. **Expanded-player desktop overlap fixed** (`6eb8086c`) — `md:flex-none` on the upper region so the modal scrolls instead of the region shrinking and spilling over the tab row. Live.
 2. **Web nav consolidation 17 → 10 items** — Phase 1 grouping + Generate hero CTA (`09d74278`), Phase 2 tabbed hubs + `/explore→/discover` redirect (`f780550f`). Both live + verified (visual harness, prod build, `/explore → 308 → /discover`).
+3. **pnpm-toolchain fix** — `pnpm release` (run in `apps/mobile`) unblocked under pnpm 11: config moved to `pnpm-workspace.yaml` at root (`81831435`, also re-enforcing the 17 security overrides pnpm 11 was dropping) + `allowBuilds` in the mobile workspace (`e7a46368`). See KNOWLEDGE.md 2026-07-20 (pnpm).
 
 ## In-flight work
 
