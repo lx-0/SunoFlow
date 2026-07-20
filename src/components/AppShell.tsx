@@ -186,7 +186,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="border-t border-border p-2 space-y-1">
             {/* Tier badge — visible when sidebar is expanded and user is on paid tier */}
             {!sidebarCollapsed && (() => {
-              const tier = ((session.user as unknown as Record<string, unknown>).subscriptionTier as SubscriptionTier) ?? "free";
+              const tier: SubscriptionTier = session.user.subscriptionTier ?? "free";
               if (tier === "free") return null;
               return (
                 <Link
@@ -201,7 +201,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Link>
               );
             })()}
-            {!!(session.user as unknown as Record<string, unknown>).isAdmin && (
+            {!!session.user.isAdmin && (
               <Link
                 href="/admin"
                 aria-current={pathname.startsWith("/admin") ? "page" : undefined}
@@ -334,7 +334,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="border-t border-border p-2 space-y-1">
             {/* Tier badge for mobile drawer */}
             {(() => {
-              const tier = ((session.user as unknown as Record<string, unknown>).subscriptionTier as SubscriptionTier) ?? "free";
+              const tier: SubscriptionTier = session.user.subscriptionTier ?? "free";
               if (tier === "free") return null;
               return (
                 <Link

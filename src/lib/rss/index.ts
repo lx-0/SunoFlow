@@ -9,6 +9,7 @@ import {
 } from "./parse";
 import { enrichItem } from "./enrich";
 import { extractArticleContent } from "./extract-article";
+import { isSsrfUrlResolved } from "./ssrf";
 import type { RssItem, FeedResult } from "./types";
 
 export type { RssItem, FeedResult };
@@ -77,15 +78,40 @@ async function enrichWithFullArticle(items: RssItem[]): Promise<RssItem[]> {
   return result;
 }
 
-export async function fetchFeed(url: string): Promise<FeedResult> {
-  try {
-    const response = await fetch(url, {
+const MAX_FEED_REDIRECTS = 5;
+
+// Fetch a feed with manual redirect handling so every hop — not just the
+// initial URL — is re-validated by the DNS-aware SSRF guard. A 30x pointing at
+// an internal host (169.254.169.254, RFC-1918, …) is therefore caught even
+// when the first URL was a legitimate public feed.
+async function safeFeedFetch(startUrl: string): Promise<Response> {
+  let currentUrl = startUrl;
+  for (let i = 0; i <= MAX_FEED_REDIRECTS; i++) {
+    if (await isSsrfUrlResolved(currentUrl)) {
+      throw new Error("Blocked URL (SSRF guard)");
+    }
+    const response = await fetch(currentUrl, {
       headers: {
         Accept:
           "application/rss+xml, application/atom+xml, text/xml, application/xml, */*",
       },
+      redirect: "manual",
       signal: AbortSignal.timeout(10000),
     });
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (!location) throw new Error(`HTTP ${response.status}`);
+      currentUrl = new URL(location, currentUrl).href;
+      continue;
+    }
+    return response;
+  }
+  throw new Error("Too many redirects");
+}
+
+export async function fetchFeed(url: string): Promise<FeedResult> {
+  try {
+    const response = await safeFeedFetch(url);
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);

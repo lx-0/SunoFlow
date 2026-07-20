@@ -140,9 +140,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     arrowSide: "top" | "bottom" | "left" | "right";
   } | null>(null);
 
-  const user = session?.user as
-    | (Record<string, unknown> & { id: string; onboardingCompleted?: boolean })
-    | undefined;
+  const user = session?.user;
 
   // Never show tour on public/auth pages
   const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email"];

@@ -32,14 +32,49 @@ const VALID_TYPES: readonly string[] = ["songs", "playlists", "all"];
 type SongWithTags = Awaited<ReturnType<typeof fetchSongs>>[number];
 type PlaylistWithSongs = Awaited<ReturnType<typeof fetchPlaylists>>[number];
 
+// Peak-memory bound for the export request path. An unbounded findMany over
+// every song (each carrying full @db.Text lyrics) can materialize a very large
+// heap in one shot and, together with the synchronous JSON.stringify below,
+// block the single Node event loop long enough to fail a liveness probe.
+// We page the heavy queries by primary-key cursor and accumulate.
+const EXPORT_PAGE_SIZE = 500;
+
+/**
+ * Drain a cursor-paginated findMany into a single array, preserving the query's
+ * own ordering. The caller's `orderBy` must include `id` as a deterministic
+ * tie-break so pages don't skip/duplicate rows.
+ */
+async function paginate<T extends { id: string }>(
+  fetchPage: (cursor: string | undefined) => Promise<T[]>,
+): Promise<T[]> {
+  const all: T[] = [];
+  let cursor: string | undefined;
+  for (;;) {
+    const page = await fetchPage(cursor);
+    all.push(...page);
+    if (page.length < EXPORT_PAGE_SIZE) break;
+    cursor = page[page.length - 1].id;
+  }
+  return all;
+}
+
+/** Hand the event loop a tick so a big export can't hold it uninterrupted. */
+function yieldEventLoop(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve));
+}
+
 async function fetchSongs(userId: string) {
-  return prisma.song.findMany({
-    where: { userId },
-    include: {
-      songTags: { include: { tag: true }, orderBy: { tag: { name: "asc" } } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  return paginate((cursor) =>
+    prisma.song.findMany({
+      where: { userId },
+      include: {
+        songTags: { include: { tag: true }, orderBy: { tag: { name: "asc" } } },
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: EXPORT_PAGE_SIZE,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    }),
+  );
 }
 
 async function fetchPlaylists(userId: string) {
@@ -47,16 +82,20 @@ async function fetchPlaylists(userId: string) {
   // are system-derived — their materialized membership is stale/empty under
   // the virtual model, and the user's archived songs are already exported in
   // the songs section (fetchSongs has no archivedAt filter).
-  return prisma.playlist.findMany({
-    where: { userId, isSmartPlaylist: false },
-    include: {
-      songs: {
-        include: { song: { select: { id: true, title: true } } },
-        orderBy: { position: "asc" },
+  return paginate((cursor) =>
+    prisma.playlist.findMany({
+      where: { userId, isSmartPlaylist: false },
+      include: {
+        songs: {
+          include: { song: { select: { id: true, title: true } } },
+          orderBy: { position: "asc" },
+        },
       },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+      take: EXPORT_PAGE_SIZE,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    }),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -199,6 +238,7 @@ export async function exportUserData(
 
   if (fmt === "csv") {
     const songs = await fetchSongs(userId);
+    await yieldEventLoop();
     return success(
       csvOutput(songsToCSV(songs), `sunoflow-export-${songs.length}songs-${date}.csv`),
     );
@@ -206,6 +246,7 @@ export async function exportUserData(
 
   if (kind === "songs") {
     const songs = await fetchSongs(userId);
+    await yieldEventLoop();
     return success(
       jsonOutput(
         { exportedAt: new Date().toISOString(), songCount: songs.length, songs: formatSongs(songs) },
@@ -216,6 +257,7 @@ export async function exportUserData(
 
   if (kind === "playlists") {
     const playlists = await fetchPlaylists(userId);
+    await yieldEventLoop();
     return success(
       jsonOutput(
         { exportedAt: new Date().toISOString(), playlistCount: playlists.length, playlists: formatPlaylists(playlists) },
@@ -229,6 +271,7 @@ export async function exportUserData(
     fetchSongs(userId),
     fetchPlaylists(userId),
   ]);
+  await yieldEventLoop();
 
   return success(
     jsonOutput(
@@ -294,16 +337,20 @@ function formatGdprPlaylists(playlists: GdprPlaylistWithSongs[]) {
 type GdprPlaylistWithSongs = Awaited<ReturnType<typeof fetchGdprPlaylists>>[number];
 
 async function fetchGdprPlaylists(userId: string) {
-  return prisma.playlist.findMany({
-    where: { userId },
-    include: {
-      songs: {
-        include: { song: { select: { id: true, title: true, audioUrl: true } } },
-        orderBy: { position: "asc" },
+  return paginate((cursor) =>
+    prisma.playlist.findMany({
+      where: { userId },
+      include: {
+        songs: {
+          include: { song: { select: { id: true, title: true, audioUrl: true } } },
+          orderBy: { position: "asc" },
+        },
       },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+      take: EXPORT_PAGE_SIZE,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    }),
+  );
 }
 
 export async function exportGdprZip(
@@ -360,12 +407,17 @@ export async function exportGdprZip(
 
   zip.file("profile.json", JSON.stringify({ exportedAt, profile: user }, null, 2));
 
+  // Stringify each section between event-loop yields: no single synchronous
+  // JSON.stringify (songs.json carries every track's full lyrics) holds the
+  // loop long enough to trip a liveness probe.
+  await yieldEventLoop();
   const formattedSongs = formatGdprSongs(songs);
   zip.file(
     "songs.json",
     JSON.stringify({ exportedAt, count: formattedSongs.length, songs: formattedSongs }, null, 2),
   );
 
+  await yieldEventLoop();
   const formattedPlaylists = formatGdprPlaylists(playlists);
   zip.file(
     "playlists.json",
@@ -376,6 +428,7 @@ export async function exportGdprZip(
     ),
   );
 
+  await yieldEventLoop();
   const formattedGenerations = generationAttempts.map((g) => ({
     id: g.id,
     prompt: g.prompt,
@@ -394,6 +447,7 @@ export async function exportGdprZip(
     ),
   );
 
+  await yieldEventLoop();
   const formattedReactions = reactions.map((r) => ({
     id: r.id,
     songId: r.songId,
@@ -411,6 +465,7 @@ export async function exportGdprZip(
     ),
   );
 
+  await yieldEventLoop();
   const subscriptionData = subscription
     ? {
         tier: subscription.tier,

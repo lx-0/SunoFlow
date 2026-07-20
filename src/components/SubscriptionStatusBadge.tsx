@@ -16,7 +16,7 @@ export function SubscriptionStatusBadge({ compact = false }: SubscriptionStatusB
 
   if (!session?.user) return null;
 
-  const tier = ((session.user as unknown as Record<string, unknown>).subscriptionTier as SubscriptionTier) ?? "free";
+  const tier: SubscriptionTier = session.user.subscriptionTier ?? "free";
   const isFree = tier === "free";
   const creditsHref = isFree ? "/pricing" : "/settings/billing";
 

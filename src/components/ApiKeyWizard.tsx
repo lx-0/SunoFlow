@@ -8,9 +8,7 @@ import { apiPatch } from "@/lib/api-client";
 
 export function ApiKeyWizard() {
   const { data: session, update: updateSession } = useSession();
-  const user = session?.user as
-    | (Record<string, unknown> & { id: string; hasSunoApiKey?: boolean; onboardingCompleted?: boolean })
-    | undefined;
+  const user = session?.user;
 
   const [step, setStep] = useState(0); // 0 = intro, 1 = paste key, 2 = done
   const [apiKey, setApiKey] = useState("");

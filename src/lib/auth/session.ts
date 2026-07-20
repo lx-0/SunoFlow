@@ -1,4 +1,6 @@
 import NextAuth from "next-auth";
+import type { Session } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
@@ -7,6 +9,7 @@ import { verifyPassword } from "@/lib/auth/password";
 import { logger } from "@/lib/logger";
 import { ensureFreeSubscription } from "@/lib/billing";
 import { isAdminEmail } from "@/lib/auth/admin";
+import { normalizeTier } from "@/lib/feature-gates";
 
 export const googleEnabled = Boolean(
   process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET
@@ -91,7 +94,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, user, trigger, account }) {
       if (user) {
-        token.id = user.id;
+        token.id = user.id as string;
         // Update lastLoginAt for OAuth sign-ins (credentials flow does it in authorize)
         if (account?.provider !== "credentials") {
           await prisma.user.update({
@@ -122,7 +125,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.onboardingCompleted = dbUser?.onboardingCompleted ?? false;
         token.emailVerified = dbUser?.emailVerified?.toISOString() ?? null;
         token.hasSunoApiKey = Boolean(dbUser?.sunoApiKey);
-        token.subscriptionTier = sub?.tier ?? "free";
+        token.subscriptionTier = normalizeTier(sub?.tier);
         token.subscriptionStatus = sub?.status ?? "active";
       }
       if (trigger === "update") {
@@ -149,26 +152,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.isAdmin = tokenAdmin;
         token.emailVerified = dbUser?.emailVerified?.toISOString() ?? null;
         token.hasSunoApiKey = Boolean(dbUser?.sunoApiKey);
-        token.subscriptionTier = sub?.tier ?? "free";
+        token.subscriptionTier = normalizeTier(sub?.tier);
         token.subscriptionStatus = sub?.status ?? "active";
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: Session; token: JWT }) {
       if (token && session.user) {
-        session.user.id = token.id as string;
-        (session.user as unknown as Record<string, unknown>).onboardingCompleted =
-          token.onboardingCompleted as boolean;
-        (session.user as unknown as Record<string, unknown>).isAdmin =
-          token.isAdmin as boolean;
-        (session.user as unknown as Record<string, unknown>).emailVerified =
-          token.emailVerified ?? null;
-        (session.user as unknown as Record<string, unknown>).hasSunoApiKey =
-          token.hasSunoApiKey as boolean;
-        (session.user as unknown as Record<string, unknown>).subscriptionTier =
-          token.subscriptionTier ?? "free";
-        (session.user as unknown as Record<string, unknown>).subscriptionStatus =
-          token.subscriptionStatus ?? "active";
+        session.user.id = token.id;
+        session.user.onboardingCompleted = token.onboardingCompleted;
+        session.user.isAdmin = token.isAdmin;
+        session.user.emailVerified = token.emailVerified;
+        session.user.hasSunoApiKey = token.hasSunoApiKey;
+        session.user.subscriptionTier = token.subscriptionTier;
+        session.user.subscriptionStatus = token.subscriptionStatus;
       }
       return session;
     },

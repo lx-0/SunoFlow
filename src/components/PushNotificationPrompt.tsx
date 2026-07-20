@@ -27,8 +27,7 @@ export function PushNotificationPrompt() {
 
   useEffect(() => {
     if (status !== "authenticated") return;
-    const user = session?.user as unknown as Record<string, unknown> | undefined;
-    if (!user?.onboardingCompleted) return;
+    if (!session?.user?.onboardingCompleted) return;
     if (state !== "prompt") return;
     if (isDismissed()) return;
 

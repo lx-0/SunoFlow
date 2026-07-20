@@ -12,8 +12,7 @@ export function EmailVerificationBanner() {
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
 
-  const user = session?.user as Record<string, unknown> | undefined;
-  const emailVerified = user?.emailVerified;
+  const emailVerified = session?.user?.emailVerified;
 
   if (!session || emailVerified || dismissed) {
     return null;

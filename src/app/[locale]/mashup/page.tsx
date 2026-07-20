@@ -21,7 +21,7 @@ const MashupStudio = dynamic(
 
 export default function MashupPage() {
   const { data: session } = useSession();
-  const tier = ((session?.user as unknown as Record<string, unknown>)?.subscriptionTier as SubscriptionTier) ?? "free";
+  const tier: SubscriptionTier = session?.user?.subscriptionTier ?? "free";
 
   return (
     <AppShell>

@@ -57,6 +57,14 @@ const nextConfig = {
         fs: false,
         path: false,
       };
+      // The RSS SSRF guard (src/lib/rss/ssrf.ts) uses node:dns/promises +
+      // node:net; it reaches the edge bundle via the always-bundled jobs graph
+      // (job-definitions -> rss/auto-generate) but only ever runs in the Node.js
+      // runtime. Ignore the node: scheme in the edge compile so it builds; the
+      // functions are never called in edge. (Same class as node-cron/web-push.)
+      config.plugins.push(
+        new wp.IgnorePlugin({ resourceRegExp: /^node:(dns\/promises|net)$/ })
+      );
     }
     config.resolve.alias = {
       ...config.resolve.alias,

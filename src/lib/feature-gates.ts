@@ -39,6 +39,20 @@ export const FEATURE_GATES: Record<string, FeatureGate> = {
 
 const TIER_ORDER: SubscriptionTier[] = ["free", "starter", "pro", "studio"];
 
+const KNOWN_TIERS = new Set<string>(TIER_ORDER);
+
+/**
+ * Coerce an untrusted value (DB row, JWT claim) into a known SubscriptionTier,
+ * falling back to "free" for anything unrecognized. Single source of truth for
+ * tier validation — derived from TIER_ORDER so it can't drift.
+ */
+export function normalizeTier(value: unknown): SubscriptionTier {
+  if (typeof value === "string" && KNOWN_TIERS.has(value)) {
+    return value as SubscriptionTier;
+  }
+  return "free";
+}
+
 /** Returns true if `tier` meets or exceeds `required`. */
 export function hasAccess(tier: SubscriptionTier, required: SubscriptionTier): boolean {
   return TIER_ORDER.indexOf(tier) >= TIER_ORDER.indexOf(required);

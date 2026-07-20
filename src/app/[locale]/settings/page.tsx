@@ -19,7 +19,7 @@ type Tab = "profile" | "preferences" | "account";
 
 function PersonalApiKeysSectionGated() {
   const { data: session } = useSession();
-  const tier = ((session?.user as unknown as Record<string, unknown>)?.subscriptionTier as SubscriptionTier) ?? "free";
+  const tier: SubscriptionTier = session?.user?.subscriptionTier ?? "free";
   const allowed = canUseFeature("apiKeys", tier);
 
   if (!allowed) {

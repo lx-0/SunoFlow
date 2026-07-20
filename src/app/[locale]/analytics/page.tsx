@@ -94,7 +94,7 @@ export default function AnalyticsPage() {
   const [data, setData] = useState<UserAnalytics | null>(null);
   const [creditData, setCreditData] = useState<CreditUsageData | null>(null);
   const [loading, setLoading] = useState(true);
-  const currentTier = (session?.user as unknown as Record<string, unknown>)?.subscriptionTier as string ?? "free";
+  const currentTier: string = session?.user?.subscriptionTier ?? "free";
 
   const fetchData = useCallback(async () => {
     try {

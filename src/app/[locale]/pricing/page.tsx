@@ -128,8 +128,7 @@ function TierCard({
   stripeConfigured: boolean;
 }) {
   const { data: session } = useSession();
-  const currentTier =
-    (session?.user as unknown as Record<string, unknown>)?.subscriptionTier as string ?? "free";
+  const currentTier: string = session?.user?.subscriptionTier ?? "free";
   const isCurrent = currentTier === tier.id;
   const isLoading = loading === tier.id;
 

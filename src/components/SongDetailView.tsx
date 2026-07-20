@@ -78,7 +78,7 @@ export function SongDetailView({
 }: SongDetailViewProps) {
   const router = useRouter();
   const { data: session } = useSession();
-  const userTier = ((session?.user as unknown as Record<string, unknown>)?.subscriptionTier as SubscriptionTier) ?? "free";
+  const userTier: SubscriptionTier = session?.user?.subscriptionTier ?? "free";
   const { toast } = useToast();
   const { cachedIds, saving: offlineSaving, saveOffline, removeOffline } = useOfflineCache();
   const isCached = cachedIds.has(song.id);

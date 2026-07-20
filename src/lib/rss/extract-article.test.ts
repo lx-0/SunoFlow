@@ -1,4 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// extractArticleContent now DNS-resolves every URL (isSsrfUrlResolved) — mock
+// dns so the success-path tests stay hermetic (any host → a public IP → not
+// blocked). SSRF-blocked tests use literal private IPs / http://, caught
+// before DNS, so they are unaffected by this mock.
+vi.mock("node:dns/promises", () => ({
+  lookup: vi.fn(async () => [{ address: "93.184.216.34", family: 4 }]),
+}));
+
 import { isSsrfUrl, extractArticleContent } from "./extract-article";
 
 describe("isSsrfUrl", () => {

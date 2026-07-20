@@ -1,6 +1,9 @@
 import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
 import { decodeHtmlEntities } from "./parse";
+import { isSsrfUrl, isSsrfUrlResolved } from "./ssrf";
+
+export { isSsrfUrl };
 
 const FETCH_TIMEOUT_MS = 8000;
 // Article pages routinely exceed 512 KB (tagesschau ~380 KB, heise ~230 KB,
@@ -12,31 +15,6 @@ const MAX_REDIRECTS = 5;
 // Hard ceiling on the returned article text — far above any real news article,
 // so the WHOLE article flows downstream; only runaway pages are bounded.
 const MAX_ARTICLE_CHARS = 50_000;
-
-export function isSsrfUrl(raw: string): boolean {
-  let url: URL;
-  try {
-    url = new URL(raw);
-  } catch {
-    return true;
-  }
-  if (url.protocol !== "http:" && url.protocol !== "https:") return true;
-  const hostname = url.hostname.toLowerCase();
-  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "0.0.0.0") return true;
-  if (/^169\.254\./.test(hostname)) return true;
-  if (/^10\./.test(hostname) || /^172\.(1[6-9]|2[0-9]|3[01])\./.test(hostname) || /^192\.168\./.test(hostname)) return true;
-  const bare = hostname.replace(/^\[|\]$/g, "");
-  if (bare === "::1") return true;
-  if (/^(fc[0-9a-f]{2}:|fd[0-9a-f]{2}:)/i.test(bare)) return true;
-  const v4Mapped = bare.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
-  if (v4Mapped) {
-    const hi = parseInt(v4Mapped[1], 16);
-    const lo = parseInt(v4Mapped[2], 16);
-    const ip = `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
-    return isSsrfUrl(`http://${ip}/`);
-  }
-  return false;
-}
 
 function removeElements(html: string, tags: string[]): string {
   let result = html;
@@ -131,7 +109,10 @@ function extractMainContent(html: string): string {
 async function safeFetch(url: string): Promise<Response | null> {
   let currentUrl = url;
   for (let i = 0; i <= MAX_REDIRECTS; i++) {
-    if (isSsrfUrl(currentUrl)) return null;
+    // DNS-resolved guard on every hop: feed item links are attacker-influenced
+    // (a malicious feed can list internal-IP article links), so the sync
+    // hostname check is not enough — resolve and block private IPs per hop.
+    if (await isSsrfUrlResolved(currentUrl)) return null;
 
     const response = await fetch(currentUrl, {
       headers: {
@@ -158,7 +139,7 @@ async function safeFetch(url: string): Promise<Response | null> {
 export async function extractArticleContent(
   url: string
 ): Promise<string | null> {
-  if (isSsrfUrl(url)) return null;
+  if (await isSsrfUrlResolved(url)) return null;
 
   try {
     const response = await safeFetch(url);

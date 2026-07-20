@@ -85,7 +85,7 @@ export async function resolveUser(request: Request): Promise<AuthResult> {
     return {
       userId: session.user.id,
       isApiKey: false,
-      isAdmin: Boolean((session.user as Record<string, unknown>).isAdmin),
+      isAdmin: Boolean(session.user.isAdmin),
       error: null,
     };
   }

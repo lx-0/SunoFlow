@@ -1,4 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// fetchFeed now DNS-resolves the feed URL through the SSRF guard; keep it
+// hermetic by resolving every host to a public address.
+vi.mock("node:dns/promises", () => ({
+  lookup: vi.fn(async () => [{ address: "93.184.216.34", family: 4 }]),
+}));
+
 import { fetchFeed } from "./index";
 
 const ARTICLE_URL = "https://news.example.com/spionage-100.html";
