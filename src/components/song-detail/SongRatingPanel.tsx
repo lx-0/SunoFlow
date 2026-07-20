@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
-import { getRating, type SongRating } from "@/lib/ratings";
+import { type SongRating } from "@/lib/ratings";
 import { fetchEffect } from "@/lib/fetch-effect";
 import { useToast } from "../Toast";
 import { apiPost, apiPatch } from "@/lib/api-client";
@@ -31,17 +31,6 @@ export function SongRatingPanel({ songId, initialRating, initialRatingNote }: So
 
   const [thumbsRating, setThumbsRating] = useState<ThumbsRating>(null);
   const [savingThumbs, setSavingThumbs] = useState(false);
-
-  useEffect(() => {
-    if (initialRating) return;
-    let cancelled = false;
-    getRating(songId).then((existing) => {
-      if (cancelled || !existing) return;
-      setRatingState(existing);
-      setNoteDraft(existing.note);
-    });
-    return () => { cancelled = true; };
-  }, [songId, initialRating]);
 
   useEffect(
     () =>

@@ -113,7 +113,6 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
     totalFavorites,
     totalPlaylists,
     ratingAgg,
-    userRatingAgg,
     allTagSongs,
     topSongs,
     dailyGenerations,
@@ -123,12 +122,6 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
     favoriteCount(userId),
     playlistCount(userId),
     songRatingAgg(userId),
-
-    prisma.rating.aggregate({
-      where: { userId },
-      _avg: { value: true },
-      _count: { value: true },
-    }),
 
     tagSongs(userId),
 
@@ -163,8 +156,11 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
     totalPlaylists,
     averageRating: roundToOneDecimal(ratingAgg._avg.rating),
     ratedSongsCount: ratingAgg._count.rating,
-    userRatingAverage: roundToOneDecimal(userRatingAgg._avg.value),
-    userRatedSongsCount: userRatingAgg._count.value,
+    // C1: the legacy Rating table (Store A) is write-dead — both rating
+    // metrics now derive from the canonical Song.rating (Store B) so the
+    // dashboard can't show two divergent averages for the same thing.
+    userRatingAverage: roundToOneDecimal(ratingAgg._avg.rating),
+    userRatedSongsCount: ratingAgg._count.rating,
     genreBreakdown: countGenres(allTagSongs, 10),
     topSongs: topSongs.map((s) => ({
       ...s,
