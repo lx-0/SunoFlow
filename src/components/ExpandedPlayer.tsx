@@ -88,8 +88,11 @@ export function ExpandedPlayer({
 
   return (
     <div className="w-full h-full md:h-auto md:max-h-[90vh] flex flex-col overflow-hidden md:overflow-y-auto">
-      {/* Upper scrollable region — compresses when a panel is open */}
-      <div className="flex-1 min-h-0 overflow-y-auto md:flex-initial md:overflow-visible flex flex-col">
+      {/* Upper scrollable region — compresses when a panel is open (mobile).
+          On desktop it keeps its natural height (md:flex-none) so the whole
+          modal scrolls instead of the region shrinking and spilling its
+          overflow-visible content over the tab row below. */}
+      <div className="flex-1 min-h-0 overflow-y-auto md:flex-none md:overflow-visible flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-center px-4 py-2 flex-shrink-0">
         <span className="text-xs text-muted uppercase tracking-wider">Now Playing</span>
