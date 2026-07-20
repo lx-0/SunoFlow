@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { publicRoute } from "@/lib/route-handler";
+import { requireAdmin } from "@/lib/auth";
 import { getMetricsSnapshot } from "@/lib/metrics";
 import { getSchedulerStatus } from "@/lib/scheduler";
 import { getLatestJobRuns, type LatestJobRun } from "@/lib/jobs/job-run";
@@ -12,6 +13,24 @@ export const GET = publicRoute(async () => {
   const uptime = Math.floor((Date.now() - startedAt) / 1000);
   try {
     await prisma.$queryRaw`SELECT 1`;
+
+    // Public health payload — intentionally minimal. Uptime monitors AND the
+    // deploy pipeline poll GET /api/health for `.status`, so it must stay a
+    // 200 with a top-level `status` when healthy. Operational internals
+    // (queue depth, per-cache stats, and raw job error strings that can carry
+    // DB/provider/stack text) are leaked only to admins.
+    const publicPayload = {
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      db: true,
+      uptime,
+    };
+
+    const isAdmin = (await requireAdmin()).error === null;
+    if (!isAdmin) {
+      return NextResponse.json(publicPayload);
+    }
+
     const metrics = getMetricsSnapshot();
     const jobs = getSchedulerStatus();
 
@@ -27,10 +46,7 @@ export const GET = publicRoute(async () => {
     const now = Date.now();
 
     return NextResponse.json({
-      status: "ok",
-      timestamp: new Date().toISOString(),
-      db: true,
-      uptime,
+      ...publicPayload,
       generation: {
         queueDepth: metrics.generation.queueDepth,
         total: metrics.generation.total,

@@ -5,9 +5,23 @@ import { logger } from "@/lib/logger";
 import { CDN_REFRESH_THRESHOLD_MS, isPermanentCdnUrl } from "@/lib/cdn-constants";
 import { refreshSongCdnUrls } from "@/lib/songs/asset-refresh";
 
-const BATCH_SIZE = process.env.CACHE_WARMUP_BATCH_SIZE
-  ? parseInt(process.env.CACHE_WARMUP_BATCH_SIZE, 10)
-  : undefined;
+// Default cap aligned to the audio cache's capacity (2 GB ≈ 400 tracks): there
+// is no point warming more songs than the cache can hold. Without a cap an
+// unset env var made `take` undefined, so every boot loaded the ENTIRE ready
+// catalog and ran a >=1s-per-uncached-song loop for catalog-size seconds on
+// each deploy. The env var still overrides when set to a valid positive int.
+export const DEFAULT_CACHE_WARMUP_BATCH_SIZE = 400;
+
+function resolveBatchSize(): number {
+  const raw = process.env.CACHE_WARMUP_BATCH_SIZE;
+  if (raw !== undefined && raw !== "") {
+    const parsed = parseInt(raw, 10);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return DEFAULT_CACHE_WARMUP_BATCH_SIZE;
+}
+
+const BATCH_SIZE = resolveBatchSize();
 const DELAY_MS = 1000;
 
 function isFresh(expiresAt: Date | null, url?: string | null): boolean {
@@ -27,7 +41,7 @@ export async function warmUpAudioCache(): Promise<void> {
       audioUrl: { not: null },
     },
     orderBy: { playCount: "desc" },
-    ...(BATCH_SIZE ? { take: BATCH_SIZE } : {}),
+    take: BATCH_SIZE,
     select: {
       id: true,
       sunoJobId: true,

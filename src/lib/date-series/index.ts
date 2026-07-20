@@ -43,12 +43,12 @@ export function getDateRangeMeta(range: string): { sinceDate: Date; days: number
 }
 
 export function fillDailySeries(
-  raw: Array<{ date: string; count: bigint }>,
+  raw: Array<{ date: string | Date; count: bigint }>,
   days: number,
 ): Array<{ date: string; count: number }> {
   const now = new Date();
   const map = new Map(
-    raw.map((r) => [r.date.toString().slice(0, 10), Number(r.count)]),
+    raw.map((r) => [new Date(r.date).toISOString().slice(0, 10), Number(r.count)]),
   );
   const result: Array<{ date: string; count: number }> = [];
   for (let i = days - 1; i >= 0; i--) {

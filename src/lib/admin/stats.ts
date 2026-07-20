@@ -65,7 +65,7 @@ export async function getAdminStats(): Promise<AdminStats> {
     return sum + (TIER_MONTHLY_PRICE_CENTS[row.tier] ?? 0) * row._count.id;
   }, 0);
 
-  const dailyRaw = await prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
+  const dailyRaw = await prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
     SELECT DATE("createdAt") as date, COUNT(*)::bigint as count
     FROM "Song"
     WHERE "createdAt" >= ${thirtyDaysAgo}

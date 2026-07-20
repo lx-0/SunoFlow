@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { GET } from "./route";
 import { registerJob } from "@/lib/scheduler";
 import { getLatestJobRuns } from "@/lib/jobs/job-run";
+import { requireAdmin } from "@/lib/auth";
 
 vi.mock("@/lib/env", () => ({
   get DATABASE_URL() { return "postgres://test:test@localhost:5432/test"; },
@@ -58,6 +59,14 @@ describe("GET /api/health", () => {
   beforeEach(() => {
     vi.mocked(prisma.$queryRaw).mockResolvedValue([{ "?column?": 1 }]);
     vi.mocked(getLatestJobRuns).mockResolvedValue(new Map());
+    // The operational payload (jobs/cache/generation) is admin-only. Default
+    // to an authenticated admin so the payload-shape tests below exercise it;
+    // the "anonymous" test overrides this to assert the minimal response.
+    vi.mocked(requireAdmin).mockResolvedValue({
+      error: null,
+      session: {} as never,
+      user: { id: "admin-1", isAdmin: true },
+    });
   });
 
   it("returns status ok when DB is healthy", async () => {
@@ -68,6 +77,59 @@ describe("GET /api/health", () => {
     expect(data.status).toBe("ok");
     expect(data.db).toBe(true);
     expect(typeof data.uptime).toBe("number");
+  });
+
+  it("omits operational internals for anonymous requests but keeps status+db", async () => {
+    const forbidden = new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+    vi.mocked(requireAdmin).mockResolvedValue({
+      error: forbidden as never,
+      session: null,
+      user: null,
+    });
+    registerJob("secret-job", "0 * * * *", noopA, { expectedMaxAgeMs: HOUR_MS });
+    vi.mocked(getLatestJobRuns).mockResolvedValue(
+      new Map([
+        [
+          "secret-job",
+          {
+            name: "secret-job",
+            status: "error",
+            startedAt: new Date(Date.now() - 60_000),
+            finishedAt: new Date(Date.now() - 59_000),
+            durationMs: 1000,
+            error: "PrismaClientKnownRequestError: connect ECONNREFUSED 10.0.0.5:5432",
+          },
+        ],
+      ])
+    );
+
+    const res = await GET(request, segmentData);
+    const data = await res.json();
+
+    // Public probe stays a healthy 200 with the fields monitors depend on.
+    expect(res.status).toBe(200);
+    expect(data.status).toBe("ok");
+    expect(data.db).toBe(true);
+    expect(typeof data.uptime).toBe("number");
+    // No operational internals leak to unauthenticated callers.
+    expect(data.jobs).toBeUndefined();
+    expect(data.cache).toBeUndefined();
+    expect(data.generation).toBeUndefined();
+    // And no raw error strings anywhere in the payload.
+    expect(JSON.stringify(data)).not.toContain("ECONNREFUSED");
+  });
+
+  it("includes the full operational payload for admins", async () => {
+    // requireAdmin already defaults to an authenticated admin in beforeEach.
+    const res = await GET(request, segmentData);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.status).toBe("ok");
+    expect(data.db).toBe(true);
+    expect(Array.isArray(data.jobs)).toBe(true);
+    expect(data.cache).toBeDefined();
+    expect(data.generation).toBeDefined();
   });
 
   it("returns status error when DB is unavailable", async () => {

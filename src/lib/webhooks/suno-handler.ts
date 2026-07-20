@@ -23,7 +23,7 @@ export interface SunoWebhookProcessInput {
 }
 
 export interface SunoWebhookProcessResult {
-  kind: "processed" | "duplicate" | "not_found";
+  kind: "processed" | "duplicate" | "not_found" | "processing";
 }
 
 const defaultDeps: SunoWebhookHandlerDeps = {
@@ -57,6 +57,16 @@ export async function processSunoWebhook(
       mapped.status = taskStatusToSongStatus(status);
       return mapped;
     });
+    // Guard (mirrors pollOnce in generation/completion.ts): never canonicalize a
+    // SUCCESS with no resolvable audio into a terminal ready-but-unplayable row
+    // (the 2026-07-08 silent-failure class). mapRawSong already derives
+    // cdn1.suno.ai/<id>.mp3 from the clip id, so an empty audioUrl means the
+    // clip has no id at all — genuinely nothing to play. ACK as still-processing
+    // and leave the row pending so the poll/stale-recovery path resolves it loudly.
+    if (!songs[0]?.audioUrl) {
+      logger.warn({ songId: song.id, taskId }, "suno-webhook: SUCCESS with no resolvable audio — keeping pending");
+      return { kind: "processing" };
+    }
     await deps.handleSongSuccess(song, songs);
     return { kind: "processed" };
   }

@@ -90,7 +90,7 @@ export async function getUserOverview(userId: string): Promise<UserOverview> {
       take: 5,
     }),
 
-    prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
+    prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
       SELECT DATE("startedAt") as date, COUNT(*)::bigint as count
       FROM "PlayEvent"
       WHERE "songId" = ANY(${songIds}::text[])

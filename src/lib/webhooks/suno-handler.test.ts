@@ -82,6 +82,32 @@ describe("processSunoWebhook", () => {
     expect(songs[0].status).toBe("complete");
   });
 
+  it("does not mark ready when SUCCESS clip has no resolvable audio", async () => {
+    const handleSongSuccess = vi.fn().mockResolvedValue(undefined);
+    const result = await processSunoWebhook(
+      {
+        taskId: "task-5",
+        status: "SUCCESS",
+        payload: {
+          data: {
+            taskId: "task-5",
+            status: "SUCCESS",
+            // Clip with empty id and no url fields → resolveClipAudioUrl yields ""
+            response: { sunoData: [{ id: "", title: "Song" }] },
+          },
+        },
+      },
+      {
+        findSongByTaskId: vi.fn().mockResolvedValue({ id: "song-3", generationStatus: "pending" }),
+        handleSongSuccess,
+        handleSongFailure: vi.fn(),
+      } as never,
+    );
+
+    expect(result).toEqual({ kind: "processing" });
+    expect(handleSongSuccess).not.toHaveBeenCalled();
+  });
+
   it("handles terminal failure callbacks", async () => {
     const handleSongFailure = vi.fn().mockResolvedValue(undefined);
     const result = await processSunoWebhook(

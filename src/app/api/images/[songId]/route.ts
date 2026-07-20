@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { resolveUserApiKey } from "@/lib/sunoapi";
 import { proxyImage } from "@/lib/images/proxy";
-import { publicRoute } from "@/lib/route-handler";
+import { optionalAuthRoute } from "@/lib/route-handler";
 import { notFound } from "@/lib/api-error";
 
-export const GET = publicRoute<{ songId: string }>(async (_request, { params }) => {
+export const GET = optionalAuthRoute<{ songId: string }>(async (_request, { auth, params }) => {
   const { songId } = params;
 
   const song = await prisma.song.findUnique({
@@ -15,11 +15,22 @@ export const GET = publicRoute<{ songId: string }>(async (_request, { params }) 
       sunoJobId: true,
       sunoAudioId: true,
       userId: true,
+      isPublic: true,
+      isHidden: true,
+      archivedAt: true,
       parentSong: { select: { sunoJobId: true } },
     },
   });
 
   if (!song) {
+    return notFound();
+  }
+
+  // Access gate: publicly-discoverable covers are servable to anyone; private,
+  // hidden, or archived covers are only servable to their owner.
+  const isPubliclyVisible = song.isPublic && !song.isHidden && song.archivedAt === null;
+  const isOwner = auth.userId !== null && auth.userId === song.userId;
+  if (!isPubliclyVisible && !isOwner) {
     return notFound();
   }
 

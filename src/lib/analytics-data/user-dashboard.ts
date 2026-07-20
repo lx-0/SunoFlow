@@ -146,7 +146,7 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
       },
     }),
 
-    prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
+    prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
       SELECT DATE("createdAt") as date, COUNT(*)::bigint as count
       FROM "Song"
       WHERE "userId" = ${userId}

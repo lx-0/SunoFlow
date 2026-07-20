@@ -1,5 +1,17 @@
 import { prisma } from "@/lib/prisma";
 import { type Result, success, Err } from "@/lib/result";
+import { acquireAnonRateLimitSlot } from "@/lib/rate-limit";
+
+// Per-IP burst cap across all songs — blunts scripted floods that spam
+// SongView rows / inflate viewCount (the route is public + unauthenticated).
+const VIEW_IP_LIMIT = 60;
+const VIEW_IP_WINDOW_MS = 60 * 1000; // 60 views/minute per IP
+
+// Per-IP + per-song dedup — only the first view of a given song from a given
+// IP within the window is actually counted; replays are acknowledged but not
+// double-counted. Preserves a single legitimate view per viewer.
+const VIEW_DEDUP_LIMIT = 1;
+const VIEW_DEDUP_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
 
 export interface PlayResult {
   ok: true;
@@ -49,9 +61,21 @@ export async function recordPlay(
 
 export async function recordView(
   songId: string,
+  ip = "unknown",
 ): Promise<Result<{ ok: true }>> {
   if (!songId || typeof songId !== "string") {
     return Err.validation("songId is required");
+  }
+
+  // 1) Per-IP burst cap — reject scripted floods before any DB lookup/writes.
+  const ipSlot = await acquireAnonRateLimitSlot(
+    ip,
+    "view",
+    VIEW_IP_LIMIT,
+    VIEW_IP_WINDOW_MS,
+  );
+  if (!ipSlot.acquired) {
+    return Err.rateLimited("Too many view events. Please try again later.");
   }
 
   const song = await prisma.song.findFirst({
@@ -60,6 +84,18 @@ export async function recordView(
   });
 
   if (!song) return Err.notFound("Song not found");
+
+  // 2) Per-IP + per-song dedup — count only the first view within the window.
+  // A replay from the same viewer is acknowledged (ok) but not counted.
+  const dedupSlot = await acquireAnonRateLimitSlot(
+    `${ip}:${songId}`,
+    "view_dedup",
+    VIEW_DEDUP_LIMIT,
+    VIEW_DEDUP_WINDOW_MS,
+  );
+  if (!dedupSlot.acquired) {
+    return success({ ok: true });
+  }
 
   await prisma.$transaction([
     prisma.songView.create({ data: { songId } }),

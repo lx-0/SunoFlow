@@ -70,7 +70,7 @@ export function buildPeakHoursHeatmap(rawHourCounts: Array<{ hour: number; count
 }
 
 export function buildCreditChart(
-  creditStats: Array<{ date: string; credits: bigint; count: bigint }>,
+  creditStats: Array<{ date: string | Date; credits: bigint; count: bigint }>,
   now: Date
 ): DailyCredit[] {
   const creditMap: Record<string, { credits: number; count: number }> = {};
@@ -161,7 +161,7 @@ export async function getUserStats(userId: string): Promise<UserStats> {
       ORDER BY hour ASC
     `,
     getUserStreak(userId),
-    prisma.$queryRaw<Array<{ date: string; credits: bigint; count: bigint }>>`
+    prisma.$queryRaw<Array<{ date: Date; credits: bigint; count: bigint }>>`
       SELECT DATE("createdAt") AS date, SUM("creditCost")::bigint AS credits, COUNT(*)::bigint AS count
       FROM "CreditUsage"
       WHERE "userId" = ${userId}

@@ -50,7 +50,7 @@ export const GET = adminDataRoute(async () => {
     }),
   ]);
 
-  const dailySignups = await prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
+  const dailySignups = await prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
     SELECT DATE("createdAt") as date, COUNT(*)::bigint as count
     FROM "User"
     WHERE "createdAt" >= ${thirtyDaysAgo}
@@ -58,7 +58,7 @@ export const GET = adminDataRoute(async () => {
     ORDER BY date ASC
   `;
 
-  const dailyGenerations = await prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
+  const dailyGenerations = await prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
     SELECT DATE("createdAt") as date, COUNT(*)::bigint as count
     FROM "Song"
     WHERE "createdAt" >= ${thirtyDaysAgo}

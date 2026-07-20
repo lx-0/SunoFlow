@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { computeCentroid, cosineSimilarity } from "@/lib/embeddings";
+import { computeCentroid, cosineSimilarity, parseEmbeddingVector } from "@/lib/embeddings";
 
 // "archive" is a smart-playlist TYPE (so the reserved tile exists) but is NOT
 // a COMPUTED type: it is virtual, backed by `Song.archivedAt`. It must never
@@ -126,7 +126,10 @@ async function computeSimilarTo(
 
   if (!sourceEmb) return [];
 
-  const queryVector = computeCentroid([sourceEmb.embedding as unknown as number[]]);
+  const sourceVector = parseEmbeddingVector(sourceEmb.embedding);
+  if (!sourceVector) return [];
+
+  const queryVector = computeCentroid([sourceVector]);
   if (!queryVector) return [];
 
   const candidates = await prisma.songEmbedding.findMany({
@@ -138,9 +141,11 @@ async function computeSimilarTo(
     take: 500,
   });
 
-  return rankBySimilarity(
-    queryVector,
-    candidates.map((c) => ({ songId: c.songId, embedding: c.embedding as unknown as number[] })),
-    SMART_PLAYLIST_SIZE,
-  );
+  const validCandidates: EmbeddingCandidate[] = [];
+  for (const c of candidates) {
+    const vec = parseEmbeddingVector(c.embedding);
+    if (vec) validCandidates.push({ songId: c.songId, embedding: vec });
+  }
+
+  return rankBySimilarity(queryVector, validCandidates, SMART_PLAYLIST_SIZE);
 }

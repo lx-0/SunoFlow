@@ -25,7 +25,7 @@ export const GET = authRoute<{ id: string }>(
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
-    const viewsRaw = await prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
+    const viewsRaw = await prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
       SELECT DATE("viewedAt") as date, COUNT(*)::bigint as count
       FROM "SongView"
       WHERE "songId" = ${params.id}
@@ -36,7 +36,7 @@ export const GET = authRoute<{ id: string }>(
 
     const now = new Date();
     const viewMap = new Map(
-      viewsRaw.map((r) => [r.date.toString().slice(0, 10), Number(r.count)]),
+      viewsRaw.map((r) => [new Date(r.date).toISOString().slice(0, 10), Number(r.count)]),
     );
     const views7d: Array<{ date: string; count: number }> = [];
     for (let i = 6; i >= 0; i--) {

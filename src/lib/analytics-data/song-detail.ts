@@ -55,7 +55,7 @@ export async function getSongAnalytics(
       _avg: { durationSec: true },
     }),
 
-    prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
+    prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
       SELECT DATE("startedAt") as date, COUNT(*)::bigint as count
       FROM "PlayEvent"
       WHERE "songId" = ${songId}
