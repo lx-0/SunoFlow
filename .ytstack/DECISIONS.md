@@ -465,3 +465,17 @@ C) Leave it; document the back behavior.
 **Decision:** the Wave A migration (dark-first, Electric Magenta, Lucide, semantic tokens) targeted the WEB app only. The mobile app already carried this brand from the M004 work (`theme.ts` Electric Magenta + dark tokens, 57 Lucide files / 0 Heroicons) — Wave A brought web UP to mobile's standard, not the reverse.
 
 **A8 (public/embed/landing) deliberately NOT migrated:** `PublicSongView`, `LandingPage`, `PublicProfileView`, `PublicPlaylistView`, the embed players, `OnboardingTourUI`. Their indigo-violet gradients violate the One-Spark rule and need a flat-surface redesign, not a mechanical Heroicon/token swap — an open operator/design call. Everything else on the authed surface is migrated (~250 files across batches 2/3/9).
+
+## 2026-07-20: Web navigation consolidated (17 → 10) behind tabbed hubs; deeper content merges deferred
+
+**Context:** A critical synthetic-user panel (8 divergent personas, unanimous — *synthetic-panel signal*, not real-user data) judged the flat 17-item sidebar an undifferentiated "directory": no hierarchy, no start-here, Generate buried as the fifth gray row, and several synonym clusters that made confident single-clicks impossible. Findability failed outright on two of four core tasks — "find others' music" (Feed/Radio/Explore/Discover) and "how are my songs doing" (Analytics/My Stats + a hidden `/insights`). A per-page characterization of the 8 cluster pages then established which are true duplicates vs. load-bearing.
+
+**Chose (two phases, both live):**
+- **Phase 1** (`09d74278`) — non-destructive: group items into labeled sections (Create / My Music / Browse), promote Generate to the filled primary CTA. No routes touched.
+- **Phase 2** (`f780550f`) — consolidate the clusters: `/explore` (a literal `/discover` duplicate: same `DiscoverView` + same `getInitialBrowseSongs` query) 301-redirects to `/discover`; Radio (reachable from song cards) and Feed (empty in the closed beta) leave the nav; `/analytics` + `/stats` + the un-linked `/insights` collapse behind one "Insights" destination; `/history` + `/generations` group under Library. A shared `SectionTabs` component turns each cluster into one destination with tabs (Overview/Production/Listening; Songs/Recently Played/Generation History). Favorites stays a Library filter chip (the `nav-favorites` onboarding anchor moved onto that chip).
+
+**Non-destructive:** every feature stays reachable (tab / chip / redirect / song-card entry); no route deleted, no view merged. Net: sidebar 17 → 10 items, all above the fold, Generate the hero.
+
+**Deferred (tracked in STATE):** the three Insights *views* still have overlapping content (grouped by tabs, not yet deduped); Feed has no home (a "Following" tab under Profile once the social graph has adoption); Radio has no browse-hub tab; `/explore/page.tsx` is now dead code behind the redirect. Content/UX polish, not blockers.
+
+**Reference:** commits `09d74278` (Phase 1), `f780550f` (Phase 2), player-overlap fix `6eb8086c`; `src/components/SectionTabs.tsx`, `src/components/AppShell.tsx`. Synthetic-panel run + per-page characterization workflow this session. CHANGELOG `[Unreleased]`.
