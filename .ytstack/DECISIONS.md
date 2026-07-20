@@ -451,3 +451,17 @@ C) Leave it; document the back behavior.
 **Reason:** deletion test passed everywhere (complexity reappears across N callers), locality (one place per policy), and the test surface: the queue/poll/heal logic — previously device-only-verifiable — now has ~120 table-driven tests at root vitest (suite 1788 green). Adversarial verification (6 lenses) caught 1 major + 7 minors before commit; all fixed with regression tests.
 
 **Reference:** commit `b2c93ff1`, CHANGELOG `[Unreleased]`. Deployed to Railway (SUCCESS, health 200).
+
+## 2026-07-20: `Song.rating` is the canonical rating store; the `Rating` table is deprecated
+
+**Decision:** `Song.rating` / `Song.ratingNote` (Store B) is the single canonical rating store. The legacy `Rating` table (Store A, `/api/ratings`, `src/lib/ratings.ts`) is write-dead and deprecated. All reads + writes (web + mobile) go through `Song.rating` via `/api/songs/[id]/rating`.
+
+**Why:** the C1 audit found both platforms already WRITE `Song.rating`; Store A had zero live writers. The only remnants were a vestigial Store-A fallback read (could surface a stale legacy rating) and a dashboard that showed two divergent averages (one per store). Consolidating both onto `Song.rating` (`3fe36a1f`) removed the divergence non-destructively.
+
+**Non-destructive:** no rows migrated/dropped. The `Rating` table + `/api/ratings` route stay in place (write-dead, harmless); retiring that endpoint is a separate, deferred call. The `SongRating` TYPE (`src/lib/ratings.ts`) is still used and stays.
+
+## 2026-07-20: Wave A brand migration is web-only by design; A8 public surfaces deferred
+
+**Decision:** the Wave A migration (dark-first, Electric Magenta, Lucide, semantic tokens) targeted the WEB app only. The mobile app already carried this brand from the M004 work (`theme.ts` Electric Magenta + dark tokens, 57 Lucide files / 0 Heroicons) — Wave A brought web UP to mobile's standard, not the reverse.
+
+**A8 (public/embed/landing) deliberately NOT migrated:** `PublicSongView`, `LandingPage`, `PublicProfileView`, `PublicPlaylistView`, the embed players, `OnboardingTourUI`. Their indigo-violet gradients violate the One-Spark rule and need a flat-surface redesign, not a mechanical Heroicon/token swap — an open operator/design call. Everything else on the authed surface is migrated (~250 files across batches 2/3/9).
