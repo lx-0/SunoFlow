@@ -58,24 +58,59 @@ import { useKbFeedback } from "@/hooks/useKbFeedback";
 
 // prefetch: true forces eager prefetch even before the link enters the viewport.
 // Critical user-flow routes get this treatment so they load instantly on first click.
-const NAV_ITEM_DEFS = [
-  { key: "home" as const, href: "/", icon: House, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "library" as const, href: "/library", icon: BookOpen, dataTour: undefined as string | undefined, prefetch: true },
-  { key: "inspire" as const, href: "/inspire", icon: Lightbulb, dataTour: "nav-inspire" as string | undefined, prefetch: false },
-  { key: "generate" as const, href: "/generate", icon: CirclePlus, dataTour: "nav-generate" as string | undefined, prefetch: true },
-  { key: "templates" as const, href: "/templates", icon: Bookmark, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "personas" as const, href: "/personas", icon: UsersRound, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "mashup" as const, href: "/mashup", icon: Sparkles, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "feed" as const, href: "/feed", icon: Rss, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "radio" as const, href: "/radio", icon: Music, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "explore" as const, href: "/explore", icon: LayoutGrid, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "discover" as const, href: "/discover", icon: Globe, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "playlists" as const, href: "/playlists", icon: ListMusic, dataTour: "explore" as string | undefined, prefetch: false },
-  { key: "favorites" as const, href: "/favorites", icon: Heart, dataTour: "nav-favorites" as string | undefined, prefetch: false },
-  { key: "history" as const, href: "/history", icon: Clock, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "generations" as const, href: "/generations", icon: Layers, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "analytics" as const, href: "/analytics", icon: ChartColumn, dataTour: undefined as string | undefined, prefetch: false },
-  { key: "stats" as const, href: "/stats", icon: Presentation, dataTour: undefined as string | undefined, prefetch: false },
+// hero: rendered as the filled primary CTA (Generate) instead of a ghost row.
+type NavItemDef = {
+  key: string;
+  href: string;
+  icon: LucideIcon;
+  dataTour: string | undefined;
+  prefetch: boolean;
+  hero?: boolean;
+};
+// Grouped IA: 17 flat items were an undifferentiated wall with no hierarchy and
+// several synonym clusters. Sections give scannable structure; the label key
+// resolves to nav.section.<key> (null = ungrouped, rendered at the top).
+const NAV_SECTIONS: { key: "create" | "myMusic" | "browse" | "insights" | null; items: NavItemDef[] }[] = [
+  {
+    key: null,
+    items: [{ key: "home", href: "/", icon: House, dataTour: undefined, prefetch: false }],
+  },
+  {
+    key: "create",
+    items: [
+      { key: "generate", href: "/generate", icon: CirclePlus, dataTour: "nav-generate", prefetch: true, hero: true },
+      { key: "inspire", href: "/inspire", icon: Lightbulb, dataTour: "nav-inspire", prefetch: false },
+      { key: "templates", href: "/templates", icon: Bookmark, dataTour: undefined, prefetch: false },
+      { key: "personas", href: "/personas", icon: UsersRound, dataTour: undefined, prefetch: false },
+      { key: "mashup", href: "/mashup", icon: Sparkles, dataTour: undefined, prefetch: false },
+    ],
+  },
+  {
+    key: "myMusic",
+    items: [
+      { key: "library", href: "/library", icon: BookOpen, dataTour: undefined, prefetch: true },
+      { key: "playlists", href: "/playlists", icon: ListMusic, dataTour: "explore", prefetch: false },
+      { key: "favorites", href: "/favorites", icon: Heart, dataTour: "nav-favorites", prefetch: false },
+      { key: "history", href: "/history", icon: Clock, dataTour: undefined, prefetch: false },
+      { key: "generations", href: "/generations", icon: Layers, dataTour: undefined, prefetch: false },
+    ],
+  },
+  {
+    key: "browse",
+    items: [
+      { key: "feed", href: "/feed", icon: Rss, dataTour: undefined, prefetch: false },
+      { key: "radio", href: "/radio", icon: Music, dataTour: undefined, prefetch: false },
+      { key: "explore", href: "/explore", icon: LayoutGrid, dataTour: undefined, prefetch: false },
+      { key: "discover", href: "/discover", icon: Globe, dataTour: undefined, prefetch: false },
+    ],
+  },
+  {
+    key: "insights",
+    items: [
+      { key: "analytics", href: "/analytics", icon: ChartColumn, dataTour: undefined, prefetch: false },
+      { key: "stats", href: "/stats", icon: Presentation, dataTour: undefined, prefetch: false },
+    ],
+  },
 ];
 
 /** Bottom-nav hrefs: the 3 PRODUCT.md modes — Browse (library), Generate, Edit (mashup). */
@@ -97,10 +132,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
 
-  const navItems = NAV_ITEM_DEFS.map((item) => ({
-    ...item,
-    label: t(item.key),
+  const navSections = NAV_SECTIONS.map((section) => ({
+    key: section.key,
+    sectionLabel: section.key ? t(`section.${section.key}`) : null,
+    items: section.items.map((item) => ({ ...item, label: t(item.key) })),
   }));
+  // Flat list retained for the mobile bottom bar filter (MOBILE_NAV_HREFS).
+  const navItems = navSections.flatMap((section) => section.items);
 
   const themeLabels: Record<ThemeOption, string> = {
     light: tCommon("theme.light"),
@@ -155,30 +193,44 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
-        {/* Nav links */}
+        {/* Nav links — grouped into labeled sections */}
         <nav aria-label="Primary" className="flex-1 min-h-0 overflow-y-auto py-3 px-2 space-y-1">
-          {navItems.map(({ label, href, icon: ItemIcon, dataTour, prefetch }) => {
-            const active = pathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                prefetch={prefetch}
-                aria-current={active ? "page" : undefined}
-                aria-label={label}
-                title={sidebarCollapsed ? label : undefined}
-                {...(dataTour ? { "data-tour": dataTour } : {})}
-                className={`flex items-center rounded-lg text-sm font-medium transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"} ${
-                  active
-                    ? "bg-surface-raised text-accent"
-                    : "text-secondary hover:bg-surface-hover hover:text-primary"
-                }`}
-              >
-                <Icon icon={ItemIcon} className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
-                {!sidebarCollapsed && label}
-              </Link>
-            );
-          })}
+          {navSections.map((section, sectionIdx) => (
+            <div key={section.key ?? "top"} className="space-y-1" role="group" aria-label={section.sectionLabel ?? undefined}>
+              {!sidebarCollapsed && section.sectionLabel && (
+                <div className="px-3 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted select-none">
+                  {section.sectionLabel}
+                </div>
+              )}
+              {sidebarCollapsed && section.key && sectionIdx > 0 && (
+                <div className="mx-2 my-2 border-t border-border" aria-hidden="true" />
+              )}
+              {section.items.map(({ label, href, icon: ItemIcon, dataTour, prefetch, hero }) => {
+                const active = pathname === href;
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    prefetch={prefetch}
+                    aria-current={active ? "page" : undefined}
+                    aria-label={label}
+                    title={sidebarCollapsed ? label : undefined}
+                    {...(dataTour ? { "data-tour": dataTour } : {})}
+                    className={`flex items-center rounded-lg text-sm transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"} ${
+                      hero
+                        ? "font-semibold bg-violet-600 text-white hover:bg-violet-500 shadow-sm"
+                        : active
+                          ? "font-medium bg-surface-raised text-accent"
+                          : "font-medium text-secondary hover:bg-surface-hover hover:text-primary"
+                    }`}
+                  >
+                    <Icon icon={ItemIcon} className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                    {!sidebarCollapsed && label}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Bottom section — profile/settings/signout */}
@@ -306,27 +358,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Scrollable area: nav links + bottom section */}
         <div className="flex-1 overflow-y-auto">
-        {/* Nav links */}
+        {/* Nav links — grouped into labeled sections */}
         <nav aria-label="Primary" className="py-3 px-2 space-y-1">
-          {navItems.map(({ label, href, icon: ItemIcon }) => {
-            const active = pathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                aria-current={active ? "page" : undefined}
-                onClick={closeSidebar}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
-                  active
-                    ? "bg-surface-raised text-accent"
-                    : "text-secondary hover:bg-surface-hover hover:text-primary"
-                }`}
-              >
-                <Icon icon={ItemIcon} className="w-5 h-5" aria-hidden="true" />
-                {label}
-              </Link>
-            );
-          })}
+          {navSections.map((section) => (
+            <div key={section.key ?? "top"} className="space-y-1" role="group" aria-label={section.sectionLabel ?? undefined}>
+              {section.sectionLabel && (
+                <div className="px-3 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted select-none">
+                  {section.sectionLabel}
+                </div>
+              )}
+              {section.items.map(({ label, href, icon: ItemIcon, hero }) => {
+                const active = pathname === href;
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    aria-current={active ? "page" : undefined}
+                    onClick={closeSidebar}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors min-h-[44px] ${
+                      hero
+                        ? "font-semibold bg-violet-600 text-white hover:bg-violet-500 shadow-sm"
+                        : active
+                          ? "font-medium bg-surface-raised text-accent"
+                          : "font-medium text-secondary hover:bg-surface-hover hover:text-primary"
+                    }`}
+                  >
+                    <Icon icon={ItemIcon} className="w-5 h-5" aria-hidden="true" />
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Bottom section */}

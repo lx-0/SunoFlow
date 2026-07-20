@@ -56,6 +56,7 @@
     "language": "言語"
   },
   "nav": {
+    "section": { "create": "作成", "myMusic": "マイミュージック", "browse": "見つける", "insights": "分析" },
     "home": "ホーム",
     "library": "ライブラリ",
     "inspire": "インスピレーション",

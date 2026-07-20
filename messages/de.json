@@ -56,6 +56,7 @@
     "language": "Sprache"
   },
   "nav": {
+    "section": { "create": "Erstellen", "myMusic": "Meine Musik", "browse": "Stöbern", "insights": "Statistiken" },
     "home": "Startseite",
     "library": "Bibliothek",
     "inspire": "Inspiration",
