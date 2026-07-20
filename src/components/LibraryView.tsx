@@ -31,6 +31,11 @@ interface LibraryViewProps {
   initialSongs: Song[];
   title?: string;
   enableServerSearch?: boolean;
+  /** Force a server-side smart filter (e.g. "favorites") and fetch it even when
+   *  the search/toolbar UI is off (enableServerSearch=false). Gives the view its
+   *  own query cache key so a filtered view (favorites) never renders the shared
+   *  general-library cache, and enables cursor pagination for it. */
+  lockedSmartFilter?: string;
 }
 
 /** Nearest ancestor that actually scrolls (overflow-y auto/scroll). */
@@ -48,8 +53,12 @@ export function LibraryView({
   initialSongs,
   title = "Library",
   enableServerSearch = true,
+  lockedSmartFilter,
 }: LibraryViewProps) {
   const router = useRouter();
+  // A locked smart filter (e.g. favorites) still needs the server FETCH even
+  // when the search/toolbar UI is off — decouple "fetch" from "show filter UI".
+  const serverFetch = enableServerSearch || lockedSmartFilter != null;
 
   const {
     filters,
@@ -121,22 +130,24 @@ export function LibraryView({
     dateTo: dateTo || undefined,
     sortBy: sortBy || undefined,
     tagIds: tagFilter.length > 0 ? tagFilter : undefined,
-    smartFilter: smartFilter && smartFilter !== "archived" ? smartFilter : undefined,
-    archived: smartFilter === "archived" || undefined,
+    smartFilter: lockedSmartFilter ?? (smartFilter && smartFilter !== "archived" ? smartFilter : undefined),
+    archived: lockedSmartFilter ? undefined : (smartFilter === "archived" || undefined),
     genre: genreFilter.length > 0 ? genreFilter : undefined,
     mood: moodFilter.length > 0 ? moodFilter : undefined,
     tempoMin: tempoMin || undefined,
     tempoMax: tempoMax || undefined,
     includeVariations: includeVariations || undefined,
-  }), [debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, smartFilter, genreFilter, moodFilter, tempoMin, tempoMax, includeVariations]);
+  }), [debouncedSearch, statusFilter, ratingFilter, dateFrom, dateTo, sortBy, tagFilter, smartFilter, lockedSmartFilter, genreFilter, moodFilter, tempoMin, tempoMax, includeVariations]);
 
   const songsQuery = useSongsList(songsFilters, {
-    enabled: enableServerSearch,
-    pollWhilePending: enableServerSearch,
+    enabled: serverFetch,
+    pollWhilePending: serverFetch,
   });
 
   useEffect(() => {
-    if (!songsQuery.data) return;
+    // Never let a non-fetching view overwrite its SSR initialSongs with the
+    // shared React-Query cache (that made /favorites show the /library cache).
+    if (!serverFetch || !songsQuery.data) return;
     const allSongs = songsQuery.data.pages.flatMap((p) => p.songs);
     setSongs(allSongs);
     const lastPage = songsQuery.data.pages.at(-1);

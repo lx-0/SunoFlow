@@ -60,7 +60,12 @@ export default async function FavoritesPage() {
             </p>
           </div>
         ) : (
-          <LibraryView initialSongs={songs as never[]} title="Favorites" enableServerSearch={false} />
+          <LibraryView
+            initialSongs={songs as never[]}
+            title="Favorites"
+            enableServerSearch={false}
+            lockedSmartFilter="favorites"
+          />
         )}
       </Suspense>
     </AppShell>
