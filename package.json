@@ -115,6 +115,7 @@
       "core-js",
       "core-js-pure",
       "esbuild",
+      "msgpackr-extract",
       "prisma",
       "protobufjs",
       "sharp",
