@@ -61,6 +61,19 @@ export function usePlaylistPlayback({
     }
   }
 
+  function handleShuffleAll() {
+    const queueSongs = buildPlaylistQueue();
+    if (queueSongs.length === 0) return;
+    // One-shot shuffle (Spotify "Shuffle" button): randomize the whole order so
+    // the FIRST song is random too, then play from the top. Fisher-Yates.
+    const shuffled = [...queueSongs];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    playQueue(shuffled, 0, playlistName);
+  }
+
   const handleRemoveSong = useCallback(
     async (songId: string) => {
       setSongs((prev) => prev.filter((ps) => ps.songId !== songId));
@@ -83,6 +96,7 @@ export function usePlaylistPlayback({
     addToQueue,
     handleTogglePlay,
     handlePlayAll,
+    handleShuffleAll,
     handleRemoveSong,
   };
 }

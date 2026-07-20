@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Music, Play } from "lucide-react";
+import { ArrowLeft, Music, Play, Shuffle } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
 import type { Song } from "@prisma/client";
 import { useToast } from "./Toast";
@@ -165,13 +165,22 @@ export function PlaylistDetailView({
       <SharePanel share={share} isEditing={editing.editing} />
 
       {songs.length > 0 && !editing.editing && (
-        <button
-          onClick={playback.handlePlayAll}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors min-h-[44px]"
-        >
-          <Icon icon={Play} fill="currentColor" className="w-4 h-4" />
-          Play All
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={playback.handlePlayAll}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors min-h-[44px]"
+          >
+            <Icon icon={Play} fill="currentColor" className="w-4 h-4" />
+            Play All
+          </button>
+          <button
+            onClick={playback.handleShuffleAll}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-surface-raised hover:bg-surface-hover text-primary transition-colors min-h-[44px]"
+          >
+            <Icon icon={Shuffle} className="w-4 h-4" />
+            Shuffle All
+          </button>
+        </div>
       )}
 
       <BottomSheet
