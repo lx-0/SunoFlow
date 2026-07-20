@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AppShell } from "@/components/AppShell";
+import { SectionTabs } from "@/components/SectionTabs";
 import { GenerationHistoryView } from "@/components/GenerationHistoryView";
 import { HistorySkeleton } from "@/components/Skeleton";
 import { auth } from "@/lib/auth";
@@ -60,6 +61,7 @@ export default async function GenerationsPage() {
 
   return (
     <AppShell>
+      <SectionTabs group="myMusic" />
       <Suspense fallback={<HistorySkeleton />}>
         <GenerationHistoryView
           songs={songs.map((s) => ({ ...s, createdAt: s.createdAt.toISOString(), updatedAt: s.updatedAt.toISOString() }))}

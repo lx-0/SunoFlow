@@ -151,6 +151,13 @@ const nextConfig = {
         destination: "/templates?tab=styles",
         permanent: true,
       },
+      {
+        // /explore was a literal duplicate of /discover (same DiscoverView + same
+        // getInitialBrowseSongs query). Phase-2 nav consolidation removes it.
+        source: "/explore",
+        destination: "/discover",
+        permanent: true,
+      },
     ];
   },
   async rewrites() {

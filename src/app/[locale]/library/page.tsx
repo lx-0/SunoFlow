@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AppShell } from "@/components/AppShell";
+import { SectionTabs } from "@/components/SectionTabs";
 import { LibraryView } from "@/components/LibraryView";
 import { LibrarySkeleton } from "@/components/Skeleton";
 import { auth } from "@/lib/auth";
@@ -27,6 +28,7 @@ export default async function LibraryPage() {
 
   return (
     <AppShell>
+      <SectionTabs group="myMusic" />
       <Suspense fallback={<LibrarySkeleton />}>
         <LibraryView initialSongs={songs} />
       </Suspense>

@@ -171,6 +171,7 @@ export function LibraryToolbar({
           <button
             key={opt.value}
             onClick={() => setSmartFilter(smartFilter === opt.value ? "" : opt.value)}
+            {...(opt.value === "favorites" ? { "data-tour": "nav-favorites" } : {})}
             className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
               smartFilter === opt.value
                 ? "bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 ring-1 ring-violet-400"

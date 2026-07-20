@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/AppShell";
+import { SectionTabs } from "@/components/SectionTabs";
 import { PlayHistoryView } from "@/components/PlayHistoryView";
 
 export const metadata: Metadata = {
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
 export default function HistoryPage() {
   return (
     <AppShell>
+      <SectionTabs group="myMusic" />
       <PlayHistoryView />
     </AppShell>
   );

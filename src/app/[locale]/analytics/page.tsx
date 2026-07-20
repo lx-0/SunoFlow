@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import { AppShell } from "@/components/AppShell";
+import { SectionTabs } from "@/components/SectionTabs";
 import { apiGet } from "@/lib/api-client";
 import { Icon } from "@/components/ui/Icon";
 import {
@@ -140,6 +141,7 @@ export default function AnalyticsPage() {
 
   return (
     <AppShell>
+      <SectionTabs group="insights" />
       <div className="px-4 py-6 space-y-6">
         <h1 className="text-xl font-bold text-primary">Analytics</h1>
 

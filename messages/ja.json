@@ -57,6 +57,8 @@
   },
   "nav": {
     "section": { "create": "作成", "myMusic": "マイミュージック", "browse": "見つける", "insights": "分析" },
+    "insights": "インサイト",
+    "tab": { "songs": "曲", "recentlyPlayed": "最近再生した曲", "generationHistory": "生成履歴", "overview": "概要", "production": "制作", "listening": "再生" },
     "home": "ホーム",
     "library": "ライブラリ",
     "inspire": "インスピレーション",

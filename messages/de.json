@@ -57,6 +57,8 @@
   },
   "nav": {
     "section": { "create": "Erstellen", "myMusic": "Meine Musik", "browse": "Stöbern", "insights": "Statistiken" },
+    "insights": "Insights",
+    "tab": { "songs": "Songs", "recentlyPlayed": "Zuletzt gespielt", "generationHistory": "Generierungsverlauf", "overview": "Übersicht", "production": "Produktion", "listening": "Hören" },
     "home": "Startseite",
     "library": "Bibliothek",
     "inspire": "Inspiration",

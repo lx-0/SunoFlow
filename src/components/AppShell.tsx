@@ -8,7 +8,6 @@ import { TIER_LABELS, TIER_BADGE_COLORS, type SubscriptionTier } from "@/lib/fea
 
 import {
   House,
-  Heart,
   Settings,
   BookOpen,
   ListMusic,
@@ -16,10 +15,8 @@ import {
   CircleUserRound,
   Menu,
   X,
-  Clock,
   ShieldCheck,
   ChartColumn,
-  Presentation,
   Lightbulb,
   Sparkles,
   Bookmark,
@@ -30,11 +27,7 @@ import {
   Sun,
   Moon,
   Monitor,
-  Rss,
   MessageSquareMore,
-  Music,
-  Layers,
-  LayoutGrid,
   type LucideIcon,
 } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
@@ -70,7 +63,14 @@ type NavItemDef = {
 // Grouped IA: 17 flat items were an undifferentiated wall with no hierarchy and
 // several synonym clusters. Sections give scannable structure; the label key
 // resolves to nav.section.<key> (null = ungrouped, rendered at the top).
-const NAV_SECTIONS: { key: "create" | "myMusic" | "browse" | "insights" | null; items: NavItemDef[] }[] = [
+// Phase-2 consolidation: the synonym clusters were merged. Favorites is reachable
+// as a Library filter chip; Recently-Played (/history) + Generation-History
+// (/generations) group under Library via SectionTabs; Explore (a literal
+// /discover duplicate) 301-redirects to /discover and Radio/Feed leave the nav
+// (Radio stays reachable from song cards, Feed is empty in the closed beta);
+// Analytics + Stats + Insights collapse behind one "Insights" destination whose
+// SectionTabs expose Overview / Production / Listening. Net: 17 -> 10 nav items.
+const NAV_SECTIONS: { key: "create" | "myMusic" | "browse" | null; items: NavItemDef[] }[] = [
   {
     key: null,
     items: [{ key: "home", href: "/", icon: House, dataTour: undefined, prefetch: false }],
@@ -90,25 +90,13 @@ const NAV_SECTIONS: { key: "create" | "myMusic" | "browse" | "insights" | null; 
     items: [
       { key: "library", href: "/library", icon: BookOpen, dataTour: undefined, prefetch: true },
       { key: "playlists", href: "/playlists", icon: ListMusic, dataTour: "explore", prefetch: false },
-      { key: "favorites", href: "/favorites", icon: Heart, dataTour: "nav-favorites", prefetch: false },
-      { key: "history", href: "/history", icon: Clock, dataTour: undefined, prefetch: false },
-      { key: "generations", href: "/generations", icon: Layers, dataTour: undefined, prefetch: false },
+      { key: "insights", href: "/insights", icon: ChartColumn, dataTour: undefined, prefetch: false },
     ],
   },
   {
     key: "browse",
     items: [
-      { key: "feed", href: "/feed", icon: Rss, dataTour: undefined, prefetch: false },
-      { key: "radio", href: "/radio", icon: Music, dataTour: undefined, prefetch: false },
-      { key: "explore", href: "/explore", icon: LayoutGrid, dataTour: undefined, prefetch: false },
       { key: "discover", href: "/discover", icon: Globe, dataTour: undefined, prefetch: false },
-    ],
-  },
-  {
-    key: "insights",
-    items: [
-      { key: "analytics", href: "/analytics", icon: ChartColumn, dataTour: undefined, prefetch: false },
-      { key: "stats", href: "/stats", icon: Presentation, dataTour: undefined, prefetch: false },
     ],
   },
 ];
