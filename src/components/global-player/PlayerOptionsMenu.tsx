@@ -1,16 +1,24 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import {
   ArrowLeftRight,
   Box,
+  ChevronLeft,
   EllipsisVertical,
   FileText,
   Info,
   ListMusic,
+  ListPlus,
   Repeat,
   SlidersHorizontal,
 } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
+import { useToast } from "../Toast";
+import {
+  addSongToPlaylist,
+  fetchPlaylistOptions,
+  type LibraryPlaylistOption,
+} from "@/lib/songs/library-client";
 
 export interface PlayerOptionsMenuProps {
   isOpen: boolean;
@@ -54,12 +62,48 @@ export function PlayerOptionsMenu({
   onToggleUpNext,
 }: PlayerOptionsMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
-  useOutsideClick(menuRef, onClose, isOpen);
+  const { toast } = useToast();
+  const [view, setView] = useState<"main" | "playlists">("main");
+  const [playlists, setPlaylists] = useState<LibraryPlaylistOption[]>([]);
+  const [loadingPlaylists, setLoadingPlaylists] = useState(false);
+  const [addingId, setAddingId] = useState<string | null>(null);
+
+  const close = () => {
+    setView("main");
+    close();
+  };
+  useOutsideClick(menuRef, close, isOpen);
+
+  async function openPlaylists() {
+    setView("playlists");
+    setLoadingPlaylists(true);
+    try {
+      setPlaylists(await fetchPlaylistOptions());
+    } finally {
+      setLoadingPlaylists(false);
+    }
+  }
+
+  async function addToPlaylist(playlistId: string) {
+    setAddingId(playlistId);
+    try {
+      const result = await addSongToPlaylist(playlistId, songId);
+      toast(result.ok ? "Added to playlist" : result.error, result.ok ? "success" : "error");
+      if (result.ok) close();
+    } catch {
+      toast("Failed to add to playlist", "error");
+    } finally {
+      setAddingId(null);
+    }
+  }
 
   return (
     <div ref={menuRef} className="relative flex-shrink-0 lg:hidden">
       <button
-        onClick={onToggle}
+        onClick={() => {
+          if (!isOpen) setView("main");
+          onToggle();
+        }}
         aria-label="More options"
         aria-expanded={isOpen}
         aria-haspopup="true"
@@ -74,13 +118,15 @@ export function PlayerOptionsMenu({
       {isOpen && (
         <div
           role="menu"
-          className="absolute bottom-12 right-0 w-48 bg-surface-raised border border-border rounded-xl shadow-2xl py-1 z-40"
+          className="absolute bottom-12 right-0 w-56 max-w-[calc(100vw-1rem)] max-h-[70vh] overflow-y-auto bg-surface-raised border border-border rounded-xl shadow-2xl py-1 z-40"
         >
+          {view === "main" ? (
+          <>
           <button
             role="menuitem"
             onClick={() => {
               toggleShuffle();
-              onClose();
+              close();
             }}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-surface-hover transition-colors"
           >
@@ -96,7 +142,7 @@ export function PlayerOptionsMenu({
             role="menuitem"
             onClick={() => {
               toggleShuffleVersions();
-              onClose();
+              close();
             }}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-surface-hover transition-colors"
           >
@@ -114,7 +160,7 @@ export function PlayerOptionsMenu({
             role="menuitem"
             onClick={() => {
               cycleRepeat();
-              onClose();
+              close();
             }}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-surface-hover transition-colors"
           >
@@ -138,7 +184,7 @@ export function PlayerOptionsMenu({
               role="menuitem"
               onClick={() => {
                 onToggleLyrics();
-                onClose();
+                close();
               }}
               className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-surface-hover transition-colors"
             >
@@ -157,7 +203,7 @@ export function PlayerOptionsMenu({
             role="menuitem"
             onClick={() => {
               onToggleEQ();
-              onClose();
+              close();
             }}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-surface-hover transition-colors"
           >
@@ -173,7 +219,7 @@ export function PlayerOptionsMenu({
             role="menuitem"
             onClick={() => {
               onToggleUpNext();
-              onClose();
+              close();
             }}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-surface-hover transition-colors"
           >
@@ -188,16 +234,57 @@ export function PlayerOptionsMenu({
               {queueRemaining > 0 ? ` (${queueRemaining})` : ""}
             </span>
           </button>
+          <button
+            role="menuitem"
+            onClick={openPlaylists}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-surface-hover transition-colors"
+          >
+            <Icon icon={ListPlus} className="w-5 h-5 text-secondary" />
+            <span className="text-primary">Add to playlist</span>
+          </button>
           <div className="border-t border-border my-1" />
           <a
             role="menuitem"
             href={`/library/${songId}`}
-            onClick={onClose}
+            onClick={close}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left text-primary hover:bg-surface-hover transition-colors"
           >
             <Icon icon={Info} className="w-5 h-5 text-secondary" />
             <span>Song details</span>
           </a>
+          </>
+          ) : (
+          <>
+            <button
+              onClick={() => setView("main")}
+              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left text-secondary hover:bg-surface-hover transition-colors"
+            >
+              <Icon icon={ChevronLeft} className="w-4 h-4" />
+              <span>Add to playlist</span>
+            </button>
+            <div className="border-t border-border my-1" />
+            {loadingPlaylists ? (
+              <p className="px-4 py-3 text-sm text-secondary">Loading…</p>
+            ) : playlists.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-secondary">No playlists yet</p>
+            ) : (
+              playlists.map((pl) => (
+                <button
+                  key={pl.id}
+                  role="menuitem"
+                  onClick={() => addToPlaylist(pl.id)}
+                  disabled={addingId === pl.id}
+                  className="w-full flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-left text-primary hover:bg-surface-hover transition-colors disabled:opacity-50"
+                >
+                  <span className="truncate">{pl.name}</span>
+                  <span className="text-xs text-secondary flex-shrink-0">
+                    {pl._count.songs}
+                  </span>
+                </button>
+              ))
+            )}
+          </>
+          )}
         </div>
       )}
     </div>
