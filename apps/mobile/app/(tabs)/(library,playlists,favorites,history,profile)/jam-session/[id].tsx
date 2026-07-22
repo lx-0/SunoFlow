@@ -11,7 +11,8 @@ import {
 import { Text } from "@/components/Themed";
 import { Stack, useLocalSearchParams } from "expo-router";
 import QRCode from "react-native-qrcode-svg";
-import { Loader2, Music, Share2, X } from "lucide-react-native";
+import { Loader2, Music, Share2, Tv, X } from "lucide-react-native";
+import { JamPartyDisplay } from "@/components/JamPartyDisplay";
 import { HttpError } from "@/api/client";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
@@ -40,6 +41,7 @@ export default function JamSessionScreen() {
   const [state, setState] = useState<JamState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [vetoingId, setVetoingId] = useState<string | null>(null);
+  const [showDisplay, setShowDisplay] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -162,15 +164,26 @@ export default function JamSessionScreen() {
               <Text style={styles.joinUrl} numberOfLines={1}>
                 {joinUrl}
               </Text>
-              <Pressable
-                style={styles.shareBtn}
-                onPress={handleShare}
-                accessibilityRole="button"
-                accessibilityLabel="Share join link"
-              >
-                <Share2 size={16} color="#fff" />
-                <Text style={styles.shareBtnText}>Share link</Text>
-              </Pressable>
+              <View style={styles.actionRow}>
+                <Pressable
+                  style={[styles.shareBtn, styles.actionFlex]}
+                  onPress={() => setShowDisplay(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open party display"
+                >
+                  <Tv size={16} color="#fff" />
+                  <Text style={styles.shareBtnText}>Party display</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.shareBtnAlt, styles.actionFlex]}
+                  onPress={handleShare}
+                  accessibilityRole="button"
+                  accessibilityLabel="Share join link"
+                >
+                  <Share2 size={16} color={colors.text} />
+                  <Text style={styles.shareBtnAltText}>Share link</Text>
+                </Pressable>
+              </View>
             </View>
 
             {!isClosed && (
@@ -238,6 +251,15 @@ export default function JamSessionScreen() {
           </View>
         )}
       />
+      {joinUrl && detail && (
+        <JamPartyDisplay
+          visible={showDisplay}
+          joinUrl={joinUrl}
+          slug={detail.shareToken}
+          state={state}
+          onClose={() => setShowDisplay(false)}
+        />
+      )}
     </View>
   );
 }
@@ -271,6 +293,18 @@ function makeStyles(c: ThemeColors) {
       paddingHorizontal: spacing.md,
     },
     shareBtnText: { color: "#fff", fontFamily: fonts.sansSemibold, fontSize: 14 },
+    actionRow: { flexDirection: "row", gap: spacing.sm, alignSelf: "stretch" },
+    actionFlex: { flex: 1, justifyContent: "center" },
+    shareBtnAlt: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+      backgroundColor: c.surfaceAlt,
+      borderRadius: radii.lg,
+      paddingVertical: 10,
+      paddingHorizontal: spacing.md,
+    },
+    shareBtnAltText: { color: c.text, fontFamily: fonts.sansSemibold, fontSize: 14 },
     closeBtn: {
       alignItems: "center",
       borderRadius: radii.lg,

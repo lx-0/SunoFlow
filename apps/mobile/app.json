@@ -5,7 +5,7 @@
     "scheme": "sunoflow",
     "version": "0.1.0",
     "icon": "./assets/icon.png",
-    "orientation": "portrait",
+    "orientation": "default",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -13,7 +13,9 @@
       "bundleIdentifier": "app.sunoflow.mobile",
       "buildNumber": "1",
       "infoPlist": {
-        "UIBackgroundModes": ["audio"],
+        "UIBackgroundModes": [
+          "audio"
+        ],
         "NSMicrophoneUsageDescription": "SunoFlow does not record audio; this is required because the waveform library bundles recording code."
       }
     },
@@ -26,7 +28,13 @@
           "enableBackgroundPlayback": true
         }
       ],
-      "expo-video"
+      "expo-video",
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "PORTRAIT_UP"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
