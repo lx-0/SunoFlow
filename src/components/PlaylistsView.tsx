@@ -101,6 +101,8 @@ export function PlaylistsView({
   const [showJamCreate, setShowJamCreate] = useState(false);
   const [jamName, setJamName] = useState("");
   const [jamBudget, setJamBudget] = useState("30");
+  const [jamSlug, setJamSlug] = useState("");
+  const [jamDuration, setJamDuration] = useState("24");
   const [startingJam, setStartingJam] = useState(false);
   const isStudio = authSession?.user?.subscriptionTier === "studio";
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -148,11 +150,19 @@ export function PlaylistsView({
       return;
     }
 
+    const slug = jamSlug.trim().toLowerCase();
+    if (slug && !/^[a-z0-9-]{4,40}$/.test(slug)) {
+      toast("Link name must be 4-40 characters: letters, digits, hyphens", "error");
+      return;
+    }
+
     setStartingJam(true);
     try {
       const result = await createJamSessionApi({
         name: jamName.trim() || undefined,
         budgetTotal,
+        slug: slug || undefined,
+        durationHours: Number(jamDuration),
       });
       if (!result.ok) {
         toast(result.error, "error");
@@ -242,18 +252,46 @@ export function PlaylistsView({
             maxLength={80}
             className="w-full px-3 py-2 bg-surface-raised border border-border rounded-lg text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-violet-500"
           />
-          <label className="flex items-center gap-3 text-sm text-secondary">
-            Song budget
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-secondary flex-shrink-0">/jam/</span>
             <input
-              type="number"
-              min={1}
-              max={100}
-              value={jamBudget}
-              onChange={(e) => setJamBudget(e.target.value)}
-              aria-label="Song budget"
-              className="w-24 px-3 py-2 bg-surface-raised border border-border rounded-lg text-sm text-primary focus:outline-none focus:ring-2 focus:ring-violet-500"
+              type="text"
+              value={jamSlug}
+              onChange={(e) => setJamSlug(e.target.value)}
+              placeholder="link-name (optional)"
+              maxLength={40}
+              aria-label="Link name"
+              className="flex-1 px-3 py-2 bg-surface-raised border border-border rounded-lg text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
-          </label>
+          </div>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-3 text-sm text-secondary">
+              Song budget
+              <input
+                type="number"
+                min={1}
+                max={100}
+                value={jamBudget}
+                onChange={(e) => setJamBudget(e.target.value)}
+                aria-label="Song budget"
+                className="w-24 px-3 py-2 bg-surface-raised border border-border rounded-lg text-sm text-primary focus:outline-none focus:ring-2 focus:ring-violet-500"
+              />
+            </label>
+            <label className="flex items-center gap-3 text-sm text-secondary">
+              Ends after
+              <select
+                value={jamDuration}
+                onChange={(e) => setJamDuration(e.target.value)}
+                aria-label="Session duration"
+                className="px-3 py-2 bg-surface-raised border border-border rounded-lg text-sm text-primary focus:outline-none focus:ring-2 focus:ring-violet-500"
+              >
+                <option value="4">4 hours</option>
+                <option value="12">12 hours</option>
+                <option value="24">24 hours</option>
+                <option value="48">48 hours</option>
+              </select>
+            </label>
+          </div>
           <button
             type="submit"
             disabled={startingJam}

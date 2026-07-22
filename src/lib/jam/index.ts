@@ -4,9 +4,13 @@ export {
   vetoJamEntry,
   listJamSessions,
   getJamSession,
+  isJamSessionExpired,
   JAM_DEFAULT_BUDGET,
   JAM_MIN_BUDGET,
   JAM_MAX_BUDGET,
+  JAM_DEFAULT_DURATION_HOURS,
+  JAM_MAX_DURATION_HOURS,
+  JAM_SLUG_PATTERN,
   type JamSessionSummary,
 } from "./sessions";
 export {

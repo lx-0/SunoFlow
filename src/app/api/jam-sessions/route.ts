@@ -11,6 +11,9 @@ export const GET = authRoute(
 const createSessionBody = z.object({
   name: z.string().trim().min(1).max(80).optional(),
   budgetTotal: z.number().int().min(1).max(100).optional(),
+  // Normalization + strict charset live in createJamSession (single source).
+  slug: z.string().trim().min(1).max(40).optional(),
+  durationHours: z.number().int().min(1).max(72).optional(),
 });
 
 export const POST = authRoute<Record<string, never>, z.infer<typeof createSessionBody>>(

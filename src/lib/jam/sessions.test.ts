@@ -16,11 +16,13 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   createJamSession,
   closeJamSession,
   getJamSession,
+  isJamSessionExpired,
   listJamSessions,
   vetoJamEntry,
 } from "./sessions";
@@ -32,6 +34,7 @@ const SESSION = {
   status: "open",
   budgetTotal: 30,
   budgetUsed: 0,
+  expiresAt: null,
   createdAt: new Date("2026-07-22T12:00:00Z"),
   closedAt: null,
 };
@@ -92,6 +95,77 @@ describe("createJamSession", () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe("LIMIT_REACHED");
+  });
+
+  it.each([["ab"], ["has space"], ["Ümläut!"], ["a".repeat(41)]])(
+    "rejects invalid slug %s",
+    async (slug) => {
+      const result = await createJamSession("user-1", { slug });
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("VALIDATION_ERROR");
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    },
+  );
+
+  it("normalizes the slug to lowercase and stores it as the share token", async () => {
+    let createData: Record<string, unknown> | null = null;
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: unknown) => {
+      if (typeof fn === "function") {
+        return fn({
+          playlist: { create: vi.fn().mockResolvedValue({ id: "pl-1" }) },
+          jamSession: {
+            create: vi.fn().mockImplementation((args: { data: Record<string, unknown> }) => {
+              createData = args.data;
+              return Promise.resolve(SESSION);
+            }),
+          },
+        });
+      }
+      return [];
+    });
+
+    const result = await createJamSession("user-1", { slug: "Alex-Party" });
+
+    expect(result.ok).toBe(true);
+    expect(createData).toMatchObject({ shareToken: "alex-party" });
+    expect((createData as Record<string, unknown> | null)?.expiresAt).toBeInstanceOf(Date);
+  });
+
+  it("maps a slug collision (P2002) to CONFLICT", async () => {
+    vi.mocked(prisma.$transaction).mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError("dup", {
+        code: "P2002",
+        clientVersion: "test",
+      }),
+    );
+
+    const result = await createJamSession("user-1", { slug: "alex-party" });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("CONFLICT");
+  });
+
+  it("rejects an out-of-range duration", async () => {
+    const result = await createJamSession("user-1", { durationHours: 100 });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("VALIDATION_ERROR");
+  });
+});
+
+describe("isJamSessionExpired", () => {
+  it("is false without an expiry, true past it, false for closed sessions", () => {
+    expect(isJamSessionExpired({ status: "open", expiresAt: null })).toBe(false);
+    expect(
+      isJamSessionExpired({ status: "open", expiresAt: new Date(Date.now() - 1000) }),
+    ).toBe(true);
+    expect(
+      isJamSessionExpired({ status: "open", expiresAt: new Date(Date.now() + 60_000) }),
+    ).toBe(false);
+    expect(
+      isJamSessionExpired({ status: "closed", expiresAt: new Date(Date.now() - 1000) }),
+    ).toBe(false);
   });
 });
 

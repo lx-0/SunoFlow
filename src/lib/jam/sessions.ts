@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { Err, type Result, success } from "@/lib/result";
 import { canUseFeature, normalizeTier } from "@/lib/feature-gates";
@@ -6,6 +7,11 @@ import { stripHtml } from "@/lib/sanitize";
 export const JAM_DEFAULT_BUDGET = 30;
 export const JAM_MIN_BUDGET = 1;
 export const JAM_MAX_BUDGET = 100;
+export const JAM_DEFAULT_DURATION_HOURS = 24;
+export const JAM_MAX_DURATION_HOURS = 72;
+// Human slugs are guessable by design (operator decision 2026-07-22) — damage
+// is bounded by the budget cap, per-guest limits, host veto, and the lifetime.
+export const JAM_SLUG_PATTERN = /^[a-z0-9-]{4,40}$/;
 const MAX_OPEN_SESSIONS = 3;
 
 export interface JamSessionSummary {
@@ -15,6 +21,7 @@ export interface JamSessionSummary {
   status: string;
   budgetTotal: number;
   budgetUsed: number;
+  expiresAt: Date | null;
   createdAt: Date;
   closedAt: Date | null;
 }
@@ -26,9 +33,22 @@ const SESSION_SELECT = {
   status: true,
   budgetTotal: true,
   budgetUsed: true,
+  expiresAt: true,
   createdAt: true,
   closedAt: true,
 } as const;
+
+/** Sessions past their expiresAt behave exactly like closed ones. */
+export function isJamSessionExpired(session: {
+  status: string;
+  expiresAt: Date | null;
+}): boolean {
+  return (
+    session.status === "open" &&
+    session.expiresAt !== null &&
+    session.expiresAt.getTime() <= Date.now()
+  );
+}
 
 /**
  * Opens a jam session for a STUDIO host: creates the session playlist and the
@@ -38,7 +58,7 @@ const SESSION_SELECT = {
  */
 export async function createJamSession(
   userId: string,
-  input: { name?: string; budgetTotal?: number },
+  input: { name?: string; budgetTotal?: number; slug?: string; durationHours?: number },
 ): Promise<Result<{ session: JamSessionSummary }>> {
   const subscription = await prisma.subscription.findUnique({
     where: { userId },
@@ -60,6 +80,25 @@ export async function createJamSession(
     );
   }
 
+  const slug = input.slug?.trim().toLowerCase();
+  if (slug !== undefined && slug !== "" && !JAM_SLUG_PATTERN.test(slug)) {
+    return Err.validation(
+      "Link name must be 4-40 characters: lowercase letters, digits, hyphens",
+    );
+  }
+
+  const durationHours = input.durationHours ?? JAM_DEFAULT_DURATION_HOURS;
+  if (
+    !Number.isInteger(durationHours) ||
+    durationHours < 1 ||
+    durationHours > JAM_MAX_DURATION_HOURS
+  ) {
+    return Err.validation(
+      `durationHours must be an integer between 1 and ${JAM_MAX_DURATION_HOURS}`,
+    );
+  }
+  const expiresAt = new Date(Date.now() + durationHours * 60 * 60 * 1000);
+
   const openCount = await prisma.jamSession.count({
     where: { hostUserId: userId, status: "open" },
   });
@@ -73,18 +112,33 @@ export async function createJamSession(
     (input.name ? stripHtml(input.name).trim() : "") ||
     `Jam Session ${new Date().toLocaleDateString("en-CA")}`;
 
-  const session = await prisma.$transaction(async (tx) => {
-    const playlist = await tx.playlist.create({
-      data: { name, userId },
-      select: { id: true },
+  try {
+    const session = await prisma.$transaction(async (tx) => {
+      const playlist = await tx.playlist.create({
+        data: { name, userId },
+        select: { id: true },
+      });
+      return tx.jamSession.create({
+        data: {
+          hostUserId: userId,
+          playlistId: playlist.id,
+          budgetTotal,
+          expiresAt,
+          ...(slug ? { shareToken: slug } : {}),
+        },
+        select: SESSION_SELECT,
+      });
     });
-    return tx.jamSession.create({
-      data: { hostUserId: userId, playlistId: playlist.id, budgetTotal },
-      select: SESSION_SELECT,
-    });
-  });
-
-  return success({ session });
+    return success({ session });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return Err.conflict("This link name is already taken — pick another one");
+    }
+    throw error;
+  }
 }
 
 /** Host's sessions, newest first (open ones before closed). */

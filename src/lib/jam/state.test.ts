@@ -24,6 +24,7 @@ const SESSION_ROW = {
   status: "open",
   budgetTotal: 30,
   budgetUsed: 4,
+  expiresAt: null,
   hostUserId: "host-1",
   playlistId: "pl-1",
   playlist: { name: "Jam Session 2026-07-22" },
@@ -68,6 +69,7 @@ describe("getJamSessionState", () => {
       status: "open",
       budgetTotal: 30,
       budgetUsed: 4,
+      expiresAt: null,
     });
     expect(result.data.entries).toHaveLength(1);
     expect(result.data.nowPlaying).toBeNull();
@@ -77,6 +79,19 @@ describe("getJamSessionState", () => {
     expect(Object.keys(song ?? {}).sort()).toEqual(
       ["duration", "generationStatus", "id", "imageUrl", "title"].sort(),
     );
+  });
+
+  it("reports an expired session as closed", async () => {
+    vi.mocked(prisma.jamSession.findUnique).mockResolvedValue({
+      ...SESSION_ROW,
+      expiresAt: new Date(Date.now() - 1000),
+    } as never);
+
+    const result = await getJamSessionState("tok-1");
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.session.status).toBe("closed");
   });
 
   it("queries entries excluding vetoed ones", async () => {

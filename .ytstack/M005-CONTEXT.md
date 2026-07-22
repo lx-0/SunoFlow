@@ -50,6 +50,15 @@ M -- see `M005-ROADMAP.md` for slice breakdown.
   generation queue/completion pipeline, public share slugs, single-use-token
   mechanic (invite codes), reactions, polling (no websockets in v1).
 
+- 2026-07-22 (operator, mid-S03): share links should be human-shareable — the
+  token can be self-chosen (slug) and sessions get a lifetime. Decided:
+  optional slug [a-z0-9-]{4,40} stored AS the shareToken (global uniqueness,
+  409 on collision), optional duration 1..72h default 24h -> `expiresAt`;
+  expiry is enforced derived (no cron): state reports expired sessions as
+  closed, prompt push rejects them incl. inside the atomic budget gate.
+  Trade-off accepted: human slugs are guessable — damage is bounded by
+  budget cap, per-guest limits, veto, and the lifetime itself.
+
 ## Open questions
 
 - Guest identity within a session (nickname? emoji avatar?) for "who requested

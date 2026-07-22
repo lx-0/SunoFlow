@@ -52,6 +52,7 @@ const SESSION = {
   hostUserId: "host-1",
   budgetTotal: 30,
   budgetUsed: 4,
+  expiresAt: null,
 };
 
 const ENTRY = {
@@ -121,6 +122,19 @@ describe("pushJamPrompt", () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe("CONFLICT");
+  });
+
+  it("409s when the session lifetime has expired", async () => {
+    vi.mocked(prisma.jamSession.findUnique).mockResolvedValue({
+      ...SESSION,
+      expiresAt: new Date(Date.now() - 1000),
+    } as never);
+
+    const result = await pushJamPrompt("tok", INPUT);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("CONFLICT");
+    expect(prisma.jamSession.updateMany).not.toHaveBeenCalled();
   });
 
   it("rejects empty prompts after sanitizing", async () => {

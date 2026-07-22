@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { Err, type Result, success } from "@/lib/result";
+import { isJamSessionExpired } from "./sessions";
 
 /** Lean, guest-safe song card — nothing beyond what the party screen shows. */
 export interface JamSongCard {
@@ -27,6 +28,7 @@ export interface JamSessionState {
     status: string;
     budgetTotal: number;
     budgetUsed: number;
+    expiresAt: Date | null;
   };
   nowPlaying: { song: JamSongCard; position: number } | null;
   entries: JamEntryCard[];
@@ -57,6 +59,7 @@ export async function getJamSessionState(
       status: true,
       budgetTotal: true,
       budgetUsed: true,
+      expiresAt: true,
       hostUserId: true,
       playlistId: true,
       playlist: { select: { name: true } },
@@ -97,9 +100,12 @@ export async function getJamSessionState(
       id: session.id,
       name: session.playlist.name,
       hostName: session.host.name,
-      status: session.status,
+      // Expired sessions read as closed — guests see "party ended" without
+      // any cron flipping rows.
+      status: isJamSessionExpired(session) ? "closed" : session.status,
       budgetTotal: session.budgetTotal,
       budgetUsed: session.budgetUsed,
+      expiresAt: session.expiresAt,
     },
     nowPlaying,
     entries: session.entries,

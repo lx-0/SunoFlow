@@ -1064,6 +1064,7 @@ model JamSession {
   status      String    @default("open") // open, closed
   budgetTotal Int       @default(30)
   budgetUsed  Int       @default(0)
+  expiresAt   DateTime? // sessions past this behave exactly like closed ones
   createdAt   DateTime  @default(now())
   closedAt    DateTime?
 

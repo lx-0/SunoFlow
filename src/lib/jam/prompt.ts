@@ -6,6 +6,7 @@ import { SUNOAPI_KEY } from "@/lib/env";
 import { stripHtml } from "@/lib/sanitize";
 import { logServerError } from "@/lib/error-logger";
 import { logger } from "@/lib/logger";
+import { isJamSessionExpired } from "./sessions";
 import type { JamEntryCard } from "./state";
 
 // Suno's non-custom description mode caps prompts at 500 chars.
@@ -49,10 +50,11 @@ export async function pushJamPrompt(
       hostUserId: true,
       budgetTotal: true,
       budgetUsed: true,
+      expiresAt: true,
     },
   });
   if (!session) return Err.notFound("Not found");
-  if (session.status !== "open") {
+  if (session.status !== "open" || isJamSessionExpired(session)) {
     return Err.conflict("This jam session has ended");
   }
 
@@ -75,12 +77,15 @@ export async function pushJamPrompt(
     );
   }
 
-  // Atomic budget reservation: the conditional increment is the gate.
+  // Atomic budget reservation: the conditional increment is the gate. The
+  // expiry condition rides inside it so a session cannot be raced past its
+  // lifetime either.
   const reserved = await prisma.jamSession.updateMany({
     where: {
       id: session.id,
       status: "open",
       budgetUsed: { lt: session.budgetTotal },
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
     },
     data: { budgetUsed: { increment: 1 } },
   });
