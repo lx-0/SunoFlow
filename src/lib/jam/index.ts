@@ -18,3 +18,4 @@ export {
   JAM_PROMPT_MAX_LENGTH,
   JAM_MAX_OPEN_PROMPTS_PER_GUEST,
 } from "./prompt";
+export { syncJamEntryOnCompletion } from "./completion";

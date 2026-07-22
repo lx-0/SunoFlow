@@ -23,6 +23,7 @@ vi.mock("@/lib/prisma", () => ({
 
 vi.mock("@/lib/event-bus", () => ({ broadcast: vi.fn() }));
 vi.mock("@/lib/error-logger", () => ({ logServerError: vi.fn() }));
+vi.mock("@/lib/jam", () => ({ syncJamEntryOnCompletion: vi.fn() }));
 vi.mock("@/lib/cache", () => ({
   invalidateByPrefix: vi.fn(),
   audioCache: { has: vi.fn().mockReturnValue(true), downloadAndPut: vi.fn().mockResolvedValue(undefined) },

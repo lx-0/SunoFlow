@@ -6,6 +6,7 @@ import { broadcast } from "@/lib/event-bus";
 import { resolveBySongId } from "@/lib/generation-queue";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { syncJamEntryOnCompletion } from "@/lib/jam";
 import { buildFailedTransition, readyTransition } from "@/lib/songs/lifecycle";
 import {
   broadcastSongReady,
@@ -131,6 +132,7 @@ export async function handleSongSuccess(
     run("engagement", () => recordSongReadyEngagement(ctx)),
     run("notify", () => notifyAboutReadySong(ctx)),
     run("invalidate-dashboard", () => invalidateByPrefix(`dashboard-stats:${song.userId}`)),
+    run("jam-sync", () => syncJamEntryOnCompletion(song.id, "ready")),
   ]);
 
   return { persisted: true, sideEffectErrors };
@@ -141,6 +143,15 @@ export async function handleSongFailure(
   errorMessage: string,
 ): Promise<void> {
   await markSongFailed(song, errorMessage);
+
+  try {
+    await syncJamEntryOnCompletion(song.id, "failed");
+  } catch (err) {
+    logger.error(
+      { err, songId: song.id },
+      "song-completion: jam entry sync failed during failure handling",
+    );
+  }
 
   if (!isUserContentReject(errorMessage)) {
     logServerError(
