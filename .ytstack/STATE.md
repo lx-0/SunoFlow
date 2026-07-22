@@ -1,9 +1,9 @@
 ---
 project: SunoFlow
 slug: SunoFlow
-last_updated: 2026-07-20T18:45:00Z
-current_milestone: M004
-active_slice: S02
+last_updated: 2026-07-22T11:50:00Z
+current_milestone: M005
+active_slice: none
 active_task: none
 status: brownfield-imported
 ---
@@ -26,9 +26,13 @@ status: brownfield-imported
 
 **Visual harness gotcha:** run it with `SEED_MODE=rich` (`scripts/visual-journey.sh`) — the default (API-seed) mode hits the 5-songs/hour generation quota even on the keyless mock path and fails the authenticated journey with a 429. Rich mode seeds via Prisma. Also pass `VISUAL_DB_PORT=5434` if 5433 is taken.
 
+**2026-07-22 session (all on `main`, pushed + DEPLOYED LIVE through `a0ffadbb`).** (1) **Mini-player options-menu recursion fixed** (`dacb0cd3`): the close handler called itself instead of `onClose` — every menu click threw `Maximum call stack size exceeded` (found via the `ErrorReport` table → minified prod chunk at the stack offset; see KNOWLEDGE 2026-07-22). RED→GREEN e2e regression spec. (2) **Synced lyrics shipped** (`fe0c904c`): Suno word-aligned lyrics → per-line timestamps in the existing `LyricTimestamp` table (aligner + idempotent `POST .../lyrics/timestamps/sync`, billed call once per song, 6h negative-cache); `LyricsPanel` is now dual-mode (karaoke highlight + click-to-seek, static fallback); verified against the LIVE upstream (521 words → 92/106 lines). Mobile lyrics screen now triggers the same sync (`67f1bec2`, JS-only, runtime-unverified). (3) **Deploy gate cleared** (`fe878e97`): a fresh advisory batch tripped the audit gate; overrides bumped BOUNDED per major + Dockerfile sharp dual-site (see KNOWLEDGE 2026-07-22 security section). (4) **Nav Phase 3** (`a0ffadbb`): sidebar bottom block 6 items → one `AccountMenu` popover (desktop + drawer); language selector moved to Settings→Preferences; accessible name "Account menu" (NOT "Account" — Settings-tab collision race); 20/20 affected e2e green, 4-state visual pass. (5) **M005 Party Mode planned** — pitch `.ytstack/OFFICE-HOURS-party-mode.md` (direct-push prompts as visible pending cards, budget + per-guest rate limit + host veto, QR guests without accounts, host device = speaker, STUDIO-gated).
+
 ## Next action
 
-THE GATE (bigger again): user runs ONE free-Apple-ID Expo dev build (`apps/mobile/README.md`) — JS-only since the last native build, so `expo start -c` + reload suffices. Verify on-device: background audio surviving a 10+ min lock (the milestone's proof), the NEW tabs navigation (checklist in `apps/mobile/NAVIGATION.md`), Geist fonts/magenta CTAs/chips everywhere, pull-to-refresh + silent revalidate, keyboard over forms, VoiceOver spot-check, playback (smooth progress, auto-advance on slow network, rapid skips, seek right after a track change).
+**Status:** M005 planned (M). Ready to slice — run `ytstack:slice-milestone` to break M005 into concrete slices and tasks. M004 remains open on its user-side GATE (below); agent-side M004 work is blocked on that device pass.
+
+THE M004 GATE (user action, unchanged): user runs ONE free-Apple-ID Expo dev build (`apps/mobile/README.md`) — JS-only since the last native build, so `expo start -c` + reload suffices. Verify on-device: background audio surviving a 10+ min lock (the milestone's proof), the NEW tabs navigation (checklist in `apps/mobile/NAVIGATION.md`), Geist fonts/magenta CTAs/chips everywhere, pull-to-refresh + silent revalidate, keyboard over forms, VoiceOver spot-check, playback (smooth progress, auto-advance on slow network, rapid skips, seek right after a track change).
 
 Open USER decisions (agent blocked without them): (a) song-tap → full player (today) vs. playback + mini-player only (Spotify pattern); (b) 4 permanently dead covers — regenerate (credits, new art) vs. NULL/placeholder; (c) prod hygiene — 18 E2E test songs + 1 stuck-pending row from April (delete/archive only on explicit go).
 
