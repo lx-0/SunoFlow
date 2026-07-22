@@ -1,8 +1,10 @@
-import { apiGet, apiPatch } from "./client";
+import { apiGet, apiPatch, apiPost } from "./client";
 
 // Lyrics for the player. Text comes from GET /api/songs/[id]/lyrics
-// ({ original, edited }); optional line timestamps from .../lyrics/timestamps
-// ([{ lineIndex, startTime }]). We merge them into per-line entries so the player
+// ({ original, edited }); optional line timestamps from the idempotent
+// POST .../lyrics/timestamps/sync ([{ lineIndex, startTime }]), which returns
+// existing rows (manual taps or a prior sync) or derives them once from Suno's
+// word-aligned lyrics. We merge them into per-line entries so the player
 // can highlight the active line when timestamps exist.
 
 export interface LyricLine {
@@ -19,11 +21,13 @@ export async function fetchLyrics(songId: string): Promise<LyricLine[]> {
   if (!text) return [];
   const lines = text.split(/\r?\n/);
 
-  // Timestamps are optional — a song may have lyrics but no synced timing.
+  // Timestamps are optional — the sync endpoint soft-degrades (uploads,
+  // instrumentals, expired upstream tasks) and then returns an empty list.
   let stamps: { lineIndex: number; startTime: number }[] = [];
   try {
-    const ts = await apiGet<{ timestamps?: { lineIndex: number; startTime: number }[] }>(
-      `/api/songs/${songId}/lyrics/timestamps`,
+    const ts = await apiPost<{ timestamps?: { lineIndex: number; startTime: number }[] }>(
+      `/api/songs/${songId}/lyrics/timestamps/sync`,
+      {},
     );
     stamps = Array.isArray(ts?.timestamps) ? ts.timestamps : [];
   } catch {
