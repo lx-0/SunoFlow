@@ -10,7 +10,7 @@ import { switchTo, isAtTabRoot } from "@/navigation";
 import {
   Menu, Search, Plus, BookOpen, ListMusic, Heart, Clock, Layers, Globe, Sparkles, UserPlus, Wand2,
   LayoutGrid, Tag, Radio, Users, BarChart3, Bell, Settings, Lightbulb, TrendingUp, User,
-  Drama, FileText, Palette, SlidersHorizontal, Combine, Upload, type LucideIcon,
+  Drama, FileText, Palette, SlidersHorizontal, Combine, Upload, PartyPopper, type LucideIcon,
 } from "lucide-react-native";
 
 // Custom slide-in sidebar (drawer) — mirrors the PWA's mobile nav (a translate-x
@@ -69,6 +69,7 @@ const SECTIONS: Section[] = [
     title: "Create",
     items: [
       { label: "Mashup", route: "/mashup", Icon: Combine },
+      { label: "Jam Session", route: "/jam" as Href, Icon: PartyPopper },
       { label: "Upload", route: "/upload" as Href, Icon: Upload },
       { label: "Personas", route: "/personas", Icon: Drama },
       { label: "Prompt Templates", route: "/prompt-templates", Icon: FileText },
