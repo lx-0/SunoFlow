@@ -152,6 +152,30 @@ export function goToSection(href: Href) {
     jumpToTab(group);
     return;
   }
+  // Sections live in the shared 5-way route group, so a BARE href like
+  // "/mashup" always resolves into the FIRST group — the Library tab — which
+  // pushes the section onto the wrong stack and orphans Back onto Library
+  // (2026-07-22 device-pass finding: "back goes to Library although I came in
+  // via the menu"). Qualify with the ACTIVE tab's group, same idiom as
+  // pushInActiveTab/closePlayerThen; navigate() (not push) so re-tapping the
+  // section you are already on stays a no-op.
+  if (typeof href === "string" && href.startsWith("/") && !href.startsWith("/(tabs)")) {
+    router.navigate(`/(tabs)/${activeTabGroup()}${href}` as Href);
+    return;
+  }
+  if (
+    typeof href === "object" &&
+    href !== null &&
+    typeof href.pathname === "string" &&
+    href.pathname.startsWith("/") &&
+    !href.pathname.startsWith("/(tabs)")
+  ) {
+    router.navigate({
+      ...href,
+      pathname: `/(tabs)/${activeTabGroup()}${href.pathname}`,
+    } as Href);
+    return;
+  }
   router.navigate(href);
 }
 
