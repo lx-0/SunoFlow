@@ -5,7 +5,7 @@ project: SunoFlow
 created: 2026-07-22T12:05:00Z
 status: planned
 task_count: 5
-completed_tasks: 3
+completed_tasks: 4
 ---
 
 # M005-S02 -- Slice Plan
@@ -17,7 +17,7 @@ completed_tasks: 3
 - [x] T01 -- Session entry point + host page: "Start jam session" action (STUDIO-gated) with budget picker; host session view with live queue (pending cards + completed songs, polling).
 - [x] T02 -- QR overlay + share URL: client-side QR rendering, big-screen-friendly presentation mode.
 - [x] T03 -- Auto-append to the host's play queue on completion (QueueContext integration driven by the session poll; session playlist as `playlistSource`).
-- [ ] T04 -- Host controls on the live view: veto/remove pending cards, budget countdown, close session.
+- [x] T04 -- Host controls on the live view: veto/remove pending cards, budget countdown, close session.
 - [ ] T05 -- E2E spec: host creates a session, an API-simulated guest prompt appears as a pending card, mocked completion lands the song in playlist + queue; zero pageerrors.
 
 ## Done when

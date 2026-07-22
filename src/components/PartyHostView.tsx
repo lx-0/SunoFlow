@@ -1,13 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Music, PartyPopper, QrCode } from "lucide-react";
+import { Loader2, Music, PartyPopper, QrCode, X } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
 import { CoverArtImage } from "./CoverArtImage";
 import { JamQrOverlay } from "./JamQrOverlay";
 import { useQueue } from "./QueueContext";
 import { useToast } from "./Toast";
-import { fetchJamState, type JamSessionDetail } from "@/lib/jam-client";
+import {
+  closeJamSessionApi,
+  fetchJamState,
+  vetoJamEntryApi,
+  type JamSessionDetail,
+} from "@/lib/jam-client";
 import { fetchWithTimeout } from "@/lib/fetch-client";
 import type { JamSessionState } from "@/lib/jam/state";
 
@@ -23,6 +28,9 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
   const [state, setState] = useState<JamSessionState | null>(null);
   const [pollError, setPollError] = useState(false);
   const [showQr, setShowQr] = useState(false);
+  const [vetoingId, setVetoingId] = useState<string | null>(null);
+  const [confirmClose, setConfirmClose] = useState(false);
+  const [closing, setClosing] = useState(false);
   const { addToQueue } = useQueue();
   const { toast } = useToast();
 
@@ -104,7 +112,43 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
     setOrigin(window.location.origin);
   }, []);
 
+  async function handleVeto(entryId: string) {
+    setVetoingId(entryId);
+    try {
+      const result = await vetoJamEntryApi(session.id, entryId);
+      if (!result.ok) {
+        toast(result.error, "error");
+        return;
+      }
+      toast("Request removed", "success");
+      await refresh();
+    } catch {
+      toast("Failed to remove the request", "error");
+    } finally {
+      setVetoingId(null);
+    }
+  }
+
+  async function handleClose() {
+    setClosing(true);
+    try {
+      const result = await closeJamSessionApi(session.id);
+      if (!result.ok) {
+        toast(result.error, "error");
+        return;
+      }
+      toast("Session ended", "success");
+      setConfirmClose(false);
+      await refresh();
+    } catch {
+      toast("Failed to end the session", "error");
+    } finally {
+      setClosing(false);
+    }
+  }
+
   const meta = state?.session;
+  const isClosed = meta?.status === "closed";
   const budgetLeft = meta ? meta.budgetTotal - meta.budgetUsed : null;
   const joinUrl = `${origin}/jam/${session.shareToken}`;
 
@@ -118,15 +162,43 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
             <span className="truncate">{meta?.name ?? session.name}</span>
           </h1>
           <p className="text-sm text-secondary">
-            {meta?.status === "closed" ? "Session ended" : "Live jam session"}
+            {isClosed ? "Session ended" : "Live jam session"}
           </p>
         </div>
-        {budgetLeft !== null && (
-          <div className="flex-shrink-0 text-right">
-            <div className="text-2xl font-bold text-violet-400 tabular-nums">{budgetLeft}</div>
-            <div className="text-xs text-secondary">songs left</div>
-          </div>
-        )}
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {budgetLeft !== null && (
+            <div className="text-right">
+              <div className="text-2xl font-bold text-violet-400 tabular-nums">{budgetLeft}</div>
+              <div className="text-xs text-secondary">songs left</div>
+            </div>
+          )}
+          {meta && !isClosed && (
+            confirmClose ? (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handleClose}
+                  disabled={closing}
+                  className="px-3 py-2 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white transition-colors min-h-[44px]"
+                >
+                  {closing ? "Ending…" : "Confirm end"}
+                </button>
+                <button
+                  onClick={() => setConfirmClose(false)}
+                  className="px-3 py-2 rounded-lg text-sm font-medium text-secondary hover:bg-surface-hover transition-colors min-h-[44px]"
+                >
+                  Keep going
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmClose(true)}
+                className="px-3 py-2 rounded-lg text-sm font-medium text-secondary border border-border hover:bg-surface-hover transition-colors min-h-[44px]"
+              >
+                End session
+              </button>
+            )
+          )}
+        </div>
       </div>
 
       {/* Guest join URL + QR */}
@@ -216,6 +288,17 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
                   <span className="flex-shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-violet-400/10 text-violet-400">
                     Ready
                   </span>
+                )}
+                {entry.status === "pending" && !isClosed && (
+                  <button
+                    onClick={() => handleVeto(entry.id)}
+                    disabled={vetoingId === entry.id}
+                    aria-label="Remove request"
+                    title="Remove request"
+                    className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-muted hover:text-red-400 hover:bg-surface-hover disabled:opacity-50 transition-colors"
+                  >
+                    <Icon icon={X} className="w-4 h-4" />
+                  </button>
                 )}
               </li>
             ))}

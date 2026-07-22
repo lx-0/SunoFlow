@@ -52,3 +52,25 @@ export async function fetchJamState(
   const state = (await res.json()) as JamSessionState;
   return { ok: true, state };
 }
+
+export async function vetoJamEntryApi(
+  sessionId: string,
+  entryId: string,
+): Promise<ClientResult<Record<never, never>>> {
+  const res = await fetchWithTimeout(
+    `/api/jam-sessions/${sessionId}/entries/${entryId}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) return { ok: false, error: await parseError(res) };
+  return { ok: true };
+}
+
+export async function closeJamSessionApi(
+  sessionId: string,
+): Promise<ClientResult<Record<never, never>>> {
+  const res = await fetchWithTimeout(`/api/jam-sessions/${sessionId}/close`, {
+    method: "POST",
+  });
+  if (!res.ok) return { ok: false, error: await parseError(res) };
+  return { ok: true };
+}
