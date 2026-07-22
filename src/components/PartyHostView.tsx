@@ -1,11 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Music, PartyPopper, QrCode } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
 import { CoverArtImage } from "./CoverArtImage";
 import { JamQrOverlay } from "./JamQrOverlay";
+import { useQueue } from "./QueueContext";
+import { useToast } from "./Toast";
 import { fetchJamState, type JamSessionDetail } from "@/lib/jam-client";
+import { fetchWithTimeout } from "@/lib/fetch-client";
 import type { JamSessionState } from "@/lib/jam/state";
 
 const POLL_INTERVAL_MS = 5000;
@@ -20,16 +23,73 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
   const [state, setState] = useState<JamSessionState | null>(null);
   const [pollError, setPollError] = useState(false);
   const [showQr, setShowQr] = useState(false);
+  const { addToQueue } = useQueue();
+  const { toast } = useToast();
+
+  // entry id → last seen status. Entries already terminal on FIRST load are
+  // seeded as known so reopening the console mid-party never re-appends
+  // half the playlist; only live pending→ready transitions enqueue.
+  const entryStatusRef = useRef<Map<string, string> | null>(null);
+
+  const enqueueReadySong = useCallback(
+    async (songId: string) => {
+      try {
+        const res = await fetchWithTimeout(`/api/songs/${songId}`);
+        if (!res.ok) return;
+        const json = (await res.json()) as {
+          song?: {
+            id: string;
+            title: string | null;
+            audioUrl: string | null;
+            imageUrl: string | null;
+            duration: number | null;
+            lyrics: string | null;
+          };
+        };
+        const s = json.song;
+        if (!s?.audioUrl) return;
+        addToQueue({
+          id: s.id,
+          title: s.title,
+          audioUrl: s.audioUrl,
+          imageUrl: s.imageUrl,
+          duration: s.duration,
+          lyrics: s.lyrics,
+        });
+        toast(`Added to queue: ${s.title ?? "New track"}`, "success");
+      } catch {
+        // Next poll retries nothing — the song stays reachable in the
+        // session playlist; queue-append is best-effort sugar.
+      }
+    },
+    [addToQueue, toast],
+  );
 
   const refresh = useCallback(async () => {
     const result = await fetchJamState(session.shareToken);
-    if (result.ok) {
-      setState(result.state);
-      setPollError(false);
-    } else {
+    if (!result.ok) {
       setPollError(true);
+      return;
     }
-  }, [session.shareToken]);
+    setPollError(false);
+    setState(result.state);
+
+    const known = entryStatusRef.current;
+    if (known === null) {
+      // First load: seed without enqueuing.
+      entryStatusRef.current = new Map(
+        result.state.entries.map((e) => [e.id, e.status]),
+      );
+      return;
+    }
+    for (const entry of result.state.entries) {
+      const prev = known.get(entry.id);
+      if (entry.status === "ready" && prev !== "ready" && entry.song) {
+        void enqueueReadySong(entry.song.id);
+      }
+      known.set(entry.id, entry.status);
+    }
+  }, [session.shareToken, enqueueReadySong]);
 
   useEffect(() => {
     void refresh();

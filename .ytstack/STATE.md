@@ -1,7 +1,7 @@
 ---
 project: SunoFlow
 slug: SunoFlow
-last_updated: 2026-07-22T15:30:00Z
+last_updated: 2026-07-22T15:55:00Z
 current_milestone: M005
 active_slice: S02
 active_task: none
@@ -30,7 +30,7 @@ status: brownfield-imported
 
 ## Next action
 
-**Status:** M005 — S01 complete, roadmap reassessed (fits, outcome A). Active slice: S02 — 2/5 done (T01 host console, T02 QR overlay + hydration fix). Next: S02-T03 (auto-append to host play queue). S01 learnings for S02: session playlist shows in the host's normal playlist list (presentation call in S02-T01); nowPlaying freshness depends on PlaybackState persist cadence (verify/heartbeat in S02-T03). M004 remains open on its user-side GATE (below); agent-side M004 work is blocked on that device pass.
+**Status:** M005 — S01 complete, roadmap reassessed (fits, outcome A). Active slice: S02 — 3/5 done (T01 console, T02 QR, T03 auto-enqueue on live ready-transitions). Next: S02-T04 (host controls: veto + close). S01 learnings for S02: session playlist shows in the host's normal playlist list (presentation call in S02-T01); nowPlaying freshness depends on PlaybackState persist cadence (verify/heartbeat in S02-T03). M004 remains open on its user-side GATE (below); agent-side M004 work is blocked on that device pass.
 
 THE M004 GATE (user action, unchanged): user runs ONE free-Apple-ID Expo dev build (`apps/mobile/README.md`) — JS-only since the last native build, so `expo start -c` + reload suffices. Verify on-device: background audio surviving a 10+ min lock (the milestone's proof), the NEW tabs navigation (checklist in `apps/mobile/NAVIGATION.md`), Geist fonts/magenta CTAs/chips everywhere, pull-to-refresh + silent revalidate, keyboard over forms, VoiceOver spot-check, playback (smooth progress, auto-advance on slow network, rapid skips, seek right after a track change).
 
