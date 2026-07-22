@@ -152,16 +152,50 @@ export function goToSection(href: Href) {
     jumpToTab(group);
     return;
   }
-  // Sections live in the shared 5-way route group, so a BARE href like
-  // "/mashup" always resolves into the FIRST group — the Library tab — which
-  // pushes the section onto the wrong stack and orphans Back onto Library
-  // (2026-07-22 device-pass finding: "back goes to Library although I came in
-  // via the menu"). Qualify with the ACTIVE tab's group, same idiom as
-  // pushInActiveTab/closePlayerThen; navigate() (not push) so re-tapping the
-  // section you are already on stays a no-op.
-  if (typeof href === "string" && href.startsWith("/") && !href.startsWith("/(tabs)")) {
-    router.navigate(`/(tabs)/${activeTabGroup()}${href}` as Href);
+
+  // Sections live in the shared 5-way route group, so a bare "/mashup" always
+  // resolves into the FIRST group — the Library tab — orphaning Back onto
+  // Library (2026-07-22 device-pass finding, still reproducible with a
+  // group-qualified path navigate). Deterministic cure, same idiom as
+  // jumpToTab: dispatch NAVIGATE by NAME directly on the ACTIVE tab's child
+  // stack (target = its state key) — by construction the screen can only
+  // land on the current tab. Stack-NAVIGATE pushes when the screen is not on
+  // top and is a no-op when it already is (re-tapping the current section).
+  const target = sectionTarget(href);
+  if (target) {
+    const s = tabState();
+    const childState = s?.routes[s.index]?.state as TabChildState | undefined;
+    if (childState?.key && tabNavigation) {
+      tabNavigation.dispatch({
+        type: "NAVIGATE",
+        payload: target.params ? { name: target.name, params: target.params } : { name: target.name },
+        target: childState.key,
+      });
+      return;
+    }
+    // Child stack not materialized yet (fresh/frozen tab) — fall back to a
+    // group-qualified path navigate on the active group.
+    router.navigate(`/(tabs)/${activeTabGroup()}/${target.pathWithQuery}` as Href);
     return;
+  }
+  router.navigate(href);
+}
+
+/**
+ * Screen name + params for a flat section href ("/mashup", "/generate?x=1",
+ * {pathname: "/generate", params}). Nested or already-qualified hrefs return
+ * null and take the plain navigate path.
+ */
+function sectionTarget(href: Href): {
+  name: string;
+  params?: Record<string, string>;
+  pathWithQuery: string;
+} | null {
+  if (typeof href === "string" && href.startsWith("/") && !href.startsWith("/(tabs)")) {
+    const [path, query] = href.slice(1).split("?");
+    if (!path || path.includes("/")) return null;
+    const params = query ? Object.fromEntries(new URLSearchParams(query)) : undefined;
+    return { name: path, params, pathWithQuery: href.slice(1) };
   }
   if (
     typeof href === "object" &&
@@ -170,13 +204,16 @@ export function goToSection(href: Href) {
     href.pathname.startsWith("/") &&
     !href.pathname.startsWith("/(tabs)")
   ) {
-    router.navigate({
-      ...href,
-      pathname: `/(tabs)/${activeTabGroup()}${href.pathname}`,
-    } as Href);
-    return;
+    const path = href.pathname.slice(1);
+    if (!path || path.includes("/")) return null;
+    const rawParams = "params" in href ? (href.params as Record<string, unknown>) : undefined;
+    const params = rawParams
+      ? Object.fromEntries(Object.entries(rawParams).map(([k, v]) => [k, String(v)]))
+      : undefined;
+    const query = params ? `?${new URLSearchParams(params).toString()}` : "";
+    return { name: path, params, pathWithQuery: `${path}${query}` };
   }
-  router.navigate(href);
+  return null;
 }
 
 /**
