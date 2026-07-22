@@ -4,7 +4,7 @@
  * that boundary; they are erased at build time.
  */
 import { fetchWithTimeout } from "@/lib/fetch-client";
-import type { JamSessionState } from "@/lib/jam/state";
+import type { JamEntryCard, JamSessionState } from "@/lib/jam/state";
 import type { JamSessionSummary } from "@/lib/jam/sessions";
 
 export type JamSessionDetail = JamSessionSummary & { name: string };
@@ -53,6 +53,20 @@ export async function fetchJamState(
   if (!res.ok) return { ok: false, error: await parseError(res), status: res.status };
   const state = (await res.json()) as JamSessionState;
   return { ok: true, state };
+}
+
+export async function pushJamPromptApi(
+  shareToken: string,
+  input: { promptText: string; guestName?: string; guestKey: string },
+): Promise<ClientResult<{ entry: JamEntryCard }>> {
+  const res = await fetchWithTimeout(`/api/jam/${shareToken}/prompts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) return { ok: false, error: await parseError(res), status: res.status };
+  const json = (await res.json()) as { entry: JamEntryCard };
+  return { ok: true, entry: json.entry };
 }
 
 export async function vetoJamEntryApi(

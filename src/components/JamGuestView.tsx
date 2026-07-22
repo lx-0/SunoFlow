@@ -1,13 +1,36 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Music, PartyPopper } from "lucide-react";
+import { Loader2, Music, PartyPopper, Send } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
 import { CoverArtImage } from "./CoverArtImage";
-import { fetchJamState } from "@/lib/jam-client";
+import { fetchJamState, pushJamPromptApi } from "@/lib/jam-client";
 import type { JamSessionState } from "@/lib/jam/state";
 
 const POLL_INTERVAL_MS = 5000;
+const GUEST_KEY_STORAGE = "sunoflow-jam-guest-key";
+
+const VIBE_CHIPS = [
+  "Italo disco",
+  "90s eurodance",
+  "Punk rock",
+  "Lo-fi chill",
+  "Schlager",
+  "Techno banger",
+];
+
+function ensureGuestKey(): string {
+  try {
+    const existing = localStorage.getItem(GUEST_KEY_STORAGE);
+    if (existing && existing.length >= 8) return existing;
+    const key = crypto.randomUUID();
+    localStorage.setItem(GUEST_KEY_STORAGE, key);
+    return key;
+  } catch {
+    // Private-mode fallback: stable for this page load only.
+    return `guest-${Math.random().toString(36).slice(2, 12)}`;
+  }
+}
 
 /**
  * Guest surface for a jam session — token-authed, no account, mobile-first.
@@ -18,6 +41,14 @@ export function JamGuestView({ token }: { token: string }) {
   const [state, setState] = useState<JamSessionState | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [pollError, setPollError] = useState(false);
+  const [guestKey, setGuestKey] = useState("");
+  const [prompt, setPrompt] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setGuestKey(ensureGuestKey());
+  }, []);
 
   const refresh = useCallback(async () => {
     const result = await fetchJamState(token);
@@ -64,6 +95,44 @@ export function JamGuestView({ token }: { token: string }) {
   const { session, nowPlaying, entries } = state;
   const isClosed = session.status === "closed";
   const budgetLeft = session.budgetTotal - session.budgetUsed;
+
+  async function handleSend(e: React.FormEvent) {
+    e.preventDefault();
+    const text = prompt.trim();
+    if (!text || sending || !guestKey) return;
+
+    setSending(true);
+    setSendError(null);
+    try {
+      const result = await pushJamPromptApi(token, {
+        promptText: text,
+        guestKey,
+      });
+      if (!result.ok) {
+        setSendError(result.error);
+        return;
+      }
+      // The server's real entry card lands in the list immediately — no
+      // fake optimistic row that could drift from a poll.
+      setState((prev) =>
+        prev
+          ? {
+              ...prev,
+              session: {
+                ...prev.session,
+                budgetUsed: prev.session.budgetUsed + 1,
+              },
+              entries: [...prev.entries, result.entry],
+            }
+          : prev,
+      );
+      setPrompt("");
+    } catch {
+      setSendError("Couldn't send your request — check your connection");
+    } finally {
+      setSending(false);
+    }
+  }
 
   return (
     <main className="min-h-dvh bg-gray-950 text-white">
@@ -185,6 +254,64 @@ export function JamGuestView({ token }: { token: string }) {
           )}
         </section>
       </div>
+
+      {/* Composer — fixed bottom */}
+      {!isClosed && (
+        <div className="fixed bottom-0 left-0 right-0 bg-gray-950/95 border-t border-gray-800 backdrop-blur">
+          <div className="max-w-lg mx-auto px-4 py-3 space-y-2">
+            {budgetLeft <= 0 ? (
+              <p className="text-sm text-gray-400 text-center py-1">
+                The party budget is used up — enjoy the queue!
+              </p>
+            ) : (
+              <>
+                <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1">
+                  {VIBE_CHIPS.map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() =>
+                        setPrompt((p) => (p.trim() ? `${p.trim()}, ${chip.toLowerCase()}` : chip))
+                      }
+                      className="flex-shrink-0 px-2.5 py-1 rounded-full text-xs bg-gray-900 border border-gray-800 text-gray-300 hover:border-violet-500/50 transition-colors"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+                <form onSubmit={handleSend} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder="What should the AI play next?"
+                    maxLength={500}
+                    aria-label="Song request"
+                    className="flex-1 px-3 py-2.5 bg-gray-900 border border-gray-800 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={sending || !prompt.trim()}
+                    aria-label="Send request"
+                    className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white transition-colors"
+                  >
+                    {sending ? (
+                      <Icon icon={Loader2} className="w-5 h-5 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Icon icon={Send} className="w-5 h-5" aria-hidden="true" />
+                    )}
+                  </button>
+                </form>
+                {sendError && (
+                  <p className="text-xs text-red-400" role="alert" aria-live="polite">
+                    {sendError}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
