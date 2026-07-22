@@ -70,7 +70,7 @@ export function PlayerOptionsMenu({
 
   const close = () => {
     setView("main");
-    close();
+    onClose();
   };
   useOutsideClick(menuRef, close, isOpen);
 
