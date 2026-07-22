@@ -5,7 +5,7 @@ size: L
 created: 2026-06-01T15:02:29Z
 status: planned
 total_slices: 5
-completed_slices: 0
+completed_slices: 3
 ---
 
 # M004 Roadmap
@@ -22,9 +22,9 @@ completed_slices: 0
 
 Slice detail lives in per-slice `M004-S##-PLAN.md` files, created by `ytstack:slice-milestone`.
 
-- [ ] S01 -- Foundations: Expo app scaffold, EAS Build CI, `packages/core` extraction (shared TS: zod schemas, API client, domain types), secure-store session shell. (Monorepo restructure step that touches prod deploy = GATED.)
-- [ ] S02 -- Backend auth path: `/api/v1/auth/token` exchange + refresh, `Authorization: Bearer` accepted on API routes alongside NextAuth cookie. Honors invite-gate + PLAYWRIGHT_TEST bypass + admin OR-merge. (Additive, non-breaking SunoFlow change.)
-- [ ] S03 -- Core playback (THE fix): `react-native-track-player` integration, AVAudioSession `playback` + `audio` background mode, playback service mapping remote commands, lock-screen / Control Center now-playing, library list + player screen, streaming from existing media endpoints. On-device lock verification.
+- [x] S01 -- Foundations: Expo app scaffold, EAS Build CI, `packages/core` extraction (shared TS: zod schemas, API client, domain types), secure-store session shell. (Monorepo restructure step that touches prod deploy = GATED.)
+- [x] S02 -- Backend auth path: `/api/v1/auth/token` exchange + refresh, `Authorization: Bearer` accepted on API routes alongside NextAuth cookie. Honors invite-gate + PLAYWRIGHT_TEST bypass + admin OR-merge. (Additive, non-breaking SunoFlow change.)
+- [x] S03 -- Core playback (THE fix): `react-native-track-player` integration, AVAudioSession `playback` + `audio` background mode, playback service mapping remote commands, lock-screen / Control Center now-playing, library list + player screen, streaming from existing media endpoints. On-device lock verification.
 - [ ] S04 -- Library + Playlists UI: search, playlist view + reorder, favorites/reactions, native waveform (peaks from `src/lib/audio/peaks.ts` or RN lib), settings/sign-out.
 - [ ] S05 -- TestFlight beta: EAS Build + EAS Submit, App Store Connect app record, TestFlight to the closed circle, smoke pass on a real device.
 

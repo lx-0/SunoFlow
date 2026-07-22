@@ -1,7 +1,7 @@
 ---
 project: SunoFlow
 slug: SunoFlow
-last_updated: 2026-07-22T19:20:00Z
+last_updated: 2026-07-22T20:30:00Z
 current_milestone: M005
 active_slice: none
 active_task: none
@@ -30,7 +30,7 @@ status: brownfield-imported
 
 ## Next action
 
-**Status:** M005 — S01 complete, roadmap reassessed (fits, outcome A). **M005 COMPLETE (all 3 slices, 16 tasks incl. 1 descope).** Party Mode is code-complete and agent-verified end to end (keyless two-context e2e + per-task runtime smokes; real-Suno path verified once during S02-T01). Remaining acceptance: THE PARTY TEST — real guests, real phones, real credits, ideally with the QR on a TV. T04 guest reactions descoped (schema-level, v2 candidate). M004's on-device GATE also still open (user action). S01 learnings for S02: session playlist shows in the host's normal playlist list (presentation call in S02-T01); nowPlaying freshness depends on PlaybackState persist cadence (verify/heartbeat in S02-T03). M004 remains open on its user-side GATE (below); agent-side M004 work is blocked on that device pass.
+**Status:** M005 — S01 complete, roadmap reassessed (fits, outcome A). **M005 COMPLETE** (Party Mode live incl. slug+lifetime; remaining acceptance: the real party test). **M004 GATE PASSED 2026-07-22**: user ran `pnpm release` (fresh native build) and verified on-device — background audio through a 10+ min lock (S03's exit criterion), tabs navigation, playback edge cases (auto-advance, rapid skips, seek-after-switch), lyrics highlight incl. the new sync trigger, UI wave, VoiceOver spot-check: all good. M004-ROADMAP flipped S01-S03 [x] (they had never been maintained). Still open in M004: S04 remainder (native waveform, playlist drag-reorder — needs Reanimated wiring: babel plugin + ANOTHER native rebuild) and S05 TestFlight (blocked on a paid Apple Developer account, user decision). Also unblocked now: mobile archive-tile nav (JS-only). /api-docs fixed 2026-07-22 (`b52b827d`, corejs noop-catch-all vs class polyfills). S01 learnings for S02: session playlist shows in the host's normal playlist list (presentation call in S02-T01); nowPlaying freshness depends on PlaybackState persist cadence (verify/heartbeat in S02-T03). M004 remains open on its user-side GATE (below); agent-side M004 work is blocked on that device pass.
 
 THE M004 GATE (user action, unchanged): user runs ONE free-Apple-ID Expo dev build (`apps/mobile/README.md`) — JS-only since the last native build, so `expo start -c` + reload suffices. Verify on-device: background audio surviving a 10+ min lock (the milestone's proof), the NEW tabs navigation (checklist in `apps/mobile/NAVIGATION.md`), Geist fonts/magenta CTAs/chips everywhere, pull-to-refresh + silent revalidate, keyboard over forms, VoiceOver spot-check, playback (smooth progress, auto-advance on slow network, rapid skips, seek right after a track change).
 
