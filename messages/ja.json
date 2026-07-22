@@ -29,6 +29,8 @@
     "submit": "送信",
     "settings": "設定",
     "profile": "プロフィール",
+    "account": "アカウント",
+    "accountMenu": "アカウントメニュー",
     "logout": "サインアウト",
     "login": "サインイン",
     "register": "サインアップ",

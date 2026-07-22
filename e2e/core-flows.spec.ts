@@ -238,13 +238,14 @@ test.describe("Navigation", () => {
     await page.waitForURL(/\/inspire/, { timeout: 10000 });
   });
 
-  test("settings link in header navigates to settings", async ({ page }) => {
+  test("settings is reachable via the sidebar account menu", async ({ page }) => {
     await loginViaUI(page, testEmail, TEST_PASSWORD);
 
     await page.goto("/");
 
-    // Click settings icon in header
-    await page.getByRole("link", { name: "Settings" }).click();
+    // Settings moved into the account menu at the sidebar bottom
+    await page.getByRole("button", { name: "Account menu" }).click();
+    await page.getByRole("menuitem", { name: "Settings" }).click();
     await expect(page).toHaveURL(/\/settings/, { timeout: 5000 });
   });
 

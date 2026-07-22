@@ -5,6 +5,7 @@ import { STYLE_OPTIONS } from "./constants";
 import { apiGet, apiPost, apiPatch } from "@/lib/api-client";
 import {
   InstagramPostsSection,
+  LanguageSection,
   NotificationPreferencesSection,
   OfflineCacheSection,
   PlaybackDefaultsSection,
@@ -229,6 +230,10 @@ export function PreferencesTab() {
         <div className="border-t border-gray-200 dark:border-gray-800" />
 
         <ThemeSection />
+
+        <div className="border-t border-gray-200 dark:border-gray-800" />
+
+        <LanguageSection />
 
         <div className="border-t border-gray-200 dark:border-gray-800" />
 

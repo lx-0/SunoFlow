@@ -479,3 +479,13 @@ C) Leave it; document the back behavior.
 **Deferred (tracked in STATE):** the three Insights *views* still have overlapping content (grouped by tabs, not yet deduped); Feed has no home (a "Following" tab under Profile once the social graph has adoption); Radio has no browse-hub tab; `/explore/page.tsx` is now dead code behind the redirect. Content/UX polish, not blockers.
 
 **Reference:** commits `09d74278` (Phase 1), `f780550f` (Phase 2), player-overlap fix `6eb8086c`; `src/components/SectionTabs.tsx`, `src/components/AppShell.tsx`. Synthetic-panel run + per-page characterization workflow this session. CHANGELOG `[Unreleased]`.
+
+## 2026-07-22: Sidebar bottom block consolidated into one account menu (Phase 3 of the nav cleanup)
+
+**Context:** Operator follow-up on the 2026-07-20 consolidation: the main nav went 17 → 10, but the sidebar's bottom block still stacked six standalone items (Admin, Profile, Settings, language selector, Feedback, Sign out) plus the Plan badge — in both the desktop sidebar and the mobile drawer.
+
+**Chose:** One `AccountMenu` trigger (icon + display name + tier badge; icon-only when collapsed) opening an upward popover with Plan (paid tiers), Profile, Settings, Admin (admins only), Feedback, Sign out. The language selector moved to Settings → Preferences as a `LanguageSection` (between Appearance and Notifications). Trigger + menu carry the accessible name "Account menu" — deliberately NOT "Account", which would collide with the Settings page's Account *tab* in a session-hydration race (two identical accessible names, strict-mode flake).
+
+**Non-destructive:** every entry stays reachable (menu item or Settings section); the header's own logout button and mobile header icons are untouched.
+
+**Reference:** `src/components/AccountMenu.tsx`, `src/components/AppShell.tsx` (both bottom sections), `LanguageSection` in `src/app/[locale]/settings/local-preferences-sections.tsx`, `common.account`/`common.accountMenu` in all three locale files. E2E: `e2e/account-menu.spec.ts` (+ adjusted core-flows settings-navigation test).

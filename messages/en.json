@@ -29,6 +29,8 @@
     "submit": "Submit",
     "settings": "Settings",
     "profile": "Profile",
+    "account": "Account",
+    "accountMenu": "Account menu",
     "logout": "Sign out",
     "login": "Sign in",
     "register": "Sign up",

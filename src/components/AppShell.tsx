@@ -4,7 +4,6 @@ import { useState, useRef, useCallback } from "react";
 import { Link, usePathname } from "@/i18n/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
-import { TIER_LABELS, TIER_BADGE_COLORS, type SubscriptionTier } from "@/lib/feature-gates";
 
 import {
   House,
@@ -15,7 +14,6 @@ import {
   CircleUserRound,
   Menu,
   X,
-  ShieldCheck,
   ChartColumn,
   Lightbulb,
   Sparkles,
@@ -27,7 +25,6 @@ import {
   Sun,
   Moon,
   Monitor,
-  MessageSquareMore,
   type LucideIcon,
 } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
@@ -42,7 +39,7 @@ import { SearchBar } from "./SearchBar";
 import { SubscriptionStatusBadge } from "./SubscriptionStatusBadge";
 import { EmailVerificationBanner } from "./EmailVerificationBanner";
 import { SunoStatusBanner } from "./SunoStatusBanner";
-import { LocaleSwitcher } from "./LocaleSwitcher";
+import { AccountMenu } from "./AccountMenu";
 const FeedbackModal = dynamic(() => import("./FeedbackModal").then((m) => m.FeedbackModal));
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { useSwipeToDismiss } from "@/hooks/useSwipeToDismiss";
@@ -221,94 +218,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        {/* Bottom section — profile/settings/signout */}
+        {/* Bottom section — single account menu (Plan/Admin/Profile/Settings/Feedback/Sign out) */}
         {session?.user && (
-          <div className="border-t border-border p-2 space-y-1">
-            {/* Tier badge — visible when sidebar is expanded and user is on paid tier */}
-            {!sidebarCollapsed && (() => {
-              const tier: SubscriptionTier = session.user.subscriptionTier ?? "free";
-              if (tier === "free") return null;
-              return (
-                <Link
-                  href="/settings/billing"
-                  aria-label="billing plan"
-                  className="flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-surface-hover transition-colors"
-                >
-                  <span className="text-xs text-secondary">Plan</span>
-                  <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide ${TIER_BADGE_COLORS[tier]}`}>
-                    {TIER_LABELS[tier]}
-                  </span>
-                </Link>
-              );
-            })()}
-            {!!session.user.isAdmin && (
-              <Link
-                href="/admin"
-                aria-current={pathname.startsWith("/admin") ? "page" : undefined}
-                aria-label={t("admin")}
-                title={sidebarCollapsed ? "Admin" : undefined}
-                className={`flex items-center rounded-lg text-sm font-medium transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"} ${
-                  pathname.startsWith("/admin")
-                    ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
-                    : "text-secondary hover:bg-surface-hover hover:text-primary"
-                }`}
-              >
-                <Icon icon={ShieldCheck} className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
-                {!sidebarCollapsed && t("admin")}
-              </Link>
-            )}
-            <Link
-              href="/profile"
-              aria-current={pathname === "/profile" ? "page" : undefined}
-              aria-label={tCommon("profile")}
-              title={sidebarCollapsed ? tCommon("profile") : undefined}
-              className={`flex items-center rounded-lg text-sm font-medium transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"} ${
-                pathname === "/profile"
-                  ? "bg-surface-raised text-accent"
-                  : "text-secondary hover:bg-surface-hover hover:text-primary"
-              }`}
-            >
-              <Icon icon={CircleUserRound} className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
-              {!sidebarCollapsed && tCommon("profile")}
-            </Link>
-            <Link
-              href="/settings"
-              aria-current={pathname === "/settings" ? "page" : undefined}
-              aria-label={t("settings")}
-              title={sidebarCollapsed ? t("settings") : undefined}
-              className={`flex items-center rounded-lg text-sm font-medium transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"} ${
-                pathname === "/settings"
-                  ? "bg-surface-raised text-accent"
-                  : "text-secondary hover:bg-surface-hover hover:text-primary"
-              }`}
-            >
-              <Icon icon={Settings} className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
-              {!sidebarCollapsed && t("settings")}
-            </Link>
-            <div className={sidebarCollapsed ? "flex justify-center py-1" : "px-2 py-1"}>
-              <LocaleSwitcher iconOnly={sidebarCollapsed} />
-            </div>
-            <button
-              onClick={() => setFeedbackOpen(true)}
-              aria-label="Send feedback"
-              title={sidebarCollapsed ? "Send feedback" : undefined}
-              className={`w-full flex items-center rounded-lg text-sm font-medium text-secondary hover:bg-surface-hover hover:text-primary transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"}`}
-            >
-              <Icon icon={MessageSquareMore} className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
-              {!sidebarCollapsed && "Feedback"}
-            </button>
-            <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              aria-label={tCommon("logout")}
-              title={sidebarCollapsed ? tCommon("logout") : undefined}
-              className={`w-full flex items-center rounded-lg text-sm font-medium text-secondary hover:bg-surface-hover hover:text-primary transition-colors min-h-[44px] ${sidebarCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"}`}
-            >
-              {sidebarCollapsed ? (
-                <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-              ) : tCommon("logout")}
-            </button>
+          <div className="border-t border-border p-2">
+            <AccountMenu
+              collapsed={sidebarCollapsed}
+              onFeedback={() => setFeedbackOpen(true)}
+            />
           </div>
         )}
       </aside>
@@ -380,73 +296,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        {/* Bottom section */}
+        {/* Bottom section — single account menu */}
         {session?.user && (
-          <div className="border-t border-border p-2 space-y-1">
-            {/* Tier badge for mobile drawer */}
-            {(() => {
-              const tier: SubscriptionTier = session.user.subscriptionTier ?? "free";
-              if (tier === "free") return null;
-              return (
-                <Link
-                  aria-label="billing plan"
-                  href="/settings/billing"
-                  onClick={closeSidebar}
-                  className="flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-surface-hover transition-colors"
-                >
-                  <span className="text-xs text-secondary">Plan</span>
-                  <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide ${TIER_BADGE_COLORS[tier]}`}>
-                    {TIER_LABELS[tier]}
-                  </span>
-                </Link>
-              );
-            })()}
-              <Link
-                href="/profile"
-                onClick={closeSidebar}
-                aria-current={pathname === "/profile" ? "page" : undefined}
-                aria-label={tCommon("profile")}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
-                pathname === "/profile"
-                  ? "bg-surface-raised text-accent"
-                  : "text-secondary hover:bg-surface-hover hover:text-primary"
-              }`}
-            >
-              <Icon icon={CircleUserRound} className="w-5 h-5" aria-hidden="true" />
-              {tCommon("profile")}
-            </Link>
-            <Link
-              href="/settings"
-              onClick={closeSidebar}
-              aria-current={pathname === "/settings" ? "page" : undefined}
-              aria-label={t("settings")}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
-                pathname === "/settings"
-                  ? "bg-surface-raised text-accent"
-                  : "text-secondary hover:bg-surface-hover hover:text-primary"
-              }`}
-            >
-              <Icon icon={Settings} className="w-5 h-5" aria-hidden="true" />
-              {t("settings")}
-            </Link>
-            <div className="px-2 py-1">
-              <LocaleSwitcher compact />
-            </div>
-            <button
-              onClick={() => { closeSidebar(); setFeedbackOpen(true); }}
-              aria-label="Send feedback"
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-secondary hover:bg-surface-hover hover:text-primary transition-colors min-h-[44px]"
-            >
-              <Icon icon={MessageSquareMore} className="w-5 h-5" aria-hidden="true" />
-              Feedback
-            </button>
-            <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              aria-label={tCommon("logout")}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-secondary hover:bg-surface-hover hover:text-primary transition-colors min-h-[44px]"
-            >
-              {tCommon("logout")}
-            </button>
+          <div className="border-t border-border p-2">
+            <AccountMenu
+              onFeedback={() => setFeedbackOpen(true)}
+              onNavigate={closeSidebar}
+            />
           </div>
         )}
         </div>{/* end scrollable area */}

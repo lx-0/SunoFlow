@@ -1,13 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Bell, CloudDownload, Monitor, Moon, Plus, Sun, Trash2, Volume2 } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
 import { useTheme } from "@/components/ThemeProvider";
+import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { useOfflineCache } from "@/hooks/useOfflineCache";
 import { formatBytes, getCachedSongsMeta } from "@/lib/cache/offline";
 import { FieldError } from "./ui";
 import { IG_POSTS_KEY, NOTIF_PREFS_KEY, NOTIFICATION_TYPES, PLAYBACK_PREFS_KEY } from "./constants";
+
+export function LanguageSection() {
+  const t = useTranslations("common");
+  return (
+    <section className="space-y-3">
+      <div>
+        <h3 className="text-base font-semibold text-primary">{t("language")}</h3>
+        <p className="text-xs text-secondary mt-0.5">Interface language for menus and pages.</p>
+      </div>
+      <LocaleSwitcher />
+    </section>
+  );
+}
 
 export function InstagramPostsSection() {
   const [postUrls, setPostUrls] = useState<string[]>([]);
