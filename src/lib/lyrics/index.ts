@@ -7,6 +7,7 @@ export {
   replaceLyricTimestamps,
   upsertLyricAnnotation,
 } from "./crud";
+export { syncLyricTimestamps } from "./sync";
 
 const SYSTEM_PROMPT =
   "You are a professional songwriter. Turn the SOURCE TEXT the user provides " +

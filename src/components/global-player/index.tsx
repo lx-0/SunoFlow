@@ -132,6 +132,11 @@ export function GlobalPlayer({
             <LyricsPanel
               lyrics={currentSong.lyrics}
               songTitle={currentSong.title}
+              songId={currentSong.id}
+              currentTime={currentTime}
+              duration={duration}
+              isPlaying={isPlaying}
+              onSeek={seek}
               onClose={() => setShowLyrics(false)}
             />
           </div>

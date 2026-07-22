@@ -334,6 +334,11 @@ export function ExpandedPlayer({
             <LyricsPanel
               lyrics={currentSong.lyrics}
               songTitle={currentSong.title ?? "Untitled"}
+              songId={currentSong.id}
+              currentTime={currentTime}
+              duration={duration}
+              isPlaying={isPlaying}
+              onSeek={seek}
               onClose={() => setActiveTab("none")}
             />
           )}
