@@ -9,6 +9,7 @@ import type { JamSessionState } from "@/lib/jam/state";
 
 const POLL_INTERVAL_MS = 5000;
 const GUEST_KEY_STORAGE = "sunoflow-jam-guest-key";
+const GUEST_NAME_STORAGE = "sunoflow-jam-guest-name";
 
 const VIBE_CHIPS = [
   "Italo disco",
@@ -42,13 +43,28 @@ export function JamGuestView({ token }: { token: string }) {
   const [notFound, setNotFound] = useState(false);
   const [pollError, setPollError] = useState(false);
   const [guestKey, setGuestKey] = useState("");
+  const [guestName, setGuestName] = useState("");
   const [prompt, setPrompt] = useState("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
   useEffect(() => {
     setGuestKey(ensureGuestKey());
+    try {
+      setGuestName(localStorage.getItem(GUEST_NAME_STORAGE) ?? "");
+    } catch {
+      // private mode — name just won't persist across reloads
+    }
   }, []);
+
+  function handleNameChange(value: string) {
+    setGuestName(value);
+    try {
+      localStorage.setItem(GUEST_NAME_STORAGE, value.trim());
+    } catch {
+      // private mode — non-fatal
+    }
+  }
 
   const refresh = useCallback(async () => {
     const result = await fetchJamState(token);
@@ -107,6 +123,7 @@ export function JamGuestView({ token }: { token: string }) {
       const result = await pushJamPromptApi(token, {
         promptText: text,
         guestKey,
+        guestName: guestName.trim() || undefined,
       });
       if (!result.ok) {
         setSendError(result.error);
@@ -265,6 +282,15 @@ export function JamGuestView({ token }: { token: string }) {
               </p>
             ) : (
               <>
+                <input
+                  type="text"
+                  value={guestName}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  placeholder="Your name (shows on your requests)"
+                  maxLength={40}
+                  aria-label="Your name"
+                  className="w-full px-3 py-1.5 bg-transparent border border-gray-800 rounded-lg text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                />
                 <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1">
                   {VIBE_CHIPS.map((chip) => (
                     <button
