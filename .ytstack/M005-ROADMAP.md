@@ -3,9 +3,9 @@ milestone: M005
 project: SunoFlow
 size: M
 created: 2026-07-22T11:45:00Z
-status: planned
+status: done
 total_slices: 3
-completed_slices: 2
+completed_slices: 3
 ---
 
 # M005 Roadmap
@@ -28,7 +28,7 @@ Slice detail lives in per-slice `M005-S##-PLAN.md` files, created by `ytstack:sl
 
 - [x] S01 -- Backend: session lifecycle, tokened guest access, prompt→generation with budget/rate-limit/veto guardrails (route+unit tested, Suno mocked)
 - [x] S02 -- Host experience: start session + QR overlay, live queue with pending cards, veto, auto-append to play queue (e2e)
-- [ ] S03 -- Guest experience: tokened mobile-web page, prompt composer with visible limits, nickname, reactions (full-path e2e)
+- [x] S03 -- Guest experience: tokened mobile-web page, prompt composer with visible limits, nickname, reactions (full-path e2e)
 
 ## Run order
 
@@ -38,4 +38,4 @@ Slices execute sequentially. After each slice, `ytstack:reassess-roadmap` checks
 
 - Flip slice checkbox `[ ]` → `[x]` when its tasks are all `summarize-task`-confirmed
 - Update `completed_slices` count
-- On milestone completion, flip `status: planned` → `status: done` and update global ROADMAP.md
+- On milestone completion, flip `status: done` → `status: done` and update global ROADMAP.md

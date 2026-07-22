@@ -1,7 +1,7 @@
 ---
 project: SunoFlow
 slug: SunoFlow
-last_updated: 2026-07-22T17:55:00Z
+last_updated: 2026-07-22T19:20:00Z
 current_milestone: M005
 active_slice: none
 active_task: none
@@ -30,7 +30,7 @@ status: brownfield-imported
 
 ## Next action
 
-**Status:** M005 — S01 complete, roadmap reassessed (fits, outcome A). S02 COMPLETE + deployed. S03 active — 4/6 done (guest page, slug+lifetime, composer, nickname). Next: T04 descope call, T05 keyless full-path e2e. S01 learnings for S02: session playlist shows in the host's normal playlist list (presentation call in S02-T01); nowPlaying freshness depends on PlaybackState persist cadence (verify/heartbeat in S02-T03). M004 remains open on its user-side GATE (below); agent-side M004 work is blocked on that device pass.
+**Status:** M005 — S01 complete, roadmap reassessed (fits, outcome A). **M005 COMPLETE (all 3 slices, 16 tasks incl. 1 descope).** Party Mode is code-complete and agent-verified end to end (keyless two-context e2e + per-task runtime smokes; real-Suno path verified once during S02-T01). Remaining acceptance: THE PARTY TEST — real guests, real phones, real credits, ideally with the QR on a TV. T04 guest reactions descoped (schema-level, v2 candidate). M004's on-device GATE also still open (user action). S01 learnings for S02: session playlist shows in the host's normal playlist list (presentation call in S02-T01); nowPlaying freshness depends on PlaybackState persist cadence (verify/heartbeat in S02-T03). M004 remains open on its user-side GATE (below); agent-side M004 work is blocked on that device pass.
 
 THE M004 GATE (user action, unchanged): user runs ONE free-Apple-ID Expo dev build (`apps/mobile/README.md`) — JS-only since the last native build, so `expo start -c` + reload suffices. Verify on-device: background audio surviving a 10+ min lock (the milestone's proof), the NEW tabs navigation (checklist in `apps/mobile/NAVIGATION.md`), Geist fonts/magenta CTAs/chips everywhere, pull-to-refresh + silent revalidate, keyboard over forms, VoiceOver spot-check, playback (smooth progress, auto-advance on slow network, rapid skips, seek right after a track change).
 
