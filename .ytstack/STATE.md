@@ -1,7 +1,7 @@
 ---
 project: SunoFlow
 slug: SunoFlow
-last_updated: 2026-07-22T13:10:00Z
+last_updated: 2026-07-22T13:40:00Z
 current_milestone: M005
 active_slice: S01
 active_task: none
@@ -30,7 +30,7 @@ status: brownfield-imported
 
 ## Next action
 
-**Status:** M005 / S01 — 3/5 tasks done (T01 schema, T02 host routes, T03 guest state). Next: S01-T04 (guest prompt push). M004 remains open on its user-side GATE (below); agent-side M004 work is blocked on that device pass.
+**Status:** M005 / S01 — 4/5 tasks done. Next: S01-T05 (completion hook: song joins session playlist + host-queue flag). M004 remains open on its user-side GATE (below); agent-side M004 work is blocked on that device pass.
 
 THE M004 GATE (user action, unchanged): user runs ONE free-Apple-ID Expo dev build (`apps/mobile/README.md`) — JS-only since the last native build, so `expo start -c` + reload suffices. Verify on-device: background audio surviving a 10+ min lock (the milestone's proof), the NEW tabs navigation (checklist in `apps/mobile/NAVIGATION.md`), Geist fonts/magenta CTAs/chips everywhere, pull-to-refresh + silent revalidate, keyboard over forms, VoiceOver spot-check, playback (smooth progress, auto-advance on slow network, rapid skips, seek right after a track change).
 

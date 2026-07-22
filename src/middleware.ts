@@ -46,6 +46,9 @@ const PUBLIC_PATHS = [
   // as the media stream — silent breakage on share pages and after a JWT-cookie
   // eviction in iOS PWAs.
   "/api/audio/", "/api/images/",
+  // Jam-session guest surface — the share token IS the auth; without this
+  // entry guests get redirected to /login (the media-proxy trap).
+  "/api/jam/",
   "/s/", "/p/", "/u/", "/songs/", "/embed/",
 ];
 
