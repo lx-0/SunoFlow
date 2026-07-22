@@ -3,7 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     subscription: { findUnique: vi.fn() },
-    jamSession: { count: vi.fn(), create: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
+    jamSession: {
+      count: vi.fn(),
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      update: vi.fn(),
+    },
     jamSessionEntry: { findFirst: vi.fn(), update: vi.fn() },
     playlist: { create: vi.fn() },
     $transaction: vi.fn(),
@@ -11,7 +17,13 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import { createJamSession, closeJamSession, vetoJamEntry } from "./sessions";
+import {
+  createJamSession,
+  closeJamSession,
+  getJamSession,
+  listJamSessions,
+  vetoJamEntry,
+} from "./sessions";
 
 const SESSION = {
   id: "jam-1",
@@ -80,6 +92,44 @@ describe("createJamSession", () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe("LIMIT_REACHED");
+  });
+});
+
+describe("listJamSessions / getJamSession", () => {
+  it("flattens the playlist name into the session summary", async () => {
+    vi.mocked(prisma.jamSession.findMany).mockResolvedValue([
+      { ...SESSION, playlist: { name: "Kitchen Party" } },
+    ] as never);
+
+    const result = await listJamSessions("user-1");
+
+    expect(result).toEqual({
+      ok: true,
+      data: { sessions: [{ ...SESSION, name: "Kitchen Party" }] },
+    });
+  });
+
+  it("getJamSession 404s for foreign sessions", async () => {
+    vi.mocked(prisma.jamSession.findFirst).mockResolvedValue(null as never);
+
+    const result = await getJamSession("jam-1", "user-1");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.status).toBe(404);
+  });
+
+  it("getJamSession returns the detail incl. shareToken", async () => {
+    vi.mocked(prisma.jamSession.findFirst).mockResolvedValue({
+      ...SESSION,
+      playlist: { name: "Kitchen Party" },
+    } as never);
+
+    const result = await getJamSession("jam-1", "user-1");
+
+    expect(result).toEqual({
+      ok: true,
+      data: { session: { ...SESSION, name: "Kitchen Party" } },
+    });
   });
 });
 

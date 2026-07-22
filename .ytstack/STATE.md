@@ -1,9 +1,9 @@
 ---
 project: SunoFlow
 slug: SunoFlow
-last_updated: 2026-07-22T14:05:00Z
+last_updated: 2026-07-22T15:00:00Z
 current_milestone: M005
-active_slice: none
+active_slice: S02
 active_task: none
 status: brownfield-imported
 ---
@@ -30,7 +30,7 @@ status: brownfield-imported
 
 ## Next action
 
-**Status:** M005 — slice S01 COMPLETE (5/5: schema, host routes, guest state, prompt push, completion hook; backend fully tested, Suno mocked). Next: `ytstack:reassess-roadmap`, then S02 (host experience). M004 remains open on its user-side GATE (below); agent-side M004 work is blocked on that device pass.
+**Status:** M005 — S01 complete, roadmap reassessed (fits, outcome A). Active slice: S02 — 1/5 done (T01 host console + entry point, runtime-smoked incl. real cookie-less guest POST). Next: S02-T02 (QR overlay). S01 learnings for S02: session playlist shows in the host's normal playlist list (presentation call in S02-T01); nowPlaying freshness depends on PlaybackState persist cadence (verify/heartbeat in S02-T03). M004 remains open on its user-side GATE (below); agent-side M004 work is blocked on that device pass.
 
 THE M004 GATE (user action, unchanged): user runs ONE free-Apple-ID Expo dev build (`apps/mobile/README.md`) — JS-only since the last native build, so `expo start -c` + reload suffices. Verify on-device: background audio surviving a 10+ min lock (the milestone's proof), the NEW tabs navigation (checklist in `apps/mobile/NAVIGATION.md`), Geist fonts/magenta CTAs/chips everywhere, pull-to-refresh + silent revalidate, keyboard over forms, VoiceOver spot-check, playback (smooth progress, auto-advance on slow network, rapid skips, seek right after a track change).
 

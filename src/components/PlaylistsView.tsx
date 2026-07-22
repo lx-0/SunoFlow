@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useRouter } from "@/i18n/navigation";
 import {
   Plus,
   Music,
@@ -12,12 +14,14 @@ import {
   CalendarDays,
   Smile,
   Archive,
+  PartyPopper,
 } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
 import { useToast } from "./Toast";
 import { track } from "@/lib/analytics";
 import { InAppFeedbackWidget, hasFeedbackBeenSubmitted } from "./InAppFeedbackWidget";
 import { createPlaylist, deletePlaylist, type LibraryPlaylist } from "@/lib/songs/library-client";
+import { createJamSessionApi } from "@/lib/jam-client";
 
 interface PlaylistItem {
   id: string;
@@ -87,11 +91,18 @@ export function PlaylistsView({
   smartPlaylists?: SmartPlaylistItem[];
 }) {
   const { toast } = useToast();
+  const { data: authSession } = useSession();
+  const router = useRouter();
   const [playlists, setPlaylists] = useState(initialPlaylists);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [creating, setCreating] = useState(false);
+  const [showJamCreate, setShowJamCreate] = useState(false);
+  const [jamName, setJamName] = useState("");
+  const [jamBudget, setJamBudget] = useState("30");
+  const [startingJam, setStartingJam] = useState(false);
+  const isStudio = authSession?.user?.subscriptionTier === "studio";
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [feedbackPlaylistId, setFeedbackPlaylistId] = useState<string | null>(null);
@@ -127,6 +138,35 @@ export function PlaylistsView({
     }
   }
 
+  async function handleStartJam(e: React.FormEvent) {
+    e.preventDefault();
+    if (startingJam) return;
+
+    const budgetTotal = Number(jamBudget);
+    if (!Number.isInteger(budgetTotal) || budgetTotal < 1 || budgetTotal > 100) {
+      toast("Budget must be between 1 and 100 songs", "error");
+      return;
+    }
+
+    setStartingJam(true);
+    try {
+      const result = await createJamSessionApi({
+        name: jamName.trim() || undefined,
+        budgetTotal,
+      });
+      if (!result.ok) {
+        toast(result.error, "error");
+        return;
+      }
+      track("jam_session_created");
+      router.push(`/party/${result.session.id}`);
+    } catch {
+      toast("Failed to start the jam session", "error");
+    } finally {
+      setStartingJam(false);
+    }
+  }
+
   async function handleDelete(id: string) {
     setConfirmDeleteId(null);
     setDeletingId(id);
@@ -157,14 +197,73 @@ export function PlaylistsView({
             {playlists.length} playlist{playlists.length !== 1 ? "s" : ""}
           </span>
         </div>
-        <button
-          onClick={() => setShowCreate((v) => !v)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors min-h-[44px]"
-        >
-          <Icon icon={Plus} className="w-4 h-4" />
-          New
-        </button>
+        <div className="flex items-center gap-2">
+          {isStudio && (
+            <button
+              onClick={() => {
+                setShowJamCreate((v) => !v);
+                setShowCreate(false);
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-surface-raised border border-violet-500/40 text-violet-400 hover:bg-surface-hover transition-colors min-h-[44px]"
+            >
+              <Icon icon={PartyPopper} className="w-4 h-4" />
+              Jam
+            </button>
+          )}
+          <button
+            onClick={() => {
+              setShowCreate((v) => !v);
+              setShowJamCreate(false);
+            }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors min-h-[44px]"
+          >
+            <Icon icon={Plus} className="w-4 h-4" />
+            New
+          </button>
+        </div>
       </div>
+
+      {/* Start-jam form (studio only) */}
+      {showJamCreate && (
+        <form
+          onSubmit={handleStartJam}
+          className="bg-surface border border-border rounded-xl p-4 space-y-3"
+        >
+          <p className="text-xs text-secondary">
+            Guests join via QR without an account and push song prompts straight
+            into the party queue. Generations run on your credits — the budget
+            caps them.
+          </p>
+          <input
+            type="text"
+            value={jamName}
+            onChange={(e) => setJamName(e.target.value)}
+            placeholder="Session name (optional)"
+            maxLength={80}
+            className="w-full px-3 py-2 bg-surface-raised border border-border rounded-lg text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-violet-500"
+          />
+          <label className="flex items-center gap-3 text-sm text-secondary">
+            Song budget
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={jamBudget}
+              onChange={(e) => setJamBudget(e.target.value)}
+              aria-label="Song budget"
+              className="w-24 px-3 py-2 bg-surface-raised border border-border rounded-lg text-sm text-primary focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={startingJam}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white transition-colors min-h-[44px]"
+          >
+            <Icon icon={PartyPopper} className="w-4 h-4" />
+            {startingJam ? "Starting…" : "Start jam session"}
+          </button>
+        </form>
+      )}
 
       {/* Create form */}
       {showCreate && (

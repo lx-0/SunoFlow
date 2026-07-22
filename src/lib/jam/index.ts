@@ -2,6 +2,8 @@ export {
   createJamSession,
   closeJamSession,
   vetoJamEntry,
+  listJamSessions,
+  getJamSession,
   JAM_DEFAULT_BUDGET,
   JAM_MIN_BUDGET,
   JAM_MAX_BUDGET,

@@ -87,6 +87,37 @@ export async function createJamSession(
   return success({ session });
 }
 
+/** Host's sessions, newest first (open ones before closed). */
+export async function listJamSessions(
+  userId: string,
+): Promise<Result<{ sessions: (JamSessionSummary & { name: string })[] }>> {
+  const rows = await prisma.jamSession.findMany({
+    where: { hostUserId: userId },
+    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+    select: { ...SESSION_SELECT, playlist: { select: { name: true } } },
+  });
+  return success({
+    sessions: rows.map(({ playlist, ...session }) => ({
+      ...session,
+      name: playlist.name,
+    })),
+  });
+}
+
+/** Host detail incl. shareToken (ownership-checked). */
+export async function getJamSession(
+  sessionId: string,
+  userId: string,
+): Promise<Result<{ session: JamSessionSummary & { name: string } }>> {
+  const row = await prisma.jamSession.findFirst({
+    where: { id: sessionId, hostUserId: userId },
+    select: { ...SESSION_SELECT, playlist: { select: { name: true } } },
+  });
+  if (!row) return Err.notFound("Not found");
+  const { playlist, ...session } = row;
+  return success({ session: { ...session, name: playlist.name } });
+}
+
 /** Closes a session (idempotent — closing an already-closed session is a no-op). */
 export async function closeJamSession(
   sessionId: string,

@@ -53,6 +53,13 @@ export const POST = publicRoute<
     ? "__Secure-authjs.session-token"
     : "authjs.session-token";
 
+  // Mirror the fields the real jwt callback would set at sign-in — tests for
+  // tier-gated UI (e.g. the jam-session button) read them from the session.
+  const subscription = await prisma.subscription.findUnique({
+    where: { userId: user.id },
+    select: { tier: true, status: true },
+  });
+
   const token = await encode({
     token: {
       sub: user.id,
@@ -64,6 +71,9 @@ export const POST = publicRoute<
       // session without needing a DB read (the callback only reads DB on
       // sign-in or trigger==="update", not on normal session access)
       onboardingCompleted: true,
+      isAdmin: user.isAdmin,
+      subscriptionTier: subscription?.tier ?? "free",
+      subscriptionStatus: subscription?.status ?? "active",
     },
     secret,
     salt: cookieName,
