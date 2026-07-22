@@ -100,7 +100,7 @@
       "follow-redirects": ">=1.16.0",
       "dompurify": ">=3.4.0",
       "fast-uri": ">=3.1.4",
-      "js-yaml@4": ">=4.3.0",
+      "js-yaml@4": "4.1.1",
       "sharp": ">=0.35.0",
       "postcss": ">=8.5.10",
       "icu-minify": ">=4.9.2",
@@ -128,7 +128,8 @@
     "auditConfig": {
       "ignoreGhsas": [
         "GHSA-v56q-mh7h-f735",
-        "GHSA-xvcm-6775-5m9r"
+        "GHSA-xvcm-6775-5m9r",
+        "GHSA-52cp-r559-cp3m"
       ]
     }
   }

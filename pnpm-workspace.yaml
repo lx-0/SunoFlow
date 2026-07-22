@@ -45,7 +45,10 @@ overrides:
   follow-redirects: ">=1.16.0"
   dompurify: ">=3.4.0"
   fast-uri: ">=3.1.4"
-  "js-yaml@4": ">=4.3.0"
+  # 4.2+/4.3 drop the CJS-interop default export and break swagger-ui-react's
+  # `import YAML from "js-yaml"` (/api-docs error boundary). Pinned to the
+  # known-good 4.1.1; the high advisory is ignored below as not applicable.
+  "js-yaml@4": "4.1.1"
   sharp: ">=0.35.0"
   postcss: ">=8.5.10"
   icu-minify: ">=4.9.2"
@@ -54,6 +57,10 @@ overrides:
 auditConfig:
   # immutable 3.x sits under swagger-ui-react (docs page only); the patched
   # line is 4.3.9+ — a major bump swagger-ui-react does not support.
+  # js-yaml GHSA-52cp (merge-key CPU DoS): js-yaml exists ONLY as
+  # swagger-ui-react's client-side parser for our own OpenAPI spec — no
+  # untrusted YAML input; the patched 4.3.0 breaks swagger's default import.
   ignoreGhsas:
     - GHSA-v56q-mh7h-f735
     - GHSA-xvcm-6775-5m9r
+    - GHSA-52cp-r559-cp3m
