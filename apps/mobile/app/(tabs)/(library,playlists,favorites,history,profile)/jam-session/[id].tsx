@@ -59,23 +59,25 @@ export default function JamSessionScreen() {
     };
   }, [id]);
 
+  const shareToken = detail?.shareToken ?? null;
+
   const refresh = useCallback(async () => {
-    if (!detail?.shareToken) return;
+    if (!shareToken) return;
     try {
-      const s = await fetchJamState(detail.shareToken);
+      const s = await fetchJamState(shareToken);
       if (s) setState(s);
       setError(null);
     } catch {
       // transient poll failure — keep the last state visible
     }
-  }, [detail?.shareToken]);
+  }, [shareToken]);
 
   useEffect(() => {
-    if (!detail?.shareToken) return;
+    if (!shareToken) return;
     void refresh();
     const timer = setInterval(() => void refresh(), POLL_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [detail?.shareToken, refresh]);
+  }, [shareToken, refresh]);
 
   const meta = state?.session;
   const isClosed = meta?.status === "closed";
