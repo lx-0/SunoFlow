@@ -5,7 +5,7 @@ size: M
 created: 2026-07-22T11:45:00Z
 status: planned
 total_slices: 3
-completed_slices: 1
+completed_slices: 2
 ---
 
 # M005 Roadmap
@@ -27,7 +27,7 @@ running party queue.
 Slice detail lives in per-slice `M005-S##-PLAN.md` files, created by `ytstack:slice-milestone`.
 
 - [x] S01 -- Backend: session lifecycle, tokened guest access, prompt→generation with budget/rate-limit/veto guardrails (route+unit tested, Suno mocked)
-- [ ] S02 -- Host experience: start session + QR overlay, live queue with pending cards, veto, auto-append to play queue (e2e)
+- [x] S02 -- Host experience: start session + QR overlay, live queue with pending cards, veto, auto-append to play queue (e2e)
 - [ ] S03 -- Guest experience: tokened mobile-web page, prompt composer with visible limits, nickname, reactions (full-path e2e)
 
 ## Run order

@@ -30,7 +30,8 @@ const SECURITY_HEADERS: Record<string, string> = {
 
 const PUBLIC_PATHS = [
   "/login", "/register", "/forgot-password", "/reset-password", "/verify-email",
-  "/api/auth", "/api/register", "/api/health", "/api/agent-skill", "/api/test/login",
+  // /api/test/* routes are all PLAYWRIGHT_TEST-gated themselves (404 in prod).
+  "/api/auth", "/api/register", "/api/health", "/api/agent-skill", "/api/test/",
   "/api/songs/public",
   // Native-client login: unauthenticated email/password → mints an API key.
   // No JWT cookie + no Bearer yet, so without this the edge redirects it to
