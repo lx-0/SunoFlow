@@ -9,7 +9,7 @@ import type { JamSessionSummary } from "@/lib/jam/sessions";
 
 export type JamSessionDetail = JamSessionSummary & { name: string };
 
-type ClientResult<T> = ({ ok: true } & T) | { ok: false; error: string };
+type ClientResult<T> = ({ ok: true } & T) | { ok: false; error: string; status?: number };
 
 async function parseError(res: Response): Promise<string> {
   try {
@@ -24,6 +24,8 @@ async function parseError(res: Response): Promise<string> {
 export async function createJamSessionApi(input: {
   name?: string;
   budgetTotal?: number;
+  slug?: string;
+  durationHours?: number;
 }): Promise<ClientResult<{ session: JamSessionDetail }>> {
   const res = await fetchWithTimeout("/api/jam-sessions", {
     method: "POST",
@@ -48,7 +50,7 @@ export async function fetchJamState(
   shareToken: string,
 ): Promise<ClientResult<{ state: JamSessionState }>> {
   const res = await fetchWithTimeout(`/api/jam/${shareToken}`);
-  if (!res.ok) return { ok: false, error: await parseError(res) };
+  if (!res.ok) return { ok: false, error: await parseError(res), status: res.status };
   const state = (await res.json()) as JamSessionState;
   return { ok: true, state };
 }
