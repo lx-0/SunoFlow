@@ -85,6 +85,13 @@ const nextConfig = {
         /core-js-pure\/features\//,
         (resource) => {
           const stubsDir = path.resolve(__dirname, "src/lib/core-js-stubs");
+          // Class polyfills must map to the NATIVE class, never the noop —
+          // consumers `class X extends AggregateError` and a noop is not a
+          // constructor (swagger-ui-react -> apidom-error, /api-docs).
+          if (/features\/aggregate-error(\.js)?$/.test(resource.request)) {
+            resource.request = path.join(stubsDir, "aggregate-error.js");
+            return;
+          }
           const alreadyStubbed = Object.values(corejs3Stubs).some(
             (abs) => resource.request.endsWith(path.basename(abs))
           );
