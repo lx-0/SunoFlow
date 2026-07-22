@@ -113,6 +113,7 @@ model User {
   pushSubscriptions    PushSubscription[]
   styleTemplates       StyleTemplate[]
   usedInviteCode       InviteCode?            @relation("InviteCodeUsedBy")
+  jamSessions          JamSession[]           @relation("JamSessionHost")
 
   @@index([lastLoginAt])
   @@index([createdAt])
@@ -202,6 +203,7 @@ model Song {
   songEmbedding        SongEmbedding?
   collectionSongs      CollectionSong[]
   styleTemplates       StyleTemplate[]
+  jamEntry             JamSessionEntry?
 
   @@index([userId, title])
   @@index([userId, prompt])
@@ -251,6 +253,7 @@ model Playlist {
   activities    Activity[]
   collaborators PlaylistCollaborator[]
   reports       Report[]               @relation("PlaylistReports")
+  jamSession    JamSession?
 
   @@unique([userId, smartPlaylistType])
   @@index([userId])
@@ -1044,4 +1047,46 @@ model JobRun {
 
   @@index([name, startedAt])
   @@index([status, startedAt])
+}
+
+// ─── Jam Sessions (M005 Party Mode) ─────────────────────────────────────────
+// A live party session hosted by a STUDIO user: guests join via shareToken
+// (QR, no account) and push prompts that become pending generations in the
+// session playlist. Guardrails live server-side: budgetTotal caps generations
+// per session, guestKey scopes per-device rate limits, the host can veto
+// pending entries.
+
+model JamSession {
+  id          String    @id @default(cuid())
+  hostUserId  String
+  playlistId  String    @unique // 1:1 — the session's queue IS this playlist
+  shareToken  String    @unique @default(cuid())
+  status      String    @default("open") // open, closed
+  budgetTotal Int       @default(30)
+  budgetUsed  Int       @default(0)
+  createdAt   DateTime  @default(now())
+  closedAt    DateTime?
+
+  host     User              @relation("JamSessionHost", fields: [hostUserId], references: [id], onDelete: Cascade)
+  playlist Playlist          @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  entries  JamSessionEntry[]
+
+  @@index([hostUserId, status])
+}
+
+model JamSessionEntry {
+  id         String   @id @default(cuid())
+  sessionId  String
+  songId     String?  @unique // set when the generation starts; survives song deletion for the recap
+  promptText String
+  guestName  String?
+  guestKey   String // anonymous per-device guest id (rate limiting), never a user id
+  status     String   @default("pending") // pending, ready, failed, vetoed
+  createdAt  DateTime @default(now())
+
+  session JamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  song    Song?      @relation(fields: [songId], references: [id], onDelete: SetNull)
+
+  @@index([sessionId, createdAt])
+  @@index([sessionId, guestKey])
 }

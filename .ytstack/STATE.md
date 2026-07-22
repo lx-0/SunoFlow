@@ -1,9 +1,9 @@
 ---
 project: SunoFlow
 slug: SunoFlow
-last_updated: 2026-07-22T11:50:00Z
+last_updated: 2026-07-22T12:30:00Z
 current_milestone: M005
-active_slice: none
+active_slice: S01
 active_task: none
 status: brownfield-imported
 ---
@@ -30,7 +30,7 @@ status: brownfield-imported
 
 ## Next action
 
-**Status:** M005 planned (M). Ready to slice — run `ytstack:slice-milestone` to break M005 into concrete slices and tasks. M004 remains open on its user-side GATE (below); agent-side M004 work is blocked on that device pass.
+**Status:** M005 / S01 — 1/5 tasks done (T01 schema+migration shipped). Next: `ytstack:plan-task` for S01-T02 (host routes). M004 remains open on its user-side GATE (below); agent-side M004 work is blocked on that device pass.
 
 THE M004 GATE (user action, unchanged): user runs ONE free-Apple-ID Expo dev build (`apps/mobile/README.md`) — JS-only since the last native build, so `expo start -c` + reload suffices. Verify on-device: background audio surviving a 10+ min lock (the milestone's proof), the NEW tabs navigation (checklist in `apps/mobile/NAVIGATION.md`), Geist fonts/magenta CTAs/chips everywhere, pull-to-refresh + silent revalidate, keyboard over forms, VoiceOver spot-check, playback (smooth progress, auto-advance on slow network, rapid skips, seek right after a track change).
 
