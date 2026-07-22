@@ -35,6 +35,11 @@ export const FEATURE_GATES: Record<string, FeatureGate> = {
     name: "API Key Access",
     description: "Integrate SunoFlow into your own apps via API.",
   },
+  jamSessions: {
+    minTier: "studio",
+    name: "Jam Sessions",
+    description: "Host a live party session — guests push prompts via QR, songs land in the queue.",
+  },
 };
 
 const TIER_ORDER: SubscriptionTier[] = ["free", "starter", "pro", "studio"];
