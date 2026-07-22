@@ -489,3 +489,24 @@ C) Leave it; document the back behavior.
 **Non-destructive:** every entry stays reachable (menu item or Settings section); the header's own logout button and mobile header icons are untouched.
 
 **Reference:** `src/components/AccountMenu.tsx`, `src/components/AppShell.tsx` (both bottom sections), `LanguageSection` in `src/app/[locale]/settings/local-preferences-sections.tsx`, `common.account`/`common.accountMenu` in all three locale files. E2E: `e2e/account-menu.spec.ts` (+ adjusted core-flows settings-navigation test).
+
+## 2026-07-22: Favorites returns to the web nav; Jam gets a first-class home at /party
+
+**Context:** Operator feedback after using the consolidated nav: the Phase-2
+chip-only placement buried Favorites (mobile still has it as a tab), and Party
+Mode had no discoverable web entry (the /playlists Jam button was easy to miss
+and studio-gated on the session tier).
+
+**Chose:** (1) Favorites back as a nav item under My Music, linking to
+`/library?smartFilter=favorites` (query-href: never highlights as active —
+usePathname carries no query; accepted). Partial revert of the Phase-2
+"Favorites is a chip" call — operator preference wins. (2) New `/party` index
+page (session list + create form with name/slug/budget/duration) as Party
+Mode's web home, plus a "Jam" nav item in Create visible to EVERYONE (creates
+403 server-side for non-studio); the /playlists Jam button now routes there.
+(3) Auto-slug on create: no custom slug → the title is sluggified with a
+4-char dedupe hash ("Kitchen Party" → kitchen-party-x3f2), collisions retry
+silently; only user-chosen slugs surface 409s.
+
+**Reference:** `src/components/JamSessionsView.tsx`, `src/app/[locale]/party/page.tsx`,
+AppShell NAV_SECTIONS, `autoSlug` in `src/lib/jam/sessions.ts`.

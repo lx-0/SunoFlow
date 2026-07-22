@@ -112,33 +112,61 @@ export async function createJamSession(
     (input.name ? stripHtml(input.name).trim() : "") ||
     `Jam Session ${new Date().toLocaleDateString("en-CA")}`;
 
-  try {
-    const session = await prisma.$transaction(async (tx) => {
-      const playlist = await tx.playlist.create({
-        data: { name, userId },
-        select: { id: true },
+  // No custom slug → derive one from the title plus a short hash for dedupe
+  // (operator request 2026-07-22): "Kitchen Party" → kitchen-party-x3f2.
+  // On the (unlikely) hash collision we retry with a fresh suffix; only a
+  // USER-chosen slug surfaces the collision as a 409.
+  const attempts: (string | undefined)[] = slug
+    ? [slug]
+    : [autoSlug(name), autoSlug(name), autoSlug(name)];
+
+  for (const [i, shareToken] of attempts.entries()) {
+    try {
+      const session = await prisma.$transaction(async (tx) => {
+        const playlist = await tx.playlist.create({
+          data: { name, userId },
+          select: { id: true },
+        });
+        return tx.jamSession.create({
+          data: {
+            hostUserId: userId,
+            playlistId: playlist.id,
+            budgetTotal,
+            expiresAt,
+            ...(shareToken ? { shareToken } : {}),
+          },
+          select: SESSION_SELECT,
+        });
       });
-      return tx.jamSession.create({
-        data: {
-          hostUserId: userId,
-          playlistId: playlist.id,
-          budgetTotal,
-          expiresAt,
-          ...(slug ? { shareToken: slug } : {}),
-        },
-        select: SESSION_SELECT,
-      });
-    });
-    return success({ session });
-  } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      return Err.conflict("This link name is already taken — pick another one");
+      return success({ session });
+    } catch (error) {
+      const isCollision =
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002";
+      if (!isCollision) throw error;
+      if (slug) {
+        return Err.conflict("This link name is already taken — pick another one");
+      }
+      if (i === attempts.length - 1) {
+        return Err.conflict("Couldn't find a free link name — try a custom one");
+      }
     }
-    throw error;
   }
+  // Unreachable: the loop always returns.
+  return Err.conflict("Couldn't create the session");
+}
+
+/** "Kitchen Party!" → "kitchen-party-x3f2" (slug-safe base + 4-char dedupe hash). */
+function autoSlug(name: string): string {
+  const base = name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32)
+    .replace(/-+$/g, "");
+  const hash = Math.random().toString(36).slice(2, 6).padEnd(4, "0");
+  return `${base || "jam"}-${hash}`;
 }
 
 /** Host's sessions, newest first (open ones before closed). */

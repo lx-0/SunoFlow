@@ -15,7 +15,9 @@ import {
   Menu,
   X,
   ChartColumn,
+  Heart,
   Lightbulb,
+  PartyPopper,
   Sparkles,
   Bookmark,
   UsersRound,
@@ -80,12 +82,19 @@ const NAV_SECTIONS: { key: "create" | "myMusic" | "browse" | null; items: NavIte
       { key: "templates", href: "/templates", icon: Bookmark, dataTour: undefined, prefetch: false },
       { key: "personas", href: "/personas", icon: UsersRound, dataTour: undefined, prefetch: false },
       { key: "mashup", href: "/mashup", icon: Sparkles, dataTour: undefined, prefetch: false },
+      // Party Mode host home (M005). Visible to everyone; the page 403s
+      // non-studio creates server-side.
+      { key: "jam", href: "/party", icon: PartyPopper, dataTour: undefined, prefetch: false },
     ],
   },
   {
     key: "myMusic",
     items: [
       { key: "library", href: "/library", icon: BookOpen, dataTour: undefined, prefetch: true },
+      // Back in the nav on operator request (2026-07-22) — the Phase-2
+      // chip-only placement buried it. Query-href: never shows as active
+      // (usePathname carries no query); the Library item highlights instead.
+      { key: "favorites", href: "/library?smartFilter=favorites", icon: Heart, dataTour: undefined, prefetch: false },
       { key: "playlists", href: "/playlists", icon: ListMusic, dataTour: "explore", prefetch: false },
       { key: "insights", href: "/insights", icon: ChartColumn, dataTour: undefined, prefetch: false },
     ],

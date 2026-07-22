@@ -44,9 +44,10 @@ test("studio host runs a session end to end (create, QR, close, guardrails)", as
   await registerWithTier(request, email, "studio");
   await loginViaUI(page, email, DEFAULT_PASSWORD);
 
-  // Create via the UI entry point
+  // Create via the UI entry points: /playlists Jam button routes to /party
   await page.goto("/playlists");
   await page.getByRole("button", { name: "Jam" }).click();
+  await page.waitForURL(/\/party$/, { timeout: 15000 });
   await page.getByLabel("Song budget").fill("7");
   await page.getByRole("button", { name: "Start jam session" }).click();
   await page.waitForURL(/\/party\//, { timeout: 15000 });

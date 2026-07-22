@@ -152,6 +152,56 @@ describe("createJamSession", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe("VALIDATION_ERROR");
   });
+
+  it("derives an auto-slug from the title with a 4-char dedupe hash", async () => {
+    let createData: Record<string, unknown> | null = null;
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: unknown) => {
+      if (typeof fn === "function") {
+        return fn({
+          playlist: { create: vi.fn().mockResolvedValue({ id: "pl-1" }) },
+          jamSession: {
+            create: vi.fn().mockImplementation((args: { data: Record<string, unknown> }) => {
+              createData = args.data;
+              return Promise.resolve(SESSION);
+            }),
+          },
+        });
+      }
+      return [];
+    });
+
+    const result = await createJamSession("user-1", { name: "Kitchen Party!" });
+
+    expect(result.ok).toBe(true);
+    const token = (createData as Record<string, unknown> | null)?.shareToken;
+    expect(typeof token).toBe("string");
+    expect(token).toMatch(/^kitchen-party-[a-z0-9]{4}$/);
+  });
+
+  it("retries the auto-slug on a hash collision instead of failing", async () => {
+    let calls = 0;
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: unknown) => {
+      if (typeof fn === "function") {
+        calls += 1;
+        if (calls === 1) {
+          throw new Prisma.PrismaClientKnownRequestError("dup", {
+            code: "P2002",
+            clientVersion: "test",
+          });
+        }
+        return fn({
+          playlist: { create: vi.fn().mockResolvedValue({ id: "pl-1" }) },
+          jamSession: { create: vi.fn().mockResolvedValue(SESSION) },
+        });
+      }
+      return [];
+    });
+
+    const result = await createJamSession("user-1", { name: "Kitchen Party" });
+
+    expect(result.ok).toBe(true);
+    expect(calls).toBe(2);
+  });
 });
 
 describe("isJamSessionExpired", () => {
