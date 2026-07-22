@@ -69,7 +69,7 @@ Root Stack
 | Intent | Trigger | Primitive | Back behavior |
 | --- | --- | --- | --- |
 | **Switch tab** | Bottom bar, sidebar tab rows | `switchTo(route, pathname)` → group-qualified `router.navigate` | Tab keeps its own stack; re-tap pops to tab home |
-| **Go to section** | Sidebar section rows, in-view jumps ("Use in Generate") | `goToSection(href)` → `router.navigate` | Returns to the screen you came from |
+| **Go to section** | Sidebar section rows, in-view jumps ("Use in Generate") | `goToSection(href)` → `NAVIGATE` dispatch on the ACTIVE tab's child stack | Returns to the screen you came from |
 | **Drill down** | Song / playlist / detail from a list | `router.push(...)` at the call site | Returns to the originating list |
 | **Open player** | Mini-player tap, play actions | `openPlayer()` → `router.navigate("/player")` | Swipe-down / chevron dismisses the modal |
 | **Leave player to content** | Player menu: Song details, Comments, Related, Versions, Extend; art/title tap | `closePlayerThen(href)` | Dismisses the modal, then pushes on the active tab |
@@ -86,6 +86,15 @@ Rules:
    params (switch, stack untouched — the TabRouter resolves `payload.name`
    only) and the tab bar dispatches `POP_TO_TOP` on a focused re-tap — the
    stock react-navigation tab-bar actions.
+1b. **Sections dispatch on the active tab's child stack, never via hrefs**
+   (2026-07-22, `f0913234`). Even a group-qualified path navigate landed
+   sections in the FIRST group (Library) from the sidebar — the device pass
+   proved it. `goToSection` resolves the flat screen name (+ query/object
+   params) and dispatches `NAVIGATE` with `target` = the active tab's child
+   stack key: by construction the section can only land on the current tab;
+   Stack-NAVIGATE pushes when not on top and no-ops on a re-tap. Fallback for
+   never-materialized (frozen) child stacks: group-qualified path navigate.
+
 2. **Tab-root hrefs (`/`, `/playlists`, …) are tab switches everywhere.**
    `goToSection`/`switchTo` detect them (`TAB_GROUP_BY_HREF`) and route through
    `jumpToTab`; a plain `router.navigate("/")` from another tab would push a
