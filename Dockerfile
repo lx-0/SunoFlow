@@ -26,7 +26,7 @@ RUN mkdir -p /prisma-flat/node_modules/.prisma && \
 
 # --- Sharp native build (for Alpine/musl image optimization) ---
 FROM base AS sharp-builder
-RUN npm install --no-package-lock --no-save sharp@^0.33.5
+RUN npm install --no-package-lock --no-save sharp@^0.35.0
 
 # --- Build ---
 FROM base AS build
