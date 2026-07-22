@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Music, PartyPopper } from "lucide-react";
+import { Loader2, Music, PartyPopper, QrCode } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
 import { CoverArtImage } from "./CoverArtImage";
+import { JamQrOverlay } from "./JamQrOverlay";
 import { fetchJamState, type JamSessionDetail } from "@/lib/jam-client";
 import type { JamSessionState } from "@/lib/jam/state";
 
@@ -18,6 +19,7 @@ const POLL_INTERVAL_MS = 5000;
 export function PartyHostView({ session }: { session: JamSessionDetail }) {
   const [state, setState] = useState<JamSessionState | null>(null);
   const [pollError, setPollError] = useState(false);
+  const [showQr, setShowQr] = useState(false);
 
   const refresh = useCallback(async () => {
     const result = await fetchJamState(session.shareToken);
@@ -35,11 +37,16 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
     return () => clearInterval(timer);
   }, [refresh]);
 
+  // Origin is applied after mount — SSR and the first client render must
+  // match (path only), or React #418 hydration errors fire.
+  const [origin, setOrigin] = useState("");
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+
   const meta = state?.session;
   const budgetLeft = meta ? meta.budgetTotal - meta.budgetUsed : null;
-  const joinPath = `/jam/${session.shareToken}`;
-  const joinUrl =
-    typeof window !== "undefined" ? `${window.location.origin}${joinPath}` : joinPath;
+  const joinUrl = `${origin}/jam/${session.shareToken}`;
 
   return (
     <div className="px-4 py-4 space-y-4">
@@ -62,13 +69,30 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
         )}
       </div>
 
-      {/* Guest join URL (QR overlay lands in T02) */}
-      <div className="bg-surface border border-border rounded-xl p-4 space-y-1">
-        <h2 className="text-sm font-semibold text-primary">Guests join at</h2>
+      {/* Guest join URL + QR */}
+      <div className="bg-surface border border-border rounded-xl p-4 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-primary">Guests join at</h2>
+          <button
+            onClick={() => setShowQr(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors min-h-[44px]"
+          >
+            <Icon icon={QrCode} className="w-4 h-4" />
+            Show QR
+          </button>
+        </div>
         <p className="text-sm text-violet-400 break-all select-all" data-testid="jam-join-url">
           {joinUrl}
         </p>
       </div>
+
+      {showQr && (
+        <JamQrOverlay
+          joinUrl={joinUrl}
+          sessionName={meta?.name ?? session.name}
+          onClose={() => setShowQr(false)}
+        />
+      )}
 
       {pollError && (
         <p className="text-sm text-red-400" role="alert">
