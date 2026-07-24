@@ -313,7 +313,7 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
                 key={entry.id}
                 className="bg-surface border border-border rounded-xl p-3 flex items-center gap-3"
               >
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-surface-raised overflow-hidden flex items-center justify-center">
+                <div className="relative flex-shrink-0 w-10 h-10 rounded-lg bg-surface-raised overflow-hidden flex items-center justify-center">
                   {entry.song?.imageUrl ? (
                     <CoverArtImage
                       src={entry.song.imageUrl}
