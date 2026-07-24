@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Music, PartyPopper, QrCode, X } from "lucide-react";
+import { Loader2, Music, PartyPopper, Play, QrCode, X } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
 import { CoverArtImage } from "./CoverArtImage";
 import { JamQrOverlay } from "./JamQrOverlay";
@@ -31,7 +31,7 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
   const [vetoingId, setVetoingId] = useState<string | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
   const [closing, setClosing] = useState(false);
-  const { addToQueue } = useQueue();
+  const { addToQueue, playQueue, currentIndex } = useQueue();
   const { toast } = useToast();
 
   // entry id → last seen status. Entries already terminal on FIRST load are
@@ -56,21 +56,29 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
         };
         const s = json.song;
         if (!s?.audioUrl) return;
-        addToQueue({
+        const queueSong = {
           id: s.id,
           title: s.title,
           audioUrl: s.audioUrl,
           imageUrl: s.imageUrl,
           duration: s.duration,
           lyrics: s.lyrics,
-        });
-        toast(`Added to queue: ${s.title ?? "New track"}`, "success");
+        };
+        if (currentIndex === -1) {
+          // Party idle (nothing loaded) — the first finished request STARTS
+          // the music instead of waiting in an invisible queue.
+          playQueue([queueSong], 0, session.name);
+          toast(`Now playing: ${s.title ?? "New track"}`, "success");
+        } else {
+          addToQueue(queueSong);
+          toast(`Added to queue: ${s.title ?? "New track"}`, "success");
+        }
       } catch {
         // Next poll retries nothing — the song stays reachable in the
         // session playlist; queue-append is best-effort sugar.
       }
     },
-    [addToQueue, toast],
+    [addToQueue, playQueue, currentIndex, session.name, toast],
   );
 
   const refresh = useCallback(async () => {
@@ -111,6 +119,49 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
   useEffect(() => {
     setOrigin(window.location.origin);
   }, []);
+
+  async function handlePlaySession() {
+    try {
+      const res = await fetchWithTimeout(`/api/playlists/${session.playlistId}`);
+      if (!res.ok) {
+        toast("Couldn't load the session playlist", "error");
+        return;
+      }
+      const json = (await res.json()) as {
+        playlist?: {
+          songs?: {
+            song?: {
+              id: string;
+              title: string | null;
+              audioUrl: string | null;
+              imageUrl: string | null;
+              duration: number | null;
+              lyrics: string | null;
+            } | null;
+          }[];
+        };
+      };
+      const songs = (json.playlist?.songs ?? []).flatMap((ps) => {
+        const s = ps.song;
+        if (!s?.audioUrl) return [];
+        return [{
+          id: s.id,
+          title: s.title,
+          audioUrl: s.audioUrl,
+          imageUrl: s.imageUrl,
+          duration: s.duration,
+          lyrics: s.lyrics,
+        }];
+      });
+      if (songs.length === 0) {
+        toast("No finished songs in this session yet", "info");
+        return;
+      }
+      playQueue(songs, 0, session.name);
+    } catch {
+      toast("Couldn't start playback", "error");
+    }
+  }
 
   async function handleVeto(entryId: string) {
     setVetoingId(entryId);
@@ -171,6 +222,15 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
               <div className="text-2xl font-bold text-violet-400 tabular-nums">{budgetLeft}</div>
               <div className="text-xs text-secondary">songs left</div>
             </div>
+          )}
+          {meta && (
+            <button
+              onClick={handlePlaySession}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white transition-colors min-h-[44px]"
+            >
+              <Icon icon={Play} className="w-4 h-4" fill="currentColor" />
+              Play session
+            </button>
           )}
           {meta && !isClosed && (
             confirmClose ? (

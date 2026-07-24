@@ -11,8 +11,11 @@ import {
 import { Text } from "@/components/Themed";
 import { Stack, useLocalSearchParams } from "expo-router";
 import QRCode from "react-native-qrcode-svg";
-import { Loader2, Music, Share2, Tv, X } from "lucide-react-native";
+import { Loader2, Music, Play, Share2, Tv, X } from "lucide-react-native";
 import { JamPartyDisplay } from "@/components/JamPartyDisplay";
+import { playQueue } from "@/playback/controls";
+import { fetchPlaylistSongs } from "@/api/playlists";
+import { openPlayer } from "@/navigation";
 import { HttpError } from "@/api/client";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
@@ -83,6 +86,26 @@ export default function JamSessionScreen() {
   const isClosed = meta?.status === "closed";
   const budgetLeft = meta ? meta.budgetTotal - meta.budgetUsed : null;
   const joinUrl = detail ? jamJoinUrl(detail.shareToken) : null;
+
+  const [startingPlayback, setStartingPlayback] = useState(false);
+
+  async function handlePlaySession() {
+    if (!detail || startingPlayback) return;
+    setStartingPlayback(true);
+    try {
+      const songs = await fetchPlaylistSongs(detail.playlistId);
+      if (songs.length === 0) {
+        setError("No finished songs in this session yet");
+        return;
+      }
+      await playQueue(songs, 0);
+      openPlayer();
+    } catch (e) {
+      setError(e instanceof HttpError ? e.message : "Couldn't start playback");
+    } finally {
+      setStartingPlayback(false);
+    }
+  }
 
   async function handleShare() {
     if (!joinUrl) return;
@@ -187,6 +210,21 @@ export default function JamSessionScreen() {
                 </Pressable>
               </View>
             </View>
+
+            <Pressable
+              style={[styles.playBtn, startingPlayback && styles.disabled]}
+              onPress={handlePlaySession}
+              disabled={startingPlayback}
+              accessibilityRole="button"
+              accessibilityLabel="Play session"
+            >
+              {startingPlayback ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Play size={16} color="#fff" fill="#fff" />
+              )}
+              <Text style={styles.playBtnText}>Play session</Text>
+            </Pressable>
 
             {!isClosed && (
               <Pressable
@@ -307,6 +345,17 @@ function makeStyles(c: ThemeColors) {
       paddingHorizontal: spacing.md,
     },
     shareBtnAltText: { color: c.text, fontFamily: fonts.sansSemibold, fontSize: 14 },
+    playBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: spacing.xs,
+      backgroundColor: c.accent,
+      borderRadius: radii.lg,
+      paddingVertical: 12,
+    },
+    playBtnText: { color: "#fff", fontFamily: fonts.sansSemibold, fontSize: 15 },
+    disabled: { opacity: 0.6 },
     closeBtn: {
       alignItems: "center",
       borderRadius: radii.lg,
