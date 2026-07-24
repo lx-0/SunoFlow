@@ -73,6 +73,15 @@ test("studio host runs a session end to end (create, QR, close, guardrails)", as
   await page.keyboard.press("Escape");
   await expect(page.getByRole("img", { name: /QR code linking/ })).not.toBeVisible();
 
+  // Party display opens as a fullscreen dialog and Escape closes it
+  await page.getByRole("button", { name: "Party display" }).click();
+  const display = page.getByRole("dialog", { name: "Party display" });
+  await expect(display).toBeVisible({ timeout: 10000 });
+  await expect(display.getByText("Scan to request a song")).toBeVisible();
+  await expect(display.getByAltText(/QR code linking/)).toBeVisible({ timeout: 10000 });
+  await page.keyboard.press("Escape");
+  await expect(display).not.toBeVisible({ timeout: 5000 });
+
   // End session (inline confirm) — header flips
   await page.getByRole("button", { name: "End session" }).click();
   await page.getByRole("button", { name: "Confirm end" }).click();

@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Music, PartyPopper, Play, QrCode, X } from "lucide-react";
+import { Loader2, Music, PartyPopper, Play, QrCode, Tv, X } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
 import { CoverArtImage } from "./CoverArtImage";
+import { JamPartyDisplay } from "./JamPartyDisplay";
 import { JamQrOverlay } from "./JamQrOverlay";
 import { useQueue } from "./QueueContext";
 import { useToast } from "./Toast";
@@ -28,6 +29,7 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
   const [state, setState] = useState<JamSessionState | null>(null);
   const [pollError, setPollError] = useState(false);
   const [showQr, setShowQr] = useState(false);
+  const [showDisplay, setShowDisplay] = useState(false);
   const [vetoingId, setVetoingId] = useState<string | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -38,6 +40,13 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
   // seeded as known so reopening the console mid-party never re-appends
   // half the playlist; only live pending→ready transitions enqueue.
   const entryStatusRef = useRef<Map<string, string> | null>(null);
+
+  // Two songs turning ready in the SAME poll must not both take the
+  // idle-start branch (the second playQueue would replace the first song).
+  // Serialize enqueues and read the queue position at execution time.
+  const currentIndexRef = useRef(currentIndex);
+  currentIndexRef.current = currentIndex;
+  const enqueueChainRef = useRef<Promise<void>>(Promise.resolve());
 
   const enqueueReadySong = useCallback(
     async (songId: string) => {
@@ -64,7 +73,7 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
           duration: s.duration,
           lyrics: s.lyrics,
         };
-        if (currentIndex === -1) {
+        if (currentIndexRef.current === -1) {
           // Party idle (nothing loaded) — the first finished request STARTS
           // the music instead of waiting in an invisible queue.
           playQueue([queueSong], 0, session.name);
@@ -78,7 +87,7 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
         // session playlist; queue-append is best-effort sugar.
       }
     },
-    [addToQueue, playQueue, currentIndex, session.name, toast],
+    [addToQueue, playQueue, session.name, toast],
   );
 
   const refresh = useCallback(async () => {
@@ -101,7 +110,10 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
     for (const entry of result.state.entries) {
       const prev = known.get(entry.id);
       if (entry.status === "ready" && prev !== "ready" && entry.song) {
-        void enqueueReadySong(entry.song.id);
+        const songId = entry.song.id;
+        enqueueChainRef.current = enqueueChainRef.current.then(() =>
+          enqueueReadySong(songId),
+        );
       }
       known.set(entry.id, entry.status);
     }
@@ -265,13 +277,22 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
       <div className="bg-surface border border-border rounded-xl p-4 space-y-2">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-primary">Guests join at</h2>
-          <button
-            onClick={() => setShowQr(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors min-h-[44px]"
-          >
-            <Icon icon={QrCode} className="w-4 h-4" />
-            Show QR
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowDisplay(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-violet-300 border border-violet-500/40 hover:bg-violet-500/10 transition-colors min-h-[44px]"
+            >
+              <Icon icon={Tv} className="w-4 h-4" />
+              Party display
+            </button>
+            <button
+              onClick={() => setShowQr(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors min-h-[44px]"
+            >
+              <Icon icon={QrCode} className="w-4 h-4" />
+              Show QR
+            </button>
+          </div>
         </div>
         <p className="text-sm text-violet-400 break-all select-all" data-testid="jam-join-url">
           {joinUrl}
@@ -283,6 +304,15 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
           joinUrl={joinUrl}
           sessionName={meta?.name ?? session.name}
           onClose={() => setShowQr(false)}
+        />
+      )}
+
+      {showDisplay && (
+        <JamPartyDisplay
+          joinUrl={joinUrl}
+          state={state}
+          fallbackName={meta?.name ?? session.name}
+          onClose={() => setShowDisplay(false)}
         />
       )}
 
