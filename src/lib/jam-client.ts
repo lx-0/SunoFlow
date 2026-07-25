@@ -69,6 +69,22 @@ export async function pushJamPromptApi(
   return { ok: true, entry: json.entry };
 }
 
+/** Optimize a rough idea into a fuller song prompt. Token-authed like the
+ *  guest push; runs on the host's Suno key. */
+export async function optimizeJamPromptApi(
+  shareToken: string,
+  promptText: string,
+): Promise<ClientResult<{ prompt: string }>> {
+  const res = await fetchWithTimeout(`/api/jam/${shareToken}/optimize`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ promptText }),
+  });
+  if (!res.ok) return { ok: false, error: await parseError(res), status: res.status };
+  const json = (await res.json()) as { prompt: string };
+  return { ok: true, prompt: json.prompt };
+}
+
 /** Host-authored prompt — authenticated session route, no share token. */
 export async function pushHostJamPromptApi(
   sessionId: string,

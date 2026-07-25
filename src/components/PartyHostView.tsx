@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Music, PartyPopper, Play, QrCode, Tv, X } from "lucide-react";
+import { Loader2, Music, PartyPopper, Play, QrCode, Sparkles, Tv, X } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
 import { CoverArtImage } from "./CoverArtImage";
 import { JamPartyDisplay } from "./JamPartyDisplay";
@@ -11,6 +11,7 @@ import { useToast } from "./Toast";
 import {
   closeJamSessionApi,
   fetchJamState,
+  optimizeJamPromptApi,
   pushHostJamPromptApi,
   vetoJamEntryApi,
   type JamSessionDetail,
@@ -38,6 +39,8 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
   const [hostPrompt, setHostPrompt] = useState("");
   const [hostSending, setHostSending] = useState(false);
   const [hostSendError, setHostSendError] = useState<string | null>(null);
+  const [hostOptimizing, setHostOptimizing] = useState(false);
+  const [hostPreOptimize, setHostPreOptimize] = useState<string | null>(null);
   const { addToQueue, playQueue, currentIndex } = useQueue();
   const { toast } = useToast();
 
@@ -194,6 +197,28 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
       toast("Failed to remove the request", "error");
     } finally {
       setVetoingId(null);
+    }
+  }
+
+  // Optimize goes through the guest-facing tokened route on purpose: it is the
+  // same call, on the same host key, and keeps one implementation.
+  async function handleHostOptimize() {
+    const text = hostPrompt.trim();
+    if (!text || hostOptimizing || hostSending) return;
+    setHostOptimizing(true);
+    setHostSendError(null);
+    try {
+      const result = await optimizeJamPromptApi(session.shareToken, text);
+      if (!result.ok) {
+        setHostSendError(result.error);
+        return;
+      }
+      setHostPreOptimize(text);
+      setHostPrompt(result.prompt);
+    } catch {
+      setHostSendError("Couldn't improve that prompt");
+    } finally {
+      setHostOptimizing(false);
     }
   }
 
@@ -369,7 +394,10 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
             <input
               id="host-prompt"
               value={hostPrompt}
-              onChange={(e) => setHostPrompt(e.target.value)}
+              onChange={(e) => {
+                setHostPrompt(e.target.value);
+                setHostPreOptimize(null);
+              }}
               maxLength={JAM_PROMPT_MAX_LENGTH}
               placeholder="e.g. slow synthwave for the last hour"
               className="flex-1 px-3 py-2 rounded-lg border border-border bg-surface-raised text-primary placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition-colors min-h-[44px]"
@@ -386,6 +414,33 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
               )}
               {hostSending ? "Sending…" : "Queue it"}
             </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleHostOptimize}
+              disabled={hostOptimizing || hostSending || !hostPrompt.trim()}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-violet-500/10 border border-violet-500/40 text-violet-300 hover:bg-violet-500/20 disabled:opacity-40 transition-colors"
+            >
+              <Icon
+                icon={hostOptimizing ? Loader2 : Sparkles}
+                className={`w-3.5 h-3.5${hostOptimizing ? " animate-spin" : ""}`}
+                aria-hidden="true"
+              />
+              {hostOptimizing ? "Improving…" : "Optimize"}
+            </button>
+            {hostPreOptimize !== null && !hostOptimizing && (
+              <button
+                type="button"
+                onClick={() => {
+                  setHostPrompt(hostPreOptimize);
+                  setHostPreOptimize(null);
+                }}
+                className="px-2.5 py-1 rounded-full text-xs text-secondary hover:text-primary transition-colors"
+              >
+                Undo
+              </button>
+            )}
           </div>
           {hostSendError && (
             <p className="text-sm text-red-400" role="alert">

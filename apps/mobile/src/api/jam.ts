@@ -79,6 +79,20 @@ export async function vetoJamEntry(sessionId: string, entryId: string): Promise<
   await apiDelete(`/api/jam-sessions/${sessionId}/entries/${entryId}`);
 }
 
+/** Optimize a rough idea into a fuller song prompt. Token-authed like the
+ *  guest push and billed to the host's Suno key, so the native host console
+ *  reuses the guest-facing route rather than duplicating the logic. */
+export async function optimizeJamPrompt(
+  shareToken: string,
+  promptText: string,
+): Promise<string | null> {
+  const res = await apiPost<{ prompt: string }>(
+    `/api/jam/${shareToken}/optimize`,
+    { promptText },
+  );
+  return res?.prompt ?? null;
+}
+
 /** Host-authored prompt — authenticated session route, no share token. The
  *  operator should not have to scan their own QR code to queue a request. */
 export async function pushHostJamPrompt(

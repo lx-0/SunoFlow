@@ -11,7 +11,7 @@ import {
 import { Text, TextInput } from "@/components/Themed";
 import { Stack, useLocalSearchParams } from "expo-router";
 import QRCode from "react-native-qrcode-svg";
-import { Loader2, Music, Play, Share2, Tv, X } from "lucide-react-native";
+import { Loader2, Music, Play, Share2, Sparkles, Tv, X } from "lucide-react-native";
 import { JamPartyDisplay } from "@/components/JamPartyDisplay";
 import { playQueue } from "@/playback/controls";
 import { fetchPlaylistSongs } from "@/api/playlists";
@@ -27,6 +27,7 @@ import {
   fetchJamSessionDetail,
   fetchJamState,
   jamJoinUrl,
+  optimizeJamPrompt,
   pushHostJamPrompt,
   vetoJamEntry,
   type JamSessionSummary,
@@ -48,6 +49,9 @@ export default function JamSessionScreen() {
   const [showDisplay, setShowDisplay] = useState(false);
   const [hostPrompt, setHostPrompt] = useState("");
   const [hostSending, setHostSending] = useState(false);
+  const [hostOptimizing, setHostOptimizing] = useState(false);
+  // Pre-optimize text, so one tap undoes an optimization the host dislikes.
+  const [hostPreOptimize, setHostPreOptimize] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -137,6 +141,28 @@ export default function JamSessionScreen() {
         },
       },
     ]);
+  }
+
+  async function handleHostOptimize() {
+    const text = hostPrompt.trim();
+    if (!text || hostOptimizing || hostSending) return;
+    setHostOptimizing(true);
+    try {
+      const optimized = await optimizeJamPrompt(detail?.shareToken ?? "", text);
+      if (!optimized) {
+        Alert.alert("Couldn't improve that", "Please try again.");
+        return;
+      }
+      setHostPreOptimize(text);
+      setHostPrompt(optimized);
+    } catch (err) {
+      Alert.alert(
+        "Couldn't improve that",
+        err instanceof HttpError ? err.message : "Please try again.",
+      );
+    } finally {
+      setHostOptimizing(false);
+    }
   }
 
   // The operator queues requests from the console instead of scanning their
@@ -254,7 +280,10 @@ export default function JamSessionScreen() {
                   <TextInput
                     style={styles.hostInput}
                     value={hostPrompt}
-                    onChangeText={setHostPrompt}
+                    onChangeText={(v) => {
+                      setHostPrompt(v);
+                      setHostPreOptimize(null);
+                    }}
                     placeholder="e.g. slow synthwave for the last hour"
                     placeholderTextColor={colors.textFaint}
                     maxLength={500}
@@ -278,6 +307,39 @@ export default function JamSessionScreen() {
                       <Music size={16} color="#fff" />
                     )}
                   </Pressable>
+                </View>
+                <View style={styles.hostRow}>
+                  <Pressable
+                    style={[
+                      styles.optimizeBtn,
+                      (hostOptimizing || !hostPrompt.trim()) && styles.disabled,
+                    ]}
+                    onPress={handleHostOptimize}
+                    disabled={hostOptimizing || !hostPrompt.trim()}
+                    accessibilityRole="button"
+                    accessibilityLabel="Optimize prompt"
+                  >
+                    {hostOptimizing ? (
+                      <ActivityIndicator color={colors.accent} />
+                    ) : (
+                      <Sparkles size={14} color={colors.accent} />
+                    )}
+                    <Text style={styles.optimizeBtnText}>
+                      {hostOptimizing ? "Improving…" : "Optimize"}
+                    </Text>
+                  </Pressable>
+                  {hostPreOptimize !== null && !hostOptimizing && (
+                    <Pressable
+                      onPress={() => {
+                        setHostPrompt(hostPreOptimize);
+                        setHostPreOptimize(null);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Undo optimize"
+                    >
+                      <Text style={styles.undoText}>Undo</Text>
+                    </Pressable>
+                  )}
                 </View>
               </View>
             )}
@@ -425,6 +487,19 @@ function makeStyles(c: ThemeColors) {
       backgroundColor: c.surfaceAlt,
       color: c.text,
     },
+    optimizeBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+      paddingHorizontal: spacing.md,
+      minHeight: 36,
+      borderRadius: radii.full,
+      borderWidth: 1,
+      borderColor: c.accent,
+      backgroundColor: c.surfaceAlt,
+    },
+    optimizeBtnText: { fontFamily: fonts.sansMedium, fontSize: 12, color: c.accent },
+    undoText: { fontFamily: fonts.sansMedium, fontSize: 12, color: c.textFaint },
     hostSendBtn: {
       minWidth: 52,
       minHeight: 44,

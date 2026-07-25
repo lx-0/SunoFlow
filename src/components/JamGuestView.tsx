@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Music, PartyPopper, Send } from "lucide-react";
+import { Loader2, Music, PartyPopper, Send, Sparkles } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
 import { CoverArtImage } from "./CoverArtImage";
-import { fetchJamState, pushJamPromptApi } from "@/lib/jam-client";
+import { fetchJamState, optimizeJamPromptApi, pushJamPromptApi } from "@/lib/jam-client";
 import type { JamSessionState } from "@/lib/jam/state";
 
 const POLL_INTERVAL_MS = 5000;
@@ -47,6 +47,10 @@ export function JamGuestView({ token }: { token: string }) {
   const [prompt, setPrompt] = useState("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [optimizing, setOptimizing] = useState(false);
+  // The pre-optimize text, so one tap can undo an optimization the guest
+  // dislikes instead of forcing them to retype their idea.
+  const [preOptimize, setPreOptimize] = useState<string | null>(null);
 
   useEffect(() => {
     setGuestKey(ensureGuestKey());
@@ -111,6 +115,26 @@ export function JamGuestView({ token }: { token: string }) {
   const { session, nowPlaying, entries } = state;
   const isClosed = session.status === "closed";
   const budgetLeft = session.budgetTotal - session.budgetUsed;
+
+  async function handleOptimize() {
+    const text = prompt.trim();
+    if (!text || optimizing || sending) return;
+    setOptimizing(true);
+    setSendError(null);
+    try {
+      const result = await optimizeJamPromptApi(token, text);
+      if (!result.ok) {
+        setSendError(result.error);
+        return;
+      }
+      setPreOptimize(text);
+      setPrompt(result.prompt);
+    } catch {
+      setSendError("Couldn't improve that prompt");
+    } finally {
+      setOptimizing(false);
+    }
+  }
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -305,11 +329,41 @@ export function JamGuestView({ token }: { token: string }) {
                     </button>
                   ))}
                 </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleOptimize}
+                    disabled={optimizing || sending || !prompt.trim()}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-violet-500/10 border border-violet-500/40 text-violet-300 hover:bg-violet-500/20 disabled:opacity-40 transition-colors"
+                  >
+                    <Icon
+                      icon={optimizing ? Loader2 : Sparkles}
+                      className={`w-3.5 h-3.5${optimizing ? " animate-spin" : ""}`}
+                      aria-hidden="true"
+                    />
+                    {optimizing ? "Improving…" : "Optimize"}
+                  </button>
+                  {preOptimize !== null && !optimizing && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPrompt(preOptimize);
+                        setPreOptimize(null);
+                      }}
+                      className="px-2.5 py-1 rounded-full text-xs text-gray-400 hover:text-gray-200 transition-colors"
+                    >
+                      Undo
+                    </button>
+                  )}
+                </div>
                 <form onSubmit={handleSend} className="flex gap-2">
                   <input
                     type="text"
                     value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
+                    onChange={(e) => {
+                      setPrompt(e.target.value);
+                      setPreOptimize(null);
+                    }}
                     placeholder="What should the AI play next?"
                     maxLength={500}
                     aria-label="Song request"

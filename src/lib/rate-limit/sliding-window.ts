@@ -122,6 +122,13 @@ const IP_BUCKETS: IpBucket[] = [
   { bucket: "profile", max: 60, match: (p) => p.startsWith("/u/") },
   { bucket: "songs", max: 60, match: (p) => p.startsWith("/songs/") },
   { bucket: "embed", max: 200, match: (p) => p.startsWith("/embed/") },
+  // Prompt optimize spends the HOST's Suno credits on an unauthenticated,
+  // token-only surface — bucket it well below the general jam traffic.
+  {
+    bucket: "jam_optimize",
+    max: 10,
+    match: (p) => p.startsWith("/api/jam/") && p.endsWith("/optimize"),
+  },
   {
     bucket: "auth",
     max: 10,

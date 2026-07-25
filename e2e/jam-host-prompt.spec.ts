@@ -46,3 +46,39 @@ test("host queues a prompt from the party console", async ({ page, request }) =>
   // …and the host's request must consume party budget like a guest's.
   await expect(budget).not.toHaveText(budgetBefore ?? "");
 });
+
+/**
+ * Optimize turns a rough idea into a fuller song prompt. It runs on the host's
+ * Suno key over the tokened guest route, so the host console reuses the exact
+ * same call. Mocked here — the real call costs credits and CI has no key.
+ */
+test("optimize rewrites the prompt in place and can be undone", async ({ page, request }) => {
+  const email = uniqueEmail("jamoptimize");
+  await registerStudioHost(request, email);
+  await loginViaUI(page, email, DEFAULT_PASSWORD);
+
+  await page.route("**/api/jam/*/optimize", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ prompt: "lush italo disco, 118bpm, analog warmth" }),
+    });
+  });
+
+  await page.goto("/party");
+  await page.getByPlaceholder("Session name (optional)").fill("Optimize E2E");
+  await page.getByRole("button", { name: "Start jam session" }).click();
+  await page.waitForURL(/\/party\/[^/]+$/, { timeout: 30000 });
+
+  const input = page.getByLabel("Add your own request");
+  await input.fill("italo disco");
+
+  await page.getByRole("button", { name: "Optimize" }).click();
+  await expect(input).toHaveValue("lush italo disco, 118bpm, analog warmth");
+
+  // The original text must be recoverable — an optimization the host dislikes
+  // should not force them to retype the idea.
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(input).toHaveValue("italo disco");
+  await expect(page.getByRole("button", { name: "Undo" })).toHaveCount(0);
+});
