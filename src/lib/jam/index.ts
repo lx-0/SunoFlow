@@ -27,4 +27,9 @@ export {
   JAM_MAX_OPEN_PROMPTS_PER_GUEST,
 } from "./prompt";
 export { optimizeJamPrompt } from "./optimize";
+export {
+  getJamSessionSignal,
+  hasJamSessionSignal,
+  type JamSessionSignal,
+} from "./session-signal";
 export { syncJamEntryOnCompletion } from "./completion";
