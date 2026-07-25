@@ -31,6 +31,29 @@ Slice detail lives in per-slice `M005-S##-PLAN.md` files, created by `ytstack:sl
 - [x] S03 -- Guest experience: tokened mobile-web page, prompt composer with visible limits, nickname, reactions (full-path e2e)
 - [x] S04 -- Native host surface (operator request 2026-07-22): jam list/create screen + host console (poll, QR, share sheet, veto, close) in the RN app; sidebar entry. Server 403s non-studio (the app does not know the tier). Runtime verification = next device pass.
 
+## Post-milestone extensions (operator requests after closure)
+
+M005 stays `status: done` — these shipped as BAU on top of it and are recorded
+here so the roadmap does not read as the complete picture of Party Mode.
+
+- 2026-07-25, `1f20cdc7` — **Host can queue their own prompts** (web + native).
+  The milestone shipped a guest-only prompt path; running a party meant scanning
+  your own QR code. New authenticated `POST /api/jam-sessions/[id]/entries`;
+  skips the per-guest cap, keeps the budget reservation.
+- 2026-07-25, `60363f4a` — **Optimize** button on both prompt inputs. Tokened
+  route on the host's Suno key, no song-budget consumption, own IP bucket, Undo.
+- 2026-07-25, `fa6bb705` — **Optimize learns within the session** from playback
+  and host vetoes; falls back to Suno's stateless boost with no signal.
+
+Still open against the original exit criteria:
+- **The real party test.** Everything is verified against a local production
+  build and unit/e2e mocks; no session has been run end to end on sunoflow.app
+  with a live Suno key.
+- **Native runtime unverified.** The RN jam changes are JS-only, but a release
+  build embeds its bundle — the device pass needs `pnpm release`.
+- **Cross-session learning** (host's own accept/edit/undo history) is the
+  natural next layer and needs its own storage decision. Not started.
+
 ## Run order
 
 Slices execute sequentially. After each slice, `ytstack:reassess-roadmap` checks if the plan still fits reality.
