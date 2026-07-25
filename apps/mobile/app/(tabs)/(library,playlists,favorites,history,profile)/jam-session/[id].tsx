@@ -8,7 +8,7 @@ import {
   Share,
   Alert,
 } from "react-native";
-import { Text } from "@/components/Themed";
+import { Text, TextInput } from "@/components/Themed";
 import { Stack, useLocalSearchParams } from "expo-router";
 import QRCode from "react-native-qrcode-svg";
 import { Loader2, Music, Play, Share2, Tv, X } from "lucide-react-native";
@@ -27,6 +27,7 @@ import {
   fetchJamSessionDetail,
   fetchJamState,
   jamJoinUrl,
+  pushHostJamPrompt,
   vetoJamEntry,
   type JamSessionSummary,
   type JamState,
@@ -45,6 +46,8 @@ export default function JamSessionScreen() {
   const [error, setError] = useState<string | null>(null);
   const [vetoingId, setVetoingId] = useState<string | null>(null);
   const [showDisplay, setShowDisplay] = useState(false);
+  const [hostPrompt, setHostPrompt] = useState("");
+  const [hostSending, setHostSending] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -136,6 +139,39 @@ export default function JamSessionScreen() {
     ]);
   }
 
+  // The operator queues requests from the console instead of scanning their
+  // own QR code and joining as a guest. Server-side this skips the per-guest
+  // open-prompt cap but still reserves party budget.
+  async function handleHostSend() {
+    const text = hostPrompt.trim();
+    if (!text || hostSending) return;
+    setHostSending(true);
+    try {
+      const entry = await pushHostJamPrompt(id, text);
+      if (!entry) {
+        Alert.alert("Couldn't queue that", "Please try again.");
+        return;
+      }
+      setHostPrompt("");
+      setState((prev) =>
+        prev
+          ? {
+              ...prev,
+              session: { ...prev.session, budgetUsed: prev.session.budgetUsed + 1 },
+              entries: [...prev.entries, entry],
+            }
+          : prev,
+      );
+    } catch (err) {
+      Alert.alert(
+        "Couldn't queue that",
+        err instanceof HttpError ? err.message : "Please try again.",
+      );
+    } finally {
+      setHostSending(false);
+    }
+  }
+
   async function handleVeto(entryId: string) {
     setVetoingId(entryId);
     try {
@@ -210,6 +246,41 @@ export default function JamSessionScreen() {
                 </Pressable>
               </View>
             </View>
+
+            {!isClosed && (
+              <View style={styles.hostCard}>
+                <Text style={styles.hostLabel}>Add your own request</Text>
+                <View style={styles.hostRow}>
+                  <TextInput
+                    style={styles.hostInput}
+                    value={hostPrompt}
+                    onChangeText={setHostPrompt}
+                    placeholder="e.g. slow synthwave for the last hour"
+                    placeholderTextColor={colors.textFaint}
+                    maxLength={500}
+                    returnKeyType="send"
+                    onSubmitEditing={handleHostSend}
+                    accessibilityLabel="Your request"
+                  />
+                  <Pressable
+                    style={[
+                      styles.hostSendBtn,
+                      (hostSending || !hostPrompt.trim()) && styles.disabled,
+                    ]}
+                    onPress={handleHostSend}
+                    disabled={hostSending || !hostPrompt.trim()}
+                    accessibilityRole="button"
+                    accessibilityLabel="Queue your request"
+                  >
+                    {hostSending ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Music size={16} color="#fff" />
+                    )}
+                  </Pressable>
+                </View>
+              </View>
+            )}
 
             <Pressable
               style={[styles.playBtn, startingPlayback && styles.disabled]}
@@ -334,6 +405,34 @@ function makeStyles(c: ThemeColors) {
     },
     shareBtnText: { color: "#fff", fontFamily: fonts.sansSemibold, fontSize: 14 },
     actionRow: { flexDirection: "row", gap: spacing.sm, alignSelf: "stretch" },
+    hostCard: {
+      backgroundColor: c.surface,
+      borderRadius: radii.lg,
+      borderWidth: 1,
+      borderColor: c.border,
+      padding: spacing.md,
+      gap: spacing.sm,
+    },
+    hostLabel: { fontFamily: fonts.sansSemibold, fontSize: 14, color: c.text },
+    hostRow: { flexDirection: "row", gap: spacing.sm, alignItems: "center" },
+    hostInput: {
+      flex: 1,
+      minHeight: 44,
+      paddingHorizontal: spacing.md,
+      borderRadius: radii.md,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.surfaceAlt,
+      color: c.text,
+    },
+    hostSendBtn: {
+      minWidth: 52,
+      minHeight: 44,
+      borderRadius: radii.md,
+      backgroundColor: c.accent,
+      alignItems: "center",
+      justifyContent: "center",
+    },
     actionFlex: { flex: 1, justifyContent: "center" },
     shareBtnAlt: {
       flexDirection: "row",

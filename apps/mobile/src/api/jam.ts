@@ -79,6 +79,19 @@ export async function vetoJamEntry(sessionId: string, entryId: string): Promise<
   await apiDelete(`/api/jam-sessions/${sessionId}/entries/${entryId}`);
 }
 
+/** Host-authored prompt — authenticated session route, no share token. The
+ *  operator should not have to scan their own QR code to queue a request. */
+export async function pushHostJamPrompt(
+  sessionId: string,
+  promptText: string,
+): Promise<JamEntry | null> {
+  const res = await apiPost<{ entry: JamEntry }>(
+    `/api/jam-sessions/${sessionId}/entries`,
+    { promptText },
+  );
+  return res?.entry ?? null;
+}
+
 export async function fetchJamState(shareToken: string): Promise<JamState | null> {
   const res = await apiGet<JamState>(`/api/jam/${shareToken}`);
   return res ?? null;

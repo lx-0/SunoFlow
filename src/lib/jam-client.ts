@@ -69,6 +69,21 @@ export async function pushJamPromptApi(
   return { ok: true, entry: json.entry };
 }
 
+/** Host-authored prompt — authenticated session route, no share token. */
+export async function pushHostJamPromptApi(
+  sessionId: string,
+  input: { promptText: string; guestName?: string },
+): Promise<ClientResult<{ entry: JamEntryCard }>> {
+  const res = await fetchWithTimeout(`/api/jam-sessions/${sessionId}/entries`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) return { ok: false, error: await parseError(res), status: res.status };
+  const json = (await res.json()) as { entry: JamEntryCard };
+  return { ok: true, entry: json.entry };
+}
+
 export async function vetoJamEntryApi(
   sessionId: string,
   entryId: string,

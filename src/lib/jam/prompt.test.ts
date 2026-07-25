@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    jamSession: { findUnique: vi.fn(), updateMany: vi.fn() },
+    jamSession: { findFirst: vi.fn(), updateMany: vi.fn() },
     jamSessionEntry: { count: vi.fn(), create: vi.fn() },
     song: { create: vi.fn() },
     $transaction: vi.fn(),
@@ -44,7 +44,7 @@ vi.mock("@/lib/logger", () => ({
 import { prisma } from "@/lib/prisma";
 import { generateSong, resolveUserApiKeyWithMode, SunoApiError } from "@/lib/sunoapi";
 import { checkCredits, deductCredits } from "@/lib/credits";
-import { pushJamPrompt } from "./prompt";
+import { pushJamPrompt, pushJamPromptAsHost, hostGuestKey } from "./prompt";
 
 const SESSION = {
   id: "jam-1",
@@ -78,7 +78,7 @@ const INPUT = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(prisma.jamSession.findUnique).mockResolvedValue(SESSION as never);
+  vi.mocked(prisma.jamSession.findFirst).mockResolvedValue(SESSION as never);
   vi.mocked(prisma.jamSessionEntry.count).mockResolvedValue(0 as never);
   vi.mocked(prisma.jamSession.updateMany).mockResolvedValue({ count: 1 } as never);
   vi.mocked(resolveUserApiKeyWithMode).mockResolvedValue({
@@ -104,7 +104,7 @@ beforeEach(() => {
 
 describe("pushJamPrompt", () => {
   it("404s for unknown tokens", async () => {
-    vi.mocked(prisma.jamSession.findUnique).mockResolvedValue(null as never);
+    vi.mocked(prisma.jamSession.findFirst).mockResolvedValue(null as never);
 
     const result = await pushJamPrompt("nope", INPUT);
 
@@ -113,7 +113,7 @@ describe("pushJamPrompt", () => {
   });
 
   it("409s when the session is closed", async () => {
-    vi.mocked(prisma.jamSession.findUnique).mockResolvedValue({
+    vi.mocked(prisma.jamSession.findFirst).mockResolvedValue({
       ...SESSION,
       status: "closed",
     } as never);
@@ -125,7 +125,7 @@ describe("pushJamPrompt", () => {
   });
 
   it("409s when the session lifetime has expired", async () => {
-    vi.mocked(prisma.jamSession.findUnique).mockResolvedValue({
+    vi.mocked(prisma.jamSession.findFirst).mockResolvedValue({
       ...SESSION,
       expiresAt: new Date(Date.now() - 1000),
     } as never);
@@ -227,5 +227,69 @@ describe("pushJamPrompt", () => {
       {},
       "personal-key",
     );
+  });
+});
+
+describe("pushJamPromptAsHost", () => {
+  it("scopes the lookup to the owning host so a stranger cannot post", async () => {
+    vi.mocked(prisma.jamSession.findFirst).mockResolvedValue(null as never);
+
+    const result = await pushJamPromptAsHost("jam-1", "not-the-host", {
+      promptText: "italo disco about cold pizza",
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.status).toBe(404);
+    expect(vi.mocked(prisma.jamSession.findFirst).mock.calls[0]?.[0]).toEqual({
+      where: { id: "jam-1", hostUserId: "not-the-host" },
+      select: expect.anything(),
+    });
+  });
+
+  it("skips the per-guest open-prompt cap — the operator is not a guest", async () => {
+    vi.mocked(prisma.jamSessionEntry.count).mockResolvedValue(99 as never);
+
+    const result = await pushJamPromptAsHost("jam-1", "host-1", {
+      promptText: "italo disco about cold pizza",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(prisma.jamSessionEntry.count).not.toHaveBeenCalled();
+  });
+
+  it("still reserves party budget, so 'songs left' stays honest", async () => {
+    vi.mocked(prisma.jamSession.updateMany).mockResolvedValue({ count: 0 } as never);
+
+    const result = await pushJamPromptAsHost("jam-1", "host-1", {
+      promptText: "italo disco about cold pizza",
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("LIMIT_REACHED");
+    expect(generateSong).not.toHaveBeenCalled();
+  });
+
+  it("tags host entries with a per-session host key", async () => {
+    let created: { guestKey?: string } | undefined;
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: unknown) => {
+      if (typeof fn === "function") {
+        return fn({
+          song: { create: vi.fn().mockResolvedValue({ id: "song-1" }) },
+          jamSessionEntry: {
+            create: vi.fn().mockImplementation((args: { data: { guestKey: string } }) => {
+              created = args.data;
+              return ENTRY;
+            }),
+          },
+        });
+      }
+      return [];
+    });
+
+    await pushJamPromptAsHost("jam-1", "host-1", {
+      promptText: "italo disco about cold pizza",
+    });
+
+    expect(created?.guestKey).toBe(hostGuestKey("jam-1"));
   });
 });

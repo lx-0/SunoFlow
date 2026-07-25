@@ -8,11 +8,12 @@ import { logServerError } from "@/lib/error-logger";
 import { logger } from "@/lib/logger";
 import { isJamSessionExpired } from "./sessions";
 import type { JamEntryCard } from "./state";
+import { JAM_PROMPT_MAX_LENGTH, JAM_MAX_OPEN_PROMPTS_PER_GUEST } from "./constants";
 
-// Suno's non-custom description mode caps prompts at 500 chars.
-export const JAM_PROMPT_MAX_LENGTH = 500;
-// Open prompts per guest device; a slot frees when the entry leaves "pending".
-export const JAM_MAX_OPEN_PROMPTS_PER_GUEST = 2;
+export {
+  JAM_PROMPT_MAX_LENGTH,
+  JAM_MAX_OPEN_PROMPTS_PER_GUEST,
+} from "./constants";
 
 const ENTRY_SELECT = {
   id: true,
@@ -42,8 +43,43 @@ export async function pushJamPrompt(
   shareToken: string,
   input: { promptText: string; guestName?: string; guestKey: string },
 ): Promise<Result<{ entry: JamEntryCard }>> {
-  const session = await prisma.jamSession.findUnique({
-    where: { shareToken },
+  return pushPrompt({ where: { shareToken } }, input, { asHost: false });
+}
+
+/** Stable guestKey for host-authored entries — the operator is one "device"
+ *  per session, so their cards group like a guest's without colliding with a
+ *  real guest key. */
+export function hostGuestKey(sessionId: string): string {
+  return `host:${sessionId}`;
+}
+
+/**
+ * Host-authored prompt. Same pipeline as a guest push — the operator's request
+ * must land in the queue identically, run on the same account and count
+ * against the same party budget, so "songs left" stays honest. The per-guest
+ * open-prompt cap is NOT applied: it exists to stop one phone monopolising the
+ * party, which is not a constraint on the person running it. Ownership is
+ * verified here, not by the caller.
+ */
+export async function pushJamPromptAsHost(
+  sessionId: string,
+  hostUserId: string,
+  input: { promptText: string; guestName?: string },
+): Promise<Result<{ entry: JamEntryCard }>> {
+  return pushPrompt(
+    { where: { id: sessionId, hostUserId } },
+    { ...input, guestKey: hostGuestKey(sessionId) },
+    { asHost: true },
+  );
+}
+
+async function pushPrompt(
+  lookup: { where: { shareToken: string } | { id: string; hostUserId: string } },
+  input: { promptText: string; guestName?: string; guestKey: string },
+  options: { asHost: boolean },
+): Promise<Result<{ entry: JamEntryCard }>> {
+  const session = await prisma.jamSession.findFirst({
+    where: lookup.where,
     select: {
       id: true,
       status: true,
@@ -68,13 +104,15 @@ export async function pushJamPrompt(
     ? stripHtml(input.guestName).trim().slice(0, 40) || null
     : null;
 
-  const openPrompts = await prisma.jamSessionEntry.count({
-    where: { sessionId: session.id, guestKey: input.guestKey, status: "pending" },
-  });
-  if (openPrompts >= JAM_MAX_OPEN_PROMPTS_PER_GUEST) {
-    return Err.rateLimited(
-      "You already have songs generating — wait until one finishes",
-    );
+  if (!options.asHost) {
+    const openPrompts = await prisma.jamSessionEntry.count({
+      where: { sessionId: session.id, guestKey: input.guestKey, status: "pending" },
+    });
+    if (openPrompts >= JAM_MAX_OPEN_PROMPTS_PER_GUEST) {
+      return Err.rateLimited(
+        "You already have songs generating — wait until one finishes",
+      );
+    }
   }
 
   // Atomic budget reservation: the conditional increment is the gate. The

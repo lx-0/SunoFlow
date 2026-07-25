@@ -11,11 +11,13 @@ import { useToast } from "./Toast";
 import {
   closeJamSessionApi,
   fetchJamState,
+  pushHostJamPromptApi,
   vetoJamEntryApi,
   type JamSessionDetail,
 } from "@/lib/jam-client";
 import { fetchWithTimeout } from "@/lib/fetch-client";
 import type { JamSessionState } from "@/lib/jam/state";
+import { JAM_PROMPT_MAX_LENGTH } from "@/lib/jam/constants";
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -33,6 +35,9 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
   const [vetoingId, setVetoingId] = useState<string | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [hostPrompt, setHostPrompt] = useState("");
+  const [hostSending, setHostSending] = useState(false);
+  const [hostSendError, setHostSendError] = useState<string | null>(null);
   const { addToQueue, playQueue, currentIndex } = useQueue();
   const { toast } = useToast();
 
@@ -192,6 +197,40 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
     }
   }
 
+  async function handleHostSend(e: React.FormEvent) {
+    e.preventDefault();
+    const text = hostPrompt.trim();
+    if (!text || hostSending) return;
+
+    setHostSending(true);
+    setHostSendError(null);
+    try {
+      const result = await pushHostJamPromptApi(session.id, { promptText: text });
+      if (!result.ok) {
+        setHostSendError(result.error);
+        return;
+      }
+      setHostPrompt("");
+      // Same rule as the guest view: take the server's entry card, never a
+      // fake optimistic row that a poll could contradict. The ready-transition
+      // watcher in refresh() then enqueues the song like any guest request.
+      setState((prev) =>
+        prev
+          ? {
+              ...prev,
+              session: { ...prev.session, budgetUsed: prev.session.budgetUsed + 1 },
+              entries: [...prev.entries, result.entry],
+            }
+          : prev,
+      );
+      toast("Added to the party queue", "success");
+    } catch {
+      setHostSendError("Failed to send the request");
+    } finally {
+      setHostSending(false);
+    }
+  }
+
   async function handleClose() {
     setClosing(true);
     try {
@@ -314,6 +353,46 @@ export function PartyHostView({ session }: { session: JamSessionDetail }) {
           fallbackName={meta?.name ?? session.name}
           onClose={() => setShowDisplay(false)}
         />
+      )}
+
+      {/* Host composer — the operator queues prompts from the console instead
+          of having to scan their own QR code and join as a guest. */}
+      {meta && !isClosed && (
+        <form
+          onSubmit={handleHostSend}
+          className="bg-surface border border-border rounded-xl p-4 space-y-2"
+        >
+          <label htmlFor="host-prompt" className="text-sm font-semibold text-primary">
+            Add your own request
+          </label>
+          <div className="flex items-start gap-2">
+            <input
+              id="host-prompt"
+              value={hostPrompt}
+              onChange={(e) => setHostPrompt(e.target.value)}
+              maxLength={JAM_PROMPT_MAX_LENGTH}
+              placeholder="e.g. slow synthwave for the last hour"
+              className="flex-1 px-3 py-2 rounded-lg border border-border bg-surface-raised text-primary placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition-colors min-h-[44px]"
+            />
+            <button
+              type="submit"
+              disabled={hostSending || !hostPrompt.trim() || budgetLeft === 0}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white transition-colors min-h-[44px] flex-shrink-0"
+            >
+              {hostSending ? (
+                <Icon icon={Loader2} className="w-4 h-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Icon icon={Music} className="w-4 h-4" aria-hidden="true" />
+              )}
+              {hostSending ? "Sending…" : "Queue it"}
+            </button>
+          </div>
+          {hostSendError && (
+            <p className="text-sm text-red-400" role="alert">
+              {hostSendError}
+            </p>
+          )}
+        </form>
       )}
 
       {pollError && (
