@@ -94,16 +94,14 @@ const NAV_SECTIONS: { key: "create" | "myMusic" | "browse" | null; items: NavIte
     items: [
       { key: "library", href: "/library", icon: BookOpen, dataTour: undefined, prefetch: true },
       // Back in the nav on operator request (2026-07-22) — the Phase-2
-      // chip-only placement buried it. Must point at the real /favorites route.
-      //
-      // NEVER give a nav item a query-only href like /library?smartFilter=x.
-      // In a production build the next-intl rewrite drops the query on the way
-      // back to the client router (`x-middleware-rewrite` keeps it,
-      // `x-nextjs-rewritten-path` does not, and the router commits the latter),
-      // so a same-route query navigation resolves to the URL you are already on
-      // — no URL change, no re-render, a dead click. `next dev` does not
-      // reproduce it. Only a pathname change survives the rewrite. A real
-      // pathname also makes `pathname === href` highlight correctly.
+      // chip-only placement buried it. It pointed at /library?smartFilter=x,
+      // which was a dead click from /library: a query-only href is a same-route
+      // soft nav, and useLibraryFilterState used to seed its reducer from the
+      // URL exactly once and then only write it back. Root cause is fixed in
+      // that hook, so a query href would work again — but Favorites still gets
+      // its own route, because `pathname === href` is what drives the active
+      // highlight and a query href can never match it (the Library item would
+      // stay lit while you are on Favorites).
       // See .ytstack/KNOWLEDGE.md, 2026-07-25.
       { key: "favorites", href: "/favorites", icon: Heart, dataTour: "nav-favorites", prefetch: false },
       { key: "playlists", href: "/playlists", icon: ListMusic, dataTour: "explore", prefetch: false },

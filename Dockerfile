@@ -46,6 +46,12 @@ ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
 # when neither is provided so each build still gets a unique namespace.
 ARG NEXT_PUBLIC_BUILD_ID
 ENV NEXT_PUBLIC_BUILD_ID=$NEXT_PUBLIC_BUILD_ID
+# Railway's native GitHub integration injects this per deploy, but only reaches
+# the build when declared as ARG. next.config.mjs prefers it over the two
+# sticky vars above/below — without this line there is nothing to prefer and
+# the build id silently freezes at the last tag deploy's value.
+ARG RAILWAY_GIT_COMMIT_SHA
+ENV RAILWAY_GIT_COMMIT_SHA=$RAILWAY_GIT_COMMIT_SHA
 ARG SENTRY_RELEASE
 ENV SENTRY_RELEASE=$SENTRY_RELEASE
 RUN pnpm build

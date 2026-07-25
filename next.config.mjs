@@ -25,9 +25,19 @@ const corejs3Stubs = {
 // Build identifier exposed to the client for service-worker cache busting
 // and the update banner. Each deploy must yield a distinct value so the SW
 // re-registers with a new ?v= query and evicts stale /_next/static chunks.
+// RAILWAY_GIT_COMMIT_SHA comes FIRST on purpose. It is injected per deploy by
+// Railway's native GitHub integration, whereas NEXT_PUBLIC_BUILD_ID is a
+// sticky service variable that only `deploy-production.yml` ever writes — and
+// that workflow runs on version tags / manual dispatch only. With the old
+// precedence the sticky value won every native deploy, so the build id froze
+// at whatever the last tag deploy wrote (7553d92f, 2026-05-17) and stayed
+// there for 373 commits: the SW cache namespaces below never rotated and every
+// Sentry event carried a two-month-old release. `railway up` (the tag path)
+// does NOT inject RAILWAY_GIT_COMMIT_SHA, so NEXT_PUBLIC_BUILD_ID remains the
+// correct fallback there.
 const buildId =
-  process.env.NEXT_PUBLIC_BUILD_ID ??
   process.env.RAILWAY_GIT_COMMIT_SHA ??
+  process.env.NEXT_PUBLIC_BUILD_ID ??
   process.env.SENTRY_RELEASE ??
   `dev-${Date.now()}`;
 
@@ -375,9 +385,10 @@ if (process.env.ANALYZE === "true") {
 const sentryDsn = process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN;
 if (sentryDsn) {
   const { withSentryConfig } = await import("@sentry/nextjs");
-  // Derive release name from explicit env var, then Railway-injected commit SHA
-  const sentryRelease =
-    process.env.SENTRY_RELEASE ?? process.env.RAILWAY_GIT_COMMIT_SHA;
+  // Reuse buildId so the Sentry release and the SW cache namespace can never
+  // disagree — and so this inherits the RAILWAY_GIT_COMMIT_SHA-first ordering
+  // instead of losing to a sticky SENTRY_RELEASE service variable.
+  const sentryRelease = buildId.startsWith("dev-") ? undefined : buildId;
   config = withSentryConfig(config, {
     // Suppress noisy Sentry build output unless in CI
     silent: !process.env.CI,

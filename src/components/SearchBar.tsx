@@ -25,6 +25,17 @@ interface PlaylistResult {
   _count: { songs: number };
 }
 
+/**
+ * Picking a search hit used to push `/library?song=<id>`. No consumer in the
+ * app ever read that param, so at best the click landed on an unfiltered
+ * library — and measured in a production build the push from /library did not
+ * commit at all (see .ytstack/KNOWLEDGE.md, 2026-07-25). The song detail route
+ * is a real destination and works from anywhere.
+ */
+function songHref(songId: string): string {
+  return `/library/${songId}`;
+}
+
 const RECENT_SEARCHES_KEY = "sunoflow-recent-searches";
 const MAX_RECENT = 5;
 
@@ -159,7 +170,7 @@ export function SearchBar() {
     } else if (e.key === "Enter" && selectedIndex >= 0) {
       e.preventDefault();
       if (selectedIndex < songs.length) {
-        navigate(`/library?song=${songs[selectedIndex].id}`, query);
+        navigate(songHref(songs[selectedIndex].id), query);
       } else {
         const pi = selectedIndex - songs.length;
         navigate(`/playlists/${playlists[pi].id}`, query);
@@ -258,7 +269,7 @@ export function SearchBar() {
                       role="option"
                       aria-selected={selectedIndex === i}
                       onClick={() =>
-                        navigate(`/library?song=${song.id}`, query)
+                        navigate(songHref(song.id), query)
                       }
                       className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
                         selectedIndex === i
