@@ -25,16 +25,25 @@ const corejs3Stubs = {
 // Build identifier exposed to the client for service-worker cache busting
 // and the update banner. Each deploy must yield a distinct value so the SW
 // re-registers with a new ?v= query and evicts stale /_next/static chunks.
-// RAILWAY_GIT_COMMIT_SHA comes FIRST on purpose. It is injected per deploy by
-// Railway's native GitHub integration, whereas NEXT_PUBLIC_BUILD_ID is a
-// sticky service variable that only `deploy-production.yml` ever writes — and
-// that workflow runs on version tags / manual dispatch only. With the old
-// precedence the sticky value won every native deploy, so the build id froze
-// at whatever the last tag deploy wrote (7553d92f, 2026-05-17) and stayed
-// there for 373 commits: the SW cache namespaces below never rotated and every
-// Sentry event carried a two-month-old release. `railway up` (the tag path)
-// does NOT inject RAILWAY_GIT_COMMIT_SHA, so NEXT_PUBLIC_BUILD_ID remains the
-// correct fallback there.
+// KNOWN BROKEN IN PRODUCTION — do not read this chain as working.
+//
+// NEXT_PUBLIC_BUILD_ID is a sticky Railway service variable that only
+// `deploy-production.yml` writes, and that workflow runs on version tags /
+// manual dispatch only — last successfully on 2026-05-17. Every deploy since
+// has come from Railway's native GitHub integration, so the build id is frozen
+// at 7553d92f: the SW cache namespaces below never rotate (per-deploy PWA cache
+// busting is inert) and every Sentry event carries that stale release.
+//
+// RAILWAY_GIT_COMMIT_SHA was put first to fix that, and it does work when the
+// variable is set — but MEASURED ON THE LIVE SERVICE it is not: deployment
+// c1d163b1 built 49df1b6d successfully and the release stayed 7553d92f, and
+// `railway variables` lists 14 RAILWAY_* names without it. So this branch is
+// currently dead and the stale value still wins. `railway up` (the tag path)
+// does not inject it either.
+//
+// Fixing it needs the SHA to come from CI (which knows github.sha) or from a
+// .git-aware build; both are pipeline changes. See .ytstack/KNOWLEDGE.md,
+// 2026-07-25.
 const buildId =
   process.env.RAILWAY_GIT_COMMIT_SHA ??
   process.env.NEXT_PUBLIC_BUILD_ID ??
