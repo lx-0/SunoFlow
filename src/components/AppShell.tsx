@@ -62,8 +62,10 @@ type NavItemDef = {
 // Grouped IA: 17 flat items were an undifferentiated wall with no hierarchy and
 // several synonym clusters. Sections give scannable structure; the label key
 // resolves to nav.section.<key> (null = ungrouped, rendered at the top).
-// Phase-2 consolidation: the synonym clusters were merged. Favorites is reachable
-// as a Library filter chip; Recently-Played (/history) + Generation-History
+// Phase-2 consolidation: the synonym clusters were merged. (Favorites was folded
+// into a Library filter chip here, put back in the nav on 2026-07-22 and made a
+// working destination again on 2026-07-25 — see the item below.)
+// Recently-Played (/history) + Generation-History
 // (/generations) group under Library via SectionTabs; Explore (a literal
 // /discover duplicate) 301-redirects to /discover and Radio/Feed leave the nav
 // (Radio stays reachable from song cards, Feed is empty in the closed beta);
@@ -92,9 +94,18 @@ const NAV_SECTIONS: { key: "create" | "myMusic" | "browse" | null; items: NavIte
     items: [
       { key: "library", href: "/library", icon: BookOpen, dataTour: undefined, prefetch: true },
       // Back in the nav on operator request (2026-07-22) — the Phase-2
-      // chip-only placement buried it. Query-href: never shows as active
-      // (usePathname carries no query); the Library item highlights instead.
-      { key: "favorites", href: "/library?smartFilter=favorites", icon: Heart, dataTour: undefined, prefetch: false },
+      // chip-only placement buried it. Must point at the real /favorites route.
+      //
+      // NEVER give a nav item a query-only href like /library?smartFilter=x.
+      // In a production build the next-intl rewrite drops the query on the way
+      // back to the client router (`x-middleware-rewrite` keeps it,
+      // `x-nextjs-rewritten-path` does not, and the router commits the latter),
+      // so a same-route query navigation resolves to the URL you are already on
+      // — no URL change, no re-render, a dead click. `next dev` does not
+      // reproduce it. Only a pathname change survives the rewrite. A real
+      // pathname also makes `pathname === href` highlight correctly.
+      // See .ytstack/KNOWLEDGE.md, 2026-07-25.
+      { key: "favorites", href: "/favorites", icon: Heart, dataTour: "nav-favorites", prefetch: false },
       { key: "playlists", href: "/playlists", icon: ListMusic, dataTour: "explore", prefetch: false },
       { key: "insights", href: "/insights", icon: ChartColumn, dataTour: undefined, prefetch: false },
     ],
