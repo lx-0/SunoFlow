@@ -2,6 +2,8 @@
 
 A different cut than [`docs/feature-inventory.md`](../docs/feature-inventory.md). The inventory is a flat list ("what features exist + which files"). This map is a **shape-of-the-system** view: bounded contexts, data flows, hot-spots, where complexity lives.
 
+> **Stale since M005 (2026-05-15 snapshot).** This map predates Party Mode / Jam Sessions entirely — that bounded context (host session + tokened guest surface + budget reservation + optimize) is missing here. `docs/feature-inventory.md` has it as of 2026-07-25; this shape-of-the-system view still needs the context drawn in.
+
 Generated 2026-05-15 from a cold read of the codebase (no domain priors).
 
 ---

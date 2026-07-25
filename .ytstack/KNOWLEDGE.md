@@ -255,3 +255,48 @@ Patterns, rules, and lessons learned while building SunoFlow. Future sessions re
 - **Ursache:** Gesetzt werden die beiden nur von `.github/workflows/deploy-production.yml`, und die Workflow triggert ausschliesslich auf `v*.*.*`-Tags oder `workflow_dispatch`. Letzter erfolgreicher Lauf: 2026-05-17. Seitdem deployt Railways native GitHub-Integration, die die Variablen nie anfasst.
 - **Was NICHT funktioniert hat:** die Precedence in `next.config.mjs` auf `RAILWAY_GIT_COMMIT_SHA` zuerst zu drehen (plus `ARG RAILWAY_GIT_COMMIT_SHA` im Dockerfile, `49df1b6d`). Lokal verifiziert und korrekt — aber **am Live-Service wirkungslos**: GitHub-Deployment-API zeigt `49df1b6d` um 12:02 UTC deployt, Railway-Deployment `c1d163b1` SUCCESS, und `sentry-release` blieb `7553d92f`. `railway variables` listet 14 `RAILWAY_*`-Namen, `RAILWAY_GIT_COMMIT_SHA` ist nicht dabei. Lehre: eine Env-Var-Kette lokal durchzuspielen beweist nur den Mechanismus, nicht die Umgebung — die Variable muss am Zielsystem nachgewiesen werden, bevor man den Fix als erledigt meldet.
 - **Verbleibende Wege** (keiner umgesetzt, Entscheidung offen): (A) `RAILWAY_TOKEN` in `ci.yml` verfügbar machen und bei jedem grünen main-Push `railway variable set … --skip-deploys` fahren, wie es `deploy-production.yml` bereits tut — löst Cache-Busting UND Sentry-Korrelation, braucht das Secret im CI-Workflow. (B) `.git` aus `.dockerignore` nehmen und den SHA im Builder per `git rev-parse HEAD` ziehen — reiner Code-Fix, kostet Build-Kontext. (C) Ohne SHA eine pro-Build eindeutige ID erzeugen und gar keine Sentry-Release setzen statt einer falschen — repariert nur das Cache-Busting, ohne Commit-Zuordnung.
+
+## 2026-07-25 — Verifikations-Lehren aus einem Tag mit zwei Fehldiagnosen
+
+Beide Fehldiagnosen des Tages hatten dieselbe Wurzel: **Absicht im Code wurde
+als Verhalten des Codes gelesen.** Einmal der Kommentar über den Cache-Namen
+(„jeder Deploy muss einen eigenen Wert liefern") als Beweis, dass eingefrorene
+Namespaces Nutzer auf alter Shell stranden lassen — die Fetch-Strategien
+darunter sagen etwas anderes (Navigationen network-first, Assets content-gehasht,
+kein Pfad zu veraltetem Inhalt). Einmal eine lokal durchgespielte Env-Var-Kette
+als Beweis, dass die Variable am Zielsystem existiert — tat sie nicht. Merksatz:
+Der Kommentar beschreibt, was jemand wollte. Nur der Ausführungspfad beschreibt,
+was passiert.
+
+- **Navigation NUR im Production-Build verifizieren.** `next dev` und
+  `next build && next start` verhalten sich beim Client-Routing unterschiedlich;
+  ein in dev grüner Navigations-Spec kann in Prod rot sein und umgekehrt. Jeder
+  Nav-/Routing-Fix braucht `pnpm build && next start`.
+- **Ein per `document.createElement("a")` eingehängter Anchor testet KEIN
+  Router-Verhalten.** Next fängt nur seine eigenen `<Link>`-Komponenten ab; ein
+  roher Anchor löst eine Hard-Navigation aus und commitet die Query immer — das
+  sieht nach „funktioniert" aus und misst das Falsche. Soft-Nav nur über echtes
+  `next/link` bzw. `router.push/replace` messen.
+- **Ein Regressions-Spec muss im RED-Lauf auch wirklich fallen.** Ein Test, der
+  gegen den alten Stand grün bleibt, schützt nichts. Heute einmal passiert: der
+  Back-Navigation-Test bestand mit dem kaputten Hook, weil der State sich nie
+  änderte — erst die Assertion auf den Zwischenzustand machte ihn zum
+  Diskriminator.
+- **Env-Var-Fixes am Zielsystem nachweisen, nicht nur den Mechanismus.** Lokal
+  `VAR=x pnpm build` beweist, dass die Kette greift, wenn `x` gesetzt ist —
+  nicht, dass die Plattform sie setzt. Vor dem „gefixt" die Variable am Ziel
+  belegen (`railway variables`, Deployment-Header, gebautes Artefakt).
+- **Client-Bundle-Grenze bricht nur im Build.** `JAM_PROMPT_MAX_LENGTH` aus
+  `src/lib/jam/prompt.ts` in eine `"use client"`-Komponente importiert zog
+  prisma → credits → notifications → web-push → `node:net` ins Browser-Bundle.
+  `tsc --noEmit` und vitest waren grün, `pnpm build` fiel. Konstanten, die
+  Client-Code braucht, gehören in ein eigenes abhängigkeitsfreies Modul
+  (`src/lib/jam/constants.ts`), vom Server-Modul re-exportiert.
+- **`pnpm lint --max-warnings 0` ist NICHT das CI-Gate.** CI fährt `pnpm lint`
+  (Exit 0, Warnungen toleriert); mit dem Flag fallen 17 vorbestehende Warnungen
+  in unberührten Dateien und erzeugen einen falschen Alarm.
+- **Die E2E-Suite ist gegen eine persistente lokale DB nicht idempotent.**
+  Playlists-Empty-State-Tests scheitern nach dem ersten Lauf an eigenen
+  Hinterlassenschaften, und wiederholte Läufe reißen das Registrierungs-Rate-Limit
+  (429). In CI mit frischer DB grün. Lokal: `e2e/.shared-user.json` löschen und
+  Wiederholungen sparsam fahren, sonst diagnostiziert man eigene Artefakte.

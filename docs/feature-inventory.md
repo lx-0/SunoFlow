@@ -1,6 +1,6 @@
 # SunoFlow Feature Inventory
 
-Last updated: 2026-04-22
+Last updated: 2026-07-25
 
 ## Authentication & Account
 
@@ -114,6 +114,26 @@ Last updated: 2026-04-22
 | Song comparison tool | Built | `src/app/[locale]/compare` |
 | Embeddable song player | Built | `src/app/[locale]/embed/[songId]` |
 | Export songs/playlists | Built | `src/lib/export.ts` |
+
+## Party Mode / Jam Sessions
+
+Added in M005 (2026-07-22) and extended 2026-07-25; this section was missing
+from the inventory until 2026-07-25.
+
+| Feature | Status | Key Files |
+|---------|--------|-----------|
+| Jam session create / list (STUDIO-gated) | Built | `src/app/[locale]/party/page.tsx`, `src/components/JamSessionsView.tsx`, `src/lib/jam/sessions.ts` |
+| Host console (budget, QR, veto, end session) | Built | `src/app/[locale]/party/[id]/page.tsx`, `src/components/PartyHostView.tsx` |
+| Fullscreen party display | Built | `src/components/JamPartyDisplay.tsx` |
+| Guest surface, no account (token = auth) | Built | `src/app/[locale]/jam/[token]/page.tsx`, `src/components/JamGuestView.tsx` |
+| Guest prompt push (budget-reserved, per-guest cap) | Built | `POST /api/jam/[token]/prompts`, `src/lib/jam/prompt.ts` |
+| **Host prompt push** (skips guest cap, reserves budget) | Built (2026-07-25) | `POST /api/jam-sessions/[id]/entries`, `pushJamPromptAsHost` in `src/lib/jam/prompt.ts` |
+| **Prompt Optimize** (host key, no song budget, IP-bucketed) | Built (2026-07-25) | `POST /api/jam/[token]/optimize`, `src/lib/jam/optimize.ts` |
+| **Session-scoped learning signal** (playback + vetoes) | Built (2026-07-25) | `src/lib/jam/session-signal.ts` |
+| Custom + auto share slugs, session lifetime | Built | `src/lib/jam/sessions.ts` |
+| Entry veto | Built | `DELETE /api/jam-sessions/[id]/entries/[entryId]` |
+| Native host console + party display | Built (runtime unverified) | `apps/mobile/app/(tabs)/…/jam-session/[id].tsx`, `apps/mobile/src/api/jam.ts` |
+| Cross-session learning (host history) | Not built | — |
 
 ## Analytics & Insights
 

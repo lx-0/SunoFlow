@@ -510,3 +510,85 @@ silently; only user-chosen slugs surface 409s.
 
 **Reference:** `src/components/JamSessionsView.tsx`, `src/app/[locale]/party/page.tsx`,
 AppShell NAV_SECTIONS, `autoSlug` in `src/lib/jam/sessions.ts`.
+
+## 2026-07-25: Favorites is a route, not a Library query preset
+
+**Context:** The sidebar Favorites item pointed at `/library?smartFilter=favorites`
+(`d1a19425`). Clicked from `/library` it did nothing visible.
+
+**Root cause (measured, and NOT what the first diagnosis claimed):**
+`useLibraryFilterState` seeded its reducer from `useSearchParams` exactly once
+and afterwards only wrote the URL back without an equality guard. A same-route
+query navigation was therefore invisible to the hook, and the write-back
+replaced the incoming query with the stale state. The initial diagnosis blamed
+the next-intl rewrite dropping the query (`x-nextjs-rewritten-path`); that was
+disproven by restoring the query href on a production build, where the click
+commits `?smartFilter=favorites` and activates the chip. Same-route query soft
+navigation works — the filter chips do it on every click via `router.replace`.
+
+**Decision:** Fix the hook (bidirectional sync via `syncedQueryRef`, push held
+until the search debounce settles) AND keep Favorites on its own `/favorites`
+route. The route is not the bug fix — it is required because `pathname === href`
+drives the active highlight and a query href can never match it, so Library
+stayed lit while the user was on Favorites.
+
+**Rule going forward:** a nav item is a destination; destinations get pathnames.
+Query-only hrefs are for filter state, never for nav entries.
+
+**Reference:** `src/components/AppShell.tsx` NAV_SECTIONS, `src/hooks/useLibraryFilterState.ts`,
+`e2e/nav-favorites.spec.ts`, KNOWLEDGE.md 2026-07-25.
+
+## 2026-07-25: Host jam prompts skip the guest cap but still reserve budget
+
+**Context:** The session operator had no prompt input; running a party meant
+scanning your own QR code and joining as a guest.
+
+**Decision:** A host path through the same `pushPrompt()` pipeline, with two
+deliberate asymmetries. (1) The per-guest open-prompt cap is NOT applied — it
+exists to stop one phone monopolising the party, which is not a constraint on
+the person running it. (2) The atomic budget reservation IS applied, so the
+"songs left" counter stays honest regardless of who queued the song. Ownership
+is verified inside the domain function by resolving the session on
+`(id, hostUserId)`, not trusted from the route. Host entries carry a stable
+per-session `guestKey` (`host:<id>`) so they group without colliding with a
+real device.
+
+**Reference:** `src/lib/jam/prompt.ts`, `src/app/api/jam-sessions/[id]/entries/route.ts`.
+
+## 2026-07-25: Optimize costs Suno credits but not party budget
+
+**Context:** Prompt optimization runs on the host's Suno key over an
+unauthenticated, token-only surface.
+
+**Decision:** Optimize does not decrement `budgetUsed` — that counter is
+denominated in songs and an optimize is not a song — but it does require budget
+headroom, so a used-up party cannot keep spending the host's credits. Abuse is
+additionally bounded by a dedicated `jam_optimize` IP bucket (max 10) in the
+middleware rather than a new per-guest counter. Results are truncated to
+`JAM_PROMPT_MAX_LENGTH`, because Suno can return more than the description mode
+accepts and an un-submittable prompt is a dead end for the guest.
+
+**Reference:** `src/lib/jam/optimize.ts`, `src/lib/rate-limit/sliding-window.ts`.
+
+## 2026-07-25: Optimize learns per session, from playback and vetoes
+
+**Context:** "Optimize" was specified as agentic and *learning*. Three candidate
+signals existed: the host's own accept/edit/undo history across parties, the
+current party's reaction, or a global cross-user corpus.
+
+**Decision:** Operator chose the party's reaction. Positive signal is
+**playback**, explicitly not successful generation — every accepted prompt
+reaches `ready`, so `ready` carries no preference information, whereas a song
+the room actually heard is the closest thing to a vote it casts. Playback is
+read from the HOST's `PlayHistory` because the party plays on their queue.
+Negative signal is the host's veto; failed generations are excluded because an
+upstream error says nothing about taste. Each list caps at 8. This variant was
+chosen first because it requires **no new storage at all**.
+
+**Consequence accepted:** the memory resets with the party. Cross-session
+learning is a later layer and will need its own table.
+
+**Fallback:** no signal yet, or no usable model output → Suno's stateless style
+boost, so the button can never regress below its previous behaviour.
+
+**Reference:** `src/lib/jam/session-signal.ts`, `src/lib/jam/optimize.ts`.

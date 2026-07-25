@@ -215,3 +215,42 @@ BAU UI fix outside the M001 redesign track — mobile expanded-player tab button
 Commits:
 - `f177579` fix(player): enhance scroll behavior and layout in ExpandedPlayer component
 - (next) chore: bump version to 0.2.2 + CHANGELOG/KNOWLEDGE
+
+## 2026-07-25 — BAU-Session: Favorites-Nav, Jam-Operator-Prompt, Optimize (lernend)
+
+Ausgangspunkt war ein Bug-Report des Operators: der Favorites-Eintrag in der
+Sidebar tat nichts. Daraus wurde ein Tag mit vier Auslieferungen plus zwei
+Selbstkorrekturen.
+
+Commits (alle auf `main`, CI grün, deployed):
+- `9822c0c4` fix(nav): Favorites wieder eine echte Destination statt Library-Query
+- `f67981ed` fix(security): High-Severity-Audit-Gate entsperrt (postcss, brace-expansion)
+- `49df1b6d` fix(deploy+search): Build-ID-Precedence + SearchBar auf `/library/<id>`; Root-Cause-Korrektur zu 9822c0c4
+- `1f20cdc7` feat(jam): Operator kann eigene Prompts einreihen (Web + Mobile)
+- `60363f4a` feat(jam): Optimize-Knopf an beiden Prompteingaben
+- `d3f97e2f` docs: Build-ID-Behauptung zurückgezogen — in Prod wirkungslos
+- `15d72009` docs: PWA-Cache-Schaden zurückgezogen — es gibt keinen
+- `fa6bb705` feat(jam): Optimize lernt aus der Reaktion der Party
+
+Tests: 2024 Unit / 47 skipped / 0 failed. E2E 80/80 gegen Production-Build
+(neue Specs `e2e/nav-favorites.spec.ts`, `e2e/jam-host-prompt.spec.ts`).
+Typecheck web + mobile sauber, CI-`pnpm lint` sauber (17 `--max-warnings 0`
+Warnungen sind vorbestehend in unberührten Dateien).
+
+Offen / bewusst liegengelassen:
+- **Build-Identifier eingefroren** auf `7553d92f` — nur Telemetrie-Auswirkung
+  (falsche Release an Fehler-Events), kein Nutzerschaden. Drei Lösungswege in
+  KNOWLEDGE.md 2026-07-25, keiner umgesetzt, Pipeline-Entscheidung offen.
+- **Optimize lernt nur innerhalb einer Session.** Cross-Session-Lernen aus der
+  Übernahme-/Undo-Historie des Hosts ist die nächste Ebene und braucht eine
+  eigene Tabelle.
+- **Mobile-Runtime unverifiziert.** Die Jam-Änderungen an `apps/mobile` sind
+  reines JS (Reload genügt im Dev), aber ein Release-Build lädt kein JS nach —
+  auf dem Gerät erst nach `pnpm release` sichtbar.
+- **Kein echter Party-Test.** Verifiziert wurde gegen einen lokalen
+  Production-Build; auf sunoflow.app ist nur nachgewiesen, dass der Code
+  deployed ist und `/api/jam/<token>/optimize` korrekt antwortet (400 auf
+  ungültigen Body vs. 404 auf einen Fantasie-Pfad).
+- E2E-Suite ist gegen eine persistente lokale DB **nicht idempotent**
+  (Playlists-Empty-State-Tests, Registrierungs-Rate-Limit). In CI mit frischer
+  DB grün; lokal `e2e/.shared-user.json` löschen und Wiederholungen begrenzen.
