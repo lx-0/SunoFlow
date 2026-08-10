@@ -55,6 +55,10 @@ if [ ! -f "$ASC_KEY_PATH" ]; then
   exit 1
 fi
 
+# xcodebuild rejects a relative -authenticationKeyPath ("must be an absolute path to
+# an existing file"), and the project-local default is relative by construction.
+ASC_KEY_PATH="$(cd "$(dirname "$ASC_KEY_PATH")" && pwd)/$(basename "$ASC_KEY_PATH")"
+
 AUTH=(
   -authenticationKeyPath "$ASC_KEY_PATH"
   -authenticationKeyID "$ASC_KEY_ID"
