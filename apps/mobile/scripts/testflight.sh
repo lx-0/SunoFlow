@@ -4,13 +4,21 @@
 #
 #   pnpm testflight
 #
-# Prerequisites (both one-time, see README "TestFlight"):
-#   1. The app record exists in App Store Connect for app.sunoflow.mobile.
-#   2. An App Store Connect API key (.p8) is downloaded and apps/mobile/.env carries
-#      ASC_KEY_ID and ASC_ISSUER_ID (copy .env.example). Optional: ASC_KEY_PATH.
+# Authentication uses the Apple ID signed into Xcode (Settings → Accounts). That
+# account is the team's Account Holder, so it may issue the cloud-managed
+# distribution certificate the export step needs.
 #
-# Signing certificate and App Store provisioning profile are created on demand
-# via -allowProvisioningUpdates; nothing has to be prepared in the portal.
+# An App Store Connect API key is NOT used by default, on purpose: a key with the
+# App Manager role is refused by Apple with
+#   FORBIDDEN_ERROR "You haven't been given access to cloud-managed distribution
+#   certificates. Please contact your team's Account Holder or an Admin."
+# Only an Admin-role key can sign distribution builds. If you create one, set
+# ASC_USE_KEY=1 (plus ASC_KEY_ID / ASC_ISSUER_ID) in .env to use it — needed for
+# unattended runs, where no Xcode session exists.
+#
+# Prerequisite: the app record for app.sunoflow.mobile exists in App Store Connect.
+# The distribution certificate and App Store provisioning profile are created on
+# demand via -allowProvisioningUpdates; nothing has to be prepared in the portal.
 
 set -euo pipefail
 
@@ -18,7 +26,8 @@ cd "$(dirname "$0")/.."
 
 # Config comes from apps/mobile/.env (+ .env.local override), the same files Expo
 # reads for EXPO_PUBLIC_* — both are gitignored repo-wide. An already-exported shell
-# variable still wins, so a one-off `ASC_KEY_ID=… pnpm testflight` keeps working.
+# variable still wins, so a one-off `ASC_USE_KEY=1 pnpm testflight` keeps working.
+_shell_use_key="${ASC_USE_KEY:-}"
 _shell_key_id="${ASC_KEY_ID:-}"
 _shell_issuer_id="${ASC_ISSUER_ID:-}"
 _shell_key_path="${ASC_KEY_PATH:-}"
@@ -32,38 +41,48 @@ for _envfile in .env .env.local; do
   fi
 done
 
+if [ -n "$_shell_use_key" ]; then ASC_USE_KEY="$_shell_use_key"; fi
 if [ -n "$_shell_key_id" ]; then ASC_KEY_ID="$_shell_key_id"; fi
 if [ -n "$_shell_issuer_id" ]; then ASC_ISSUER_ID="$_shell_issuer_id"; fi
 if [ -n "$_shell_key_path" ]; then ASC_KEY_PATH="$_shell_key_path"; fi
 
-: "${ASC_KEY_ID:?ASC_KEY_ID is not set — copy .env.example to .env and fill it in}"
-: "${ASC_ISSUER_ID:?ASC_ISSUER_ID is not set — copy .env.example to .env and fill it in}"
+AUTH=()
+case "${ASC_USE_KEY:-0}" in
+  1 | true | yes)
+    : "${ASC_KEY_ID:?ASC_USE_KEY is set but ASC_KEY_ID is not — see .env.example}"
+    : "${ASC_ISSUER_ID:?ASC_USE_KEY is set but ASC_ISSUER_ID is not — see .env.example}"
 
-# Project-local key first (certs/ is gitignored), then the directory Xcode itself uses.
-if [ -z "${ASC_KEY_PATH:-}" ]; then
-  if [ -f "certs/AuthKey_${ASC_KEY_ID}.p8" ]; then
-    ASC_KEY_PATH="certs/AuthKey_${ASC_KEY_ID}.p8"
-  else
-    ASC_KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
-  fi
-fi
+    # Project-local key first (certs/ is gitignored), then the directory Xcode uses.
+    if [ -z "${ASC_KEY_PATH:-}" ]; then
+      if [ -f "certs/AuthKey_${ASC_KEY_ID}.p8" ]; then
+        ASC_KEY_PATH="certs/AuthKey_${ASC_KEY_ID}.p8"
+      else
+        ASC_KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+      fi
+    fi
 
-if [ ! -f "$ASC_KEY_PATH" ]; then
-  echo "error: App Store Connect key not found at $ASC_KEY_PATH" >&2
-  echo "       Download AuthKey_${ASC_KEY_ID}.p8 from App Store Connect (it is offered exactly once)" >&2
-  echo "       and put it in apps/mobile/certs/, or point ASC_KEY_PATH at it." >&2
-  exit 1
-fi
+    if [ ! -f "$ASC_KEY_PATH" ]; then
+      echo "error: App Store Connect key not found at $ASC_KEY_PATH" >&2
+      echo "       Download AuthKey_${ASC_KEY_ID}.p8 from App Store Connect (offered exactly once)" >&2
+      echo "       and put it in apps/mobile/certs/, or point ASC_KEY_PATH at it." >&2
+      exit 1
+    fi
 
-# xcodebuild rejects a relative -authenticationKeyPath ("must be an absolute path to
-# an existing file"), and the project-local default is relative by construction.
-ASC_KEY_PATH="$(cd "$(dirname "$ASC_KEY_PATH")" && pwd)/$(basename "$ASC_KEY_PATH")"
+    # xcodebuild rejects a relative -authenticationKeyPath ("must be an absolute path
+    # to an existing file"), and the project-local default is relative by construction.
+    ASC_KEY_PATH="$(cd "$(dirname "$ASC_KEY_PATH")" && pwd)/$(basename "$ASC_KEY_PATH")"
 
-AUTH=(
-  -authenticationKeyPath "$ASC_KEY_PATH"
-  -authenticationKeyID "$ASC_KEY_ID"
-  -authenticationKeyIssuerID "$ASC_ISSUER_ID"
-)
+    AUTH=(
+      -authenticationKeyPath "$ASC_KEY_PATH"
+      -authenticationKeyID "$ASC_KEY_ID"
+      -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+    )
+    echo "› Authenticating with App Store Connect API key $ASC_KEY_ID"
+    ;;
+  *)
+    echo "› Authenticating with the Apple ID signed into Xcode"
+    ;;
+esac
 
 # Timestamped so previous archives stay available for symbolication and re-upload.
 ARCHIVE="build/SunoFlow-$(date +%Y%m%d-%H%M%S).xcarchive"
@@ -77,16 +96,19 @@ xcodebuild archive \
   -destination 'generic/platform=iOS' \
   -archivePath "$ARCHIVE" \
   -allowProvisioningUpdates \
-  "${AUTH[@]}" \
+  ${AUTH[@]+"${AUTH[@]}"} \
   COMPILER_INDEX_STORE_ENABLE=NO
 
 echo "› Uploading to App Store Connect"
+# Expect one warning here: the prebuilt hermes-engine pod ships no dSYM, so Hermes
+# frames in crash reports stay unsymbolicated. Building Hermes from source is the
+# only cure and costs far more than it is worth for a beta build.
 xcodebuild -exportArchive \
   -archivePath "$ARCHIVE" \
   -exportOptionsPlist testflight/ExportOptions.plist \
   -exportPath "${ARCHIVE%.xcarchive}-export" \
   -allowProvisioningUpdates \
-  "${AUTH[@]}"
+  ${AUTH[@]+"${AUTH[@]}"}
 
 echo
 echo "✓ Uploaded. App Store Connect processes the build for a few minutes;"

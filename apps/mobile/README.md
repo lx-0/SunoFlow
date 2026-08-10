@@ -92,19 +92,28 @@ Connect (`scripts/testflight.sh` + `testflight/ExportOptions.plist`, both outsid
 gitignored `ios/`). The phone then installs and updates through the TestFlight app —
 internal-testing builds stay valid 90 days and need no Mac.
 
-Two one-time setup steps, both in Apple's web UIs:
+One-time setup: create the app record in App Store Connect → Apps → `+` → New App
+(iOS, bundle id `app.sunoflow.mobile`, a name unique across the whole App Store, any
+SKU). That record is a container, not a release — it stays in "Prepare for Submission"
+until someone actively submits it, and internal TestFlight testing needs no App Review.
 
-1. **App record.** App Store Connect → Apps → `+` → New App: iOS, bundle id
-   `app.sunoflow.mobile`, a name that is unique across the whole App Store, any SKU.
-2. **API key.** App Store Connect → Users and Access → Integrations → App Store
-   Connect API → Team Keys → `+`, role *App Manager*. The `.p8` downloads exactly once;
-   put it in `apps/mobile/certs/` (gitignored). Then `cp .env.example .env` and fill in
-   `ASC_KEY_ID` + `ASC_ISSUER_ID` from that page — the script reads `.env` and
-   `.env.local`, both gitignored repo-wide, so nothing account-related lives in a
-   shell profile. An exported shell variable still overrides the file.
+Authentication is simply the Apple ID signed into Xcode (Settings → Accounts), which
+is the team's Account Holder. **Do not reach for an App Store Connect API key** unless
+a run has to work unattended: a key with the *App Manager* role is refused by Apple
+with `FORBIDDEN_ERROR — You haven't been given access to cloud-managed distribution
+certificates`, because only Admin-role identities may issue a distribution certificate.
+If you do create an Admin key, set `ASC_USE_KEY=1` plus `ASC_KEY_ID` / `ASC_ISSUER_ID`
+in `.env` (see `.env.example`; `.env` and `.env.local` are gitignored repo-wide, so no
+credentials end up in a shell profile) and drop the `.p8` in `apps/mobile/certs/`.
 
 The distribution certificate and App Store provisioning profile are created on demand
 by `-allowProvisioningUpdates` — nothing to prepare in the developer portal.
+
+One warning is expected on every upload: the prebuilt `hermes-engine` pod ships no
+dSYM, so `Upload Symbols Failed … no dSYM for hermesvm.framework` appears and Hermes
+frames in App Store Connect crash reports stay unsymbolicated. The only cure is
+building Hermes from source (`RCT_BUILD_HERMES_FROM_SOURCE=1` before `pod install`),
+which is not worth the build time for beta builds.
 
 Two details that would otherwise cost a round-trip per upload: `ios.config.usesNonExemptEncryption: false`
 in app.json sets `ITSAppUsesNonExemptEncryption` so App Store Connect stops asking the
