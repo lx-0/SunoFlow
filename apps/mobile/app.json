@@ -13,6 +13,9 @@
       "bundleIdentifier": "app.sunoflow.mobile",
       "appleTeamId": "5PWMW95U2P",
       "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "infoPlist": {
         "UIBackgroundModes": [
           "audio"

@@ -8,6 +8,7 @@
     "ios": "expo run:ios",
     "release": "expo run:ios --configuration Release --device",
     "release:check": "tsc --noEmit && expo lint && expo run:ios --configuration Release --device",
+    "testflight": "bash scripts/testflight.sh",
     "prebuild": "expo prebuild -p ios --clean",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint"

@@ -9,6 +9,9 @@ expo-env.d.ts
 /ios/
 /android/
 
+# Xcode archives + upload receipts from `pnpm testflight`
+/build/
+
 # Misc
 *.log
 .DS_Store

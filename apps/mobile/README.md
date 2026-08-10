@@ -85,6 +85,32 @@ a known Expo/RN/CocoaPods build-breaker.
 Point at a local backend: `EXPO_PUBLIC_SUNOFLOW_BASE_URL=http://<lan-ip>:3000`.
 Log in with your SunoFlow email + password (the app calls `POST /api/v1/auth/token`).
 
+## TestFlight (no cable)
+
+`pnpm testflight` archives a Release build and uploads it straight to App Store
+Connect (`scripts/testflight.sh` + `testflight/ExportOptions.plist`, both outside the
+gitignored `ios/`). The phone then installs and updates through the TestFlight app —
+internal-testing builds stay valid 90 days and need no Mac.
+
+Two one-time setup steps, both in Apple's web UIs:
+
+1. **App record.** App Store Connect → Apps → `+` → New App: iOS, bundle id
+   `app.sunoflow.mobile`, a name that is unique across the whole App Store, any SKU.
+2. **API key.** App Store Connect → Users and Access → Integrations → App Store
+   Connect API → Team Keys → `+`, role *App Manager*. The `.p8` downloads exactly once;
+   put it at `~/.appstoreconnect/private_keys/AuthKey_<KEYID>.p8`, then export
+   `ASC_KEY_ID` and `ASC_ISSUER_ID` (both shown on that page).
+
+The distribution certificate and App Store provisioning profile are created on demand
+by `-allowProvisioningUpdates` — nothing to prepare in the developer portal.
+
+Two details that would otherwise cost a round-trip per upload: `ios.config.usesNonExemptEncryption: false`
+in app.json sets `ITSAppUsesNonExemptEncryption` so App Store Connect stops asking the
+export-compliance question (SunoFlow only uses HTTPS), and `manageAppVersionAndBuildNumber`
+in ExportOptions.plist lets Xcode assign a unique build number at upload time, so
+`ios.buildNumber` does not need bumping per build. The marketing version still comes
+from app.json's `version`.
+
 ## Verify the milestone's core proof (M004-S03-T07)
 
 On a real device: play a track, **lock the screen 10+ minutes**, background the app,
