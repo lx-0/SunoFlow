@@ -12,6 +12,9 @@ expo-env.d.ts
 # Xcode archives + upload receipts from `pnpm testflight`
 /build/
 
+# App Store Connect API key (.p8) — full write access to the account
+/certs/
+
 # Misc
 *.log
 .DS_Store

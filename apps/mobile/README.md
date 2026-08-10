@@ -98,8 +98,10 @@ Two one-time setup steps, both in Apple's web UIs:
    `app.sunoflow.mobile`, a name that is unique across the whole App Store, any SKU.
 2. **API key.** App Store Connect → Users and Access → Integrations → App Store
    Connect API → Team Keys → `+`, role *App Manager*. The `.p8` downloads exactly once;
-   put it at `~/.appstoreconnect/private_keys/AuthKey_<KEYID>.p8`, then export
-   `ASC_KEY_ID` and `ASC_ISSUER_ID` (both shown on that page).
+   put it in `apps/mobile/certs/` (gitignored). Then `cp .env.example .env` and fill in
+   `ASC_KEY_ID` + `ASC_ISSUER_ID` from that page — the script reads `.env` and
+   `.env.local`, both gitignored repo-wide, so nothing account-related lives in a
+   shell profile. An exported shell variable still overrides the file.
 
 The distribution certificate and App Store provisioning profile are created on demand
 by `-allowProvisioningUpdates` — nothing to prepare in the developer portal.
