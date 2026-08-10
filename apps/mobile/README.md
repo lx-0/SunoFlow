@@ -56,6 +56,13 @@ Symptom of an expired profile: *"„SunoFlow" ist nicht mehr verfügbar"* on lau
 `expo run:ios --device` failing with `No profiles for 'app.sunoflow.mobile' were found`.
 Fix = rebuild; with the paid team that is a yearly event, not a weekly one.
 
+Changing teams forces one reinstall. The team id is part of the app's identity
+(`application-identifier = <TeamID>.<BundleID>`), so iOS treats the old and new build
+as different apps and refuses the in-place update with
+`CommandError: MismatchedApplicationIdentifierEntitlement`. Delete the app from the
+device first (`xcrun devicectl device uninstall app --device <udid> app.sunoflow.mobile`),
+then build — the stored session in expo-secure-store goes with it, so log in again.
+
 Caveat when moving between teams: bundle identifiers are globally unique across all
 Apple teams, and `app.sunoflow.mobile` was first registered under the free personal
 team. If the portal answers *"cannot be registered to your development team"*, the
