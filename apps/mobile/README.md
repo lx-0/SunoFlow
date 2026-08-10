@@ -109,6 +109,14 @@ credentials end up in a shell profile) and drop the `.p8` in `apps/mobile/certs/
 The distribution certificate and App Store provisioning profile are created on demand
 by `-allowProvisioningUpdates` — nothing to prepare in the developer portal.
 
+Testers: internal testers are App Store Connect users, and the TestFlight app lists
+builds for whichever Apple ID the device uses under Settings → *Media & Purchases* —
+not the one you administer the account with. If an invited tester sees nothing, that
+mismatch is the first thing to check; the fix is inviting the device's Apple ID as an
+App Store Connect user (role *Developer* is enough) rather than re-signing the phone.
+The tester's `state` in the API walks `INVITED → ACCEPTED → INSTALLED`, which is the
+quickest way to tell "not delivered" from "not installed yet".
+
 One warning is expected on every upload: the prebuilt `hermes-engine` pod ships no
 dSYM, so `Upload Symbols Failed … no dSYM for hermesvm.framework` appears and Hermes
 frames in App Store Connect crash reports stay unsymbolicated. The only cure is
