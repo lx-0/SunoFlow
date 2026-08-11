@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 import { useEffect } from "react";
 import Link from "next/link";
 import { TriangleAlert } from "lucide-react";
@@ -20,7 +22,7 @@ export default function Error({
   return (
     <div className="flex flex-col min-h-screen max-w-md mx-auto">
       <header className="sticky top-0 z-10 bg-surface border-b border-border px-4 py-3">
-        <span className="text-violet-400 font-bold text-lg tracking-tight">SunoFlow</span>
+        <span className="text-violet-400 font-bold text-lg tracking-tight">{APP_NAME}</span>
       </header>
 
       <main className="flex-1 flex items-center justify-center p-4">

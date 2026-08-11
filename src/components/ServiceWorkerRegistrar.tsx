@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 import { useEffect, useRef, useState } from "react";
 import { RefreshCw, X } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
@@ -110,7 +112,7 @@ export default function ServiceWorkerRegistrar() {
       <span className="truncate">
         {autoReloadIn !== null && autoReloadIn > 0
           ? `New version — refreshing in ${autoReloadIn}s…`
-          : "A new version of SunoFlow is available."}
+          : `A new version of ${APP_NAME} is available.`}
       </span>
       <button
         onClick={() => window.location.reload()}

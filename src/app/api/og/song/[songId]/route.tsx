@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { APP_DOMAIN } from "@/lib/branding";
 
 export const runtime = "nodejs";
 
@@ -173,7 +174,7 @@ export async function GET(
               marginTop: 32,
             }}
           >
-            sunoflow.app
+            {APP_DOMAIN}
           </div>
         </div>
       </div>

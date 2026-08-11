@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 import { useState, useEffect } from "react";
 import { usePaginatedFetch } from "./use-paginated-fetch";
 import Link from "next/link";
@@ -176,8 +178,8 @@ function ShareButton({ username }: { username: string }) {
   return (
     <ShareMenu
       url={`${typeof window !== "undefined" ? window.location.origin : ""}/u/${username}`}
-      title={`${username} on SunoFlow`}
-      text={`Check out ${username}'s music on SunoFlow`}
+      title={`${username} on ${APP_NAME}`}
+      text={`Check out ${username}'s music on ${APP_NAME}`}
       source="public_profile"
       className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-violet-500 dark:hover:text-violet-400 transition-colors border border-gray-200 dark:border-gray-700 rounded-lg"
     />

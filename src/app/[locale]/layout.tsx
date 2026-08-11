@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { APP_NAME } from "@/lib/branding";
 import localFont from "next/font/local";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
@@ -49,7 +50,7 @@ export async function generateMetadata({
     manifest: "/manifest.json",
     appleWebApp: {
       capable: true,
-      title: "SunoFlow",
+      title: APP_NAME,
       statusBarStyle: "default",
     },
     icons: {
@@ -69,7 +70,7 @@ export async function generateMetadata({
       description: "Manage your Suno music, discover inspiration, and automate your creative workflow.",
       type: "website",
       siteName: t("appName"),
-      images: [{ url: "/icons/icon-512.png", width: 512, height: 512, alt: "SunoFlow" }],
+      images: [{ url: "/icons/icon-512.png", width: 512, height: 512, alt: APP_NAME }],
     },
     twitter: {
       card: "summary",

@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 import { useState, useRef } from "react";
 import { useToast } from "./Toast";
 import FormTextarea from "./ui/FormTextarea";
@@ -34,7 +36,7 @@ export function ReportModal({ songId, playlistId, songTitle, onClose }: ReportMo
   const [doSubmit, submitting] = useAsyncAction(async () => {
     try {
       await apiPost("/api/reports", { songId, playlistId, reason, description: description.trim() || undefined });
-      toast("Report submitted. Thank you for helping keep SunoFlow safe.", "success");
+      toast(`Report submitted. Thank you for helping keep ${APP_NAME} safe.`, "success");
       onClose();
     } catch (err) {
       if (err instanceof HttpError) {

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { APP_NAME } from "@/lib/branding";
 import { JamGuestView } from "@/components/JamGuestView";
 
 export const metadata: Metadata = {
   title: "Jam Session",
-  description: "Request a song at this SunoFlow jam session.",
+  description: `Request a song at this ${APP_NAME} jam session.`,
   robots: { index: false },
 };
 

@@ -1,10 +1,12 @@
+import { APP_NAME } from "@/lib/branding";
+
 /** Static shell layout for loading states — matches AppShell structure without session dependency. */
 export function ShellSkeleton({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen max-w-md mx-auto">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-surface border-b border-border px-4 py-3 flex items-center justify-between">
-        <span className="text-violet-400 font-bold text-lg tracking-tight">SunoFlow</span>
+        <span className="text-violet-400 font-bold text-lg tracking-tight">{APP_NAME}</span>
       </header>
       {/* Content */}
       <main className="flex-1 overflow-y-auto pb-20">{children}</main>

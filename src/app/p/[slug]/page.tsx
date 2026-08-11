@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { APP_NAME } from "@/lib/branding";
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -63,7 +64,7 @@ export async function generateMetadata({
   );
   const description =
     playlist.description ??
-    `${visibleSongs.length} song${visibleSongs.length !== 1 ? "s" : ""} by ${creatorName} on SunoFlow`;
+    `${visibleSongs.length} song${visibleSongs.length !== 1 ? "s" : ""} by ${creatorName} on ${APP_NAME}`;
   const canonicalUrl = `${siteUrl}/p/${slug}`;
 
   // Use first song's image as OG image
@@ -78,10 +79,10 @@ export async function generateMetadata({
       description,
       url: canonicalUrl,
       type: "music.playlist",
-      siteName: "SunoFlow",
+      siteName: APP_NAME,
       images: firstImage
         ? [{ url: firstImage, alt: title }]
-        : [{ url: "/icons/icon-512.png", width: 512, height: 512, alt: "SunoFlow" }],
+        : [{ url: "/icons/icon-512.png", width: 512, height: 512, alt: APP_NAME }],
     },
     twitter: {
       card: "summary_large_image",

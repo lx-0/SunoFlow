@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { APP_NAME } from "@/lib/branding";
 import { Search } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
 
@@ -23,7 +24,7 @@ export default function NotFound() {
       <body className="bg-surface-deep text-primary min-h-screen">
         <div className="flex flex-col min-h-screen max-w-md mx-auto">
           <header className="sticky top-0 z-10 bg-surface border-b border-border px-4 py-3">
-            <span className="text-violet-400 font-bold text-lg tracking-tight">SunoFlow</span>
+            <span className="text-violet-400 font-bold text-lg tracking-tight">{APP_NAME}</span>
           </header>
 
           <main className="flex-1 flex items-center justify-center p-4">

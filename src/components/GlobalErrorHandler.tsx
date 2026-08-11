@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 import { useEffect, useRef } from "react";
 import { useToast } from "./Toast";
 import { logError } from "@/lib/error-logger";
@@ -81,7 +83,7 @@ export function GlobalErrorHandler() {
         reloadPromptedRef.current = true;
         logError("chunk-load-error", reason);
         toast(
-          "A new version of SunoFlow is available. Tap to refresh.",
+          `A new version of ${APP_NAME} is available. Tap to refresh.`,
           "info",
           { label: "Refresh", onClick: () => window.location.reload() },
         );
@@ -99,7 +101,7 @@ export function GlobalErrorHandler() {
         reloadPromptedRef.current = true;
         logError("chunk-load-error", event.error);
         toast(
-          "A new version of SunoFlow is available. Tap to refresh.",
+          `A new version of ${APP_NAME} is available. Tap to refresh.`,
           "info",
           { label: "Refresh", onClick: () => window.location.reload() },
         );

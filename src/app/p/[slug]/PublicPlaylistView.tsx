@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 import { useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -203,7 +205,7 @@ export function PublicPlaylistView({
         {isPublished && (
           <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-xs font-medium">
             <CheckBadgeIcon className="w-3.5 h-3.5" />
-            Published on SunoFlow
+            Published on {APP_NAME}
           </div>
         )}
 
@@ -212,7 +214,7 @@ export function PublicPlaylistView({
           <ShareMenu
             url={`${typeof window !== "undefined" ? window.location.origin : ""}/p/${slug}`}
             title={name}
-            text={`Listen to "${name}" on SunoFlow`}
+            text={`Listen to "${name}" on ${APP_NAME}`}
             source="public_playlist"
             embedUrl={`/embed/playlist/${slug}`}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
@@ -423,7 +425,7 @@ export function PublicPlaylistView({
 
       {/* Branding */}
       <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-6">
-        Shared via SunoFlow
+        Shared via {APP_NAME}
       </p>
 
       {/* Report modal */}

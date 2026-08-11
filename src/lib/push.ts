@@ -9,6 +9,7 @@
  */
 
 import webpush from "web-push";
+import { APP_DOMAIN } from "@/lib/branding";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 
@@ -28,7 +29,7 @@ function ensureVapid() {
   if (vapidConfigured) return;
   const publicKey = process.env.VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const subject = process.env.VAPID_SUBJECT ?? "mailto:noreply@sunoflow.app";
+  const subject = process.env.VAPID_SUBJECT ?? `mailto:noreply@${APP_DOMAIN}`;
 
   if (!publicKey || !privateKey) {
     logger.warn("VAPID keys not configured — push notifications disabled");

@@ -3,6 +3,8 @@
  * Client-safe: no server imports.
  */
 
+import { APP_NAME } from "@/lib/branding";
+
 export type SubscriptionTier = "free" | "starter" | "pro" | "studio";
 
 export interface FeatureGate {
@@ -33,7 +35,7 @@ export const FEATURE_GATES: Record<string, FeatureGate> = {
   apiKeys: {
     minTier: "studio",
     name: "API Key Access",
-    description: "Integrate SunoFlow into your own apps via API.",
+    description: `Integrate ${APP_NAME} into your own apps via API.`,
   },
   jamSessions: {
     minTier: "studio",

@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 import { useState, useRef } from "react";
 import FormTextarea from "./ui/FormTextarea";
 import { Star } from "lucide-react";
@@ -137,7 +139,7 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
                 category === "bug_report"
                   ? "Describe what happened and how to reproduce it…"
                   : category === "feature_request"
-                  ? "What would you like to see in SunoFlow?"
+                  ? `What would you like to see in ${APP_NAME}?`
                   : "Tell us what you think…"
               }
               rows={4}

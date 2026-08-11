@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { APP_NAME } from "@/lib/branding";
 import { track } from "@/lib/analytics";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { type ToastFn } from "@/components/Toast";
@@ -77,7 +78,7 @@ export function useSongVisibility({
     if (!publicSlug) return;
     const url = `${window.location.origin}/s/${publicSlug}`;
     const title = songTitle ?? "Check out this song";
-    const tweetText = `${title} — listen on SunoFlow`;
+    const tweetText = `${title} — listen on ${APP_NAME}`;
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(url)}`;
     window.open(twitterUrl, "_blank", "noopener,noreferrer");
     track("song_shared", { songId, source: "song_detail", method: "twitter" });

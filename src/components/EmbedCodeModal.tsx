@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 import { useState } from "react";
 import { ModalShell } from "./ModalShell";
 
@@ -24,7 +26,7 @@ export function EmbedCodeModal({
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const autoplayParam = autoplay ? "&autoplay=1" : "";
   const src = `${origin}/embed/${songId}?theme=${theme}${autoplayParam}`;
-  const snippet = `<iframe\n  src="${src}"\n  width="100%"\n  height="96"\n  frameborder="0"\n  allow="autoplay"\n  loading="lazy"\n  title="SunoFlow player"\n></iframe>`;
+  const snippet = `<iframe\n  src="${src}"\n  width="100%"\n  height="96"\n  frameborder="0"\n  allow="autoplay"\n  loading="lazy"\n  title="${APP_NAME} player"\n></iframe>`;
 
   async function handleCopy() {
     try {

@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 import { useState, useRef, useCallback } from "react";
 import { Link, usePathname } from "@/i18n/navigation";
 import { signOut, useSession } from "next-auth/react";
@@ -185,7 +187,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Logo + collapse toggle */}
         <div className={`flex items-center h-14 border-b border-border ${sidebarCollapsed ? "justify-center px-2" : "px-4 justify-between"}`}>
           {!sidebarCollapsed && (
-            <span className="text-violet-400 font-bold text-lg tracking-tight">SunoFlow</span>
+            <span className="text-violet-400 font-bold text-lg tracking-tight">{APP_NAME}</span>
           )}
           <button
             onClick={toggleSidebarCollapsed}
@@ -268,7 +270,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         {/* Drawer header */}
         <div className="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b border-border">
-          <span className="text-violet-400 font-bold text-lg tracking-tight">SunoFlow</span>
+          <span className="text-violet-400 font-bold text-lg tracking-tight">{APP_NAME}</span>
           <button
             onClick={closeSidebar}
             aria-label={t("closeMenu")}
@@ -339,7 +341,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Icon icon={Menu} className="w-6 h-6" />
           </button>
 
-          <span className="text-violet-400 font-bold text-lg tracking-tight md:hidden">SunoFlow</span>
+          <span className="text-violet-400 font-bold text-lg tracking-tight md:hidden">{APP_NAME}</span>
 
           {/* Search bar (visible when authenticated) */}
           {session?.user && (

@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as Sentry from "@sentry/nextjs";
 import Image from "next/image";
@@ -423,7 +425,7 @@ export function PublicSongView({
         <ShareMenu
           url={typeof window !== "undefined" ? window.location.href : `/s/${slug}`}
           title={title}
-          text={`${title} — listen on SunoFlow`}
+          text={`${title} — listen on ${APP_NAME}`}
           source="public_song"
           embedUrl={`/embed/${songId}`}
           className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all duration-200 active:scale-95 min-h-[44px]"
@@ -509,7 +511,7 @@ export function PublicSongView({
                 width="100%"
                 height="96"
                 style={{ border: "none", display: "block" }}
-                title={`${title} — SunoFlow`}
+                title={`${title} — ${APP_NAME}`}
               />
             </div>
 
@@ -640,7 +642,7 @@ export function PublicSongView({
 
       {/* Branding */}
       <p className="text-center text-xs text-gray-500 dark:text-gray-400">
-        Shared via SunoFlow
+        Shared via {APP_NAME}
       </p>
       </div>
       </div>

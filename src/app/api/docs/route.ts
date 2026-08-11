@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { APP_NAME } from "@/lib/branding";
 import { publicRoute } from "@/lib/route-handler";
 import { notFound } from "@/lib/api-error";
 
@@ -21,7 +22,7 @@ export const GET = publicRoute(async () => {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SunoFlow API v1 — Swagger UI</title>
+  <title>${APP_NAME} API v1 — Swagger UI</title>
   <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
   <style>body { margin: 0; }</style>
 </head>

@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 import { useState, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
@@ -111,14 +113,14 @@ export function PwaInstallPrompt() {
   return (
     <div
       role="dialog"
-      aria-label="Install SunoFlow as an app"
+      aria-label={`Install ${APP_NAME} as an app`}
       className="fixed bottom-20 left-4 right-4 z-50 mx-auto max-w-sm bg-surface-raised rounded-xl shadow-lg border border-border p-4 animate-in slide-in-from-bottom-4"
     >
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0 w-10 h-10 rounded-lg overflow-hidden">
           <Image
             src="/icons/icon-192.png"
-            alt="SunoFlow"
+            alt={APP_NAME}
             width={40}
             height={40}
             className="w-full h-full object-cover"
@@ -126,13 +128,13 @@ export function PwaInstallPrompt() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-primary">
-            Install SunoFlow
+            Install {APP_NAME}
           </p>
           <p className="text-xs text-secondary mt-0.5">
             {ios
               ? 'Tap the Share button \u{1F517}, then "Add to Home Screen".'
               : deferredPrompt.current
-                ? "Add SunoFlow to your home screen for faster access and offline support."
+                ? `Add ${APP_NAME} to your home screen for faster access and offline support.`
                 : 'Open your browser menu and tap "Add to Home Screen" or "Install app".'}
           </p>
           <div className="flex gap-2 mt-3">

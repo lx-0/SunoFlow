@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { APP_NAME } from "@/lib/branding";
 import { publicRoute } from "@/lib/route-handler";
 import { openApiSpec } from "@/lib/openapi";
 
@@ -25,7 +26,7 @@ function buildV1Spec() {
       ...openApiSpec.info,
       version: "1.0.0",
     },
-    servers: [{ url: "/api/v1", description: "SunoFlow API v1" }],
+    servers: [{ url: "/api/v1", description: `${APP_NAME} API v1` }],
     paths: v1Paths,
   };
 }

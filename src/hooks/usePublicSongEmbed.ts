@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { APP_NAME, APP_URL } from "@/lib/branding";
 import { useToast } from "@/components/Toast";
 
 interface UsePublicSongEmbedOptions {
@@ -16,10 +17,10 @@ export function usePublicSongEmbed({ songId, title }: UsePublicSongEmbedOptions)
   const { toast } = useToast();
 
   function getEmbedCode() {
-    const origin = typeof window !== "undefined" ? window.location.origin : "https://sunoflow.app";
+    const origin = typeof window !== "undefined" ? window.location.origin : APP_URL;
     const src = `${origin}/embed/${songId}?theme=${embedTheme}`;
     const widthAttr = embedWidth === "100%" ? `width="100%"` : `width="${embedWidth}"`;
-    return `<iframe src="${src}" ${widthAttr} height="96" style="border:none;border-radius:12px;overflow:hidden;" allow="autoplay" title="${title} — SunoFlow"></iframe>`;
+    return `<iframe src="${src}" ${widthAttr} height="96" style="border:none;border-radius:12px;overflow:hidden;" allow="autoplay" title="${title} — ${APP_NAME}"></iframe>`;
   }
 
   async function handleCopyEmbed() {

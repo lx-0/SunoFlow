@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { APP_NAME } from "@/lib/branding";
 import { AppShell } from "@/components/AppShell";
 import { NotificationsView } from "@/components/NotificationsView";
 import { auth } from "@/lib/auth";
@@ -6,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
   title: "Notifications",
-  description: "Stay up to date with activity on your SunoFlow account.",
+  description: `Stay up to date with activity on your ${APP_NAME} account.`,
   robots: { index: false },
 };
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 import { useRef } from "react";
 import Image from "next/image";
 import { PlayIcon, PauseIcon, MusicalNoteIcon, SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/24/solid";
@@ -172,7 +174,7 @@ export function EmbedSongPlayer({
         </div>
       </div>
 
-      {/* SunoFlow link */}
+      {/* link back to the app */}
       <div className="flex-shrink-0 flex flex-col items-end gap-1">
         <a
           href={songUrl}
@@ -180,7 +182,7 @@ export function EmbedSongPlayer({
           rel="noopener noreferrer"
           className="text-[9px] font-semibold text-violet-500 hover:text-violet-400 transition-colors whitespace-nowrap"
         >
-          Listen on SunoFlow ↗
+          Listen on {APP_NAME} ↗
         </a>
       </div>
 

@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { APP_NAME } from "@/lib/branding";
 import { prisma } from "@/lib/prisma";
 import { getSiteUrl } from "@/lib/site-url";
 import { EmbedSongPlayer } from "./EmbedSongPlayer";
@@ -42,7 +43,7 @@ export default async function EmbedSongPage({
           <meta charSet="utf-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <meta name="robots" content="noindex" />
-          <title>Song Unavailable — SunoFlow</title>
+          <title>{`Song Unavailable — ${APP_NAME}`}</title>
         </head>
         <body
           style={{ margin: 0, padding: "8px", boxSizing: "border-box" }}
@@ -71,7 +72,7 @@ export default async function EmbedSongPage({
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="robots" content="noindex" />
-        <title>{`${title} — SunoFlow`}</title>
+        <title>{`${title} — ${APP_NAME}`}</title>
       </head>
       <body
         style={{ margin: 0, padding: "8px", boxSizing: "border-box" }}

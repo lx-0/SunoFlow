@@ -10,6 +10,8 @@
  * Your Meta App must have the "oembed_read" permission.
  */
 
+import { APP_NAME } from "@/lib/branding";
+
 export interface InstagramPost {
   url: string;
   authorName: string;
@@ -143,7 +145,7 @@ export async function fetchInstagramPost(
 
     const res = await fetch(oembedUrl, {
       signal: AbortSignal.timeout(10000),
-      headers: { "User-Agent": "SunoFlow/1.0" },
+      headers: { "User-Agent": `${APP_NAME}/1.0` },
     });
 
     if (!res.ok) {

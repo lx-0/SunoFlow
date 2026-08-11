@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { APP_NAME } from "@/lib/branding";
 import type { QueueSong } from "@/components/queue/queue-context-types";
 
 interface UseMediaSessionParams {
@@ -53,7 +54,7 @@ export function useMediaSession({
 
     navigator.mediaSession.metadata = new MediaMetadata({
       title: displaySong.title ?? "Untitled",
-      artist: "SunoFlow",
+      artist: APP_NAME,
       artwork: displaySong.imageUrl
         ? [{ src: displaySong.imageUrl, sizes: "512x512", type: "image/jpeg" }]
         : [],

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { APP_NAME } from "@/lib/branding";
 import { z } from "zod";
 import { authRoute, resultResponse } from "@/lib/route-handler";
 import { notFound } from "@/lib/api-error";
@@ -37,7 +38,7 @@ export const GET = authRoute<
 
     const result = await prepareSongDownload({
       song,
-      artistName: user?.name ?? "SunoFlow User",
+      artistName: user?.name ?? `${APP_NAME} User`,
       requestedFormat,
       embedMetadata,
     });

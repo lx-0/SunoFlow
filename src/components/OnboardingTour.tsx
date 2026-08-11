@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 /**
  * OnboardingTour — context provider for the first-time user tour.
  *
@@ -32,7 +34,7 @@ type TourStep = {
 const TOUR_STEPS: TourStep[] = [
   {
     id: "welcome",
-    title: "Welcome to SunoFlow!",
+    title: `Welcome to ${APP_NAME}!`,
     description:
       "Create AI music easily. Let us show you around — it only takes a moment.",
     targetSelector: "[data-tour='welcome']",
@@ -62,7 +64,7 @@ const TOUR_STEPS: TourStep[] = [
     id: "prompt-tips",
     title: "Tips for Better Results",
     description:
-      "Get the most out of SunoFlow: (1) Add a genre + mood — \"upbeat jazz, happy\". (2) Include instruments — \"piano, drums, bass\". (3) Specify tempo — \"slow ballad\" or \"fast-paced\". (4) Avoid vague words — be specific about the feeling you want.",
+      `Get the most out of ${APP_NAME}: (1) Add a genre + mood — "upbeat jazz, happy". (2) Include instruments — "piano, drums, bass". (3) Specify tempo — "slow ballad" or "fast-paced". (4) Avoid vague words — be specific about the feeling you want.`,
     targetSelector: "[data-tour='generate-prompt']",
     requiredPath: "/generate",
     position: "bottom",

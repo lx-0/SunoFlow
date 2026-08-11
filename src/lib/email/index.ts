@@ -1,8 +1,9 @@
 import Mailjet from "node-mailjet";
 import { logger } from "@/lib/logger";
 import { firstTag } from "@/lib/tags";
-
-const APP_NAME = "SunoFlow";
+// The product name lives in one place so the rename away from "Suno" is a config
+// change; e-mail was carrying its own copy of it.
+import { APP_NAME } from "@/lib/branding";
 
 // ---------------------------------------------------------------------------
 // Transport (absorbed from transport.ts — single internal consumer)

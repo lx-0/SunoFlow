@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 /**
  * OnboardingTourUI — the visual overlay (welcome modal + step tooltip).
  *
@@ -77,7 +79,7 @@ export function OnboardingTourUI({
                 <MusicalNoteIcon className="w-7 h-7 text-white" aria-hidden="true" />
               </div>
               <h2 id="welcome-modal-title" className="text-2xl font-bold text-white mb-1">
-                Welcome to SunoFlow!
+                Welcome to {APP_NAME}!
               </h2>
               <p className="text-violet-200 text-sm">Your personal AI music studio</p>
             </div>
@@ -85,7 +87,7 @@ export function OnboardingTourUI({
             {/* Body */}
             <div className="px-6 py-5">
               <p className="text-gray-600 dark:text-gray-400 text-sm text-center mb-5">
-                SunoFlow lets you create, manage, and enjoy AI-generated music — all in one place.
+                {APP_NAME} lets you create, manage, and enjoy AI-generated music — all in one place.
               </p>
 
               <div className="space-y-3 mb-6">

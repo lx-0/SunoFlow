@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { APP_NAME } from "@/lib/branding";
 import { audioCache } from "@/lib/cache";
 import { embedId3Tags, embedWavMetadata } from "@/lib/audio-metadata";
 import { wavToFlac } from "@/lib/flac-encoder";
@@ -181,7 +182,7 @@ export async function prepareSongDownload(
     const meta: SongMetadata = {
       title: song.title ?? undefined,
       artist: artistName,
-      album: "SunoFlow",
+      album: APP_NAME,
       year: new Date(song.createdAt).getFullYear(),
       genre: song.tags ?? undefined,
       comment: song.prompt ?? undefined,

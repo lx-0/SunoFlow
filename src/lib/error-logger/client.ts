@@ -13,6 +13,7 @@
 "use client";
 
 import * as Sentry from "@sentry/nextjs";
+import { APP_NAME } from "@/lib/branding";
 import { extractErrorInfo } from "./extract";
 
 function reportToServer(source: string, error: unknown, route?: string): void {
@@ -40,7 +41,7 @@ export function logError(source: string, error: unknown, route?: string): void {
     error: stack ? { message, stack } : message,
   };
 
-  console.error("[SunoFlow Error]", entry);
+  console.error(`[${APP_NAME} Error]`, entry);
   reportToServer(source, error, route);
   try {
     Sentry.captureException(

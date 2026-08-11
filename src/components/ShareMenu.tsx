@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 import { useEffect, useRef, useState } from "react";
 import { Share2, Link, Check, Code } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
@@ -91,7 +93,7 @@ export function ShareMenu({
     setOpen(false);
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     const src = embedUrl.startsWith("http") ? embedUrl : `${origin}${embedUrl}`;
-    const snippet = `<iframe src="${src}" width="100%" height="180" frameborder="0" style="border:none;border-radius:12px;overflow:hidden;" allow="autoplay" title="${title} — SunoFlow"></iframe>`;
+    const snippet = `<iframe src="${src}" width="100%" height="180" frameborder="0" style="border:none;border-radius:12px;overflow:hidden;" allow="autoplay" title="${title} — ${APP_NAME}"></iframe>`;
     try {
       await navigator.clipboard.writeText(snippet);
     } catch {

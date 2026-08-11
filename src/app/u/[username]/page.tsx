@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { APP_NAME } from "@/lib/branding";
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -52,25 +53,25 @@ export async function generateMetadata({
   const displayName = user.name ?? user.username;
   const description = user.bio
     ? user.bio.slice(0, 200)
-    : `${displayName}'s music profile on SunoFlow — ${user._count.songs} public songs`;
+    : `${displayName}'s music profile on ${APP_NAME} — ${user._count.songs} public songs`;
   const canonicalUrl = `${siteUrl}/u/${user.username}`;
   const ogImage = user.avatarUrl ?? user.image ?? `${siteUrl}/icons/icon-512.png`;
 
   return {
-    title: `${displayName} (@${user.username}) · SunoFlow`,
+    title: `${displayName} (@${user.username}) · ${APP_NAME}`,
     description,
     alternates: { canonical: canonicalUrl },
     openGraph: {
-      title: `${displayName} on SunoFlow`,
+      title: `${displayName} on ${APP_NAME}`,
       description,
       url: canonicalUrl,
       type: "profile",
-      siteName: "SunoFlow",
+      siteName: APP_NAME,
       images: [{ url: ogImage, alt: displayName ?? undefined }],
     },
     twitter: {
       card: "summary",
-      title: `${displayName} on SunoFlow`,
+      title: `${displayName} on ${APP_NAME}`,
       description,
       images: [ogImage],
     },
@@ -131,7 +132,7 @@ export default async function PublicProfilePage({
     description: user.bio ?? undefined,
     memberOf: {
       "@type": "WebSite",
-      name: "SunoFlow",
+      name: APP_NAME,
       url: siteUrl,
     },
   };
