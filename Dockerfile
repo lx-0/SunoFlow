@@ -39,6 +39,12 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # the Dockerfile declares them as ARG.
 ARG NEXT_PUBLIC_SENTRY_DSN
 ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
+# Set on the Railway service but undeclared until now, so sentry.client.config.ts
+# fell through to NODE_ENV — which happens to be "production" too, hence no visible
+# damage. Declared so the variable does what it says once it is ever set to
+# anything else (a staging environment, say).
+ARG NEXT_PUBLIC_SENTRY_ENVIRONMENT
+ENV NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT
 # Product name (src/lib/branding.ts) and canonical origin (src/lib/site-url.ts).
 # Declared here so the rename away from "Suno" is a Railway variable change plus a
 # redeploy. NEXT_PUBLIC_SITE_URL predates this block and was NOT declared, so
