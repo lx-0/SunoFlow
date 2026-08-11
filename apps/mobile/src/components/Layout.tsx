@@ -26,11 +26,17 @@ export function ContentWidth({
 }
 
 /**
- * contentContainerStyle for a scrolling list that should stay readable on iPad.
- * Lists cannot be wrapped in a centering View without losing virtualization, so
- * they cap the *content container* instead.
+ * Width cap for a scrolling list's contentContainerStyle, or for header/control
+ * rows that must stay aligned with it. Lists cannot be wrapped in a centering
+ * View without losing virtualization, so they cap the *content container*.
+ *
+ * Deliberately NOT typed as ViewStyle: these objects are also applied to
+ * TextInput, and ViewStyle is not assignable to TextStyle (`userSelect` differs).
+ * A narrow literal type is accepted by both.
  */
-export function useListContentStyle(kind: keyof typeof CONTENT_MAX = "text"): ViewStyle {
+type WidthCap = { maxWidth: number; width: "100%"; alignSelf: "center" } | Record<string, never>;
+
+export function useListContentStyle(kind: keyof typeof CONTENT_MAX = "text"): WidthCap {
   const { isWide } = useLayout();
   return isWide ? { maxWidth: CONTENT_MAX[kind], width: "100%", alignSelf: "center" } : {};
 }

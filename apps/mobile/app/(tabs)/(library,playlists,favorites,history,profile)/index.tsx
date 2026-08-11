@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { View, Image, Pressable, FlatList, ActivityIndicator, ActionSheetIOS, StyleSheet, RefreshControl } from "react-native";
+import { View, Image, Pressable, FlatList, ActivityIndicator, ActionSheetIOS, StyleSheet, RefreshControl, type ViewStyle } from "react-native";
 import { Text, TextInput } from "@/components/Themed";
 import { router, useFocusEffect } from "expo-router";
 import { goToSection } from "@/navigation";
@@ -19,6 +19,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii } from "@/theme/theme";
+import { useLayout } from "@/theme/layout";
+import { useListContentStyle } from "@/components/Layout";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
@@ -69,6 +71,14 @@ export default function LibraryScreen() {
   const [view, setView] = useState<"list" | "grid">("list");
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Grid artwork wants ~180pt per tile, so the column count follows the canvas:
+  // 2 on a phone, 3-4 across an iPad. The list view stays single-column but its
+  // rows get capped, otherwise a title sits alone on a 1000pt line.
+  const { columns } = useLayout();
+  const gridColumns = view === "grid" ? Math.max(2, columns(180)) : 1;
+  const listWidth = useListContentStyle(view === "grid" ? "wide" : "text");
+  const gridItemWidth: ViewStyle = { maxWidth: `${100 / gridColumns}%` };
 
   const cursorRef = useRef<string | null>(null);
   const hasMoreRef = useRef(true);
@@ -213,7 +223,7 @@ export default function LibraryScreen() {
   return (
     <View style={styles.container}>
       <TextInput
-        style={styles.search}
+        style={[styles.search, listWidth]}
         placeholder="Search library"
         placeholderTextColor={colors.textFaint}
         autoCapitalize="none"
@@ -223,7 +233,7 @@ export default function LibraryScreen() {
         onSubmitEditing={() => load(query.trim(), sortBy, filters)}
       />
 
-      <View style={styles.controls}>
+      <View style={[styles.controls, listWidth]}>
         <View style={styles.controlsLeft}>
           <Pressable style={styles.sortBtn} onPress={openSort}>
             <ArrowUpDown color={colors.textDim} size={16} />
@@ -281,19 +291,21 @@ export default function LibraryScreen() {
         )
       ) : (
         <FlatList
-          key={view} // numColumns change requires a fresh list
+          // numColumns cannot change on a live list, so the column count is part
+          // of the key: rotating an iPad or resizing a split view remounts here.
+          key={`${view}-${gridColumns}`}
           data={songs}
-          numColumns={view === "grid" ? 2 : 1}
+          numColumns={gridColumns}
           columnWrapperStyle={view === "grid" ? styles.gridRow : undefined}
           keyExtractor={(s, i) => `${s.id}:${i}`}
           onEndReached={loadMore}
           onEndReachedThreshold={0.6}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />}
-          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+          contentContainerStyle={[{ paddingBottom: MINIPLAYER_CLEARANCE }, listWidth]}
           ListFooterComponent={loadingMore ? <ActivityIndicator color={colors.textFaint} style={styles.footer} /> : null}
           renderItem={({ item, index }) =>
             view === "grid" ? (
-              <Pressable style={styles.gridItem} onPress={() => play(songs, index)}>
+              <Pressable style={[styles.gridItem, gridItemWidth]} onPress={() => play(songs, index)}>
                 <View style={styles.gridArtWrap}>
                   {item.artworkUrl ? (
                     <Image source={{ uri: item.artworkUrl }} style={styles.gridArt} />
@@ -345,7 +357,9 @@ function makeStyles(c: ThemeColors) {
     centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
     footer: { paddingVertical: 18 },
     gridRow: { paddingHorizontal: 12, gap: 12 },
-    gridItem: { flex: 1, marginBottom: 18, maxWidth: "50%" },
+    // maxWidth comes from gridItemWidth (100 / column count) — the column count
+    // is canvas-dependent, so it cannot live in the static stylesheet.
+    gridItem: { flex: 1, marginBottom: 18 },
     gridArtWrap: { borderRadius: radii.xl },
     gridArt: { width: "100%", aspectRatio: 1, borderRadius: radii.xl, backgroundColor: c.surfaceAlt },
     gridPlaceholder: { alignItems: "center", justifyContent: "center" },
