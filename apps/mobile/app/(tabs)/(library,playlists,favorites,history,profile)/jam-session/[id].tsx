@@ -20,6 +20,7 @@ import { HttpError } from "@/api/client";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { fonts, radii, spacing } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 import {
@@ -42,6 +43,7 @@ export default function JamSessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const [detail, setDetail] = useState<JamSessionSummary | null>(null);
   const [state, setState] = useState<JamState | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -229,7 +231,7 @@ export default function JamSessionScreen() {
       <FlatList
         data={state?.entries ?? []}
         keyExtractor={(e) => e.id}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, listWidth]}
         ListHeaderComponent={
           <View style={styles.header}>
             <View style={styles.statusRow}>

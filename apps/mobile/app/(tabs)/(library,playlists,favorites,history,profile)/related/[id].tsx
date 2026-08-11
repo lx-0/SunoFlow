@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import type { Song } from "@/types";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import type { ThemeColors } from "@/theme/theme";
 
 // Related ("also liked") songs for the song the user came from. Reloads on focus.
@@ -17,6 +18,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function RelatedScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +57,7 @@ export default function RelatedScreen() {
         <FlatList
           data={songs}
           keyExtractor={(s) => s.id}
-          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+          contentContainerStyle={[{ paddingBottom: MINIPLAYER_CLEARANCE }, listWidth]}
           renderItem={({ item, index }) => (
             <SongRow
               song={item}

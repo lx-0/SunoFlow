@@ -9,6 +9,7 @@ import { SongRow } from "@/components/SongRow";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import type { ThemeColors } from "@/theme/theme";
 
 // For You: a personalised recommendation feed. Reloads on focus so it reflects
@@ -16,6 +17,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function RecommendationsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const { data: songs, error, refreshing, onRefresh, retry, showError } = useListResource(
     fetchRecommendations,
     {
@@ -49,7 +51,7 @@ export default function RecommendationsScreen() {
         <FlatList
           data={songs}
           keyExtractor={(s) => s.id}
-          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+          contentContainerStyle={[{ paddingBottom: MINIPLAYER_CLEARANCE }, listWidth]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
           }

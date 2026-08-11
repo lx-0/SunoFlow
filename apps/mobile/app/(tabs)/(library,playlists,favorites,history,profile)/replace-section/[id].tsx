@@ -10,6 +10,7 @@ import { replaceSection } from "@/api/song-studio";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { fonts, radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -20,6 +21,7 @@ export default function ReplaceSectionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const contentWidth = useListContentStyle();
   const headerOffset = useHeaderOffset();
   const [prompt, setPrompt] = useState("");
   const [start, setStart] = useState("");
@@ -58,7 +60,7 @@ export default function ReplaceSectionScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={headerOffset}>
       <Stack.Screen options={{ title: "Replace Section" }} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.content, contentWidth]} keyboardShouldPersistTaps="handled">
         <Text style={styles.help}>
           Regenerate part of the song. Give the new part a prompt and the time window (in seconds) to replace.
         </Text>

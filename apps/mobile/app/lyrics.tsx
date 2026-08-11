@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { fonts, radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -18,6 +19,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function LyricsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const contentWidth = useListContentStyle();
   const { current, positionSeconds } = usePlayback();
   const reduceMotion = useReducedMotion();
   const songId = current?.id;
@@ -75,7 +77,7 @@ export default function LyricsScreen() {
       ) : lines.length === 0 ? (
         <EmptyState Icon={FileText} title="No lyrics for this song." />
       ) : (
-        <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
+        <ScrollView ref={scrollRef} contentContainerStyle={[styles.content, contentWidth]}>
           <View style={styles.card}>
             {lines.map((line, i) => (
               <Text

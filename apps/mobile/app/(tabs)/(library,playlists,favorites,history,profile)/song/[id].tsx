@@ -26,6 +26,7 @@ import { SongRow } from "@/components/SongRow";
 import { usePrompt } from "@/components/PromptSheet";
 import type { Song } from "@/types";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { fonts, radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -34,6 +35,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function SongDetailScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const contentWidth = useListContentStyle();
   const prompt = usePrompt();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [song, setSong] = useState<SongDetail | null>(null);
@@ -344,7 +346,7 @@ export default function SongDetailScreen() {
   ];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.container} contentContainerStyle={[styles.content, contentWidth]}>
       <Stack.Screen options={{ title: song.title }} />
 
       {/* Hero — music video plays in place of the cover when one exists */}

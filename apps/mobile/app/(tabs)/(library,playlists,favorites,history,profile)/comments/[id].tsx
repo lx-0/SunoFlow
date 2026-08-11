@@ -16,6 +16,7 @@ import { fetchComments, addComment, type Comment } from "@/api/comments";
 import { EmptyState } from "@/components/EmptyState";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -25,6 +26,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function CommentsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const headerOffset = useHeaderOffset();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [comments, setComments] = useState<Comment[] | null>(null);
@@ -98,7 +100,7 @@ export default function CommentsScreen() {
         <FlatList
           data={comments}
           keyExtractor={(c) => c.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, listWidth]}
           renderItem={({ item }) => (
             <View style={styles.row}>
               <View style={styles.head}>

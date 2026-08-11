@@ -8,6 +8,7 @@ import { fetchSongAnalytics, type SongAnalytics } from "@/api/song-analytics";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { fonts, radii, type ThemeColors } from "@/theme/theme";
 
 type Styles = ReturnType<typeof makeStyles>;
@@ -19,6 +20,7 @@ type Styles = ReturnType<typeof makeStyles>;
 export default function SongAnalyticsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const contentWidth = useListContentStyle("wide");
   const { id } = useLocalSearchParams<{ id: string }>();
   const [data, setData] = useState<SongAnalytics | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +54,7 @@ export default function SongAnalyticsScreen() {
       ) : !data ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scroll}>
+        <ScrollView contentContainerStyle={[styles.scroll, contentWidth]}>
           <Header data={data} styles={styles} />
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Totals</Text>

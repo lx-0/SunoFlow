@@ -20,12 +20,14 @@ import { usePrompt } from "@/components/PromptSheet";
 import { playQueue } from "@/playback/controls";
 import type { Song } from "@/types";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 export default function PlaylistDetailScreen() {
   const { colors } = useTheme();
   const st = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const prompt = usePrompt();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [songs, setSongs] = useState<Song[] | null>(null);
@@ -207,7 +209,7 @@ export default function PlaylistDetailScreen() {
       <FlatList
         data={songs}
         keyExtractor={(s) => s.id}
-        contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+        contentContainerStyle={[{ paddingBottom: MINIPLAYER_CLEARANCE }, listWidth]}
         ListHeaderComponent={
           <View style={st.hero}>
             {songs[0]?.artworkUrl ? (

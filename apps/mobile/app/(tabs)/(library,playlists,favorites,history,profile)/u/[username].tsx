@@ -19,6 +19,7 @@ import {
 import { playQueue } from "@/playback/controls";
 import type { Song } from "@/types";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { fonts, radii, type ThemeColors } from "@/theme/theme";
 
 type Tab = "songs" | "liked" | "playlists";
@@ -155,6 +156,7 @@ function ProfileContent({
   onToggleFollow: () => Promise<void>;
 }) {
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const header = (
     <View>
       <View style={styles.header}>
@@ -207,7 +209,7 @@ function ProfileContent({
         data={playlists}
         keyExtractor={(p) => p.id}
         ListHeaderComponent={header}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, listWidth]}
         ListEmptyComponent={
           <EmptyState Icon={ListMusic} title="No public playlists yet" />
         }
@@ -231,7 +233,7 @@ function ProfileContent({
       data={list}
       keyExtractor={(s) => s.id}
       ListHeaderComponent={header}
-      contentContainerStyle={styles.listContent}
+      contentContainerStyle={[styles.listContent, listWidth]}
       ListEmptyComponent={<EmptyState Icon={EmptyIcon} title={emptyText} />}
       renderItem={({ item, index }) => (
         <Pressable

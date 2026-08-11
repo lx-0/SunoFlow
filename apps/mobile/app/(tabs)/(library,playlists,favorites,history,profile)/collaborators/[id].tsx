@@ -15,6 +15,7 @@ import {
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -27,6 +28,7 @@ export default function CollaboratorsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
 
   const [name, setName] = useState("Playlist");
   const [isOwner, setIsOwner] = useState(true);
@@ -146,7 +148,7 @@ export default function CollaboratorsScreen() {
       <FlatList
         data={list ?? []}
         keyExtractor={(c) => c.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, listWidth]}
         ListHeaderComponent={
           <View style={styles.header}>
             <View style={styles.toggleRow}>

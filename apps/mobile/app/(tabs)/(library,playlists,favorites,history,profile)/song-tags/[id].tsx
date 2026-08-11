@@ -23,6 +23,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { radii, type ThemeColors } from "@/theme/theme";
 
 // Per-song tag editor (mobile parity with the web owner view). Loads the song's
@@ -33,6 +34,7 @@ import { radii, type ThemeColors } from "@/theme/theme";
 export default function SongTagsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const contentWidth = useListContentStyle();
   const headerOffset = useHeaderOffset();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [tags, setTags] = useState<SongTag[] | null>(null);
@@ -150,7 +152,7 @@ export default function SongTagsScreen() {
           subtitle="Add one with the field above."
         />
       ) : (
-        <ScrollView contentContainerStyle={styles.chips}>
+        <ScrollView contentContainerStyle={[styles.chips, contentWidth]}>
           {tags.map((tag) => (
             <View key={tag.id} style={styles.chip}>
               <Text style={styles.chipText} numberOfLines={1}>

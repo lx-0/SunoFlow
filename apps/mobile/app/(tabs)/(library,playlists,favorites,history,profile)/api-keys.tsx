@@ -15,6 +15,7 @@ import {
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import type { ThemeColors } from "@/theme/theme";
 import { fonts, radii } from "@/theme/theme";
 
@@ -30,6 +31,7 @@ const KEY_NAME_MAX = 64;
 export default function ApiKeysScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
 
   const [suno, setSuno] = useState<SunoKeyState | null>(null);
   const [keys, setKeys] = useState<PersonalKey[] | null>(null);
@@ -160,7 +162,7 @@ export default function ApiKeysScreen() {
         <FlatList
           data={keys}
           keyExtractor={(k) => k.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, listWidth]}
           ListHeaderComponent={
             <View style={styles.headerArea}>
               {/* Suno API key */}

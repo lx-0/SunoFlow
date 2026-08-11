@@ -9,6 +9,7 @@ import { usePlaybackSelector } from "@/playback/usePlayback";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import type { ThemeColors } from "@/theme/theme";
 
 // Add a song to a playlist. Targets the song passed via the `songId` param (e.g.
@@ -18,6 +19,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function AddToPlaylistScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   // Selector: only the current song id matters here — no per-tick re-renders.
   const current = usePlaybackSelector((s) => s.current);
   const params = useLocalSearchParams<{ songId?: string; title?: string }>();
@@ -76,7 +78,7 @@ export default function AddToPlaylistScreen() {
         <FlatList
           data={playlists}
           keyExtractor={(p) => p.id}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, listWidth]}
           ListHeaderComponent={
             <Text style={styles.header} numberOfLines={1}>Add “{current?.title}” to…</Text>
           }

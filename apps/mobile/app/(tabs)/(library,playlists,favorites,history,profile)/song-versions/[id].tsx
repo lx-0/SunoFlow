@@ -9,6 +9,7 @@ import { SongRow } from "@/components/SongRow";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
@@ -17,6 +18,7 @@ import type { Song } from "@/types";
 export default function SongVersionsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [versions, setVersions] = useState<Song[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +55,7 @@ export default function SongVersionsScreen() {
         <FlatList
           data={versions}
           keyExtractor={(s) => s.id}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, listWidth]}
           renderItem={({ item, index }) => (
             <SongRow
               song={item}

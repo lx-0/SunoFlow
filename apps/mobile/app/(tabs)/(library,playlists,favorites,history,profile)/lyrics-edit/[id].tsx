@@ -10,6 +10,7 @@ import { fetchRawLyrics, updateLyrics } from "@/api/lyrics";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { fonts, radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -20,6 +21,7 @@ export default function LyricsEditScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const contentWidth = useListContentStyle();
   const headerOffset = useHeaderOffset();
 
   const [original, setOriginal] = useState("");
@@ -123,7 +125,7 @@ export default function LyricsEditScreen() {
       {loading ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={[styles.scroll, contentWidth]} keyboardShouldPersistTaps="handled">
           {hasOverride ? <Text style={styles.badge}>Edited: differs from the original</Text> : null}
           <TextInput
             style={styles.input}

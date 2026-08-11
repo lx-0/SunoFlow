@@ -36,6 +36,7 @@ import { usePrompt } from "@/components/PromptSheet";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { usePollingJob } from "@/hooks/usePollingJob";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { fonts, radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -56,6 +57,7 @@ function paramStr(v: string | string[] | undefined): string {
 export default function GenerateScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const contentWidth = useListContentStyle();
   const prompt = usePrompt();
   const headerOffset = useHeaderOffset();
   const params = useLocalSearchParams<{ prompt?: string; style?: string; tags?: string; lyricsprompt?: string; personaId?: string; parentSongId?: string }>();
@@ -330,7 +332,7 @@ export default function GenerateScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Generate" }} />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={headerOffset}>
-        <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={[styles.formContent, contentWidth]} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
             <Sparkles color={colors.accent} size={22} />
             <Text style={styles.heroText}>
