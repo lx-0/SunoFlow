@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { APP_NAME } from "@/lib/branding";
 import { Metadata } from "next";
 import { CollectionDetailView } from "./CollectionDetailView";
 
@@ -51,8 +52,8 @@ export async function generateMetadata({
   const collection = await fetchCollection(id);
   if (!collection) return { title: "Collection Not Found" };
   return {
-    title: `${collection.title} — SunoFlow`,
-    description: collection.description ?? `${collection.songCount} curated songs on SunoFlow`,
+    title: `${collection.title} — ${APP_NAME}`,
+    description: collection.description ?? `${collection.songCount} curated songs on ${APP_NAME}`,
     openGraph: {
       title: collection.title,
       description: collection.description ?? undefined,

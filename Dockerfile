@@ -39,6 +39,14 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # the Dockerfile declares them as ARG.
 ARG NEXT_PUBLIC_SENTRY_DSN
 ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
+# Product name (src/lib/branding.ts) and canonical origin (src/lib/site-url.ts).
+# Declared here so the rename away from "Suno" is a Railway variable change plus a
+# redeploy. NEXT_PUBLIC_SITE_URL predates this block and was NOT declared, so
+# setting it on the service silently did nothing at build time.
+ARG NEXT_PUBLIC_APP_NAME
+ENV NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME
+ARG NEXT_PUBLIC_SITE_URL
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 # Build identifier baked into the client bundle for service-worker cache
 # busting and the Sentry release. Set by the deploy workflow from
 # ${{ github.sha }} since Railway-via-`railway up` doesn't auto-inject

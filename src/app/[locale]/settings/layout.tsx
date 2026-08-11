@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { APP_NAME } from "@/lib/branding";
 
 export const metadata: Metadata = {
   title: "Settings",
-  description: "Manage your SunoFlow account preferences, API keys, and notification settings.",
+  description: `Manage your ${APP_NAME} account preferences, API keys, and notification settings.`,
   robots: { index: false },
 };
 

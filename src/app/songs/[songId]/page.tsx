@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { APP_NAME } from "@/lib/branding";
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -41,7 +42,7 @@ export async function generateMetadata({
   const creatorName = song.user.name ?? "Unknown Artist";
   const description = song.prompt
     ? song.prompt.slice(0, 200)
-    : `Listen to "${title}" by ${creatorName} on SunoFlow`;
+    : `Listen to "${title}" by ${creatorName} on ${APP_NAME}`;
   const canonicalUrl = song.publicSlug
     ? `${siteUrl}/s/${song.publicSlug}`
     : `${siteUrl}/songs/${songId}`;
@@ -83,7 +84,7 @@ export async function generateMetadata({
       description,
       url: canonicalUrl,
       type: "music.song",
-      siteName: "SunoFlow",
+      siteName: APP_NAME,
       images: ogImages,
       ...(song.audioUrl
         ? {

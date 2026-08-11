@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -67,7 +69,7 @@ export default function VerifyEmailPage() {
     <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50 dark:bg-gray-950">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-violet-400">SunoFlow</h1>
+          <h1 className="text-3xl font-bold text-violet-400">{APP_NAME}</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">Email verification</p>
         </div>
         <Suspense fallback={<div className="text-center text-gray-400">Loading...</div>}>

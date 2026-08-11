@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
+import { APP_NAME } from "@/lib/branding";
 import { getInitialBrowseSongs } from "@/lib/discovery";
 import { DiscoverView } from "../discover/DiscoverView";
 
 export const metadata: Metadata = {
-  title: "Explore Songs — SunoFlow",
+  title: `Explore Songs — ${APP_NAME}`,
   description:
-    "Browse and listen to publicly shared AI-generated songs on SunoFlow.",
+    `Browse and listen to publicly shared AI-generated songs on ${APP_NAME}.`,
   openGraph: {
-    title: "Explore Songs — SunoFlow",
+    title: `Explore Songs — ${APP_NAME}`,
     description:
-      "Browse and listen to publicly shared AI-generated songs on SunoFlow.",
+      `Browse and listen to publicly shared AI-generated songs on ${APP_NAME}.`,
     type: "website",
   },
 };

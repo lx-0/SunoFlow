@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { APP_NAME, CONTACT_EMAIL } from "@/lib/branding";
 import {
   SparklesIcon,
   MusicalNoteIcon,
@@ -72,7 +73,7 @@ function NavBar() {
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 font-bold text-lg text-gray-900 dark:text-white">
           <SparklesIcon className="w-5 h-5 text-violet-600" />
-          SunoFlow
+          {APP_NAME}
         </Link>
         <div className="flex items-center gap-3">
           <Link
@@ -120,7 +121,7 @@ function HeroSection() {
         </h1>
 
         <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-          Generate, manage, and share your AI-crafted music. SunoFlow brings your library,
+          Generate, manage, and share your AI-crafted music. {APP_NAME} brings your library,
           inspiration feeds, and creative tools into one seamless workspace.
         </p>
 
@@ -156,7 +157,7 @@ function FeaturesSection() {
             Everything you need to create
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            From generation to sharing, SunoFlow handles every step of your creative workflow.
+            From generation to sharing, {APP_NAME} handles every step of your creative workflow.
           </p>
         </div>
 
@@ -197,7 +198,7 @@ function FreeBetaBanner() {
             Free during the beta
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-400 mb-8 max-w-xl mx-auto">
-            SunoFlow is in active development and currently open to invited users only. Early access
+            {APP_NAME} is in active development and currently open to invited users only. Early access
             is free — no tiers, no credit card. Expect rough edges while we build.
           </p>
 
@@ -218,7 +219,7 @@ function FreeBetaBanner() {
               Have an invite? Sign up
             </Link>
             <a
-              href="mailto:hello@sunoflow.app?subject=SunoFlow%20invite%20request"
+              href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`${APP_NAME} invite request`)}`}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-base font-semibold border border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300 hover:bg-violet-100/50 dark:hover:bg-violet-900/30 transition-colors"
             >
               Request access
@@ -237,7 +238,7 @@ function FooterSection() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2 font-bold text-gray-900 dark:text-white">
             <SparklesIcon className="w-5 h-5 text-violet-600" />
-            SunoFlow
+            {APP_NAME}
           </div>
 
           <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-500 dark:text-gray-400">
@@ -247,13 +248,13 @@ function FooterSection() {
             <Link href="/privacy" className="hover:text-gray-900 dark:hover:text-white transition-colors">
               Privacy
             </Link>
-            <a href="mailto:hello@sunoflow.app" className="hover:text-gray-900 dark:hover:text-white transition-colors">
+            <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-gray-900 dark:hover:text-white transition-colors">
               Contact
             </a>
           </nav>
 
           <p className="text-xs text-gray-400 dark:text-gray-600">
-            © {new Date().getFullYear()} SunoFlow. All rights reserved.
+            © {new Date().getFullYear()} {APP_NAME}. All rights reserved.
           </p>
         </div>
       </div>

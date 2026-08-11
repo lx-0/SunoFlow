@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 import { useState } from "react";
 import Link from "next/link";
 import { apiPost } from "@/lib/api-client";
@@ -30,7 +32,7 @@ export default function ForgotPasswordPage() {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50 dark:bg-gray-950">
         <div className="w-full max-w-sm text-center">
-          <h1 className="text-3xl font-bold text-violet-400 mb-4">SunoFlow</h1>
+          <h1 className="text-3xl font-bold text-violet-400 mb-4">{APP_NAME}</h1>
           <div className="bg-green-100 dark:bg-green-900/40 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg text-sm mb-6">
             If an account with that email exists, a password reset link has been sent. Check your inbox.
           </div>
@@ -46,7 +48,7 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50 dark:bg-gray-950">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-violet-400">SunoFlow</h1>
+          <h1 className="text-3xl font-bold text-violet-400">{APP_NAME}</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
             Enter your email to receive a password reset link
           </p>

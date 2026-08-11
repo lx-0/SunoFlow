@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -32,7 +34,7 @@ function PersonalApiKeysSectionGated() {
         </h3>
         <div className="flex flex-col gap-3 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-border text-sm">
           <p className="text-secondary">
-            Generate API keys to integrate SunoFlow into your own applications.
+            Generate API keys to integrate {APP_NAME} into your own applications.
             Available on the <span className="font-semibold text-primary">Studio</span> plan.
           </p>
           <Link
@@ -195,7 +197,7 @@ function AgentSkillSection() {
           Connect Your Agent
         </h3>
         <p className="text-xs text-secondary mt-0.5">
-          Let AI agents (like Claude Code) manage your music library, generate songs, and organize playlists using the SunoFlow API.
+          Let AI agents (like Claude Code) manage your music library, generate songs, and organize playlists using the {APP_NAME} API.
         </p>
       </div>
 

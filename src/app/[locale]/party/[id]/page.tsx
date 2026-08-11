@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { APP_NAME } from "@/lib/branding";
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { PartyHostView } from "@/components/PartyHostView";
@@ -7,7 +8,7 @@ import { auth } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Jam Session",
-  description: "Host console for a live SunoFlow jam session.",
+  description: `Host console for a live ${APP_NAME} jam session.`,
   robots: { index: false },
 };
 

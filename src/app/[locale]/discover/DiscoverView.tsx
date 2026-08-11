@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -143,7 +145,7 @@ export function DiscoverView({
                 href="/"
                 className="text-violet-500 font-bold text-lg tracking-tight"
               >
-                SunoFlow
+                {APP_NAME}
               </Link>
               <h1 className="text-xl font-bold mt-1">Discover</h1>
               <p className="text-sm text-secondary">

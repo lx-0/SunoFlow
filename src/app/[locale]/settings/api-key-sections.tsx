@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 import { useCallback, useEffect, useState } from "react";
 import { Key, Plus, RefreshCw, Trash2, TriangleAlert } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
@@ -308,7 +310,7 @@ function PersonalApiKeysSection() {
         <div>
           <h3 className="text-base font-semibold text-primary">Personal API Keys</h3>
           <p className="text-xs text-secondary mt-0.5">
-            Manage API keys for programmatic access to your SunoFlow account. Max 5 active keys.
+            Manage API keys for programmatic access to your {APP_NAME} account. Max 5 active keys.
           </p>
         </div>
 
