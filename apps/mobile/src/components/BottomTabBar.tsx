@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BookOpen, ListMusic, Heart, Clock, User, type LucideIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/theme";
+import { useLayout } from "@/theme/layout";
 import { registerTabNavigation } from "@/navigation";
 
 // Custom tab bar for the Tabs navigator in app/(tabs)/_layout.tsx. Rendered
@@ -32,6 +33,7 @@ export function BottomTabBar({ state, navigation }: BottomTabBarProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const insets = useSafeAreaInsets();
+  const { isWide } = useLayout();
   const activeGroup = state.routes[state.index]?.name;
 
   // Expose the Tabs navigator to src/navigation.ts (sidebar tab rows,
@@ -59,6 +61,13 @@ export function BottomTabBar({ state, navigation }: BottomTabBarProps) {
       }
     }
   }
+
+  // On medium/expanded the permanent sidebar rail carries navigation, so the bar
+  // renders nothing. It must still be MOUNTED — the effect above is what exposes
+  // the Tabs navigator to src/navigation.ts, and without it the rail's own rows,
+  // closePlayerThen and isAtTabRoot all break. Hence a null render, never a
+  // `tabBar={() => null}` in the layout.
+  if (isWide) return null;
 
   return (
     <View style={[styles.bar, { paddingBottom: insets.bottom, height: TAB_CONTENT_HEIGHT + insets.bottom }]}>

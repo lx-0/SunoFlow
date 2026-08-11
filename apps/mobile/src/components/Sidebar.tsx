@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePathname, type Href } from "expo-router";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii } from "@/theme/theme";
+import { SIDEBAR_WIDTH, useLayout } from "@/theme/layout";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { switchTo, isAtTabRoot } from "@/navigation";
 import {
@@ -17,8 +18,13 @@ import {
 // overlay, not a nav-library drawer). Replaces the bottom tab bar so the growing
 // feature set has room. Pure RN Animated (no reanimated/gesture-handler drawer),
 // so it reloads without a native rebuild.
+//
+// Two presentations off the same nav tree (NavList): the overlay drawer on
+// compact widths, and PermanentSidebar — a rail that is always on screen — from
+// the `medium` breakpoint up, where an iPad has the room for it. On wide the
+// overlay, its hamburger, and its edge-swipe all stand down.
 
-const WIDTH = 280;
+const WIDTH = SIDEBAR_WIDTH;
 
 // The five tab-root paths where the left-edge swipe opens the sidebar.
 const TAB_ROOTS = new Set(["/", "/playlists", "/favorites", "/history", "/profile"]);
@@ -39,10 +45,12 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/** Hamburger button for screen headers. */
+/** Hamburger button for screen headers. Hidden while the permanent rail is up. */
 export function SidebarToggle() {
   const { openSidebar } = useSidebar();
   const { colors } = useTheme();
+  const { isWide } = useLayout();
+  if (isWide) return null;
   return (
     <Pressable hitSlop={12} onPress={openSidebar} style={styles.toggle} accessibilityRole="button" accessibilityLabel="Open menu">
       <Menu color={colors.text} size={24} />
@@ -103,9 +111,74 @@ const SECTIONS: Section[] = [
   },
 ];
 
+/** The nav tree itself, shared by the overlay drawer and the permanent rail. */
+function NavList({ onNavigate }: { onNavigate?: () => void }) {
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const pathname = usePathname();
+
+  function go(route: Href) {
+    onNavigate?.();
+    switchTo(route, pathname);
+  }
+
+  return (
+    <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
+      {SECTIONS.map((section, si) => (
+        <View key={si} style={styles.section}>
+          {section.title ? <Text style={[styles.sectionTitle, { color: colors.textFaint }]}>{section.title}</Text> : null}
+          {section.items.map((it) => {
+            const active = pathname === it.route;
+            return (
+              <Pressable
+                key={it.label}
+                style={[styles.row, active && { backgroundColor: colors.surfaceHover }]}
+                onPress={() => go(it.route)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+              >
+                <it.Icon color={active ? colors.accent : colors.textDim} size={20} />
+                <Text style={[styles.label, { color: active ? colors.text : colors.text }]}>{it.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ))}
+    </ScrollView>
+  );
+}
+
+/**
+ * Always-visible navigation rail for medium/expanded widths. Rendered as a
+ * sibling of the content column by app/(tabs)/_layout.tsx, so it takes real
+ * layout space instead of floating over the screens.
+ */
+export function PermanentSidebar() {
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  return (
+    <View
+      style={[
+        styles.rail,
+        {
+          width: WIDTH,
+          backgroundColor: colors.surface,
+          borderRightColor: colors.border,
+          paddingTop: insets.top + 12,
+          paddingLeft: insets.left,
+        },
+      ]}
+    >
+      <Text style={[styles.brand, { color: colors.text }]}>SunoFlow</Text>
+      <NavList />
+    </View>
+  );
+}
+
 export function Sidebar() {
   const { open, openSidebar, closeSidebar } = useSidebar();
   const { colors } = useTheme();
+  const { isWide } = useLayout();
   const reduceMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
@@ -136,6 +209,10 @@ export function Sidebar() {
     });
   }, [open, anim, reduceMotion]);
 
+  // On medium/expanded the rail is permanently on screen, so the overlay — and
+  // its edge-swipe, which would otherwise fight iPad's own edge gestures — is off.
+  if (isWide) return null;
+
   // When closed, only the left edge-swipe catcher is present (tab roots only).
   if (!mounted) {
     if (!atTabRoot) return null;
@@ -145,11 +222,6 @@ export function Sidebar() {
   const translateX = anim.interpolate({ inputRange: [0, 1], outputRange: [-WIDTH, 0] });
   const backdropOpacity = anim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.55] });
 
-  function go(route: Href) {
-    closeSidebar();
-    switchTo(route, pathname);
-  }
-
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, { opacity: backdropOpacity }]}>
@@ -158,19 +230,7 @@ export function Sidebar() {
 
       <Animated.View accessibilityViewIsModal={true} style={[styles.panel, { backgroundColor: colors.surface, borderRightColor: colors.border, width: WIDTH, paddingTop: insets.top + 12, transform: [{ translateX }] }]}>
         <Text style={[styles.brand, { color: colors.text }]}>SunoFlow</Text>
-        <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
-          {SECTIONS.map((section, si) => (
-            <View key={si} style={styles.section}>
-              {section.title ? <Text style={[styles.sectionTitle, { color: colors.textFaint }]}>{section.title}</Text> : null}
-              {section.items.map((it) => (
-                <Pressable key={it.label} style={styles.row} onPress={() => go(it.route)} accessibilityRole="button">
-                  <it.Icon color={colors.textDim} size={20} />
-                  <Text style={[styles.label, { color: colors.text }]}>{it.label}</Text>
-                </Pressable>
-              ))}
-            </View>
-          ))}
-        </ScrollView>
+        <NavList onNavigate={closeSidebar} />
       </Animated.View>
     </View>
   );
@@ -187,6 +247,11 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 12,
+  },
+  // Permanent rail: same look, but in normal flow so content sits beside it.
+  rail: {
     borderRightWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 12,
   },

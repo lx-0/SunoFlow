@@ -67,13 +67,15 @@ function PartyDisplayContent({
 
   useKeepAwake();
 
-  // Unlock rotation while the display is up; back to portrait on close.
+  // Unlock rotation while the display is up, and hand rotation back to the system
+  // on close — NOT a hard lock to portrait. Info.plist decides per device idiom
+  // (iPhone: portrait only, iPad: all four), so unlocking restores exactly the
+  // right set. A lockAsync(PORTRAIT_UP) here used to strand an iPad in portrait
+  // for the rest of the session once the party display had been opened.
   useEffect(() => {
     void ScreenOrientation.unlockAsync().catch(() => {});
     return () => {
-      void ScreenOrientation
-        .lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP)
-        .catch(() => {});
+      void ScreenOrientation.unlockAsync().catch(() => {});
     };
   }, []);
 

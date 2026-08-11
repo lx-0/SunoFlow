@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "app.sunoflow.mobile",
       "appleTeamId": "5PWMW95U2P",
       "buildNumber": "1",
@@ -20,7 +20,13 @@
         "UIBackgroundModes": [
           "audio"
         ],
-        "NSMicrophoneUsageDescription": "SunoFlow does not record audio; this is required because the waveform library bundles recording code."
+        "NSMicrophoneUsageDescription": "SunoFlow does not record audio; this is required because the waveform library bundles recording code.",
+        "UISupportedInterfaceOrientations~ipad": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight"
+        ]
       }
     },
     "plugins": [
@@ -33,12 +39,7 @@
         }
       ],
       "expo-video",
-      [
-        "expo-screen-orientation",
-        {
-          "initialOrientation": "PORTRAIT_UP"
-        }
-      ]
+      "expo-screen-orientation"
     ],
     "experiments": {
       "typedRoutes": true
