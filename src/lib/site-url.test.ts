@@ -10,6 +10,12 @@ describe("site-url", () => {
     expect(getSiteUrlObject().toString()).toBe("https://example.com/");
   });
 
+  it("strips a trailing slash so callers can append paths directly", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://example.com/";
+    expect(getSiteUrl()).toBe("https://example.com");
+    expect(`${getSiteUrl()}/icons/icon-512.png`).toBe("https://example.com/icons/icon-512.png");
+  });
+
   it("falls back to default site URL when missing", () => {
     delete process.env.NEXT_PUBLIC_SITE_URL;
     expect(getSiteUrl()).toBe("https://sunoflow.app");
