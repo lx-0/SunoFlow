@@ -10,11 +10,13 @@ import { changePassword } from "@/api/account";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { radii, type ThemeColors } from "@/theme/theme";
 
 export default function ChangePasswordScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const contentWidth = useListContentStyle();
   const headerOffset = useHeaderOffset();
   const [currentPassword, setCurrent] = useState("");
   const [newPassword, setNew] = useState("");
@@ -51,7 +53,7 @@ export default function ChangePasswordScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={headerOffset}>
       <Stack.Screen options={{ title: "Change Password" }} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.content, contentWidth]} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>Current password</Text>
         <TextInput style={styles.input} value={currentPassword} onChangeText={setCurrent} secureTextEntry autoCapitalize="none" placeholderTextColor={colors.textFaint} />
         <Text style={styles.label}>New password</Text>

@@ -9,6 +9,7 @@ import { fetchInsights } from "@/api/insights";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { fonts, radii, type ThemeColors } from "@/theme/theme";
 
 type Styles = ReturnType<typeof makeStyles>;
@@ -19,6 +20,7 @@ type Styles = ReturnType<typeof makeStyles>;
 export default function InsightsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const contentWidth = useListContentStyle("wide");
   const [data, setData] = useState<InsightsResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,7 +57,7 @@ export default function InsightsScreen() {
           subtitle="Rate songs to see what styles land."
         />
       ) : (
-        <ScrollView contentContainerStyle={styles.scroll}>
+        <ScrollView contentContainerStyle={[styles.scroll, contentWidth]}>
           <SummaryCard data={data} styles={styles} />
           <TagSection tags={data.tagBreakdown} styles={styles} />
           <ComboSection combos={data.topCombos} styles={styles} />

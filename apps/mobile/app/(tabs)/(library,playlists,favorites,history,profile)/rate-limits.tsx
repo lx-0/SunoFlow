@@ -8,6 +8,7 @@ import { fetchRateLimits, type RateLimit } from "@/api/rate-limit";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -21,6 +22,7 @@ type Styles = ReturnType<typeof makeStyles>;
 export default function RateLimitsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const contentWidth = useListContentStyle();
   const [limits, setLimits] = useState<RateLimit[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,7 +53,7 @@ export default function RateLimitsScreen() {
       ) : limits.length === 0 ? (
         <EmptyState Icon={Gauge} title="No rate limits to show" />
       ) : (
-        <ScrollView contentContainerStyle={styles.scroll}>
+        <ScrollView contentContainerStyle={[styles.scroll, contentWidth]}>
           {limits.map((rl) => (
             <LimitCard key={rl.key} limit={rl} styles={styles} />
           ))}

@@ -11,6 +11,7 @@ import { sendFeedback, type FeedbackCategory } from "@/api/feedback";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { radii, type ThemeColors } from "@/theme/theme";
 
 const CATEGORIES: { key: FeedbackCategory; label: string }[] = [
@@ -24,6 +25,7 @@ const CATEGORIES: { key: FeedbackCategory; label: string }[] = [
 export default function FeedbackScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const contentWidth = useListContentStyle();
   const headerOffset = useHeaderOffset();
   const [category, setCategory] = useState<FeedbackCategory>("general");
   const [comment, setComment] = useState("");
@@ -68,7 +70,7 @@ export default function FeedbackScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={headerOffset}>
       <Stack.Screen options={{ title: "Send Feedback" }} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.content, contentWidth]} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>Category</Text>
         <View style={styles.segment}>
           {CATEGORIES.map((cat) => {

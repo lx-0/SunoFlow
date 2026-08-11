@@ -8,6 +8,7 @@ import { apiDelete } from "@/api/client";
 import { exportUserData } from "@/api/account";
 import { fetchCredits, type Credits } from "@/api/credits";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { THEMES, THEME_LABELS, radii, type ThemeMode, type ThemeName } from "@/theme/theme";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 
@@ -21,6 +22,7 @@ const THEME_NAMES = Object.keys(THEMES) as ThemeName[];
 
 export default function SettingsScreen() {
   const { colors, scheme, mode, setMode, themeName, setThemeName } = useTheme();
+  const contentWidth = useListContentStyle();
   const [exporting, setExporting] = useState(false);
   const [credits, setCredits] = useState<Credits | null>(null);
 
@@ -62,7 +64,7 @@ export default function SettingsScreen() {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.bg }]} contentContainerStyle={styles.content}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.bg }]} contentContainerStyle={[styles.content, contentWidth]}>
       <Text style={[styles.sectionTitle, { color: colors.textFaint }]}>Appearance</Text>
       <View style={[styles.segment, { backgroundColor: colors.surface }]}>
         {MODES.map((m) => {

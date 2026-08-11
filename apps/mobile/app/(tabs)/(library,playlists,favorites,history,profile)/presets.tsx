@@ -11,6 +11,7 @@ import { fetchPresets, deletePreset, type Preset } from "@/api/presets";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { fonts } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -21,6 +22,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function PresetsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const [presets, setPresets] = useState<Preset[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,7 +94,7 @@ export default function PresetsScreen() {
       ) : (
         <FlatList
           data={presets}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, listWidth]}
           keyExtractor={(p) => p.id}
           renderItem={({ item }) => (
             <Pressable style={styles.row} onPress={() => rowActions(item)} accessibilityRole="button" accessibilityLabel={`Open preset options for ${item.name}`}>

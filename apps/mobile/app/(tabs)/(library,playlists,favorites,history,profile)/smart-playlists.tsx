@@ -9,6 +9,7 @@ import type { PlaylistSummary } from "@/api/playlists";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import type { ThemeColors } from "@/theme/theme";
 
 // Smart Playlists: auto-curated playlists (server-maintained). Reloads on focus.
@@ -16,6 +17,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function SmartPlaylistsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const [playlists, setPlaylists] = useState<PlaylistSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,7 +53,7 @@ export default function SmartPlaylistsScreen() {
         <FlatList
           data={playlists}
           keyExtractor={(p) => p.id}
-          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+          contentContainerStyle={[{ paddingBottom: MINIPLAYER_CLEARANCE }, listWidth]}
           renderItem={({ item }) => (
             <Pressable style={styles.row} onPress={() => router.push(`/playlist/${item.id}`)}>
               <View style={styles.icon}>

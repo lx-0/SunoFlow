@@ -16,6 +16,7 @@ import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { playQueue } from "@/playback/controls";
 import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { radii, type ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
@@ -45,6 +46,7 @@ export default function SearchScreen() {
   const reqRef = useRef(0);
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
 
   const runSearch = useCallback((raw: string) => {
     const term = raw.trim();
@@ -130,7 +132,7 @@ export default function SearchScreen() {
       ) : (
         <SectionList
           sections={sections}
-          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+          contentContainerStyle={[{ paddingBottom: MINIPLAYER_CLEARANCE }, listWidth]}
           keyExtractor={(item) =>
             item.kind === "song" ? `song:${item.song.id}` : `playlist:${item.playlist.id}`
           }

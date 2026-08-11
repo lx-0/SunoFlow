@@ -9,6 +9,7 @@ import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { SongRow } from "@/components/SongRow";
 import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import type { ThemeColors } from "@/theme/theme";
 
 // History: recently played, newest first. Reloads on focus. The same song can
@@ -16,6 +17,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function HistoryScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const { data: songs, refreshing, onRefresh, retry, showError } = useListResource(fetchHistory, {
     errorMessage: (e) =>
       e instanceof HttpError ? `Failed to load history (HTTP ${e.status})` : "Network error",
@@ -45,7 +47,7 @@ export default function HistoryScreen() {
         <FlatList
           data={songs}
           keyExtractor={(s, i) => `${s.id}:${i}`}
-          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+          contentContainerStyle={[{ paddingBottom: MINIPLAYER_CLEARANCE }, listWidth]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
           }

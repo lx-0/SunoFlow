@@ -15,6 +15,7 @@ import {
   type UserStats,
 } from "@/api/stats";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { fonts, radii, type ThemeColors } from "@/theme/theme";
 
 type Styles = ReturnType<typeof makeStyles>;
@@ -31,6 +32,8 @@ interface StatsData {
 export default function StatsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  // Dashboards use the wider cap — cards benefit from the room, prose does not.
+  const contentWidth = useListContentStyle("wide");
   const [data, setData] = useState<StatsData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,7 +58,7 @@ export default function StatsScreen() {
       ) : !data ? (
         <View style={styles.centered}><ActivityIndicator color={colors.text} /></View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scroll}>
+        <ScrollView contentContainerStyle={[styles.scroll, contentWidth]}>
           <StreakCard streak={data.streak} styles={styles} colors={colors} />
           <HeadlineStats stats={data.stats} styles={styles} />
           <Milestones milestones={data.milestones} styles={styles} colors={colors} />

@@ -16,6 +16,7 @@ import { pushInActiveTab } from "@/navigation";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { radii, type ThemeColors } from "@/theme/theme";
 
 // Notifications feed. Reloads on focus. Unread rows are brighter and carry an
@@ -26,6 +27,7 @@ import { radii, type ThemeColors } from "@/theme/theme";
 export default function NotificationsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const { data, refreshing, onRefresh, retry, revalidate, mutate, showError } = useListResource(
     fetchNotifications,
     {
@@ -115,7 +117,7 @@ export default function NotificationsScreen() {
         <FlatList
           data={items}
           keyExtractor={(n) => n.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, listWidth]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
           }

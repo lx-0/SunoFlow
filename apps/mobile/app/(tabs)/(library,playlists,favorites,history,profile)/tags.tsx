@@ -8,12 +8,14 @@ import { fetchTags, type Tag } from "@/api/tags";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { radii, type ThemeColors } from "@/theme/theme";
 
 // Tags: browse the user's tags. Reloads on focus. Tap a tag to see its songs.
 export default function TagsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const [tags, setTags] = useState<Tag[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,7 +48,7 @@ export default function TagsScreen() {
       ) : (
         <FlatList
           data={tags}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, listWidth]}
           keyExtractor={(t) => t.id}
           renderItem={({ item }) => (
             <Pressable

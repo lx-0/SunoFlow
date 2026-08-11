@@ -10,6 +10,7 @@ import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { SongRow } from "@/components/SongRow";
 import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import type { ThemeColors } from "@/theme/theme";
 
 // Favorites: the user's liked songs. Reloads on focus so toggles made elsewhere
@@ -17,6 +18,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function FavoritesScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const { data: songs, refreshing, onRefresh, retry, showError } = useListResource(fetchFavorites, {
     errorMessage: (e) =>
       e instanceof HttpError ? `Failed to load favorites (HTTP ${e.status})` : "Network error",
@@ -48,7 +50,7 @@ export default function FavoritesScreen() {
         <FlatList
           data={songs}
           keyExtractor={(s) => s.id}
-          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+          contentContainerStyle={[{ paddingBottom: MINIPLAYER_CLEARANCE }, listWidth]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
           }

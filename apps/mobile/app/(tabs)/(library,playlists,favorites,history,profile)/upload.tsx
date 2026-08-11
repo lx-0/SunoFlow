@@ -9,6 +9,7 @@ import { startUpload } from "@/api/upload";
 import { GenerationError } from "@/api/generate";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { usePollingJob } from "@/hooks/usePollingJob";
 import { fonts, radii } from "@/theme/theme";
@@ -22,6 +23,7 @@ type Phase = "form" | "submitting" | "failed";
 export default function UploadScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const contentWidth = useListContentStyle();
   const headerOffset = useHeaderOffset();
   const [mode, setMode] = useState<"cover" | "extend">("cover");
   const [fileName, setFileName] = useState<string | null>(null);
@@ -101,7 +103,7 @@ export default function UploadScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={headerOffset}>
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.container} contentContainerStyle={[styles.content, contentWidth]}>
       <Stack.Screen options={{ title: "Upload" }} />
 
       <View style={styles.segment}>

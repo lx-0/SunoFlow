@@ -10,6 +10,7 @@ import { playQueue } from "@/playback/controls";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { fonts, radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
@@ -48,6 +49,7 @@ function formatDate(iso: string | null): string {
 export default function GenerationsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const { data: items, refreshing, onRefresh, retry, showError } = useListResource(fetchGenerations, {
     errorMessage: (e) =>
       e instanceof HttpError ? `Failed to load generations (HTTP ${e.status})` : "Network error",
@@ -80,7 +82,7 @@ export default function GenerationsScreen() {
         <FlatList
           data={items}
           keyExtractor={(g) => g.id}
-          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+          contentContainerStyle={[{ paddingBottom: MINIPLAYER_CLEARANCE }, listWidth]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
           }

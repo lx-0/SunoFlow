@@ -12,12 +12,14 @@ import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { EmptyState } from "@/components/EmptyState";
 import { usePrompt } from "@/components/PromptSheet";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
 export default function PlaylistsScreen() {
   const { colors } = useTheme();
   const st = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const prompt = usePrompt();
   const { data: items, error, refreshing, onRefresh, retry, revalidate } = useListResource(fetchPlaylists, {
     errorMessage: (e) =>
@@ -107,7 +109,7 @@ export default function PlaylistsScreen() {
       <FlatList
         data={items}
         keyExtractor={(p) => p.id}
-        contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+        contentContainerStyle={[{ paddingBottom: MINIPLAYER_CLEARANCE }, listWidth]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
         }

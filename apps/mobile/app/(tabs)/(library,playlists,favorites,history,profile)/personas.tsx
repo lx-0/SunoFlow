@@ -11,6 +11,7 @@ import { fetchPersonas, deletePersona, type Persona } from "@/api/personas";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import type { ThemeColors } from "@/theme/theme";
 
 // Personas: the user's saved voice/style personas. Reloads on focus. Tapping a
@@ -20,6 +21,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function PersonasScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const [personas, setPersonas] = useState<Persona[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,7 +97,7 @@ export default function PersonasScreen() {
         <FlatList
           data={personas}
           keyExtractor={(p) => p.id}
-          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+          contentContainerStyle={[{ paddingBottom: MINIPLAYER_CLEARANCE }, listWidth]}
           renderItem={({ item }) => (
             <Pressable style={styles.row} onPress={() => rowActions(item)}>
               <View style={styles.meta}>

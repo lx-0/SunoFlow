@@ -10,6 +10,7 @@ import {
 } from "@/api/notification-prefs";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { radii, type ThemeColors } from "@/theme/theme";
 
 // Notification preferences: email + push toggles, digest frequency, quiet hours.
@@ -28,6 +29,7 @@ function formatHour(h: number): string {
 export default function NotificationSettingsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const contentWidth = useListContentStyle();
 
   const [email, setEmail] = useState<EmailPrefs | null>(null);
   const [push, setPush] = useState<PushPrefs | null>(null);
@@ -104,7 +106,7 @@ export default function NotificationSettingsScreen() {
   const loaded = email && push;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.container} contentContainerStyle={[styles.content, contentWidth]}>
       <Stack.Screen options={{ title: "Notifications" }} />
 
       {error ? <Text style={styles.errorLine}>{error}</Text> : null}

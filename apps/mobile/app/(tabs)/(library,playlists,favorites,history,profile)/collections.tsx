@@ -8,12 +8,14 @@ import { fetchCollections, type CollectionSummary } from "@/api/collections";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import type { ThemeColors } from "@/theme/theme";
 
 // Curated public collections. Reloads on focus. Tap a row → detail screen.
 export default function CollectionsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const [collections, setCollections] = useState<CollectionSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +49,7 @@ export default function CollectionsScreen() {
         <FlatList
           data={collections}
           keyExtractor={(c) => c.id}
-          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+          contentContainerStyle={[{ paddingBottom: MINIPLAYER_CLEARANCE }, listWidth]}
           renderItem={({ item }) => (
             <Pressable
               accessibilityRole="button"
