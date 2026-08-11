@@ -11,6 +11,7 @@ import { unfollowUser } from "@/api/users";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { radii, type ThemeColors } from "@/theme/theme";
 
 // People You Follow: the creators the user follows. Reloads on focus so changes
@@ -21,6 +22,7 @@ export default function FollowingPeopleScreen() {
   const [error, setError] = useState<string | null>(null);
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
 
   useFocusEffect(
     useCallback(() => {
@@ -94,7 +96,7 @@ export default function FollowingPeopleScreen() {
         <FlatList
           data={users}
           keyExtractor={(u) => u.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, listWidth]}
           renderItem={({ item }) => (
             <Pressable
               style={styles.row}

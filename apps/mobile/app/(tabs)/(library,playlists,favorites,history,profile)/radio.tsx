@@ -22,6 +22,7 @@ import { SongRow } from "@/components/SongRow";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { radii, type ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
@@ -40,6 +41,7 @@ export default function RadioScreen() {
   const [genre, setGenre] = useState<string | null>(null);
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
 
   const { data: songs, error, refreshing, onRefresh, retry, showError } = useListResource(
     () => fetchRadio({ mood: mood ?? undefined, genre: genre ?? undefined }),
@@ -160,7 +162,7 @@ export default function RadioScreen() {
           data={songs}
           keyExtractor={(s, i) => `${s.id}:${i}`}
           ListHeaderComponent={header}
-          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+          contentContainerStyle={[{ paddingBottom: MINIPLAYER_CLEARANCE }, listWidth]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
           }

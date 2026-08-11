@@ -10,6 +10,7 @@ import { GenerationError } from "@/api/generate";
 import { SongRow } from "@/components/SongRow";
 import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { useHeaderOffset } from "@/hooks/useHeaderOffset";
 import { usePollingJob } from "@/hooks/usePollingJob";
 import { fonts, radii } from "@/theme/theme";
@@ -24,6 +25,7 @@ type Phase = "form" | "submitting" | "failed";
 export default function MashupScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const headerOffset = useHeaderOffset();
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [selected, setSelected] = useState<string[]>([]); // ordered: [A, B]
@@ -157,7 +159,7 @@ export default function MashupScreen() {
       <FlatList
         data={songs ?? []}
         keyExtractor={(s) => s.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, listWidth]}
         ListHeaderComponent={
           <View style={styles.header}>
             <Text style={styles.dim}>Pick two songs to blend into a new track.</Text>

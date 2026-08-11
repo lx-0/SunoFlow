@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { usePrompt } from "@/components/PromptSheet";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { radii, type ThemeColors } from "@/theme/theme";
 
 // Global tag management: rename or delete the user's tags across all songs, and
@@ -19,6 +20,7 @@ import { radii, type ThemeColors } from "@/theme/theme";
 export default function ManageTagsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const prompt = usePrompt();
   const [tags, setTags] = useState<Tag[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -146,7 +148,7 @@ export default function ManageTagsScreen() {
       ) : (
         <FlatList
           data={tags}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, listWidth]}
           keyExtractor={(t) => t.id}
           renderItem={({ item }) => (
             <Pressable style={styles.row} onPress={() => rowActions(item)} accessibilityRole="button" accessibilityLabel={`Open tag options for ${item.name}`}>

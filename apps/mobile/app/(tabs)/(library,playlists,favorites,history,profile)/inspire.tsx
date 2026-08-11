@@ -9,6 +9,7 @@ import { HttpError } from "@/api/client";
 import { fetchTodaysPicks, generateTodaysPicks } from "@/api/digests";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -22,6 +23,7 @@ const LYRICS_BASIS_MAX = 5800;
 export default function InspireScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const [picks, setPicks] = useState<InspirationDigest | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -148,7 +150,7 @@ export default function InspireScreen() {
         <FlatList
           data={picks.items}
           keyExtractor={(item, i) => `${item.feedTitle ?? "x"}-${i}`}
-          contentContainerStyle={{ padding: 16, paddingBottom: MINIPLAYER_CLEARANCE }}
+          contentContainerStyle={[{ padding: 16, paddingBottom: MINIPLAYER_CLEARANCE }, listWidth]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
           }

@@ -9,6 +9,7 @@ import { PlayIcon } from "@/components/Icons";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import type { ThemeColors } from "@/theme/theme";
 
 const HIT = { top: 10, bottom: 10, left: 10, right: 10 };
@@ -19,6 +20,7 @@ const HIT = { top: 10, bottom: 10, left: 10, right: 10 };
 export default function QueueScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   // Selector: the queue sheet doesn't render playback position, so it must
   // not re-render on every 700ms progress tick while a track plays.
   const { queue, index } = usePlaybackSelector((s) => ({ queue: s.queue, index: s.index }));
@@ -37,7 +39,7 @@ export default function QueueScreen() {
         <FlatList
           data={queue}
           keyExtractor={(s, i) => `${s.id}:${i}`}
-          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+          contentContainerStyle={[{ paddingBottom: MINIPLAYER_CLEARANCE }, listWidth]}
           renderItem={({ item, index: i }) => {
             const isCurrent = i === index;
             return (

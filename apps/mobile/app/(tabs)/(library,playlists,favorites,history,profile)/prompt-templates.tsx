@@ -15,6 +15,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { usePrompt } from "@/components/PromptSheet";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { fonts, radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -26,6 +27,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function PromptTemplatesScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const showPrompt = usePrompt();
   const [templates, setTemplates] = useState<PromptTemplate[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -220,7 +222,7 @@ export default function PromptTemplatesScreen() {
       ) : (
         <FlatList
           data={templates}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, listWidth]}
           keyExtractor={(t) => t.id}
           renderItem={({ item }) => (
             <Pressable style={styles.row} onPress={() => rowActions(item)}>

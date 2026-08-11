@@ -9,6 +9,7 @@ import { Chip } from "@/components/Chip";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { fonts, radii, spacing } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 import {
@@ -25,6 +26,7 @@ const DURATIONS = [4, 12, 24, 48] as const;
 export default function JamScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const [sessions, setSessions] = useState<JamSessionSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -92,7 +94,7 @@ export default function JamScreen() {
       <FlatList
         data={sessions ?? []}
         keyExtractor={(s) => s.id}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, listWidth]}
         ListHeaderComponent={
           <View style={styles.header}>
             <Pressable

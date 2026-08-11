@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Text } from "@/components/Themed";
 import { Stack, router, useFocusEffect } from "expo-router";
+import type { ViewStyle } from "react-native";
 import { Globe, AlertCircle, Disc3, Heart } from "lucide-react-native";
 import { formatDuration } from "@sunoflow/core";
 import { HttpError } from "@/api/client";
@@ -20,6 +21,8 @@ import { Chip } from "@/components/Chip";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useLayout } from "@/theme/layout";
+import { useListContentStyle } from "@/components/Layout";
 import { radii, type ThemeColors } from "@/theme/theme";
 import type { Song } from "@/types";
 
@@ -41,6 +44,11 @@ function describeError(e: unknown): string {
 export default function DiscoverScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  // Same rule as the library grid: ~180pt per cover, so the canvas decides.
+  const { columns } = useLayout();
+  const gridColumns = Math.max(2, columns(180));
+  const gridWidth = useListContentStyle("wide");
+  const gridItemWidth: ViewStyle = { maxWidth: `${100 / gridColumns}%` };
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mood, setMood] = useState<string | null>(null);
@@ -208,9 +216,9 @@ export default function DiscoverScreen() {
         />
       ) : (
         <FlatList
-          key="grid"
+          key={`grid-${gridColumns}`} // numColumns cannot change on a mounted list
           data={songs}
-          numColumns={2}
+          numColumns={gridColumns}
           columnWrapperStyle={styles.gridRow}
           keyExtractor={(s, i) => `${s.id}:${i}`}
           refreshControl={
@@ -218,7 +226,7 @@ export default function DiscoverScreen() {
           }
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
-          contentContainerStyle={styles.gridContent}
+          contentContainerStyle={[styles.gridContent, gridWidth]}
           ListFooterComponent={
             loadingMore ? (
               <View style={styles.footer}>
@@ -228,7 +236,7 @@ export default function DiscoverScreen() {
           }
           renderItem={({ item, index }) => (
             <Pressable
-              style={styles.gridItem}
+              style={[styles.gridItem, gridItemWidth]}
               onPress={async () => {
                 try {
                   await playQueue(songs, index);
@@ -278,7 +286,7 @@ function makeStyles(c: ThemeColors) {
     footer: { paddingVertical: 16 },
     gridContent: { paddingTop: 12, paddingBottom: MINIPLAYER_CLEARANCE },
     gridRow: { paddingHorizontal: 12, gap: 12 },
-    gridItem: { flex: 1, marginBottom: 18, maxWidth: "50%" },
+    gridItem: { flex: 1, marginBottom: 18 }, // maxWidth comes from gridItemWidth
     gridArtWrap: { borderRadius: radii.xl },
     gridArt: { width: "100%", aspectRatio: 1, borderRadius: radii.xl, backgroundColor: c.surfaceAlt },
     gridPlaceholder: { alignItems: "center", justifyContent: "center" },

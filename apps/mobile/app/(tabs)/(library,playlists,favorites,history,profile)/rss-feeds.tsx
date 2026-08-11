@@ -10,6 +10,7 @@ import { fetchRssFeeds, addRssFeed, deleteRssFeed, type RssFeed } from "@/api/rs
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import { radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -18,6 +19,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function RssFeedsScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const [feeds, setFeeds] = useState<RssFeed[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -137,7 +139,7 @@ export default function RssFeedsScreen() {
         <FlatList
           data={feeds}
           keyExtractor={(f) => f.id}
-          contentContainerStyle={{ paddingBottom: MINIPLAYER_CLEARANCE }}
+          contentContainerStyle={[{ paddingBottom: MINIPLAYER_CLEARANCE }, listWidth]}
           renderItem={({ item }) => (
             <Pressable style={styles.row} onPress={() => rowActions(item)}>
               <View style={styles.meta}>

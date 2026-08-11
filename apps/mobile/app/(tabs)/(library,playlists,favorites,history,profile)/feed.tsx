@@ -10,6 +10,7 @@ import { SongRow } from "@/components/SongRow";
 import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
+import { useListContentStyle } from "@/components/Layout";
 import type { ThemeColors } from "@/theme/theme";
 
 // Following: an activity feed from the creators you follow — each entry shows who
@@ -17,6 +18,7 @@ import type { ThemeColors } from "@/theme/theme";
 export default function FeedScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const listWidth = useListContentStyle();
   const { data: entries, refreshing, onRefresh, retry, showError } = useListResource(fetchFeedEntries, {
     errorMessage: (e) =>
       e instanceof HttpError ? `Failed to load feed (HTTP ${e.status})` : "Network error",
@@ -49,7 +51,7 @@ export default function FeedScreen() {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textDim} />
           }
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, listWidth]}
           keyExtractor={(e, i) => `${e.song.id}:${i}`}
           renderItem={({ item, index }) => (
             <View style={styles.entry}>
