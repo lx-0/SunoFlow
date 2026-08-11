@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import { useListContentStyle } from "@/components/Layout";
+import { APP_NAME } from "@/branding";
 import { radii } from "@/theme/theme";
 import type { ThemeColors } from "@/theme/theme";
 
@@ -106,7 +107,7 @@ export default function CollaboratorsScreen() {
   async function onShareLink() {
     try {
       const url = await createInviteLink(id, role);
-      await Share.share({ message: `Join my playlist "${name}" on SunoFlow: ${url}`, url });
+      await Share.share({ message: `Join my playlist "${name}" on ${APP_NAME}: ${url}`, url });
       await load();
     } catch (e) {
       Alert.alert("Couldn't create link", e instanceof HttpError && e.message ? e.message : "Please try again.");

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View, Pressable, ActivityIndicator, KeyboardAvoidingView, StyleSheet } from "react-native";
 import { Text, TextInput } from "@/components/Themed";
+import { APP_NAME } from "@/branding";
 import { router } from "expo-router";
 import { API_BASE_URL } from "@/api/client";
 import { setSession } from "@/auth/session";
@@ -45,7 +46,7 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={0}>
       <View style={styles.c}>
-        <Text style={styles.h}>SunoFlow</Text>
+        <Text style={styles.h}>{APP_NAME}</Text>
         <TextInput
           style={styles.input}
           placeholder="Email"

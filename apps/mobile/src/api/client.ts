@@ -1,13 +1,15 @@
 import { HttpError, createJsonClient } from "@sunoflow/core";
 import { getApiKey } from "@/auth/session";
+import { APP_URL } from "@/branding";
 
 // Bearer-auth API client for the native app: a thin adapter over the shared
 // @sunoflow/core JSON client (same HttpError class + { error } failure-envelope
 // contract as the web's src/lib/api-client.ts), swapping implicit cookie auth
 // for an Authorization header resolved per-request from the stored sk- key.
 
-export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_SUNOFLOW_BASE_URL ?? "https://sunoflow.app";
+// The app talks to the same deployment the website runs on — see src/branding.ts,
+// which owns the origin so a domain change is one edit.
+export const API_BASE_URL = APP_URL;
 
 // Re-exported so sibling api/* modules and screens keep importing from "./client".
 export { HttpError };

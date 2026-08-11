@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { MINIPLAYER_CLEARANCE } from "@/components/MiniPlayer";
 import { useTheme } from "@/theme/ThemeContext";
 import { useListContentStyle } from "@/components/Layout";
+import { APP_NAME } from "@/branding";
 import type { ThemeColors } from "@/theme/theme";
 import { fonts, radii } from "@/theme/theme";
 
@@ -222,7 +223,7 @@ export default function ApiKeysScreen() {
                 </Pressable>
               </View>
               <Text style={[styles.dim, styles.sectionHint]}>
-                Keys for programmatic access to your SunoFlow account. Max 5 active.
+                Keys for programmatic access to your {APP_NAME} account. Max 5 active.
               </Text>
 
               {creating ? (

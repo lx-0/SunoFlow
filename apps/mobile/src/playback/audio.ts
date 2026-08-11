@@ -20,6 +20,7 @@ import {
 	setAudioModeAsync,
 } from "expo-audio";
 import * as SecureStore from "expo-secure-store";
+import { APP_NAME } from "@/branding";
 import { recordPlay } from "@/api/history";
 import { fetchSongVersions } from "@/api/song-versions";
 import type { Song } from "@/types";
@@ -260,7 +261,7 @@ async function loadCurrent(): Promise<void> {
 	p.replace({ uri: song.streamUrl });
 	p.updateLockScreenMetadata({
 		title: song.title,
-		artist: song.artist ?? "SunoFlow",
+		artist: song.artist ?? APP_NAME,
 		artworkUrl: song.artworkUrl,
 	});
 	// Re-assert next/prev: expo-audio reconfigures the command center per track and

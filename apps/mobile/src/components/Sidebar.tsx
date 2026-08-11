@@ -6,6 +6,7 @@ import { usePathname, type Href } from "expo-router";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii } from "@/theme/theme";
 import { SIDEBAR_WIDTH, useLayout } from "@/theme/layout";
+import { APP_NAME } from "@/branding";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { switchTo, isAtTabRoot } from "@/navigation";
 import {
@@ -169,7 +170,7 @@ export function PermanentSidebar() {
         },
       ]}
     >
-      <Text style={[styles.brand, { color: colors.text }]}>SunoFlow</Text>
+      <Text style={[styles.brand, { color: colors.text }]}>{APP_NAME}</Text>
       <NavList />
     </View>
   );
@@ -229,7 +230,7 @@ export function Sidebar() {
       </Animated.View>
 
       <Animated.View accessibilityViewIsModal={true} style={[styles.panel, { backgroundColor: colors.surface, borderRightColor: colors.border, width: WIDTH, paddingTop: insets.top + 12, transform: [{ translateX }] }]}>
-        <Text style={[styles.brand, { color: colors.text }]}>SunoFlow</Text>
+        <Text style={[styles.brand, { color: colors.text }]}>{APP_NAME}</Text>
         <NavList onNavigate={closeSidebar} />
       </Animated.View>
     </View>
