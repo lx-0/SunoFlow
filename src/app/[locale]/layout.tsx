@@ -43,8 +43,8 @@ export async function generateMetadata({
   return {
     metadataBase: new URL(siteUrl),
     title: {
-      default: `${t("appName")} — ${t("tagline")}`,
-      template: `%s — ${t("appName")}`,
+      default: `${APP_NAME} — ${t("tagline")}`,
+      template: `%s — ${APP_NAME}`,
     },
     description: "Manage your Suno music, discover inspiration, and automate your creative workflow.",
     manifest: "/manifest.json",
@@ -66,15 +66,15 @@ export async function generateMetadata({
       ],
     },
     openGraph: {
-      title: `${t("appName")} — ${t("tagline")}`,
+      title: `${APP_NAME} — ${t("tagline")}`,
       description: "Manage your Suno music, discover inspiration, and automate your creative workflow.",
       type: "website",
-      siteName: t("appName"),
+      siteName: APP_NAME,
       images: [{ url: "/icons/icon-512.png", width: 512, height: 512, alt: APP_NAME }],
     },
     twitter: {
       card: "summary",
-      title: `${t("appName")} — ${t("tagline")}`,
+      title: `${APP_NAME} — ${t("tagline")}`,
       description: "Manage your Suno music, discover inspiration, and automate your creative workflow.",
       images: ["/icons/icon-512.png"],
     },

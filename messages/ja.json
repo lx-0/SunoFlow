@@ -1,6 +1,5 @@
 {
   "common": {
-    "appName": "SunoFlow",
     "tagline": "パーソナル音楽マネージャー",
     "save": "保存",
     "cancel": "キャンセル",
@@ -346,13 +345,13 @@
     "description": "インターネット接続を確認してもう一度お試しください。"
   },
   "pwa": {
-    "installPrompt": "SunoFlowをインストール",
+    "installPrompt": "{appName}をインストール",
     "installDescription": "ホーム画面に追加して最高のエクスペリエンスを。",
     "install": "インストール",
     "dismiss": "後で"
   },
   "onboarding": {
-    "welcome": "SunoFlowへようこそ！",
+    "welcome": "{appName}へようこそ！",
     "step1": "Sunoの楽曲をインポート",
     "step2": "新しい音楽を生成",
     "step3": "プレイリストで整理",

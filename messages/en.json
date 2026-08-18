@@ -1,6 +1,5 @@
 {
   "common": {
-    "appName": "SunoFlow",
     "tagline": "Personal Music Manager",
     "save": "Save",
     "cancel": "Cancel",
@@ -348,13 +347,13 @@
     "description": "Check your internet connection and try again."
   },
   "pwa": {
-    "installPrompt": "Install SunoFlow",
+    "installPrompt": "Install {appName}",
     "installDescription": "Add to your home screen for the best experience.",
     "install": "Install",
     "dismiss": "Not now"
   },
   "onboarding": {
-    "welcome": "Welcome to SunoFlow!",
+    "welcome": "Welcome to {appName}!",
     "step1": "Import your Suno songs",
     "step2": "Generate new music",
     "step3": "Organize with playlists",

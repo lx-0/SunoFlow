@@ -378,10 +378,14 @@ self.addEventListener("push", (event) => {
   try {
     payload = event.data.json();
   } catch {
-    payload = { title: "SunoFlow", body: event.data.text(), url: "/" };
+    payload = { title: "New notification", body: event.data.text(), url: "/" };
   }
 
-  const title = payload.title ?? "SunoFlow";
+  // Brand-free fallbacks on purpose: the service worker is served from /public
+  // and cannot read NEXT_PUBLIC_APP_NAME, so a product name hardcoded here would
+  // outlive a rename. Both OS notification shades already show the app's own
+  // name beside the title, and real pushes carry their own title anyway.
+  const title = payload.title ?? "New notification";
   const options = {
     body: payload.body ?? "",
     icon: payload.icon ?? "/icon-192x192.png",
