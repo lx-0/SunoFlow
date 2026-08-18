@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import type { Song } from "@prisma/client";
 import { useRouter } from "next/navigation";
+import { fisherYatesShuffle } from "@sunoflow/core";
 import { downloadSongFile } from "@/lib/download";
 import { songToQueueSong } from "@/lib/song-mappers";
 import { useToast } from "@/components/Toast";
@@ -162,6 +163,20 @@ export function useLibrarySongActions(
     }
   }
 
+  /**
+   * Play the whole list in random order. Shuffles the queue we hand over rather
+   * than switching the player into shuffle mode, so a one-off shuffled listen
+   * leaves the user's persisted playback preference alone.
+   */
+  function handleShuffleAll() {
+    const allQueueSongs = songs
+      .map(songToQueueSong)
+      .filter((s): s is QueueSong => s !== null);
+    if (allQueueSongs.length > 0) {
+      playQueue(fisherYatesShuffle(allQueueSongs), 0);
+    }
+  }
+
   return {
     currentSongId,
     isPlaying,
@@ -177,5 +192,6 @@ export function useLibrarySongActions(
     handleToggleFavorite,
     handleRetry,
     handlePlayAll,
+    handleShuffleAll,
   };
 }

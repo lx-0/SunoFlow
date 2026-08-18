@@ -3,6 +3,7 @@ import { View, Image, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert,
 import { Text } from "@/components/Themed";
 import { Stack, router, useLocalSearchParams, useFocusEffect, type Href } from "expo-router";
 import { ChevronUp, ChevronDown, Pencil, Trash2, Share2, Users, MoreHorizontal, Play, Shuffle, ListMusic } from "lucide-react-native";
+import { fisherYatesShuffle } from "@sunoflow/core";
 import { fetchPlaylistSongs } from "@/api/playlists";
 import { fetchPlaylistCollabMeta } from "@/api/collaborators";
 import {
@@ -55,7 +56,10 @@ export default function PlaylistDetailScreen() {
 
   function playAll(shuffled: boolean) {
     if (!songs || songs.length === 0) return;
-    const list = shuffled ? [...songs].sort(() => Math.random() - 0.5) : songs;
+    // Fisher-Yates, not `sort(() => Math.random() - 0.5)`: a random comparator
+    // is inconsistent, so the resulting order is measurably biased toward the
+    // original one — and the queue machine already exports the correct shuffle.
+    const list = shuffled ? fisherYatesShuffle(songs) : songs;
     void (async () => {
       try { await playQueue(list, 0); router.navigate("/player"); }
       catch (e) { console.error("[playlist] play all failed", e); }

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, useMemo } fr
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Music, Share, Check, RefreshCw, Play } from "lucide-react";
+import { Music, Share, Check, RefreshCw, Play, Shuffle } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
 import type { Song } from "@prisma/client";
 import { RecentlyPlayed } from "./RecentlyPlayed";
@@ -334,15 +334,26 @@ export function LibraryView({
         </div>
       )}
 
-      {/* Play All button */}
+      {/* Start the whole list — in order, or shuffled. Lives outside the toolbar
+          guard on purpose, so filtered views without a toolbar (favorites) keep
+          both affordances. */}
       {hasPlayableSongs && !selectionMode && (
-        <button
-          onClick={songActions.handlePlayAll}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors min-h-[44px]"
-        >
-          <Icon icon={Play} className="w-4 h-4" />
-          Play All
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={songActions.handlePlayAll}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors min-h-[44px]"
+          >
+            <Icon icon={Play} className="w-4 h-4" />
+            Play All
+          </button>
+          <button
+            onClick={songActions.handleShuffleAll}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-surface-raised hover:bg-surface-hover text-primary transition-colors min-h-[44px]"
+          >
+            <Icon icon={Shuffle} className="w-4 h-4" />
+            Shuffle All
+          </button>
+        </div>
       )}
 
       {/* Recently Played — only show on default (non-filtered, non-search) library view */}
